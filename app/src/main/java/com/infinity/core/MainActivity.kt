@@ -686,7 +686,7 @@ private fun InfinityWindow(
                     Text("Los cambios se guardan automáticamente.", color = if (lightMode) Color(0xFF52657A) else Muted, fontSize = 10.sp)
                 }
                 else -> Column(Modifier.padding(14.dp)) {
-                    Text("INFINITY CORE 0.5", color = accentColor, fontWeight = FontWeight.Bold)
+                    Text("INFINITY AURORA 0.6", color = accentColor, fontWeight = FontWeight.Bold))
                     Text("Escritorio nativo Android • Kotlin • Jetpack Compose\nVentanas móviles y redimensionables • Acceso SAF • Lanzador de apps",
                         color = Color.White, fontSize = 12.sp)
                 }
