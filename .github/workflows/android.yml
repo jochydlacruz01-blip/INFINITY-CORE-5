@@ -5,6 +5,8 @@ on:
     branches:
       - main
       - master
+      - A-U-R-O-R-A
+      - infinity-core-0.6-aurora
   workflow_dispatch:
 
 permissions:
@@ -12,26 +14,30 @@ permissions:
 
 jobs:
   build:
-    name: Compile INFINITY CORE 0.5
+    name: Compile INFINITY AURORA 0.6
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Descargar código
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-java@v4
+      - name: Configurar Java
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "17"
 
-      - uses: gradle/actions/setup-gradle@v4
+      - name: Configurar Gradle
+        uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.9"
 
-      - name: Build APK
+      - name: Compilar APK AURORA
         run: gradle --no-daemon --stacktrace :app:assembleDebug
 
-      - uses: actions/upload-artifact@v4
+      - name: Guardar APK
+        uses: actions/upload-artifact@v4
         with:
-          name: INFINITY-CORE-0.5-debug
+          name: INFINITY-AURORA-0.6-debug
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
