@@ -249,7 +249,7 @@ Column(
             Box(Modifier.offset(x = maxW * .58f, y = maxH * .12f).size(240.dp)
                 .background(accentColor.copy(alpha = .08f), CircleShape))
            
-            }
+            
 
             shortcuts.forEach { item ->
                 val offset = iconOffsets[item.id] ?: Offset(22f, 28f)
@@ -686,7 +686,7 @@ private fun InfinityWindow(
                     Text("Los cambios se guardan automáticamente.", color = if (lightMode) Color(0xFF52657A) else Muted, fontSize = 10.sp)
                 }
                 else -> Column(Modifier.padding(14.dp)) {
-                    Text("INFINITY AURORA 0.6", color = accentColor, fontWeight = FontWeight.Bold))
+                    Text("INFINITY AURORA 0.6", color = accentColor, fontWeight = FontWeight.Bold)
                     Text("Escritorio nativo Android • Kotlin • Jetpack Compose\nVentanas móviles y redimensionables • Acceso SAF • Lanzador de apps",
                         color = Color.White, fontSize = 12.sp)
                 }
