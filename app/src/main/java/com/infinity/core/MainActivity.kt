@@ -183,12 +183,69 @@ private fun InfinityApp() {
         ) {
             val maxW = maxWidth
             val maxH = maxHeight
+Column(
+    modifier = Modifier
+        .align(Alignment.TopStart)
+        .padding(start = 20.dp, top = 18.dp)
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(54.dp)
+                .shadow(12.dp, RoundedCornerShape(17.dp))
+                .background(
+                    Brush.linearGradient(
+                        listOf(
+                            Color(0xFF1677FF),
+                            Color(0xFF14C78A),
+                            Color(0xFFFFC928),
+                            Color(0xFFFF4545)
+                        )
+                    ),
+                    RoundedCornerShape(17.dp)
+                )
+                .border(
+                    1.dp,
+                    Color.White.copy(alpha = 0.35f),
+                    RoundedCornerShape(17.dp)
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                "∞",
+                color = Color.White,
+                fontSize = 43.sp,
+                fontWeight = FontWeight.Black
+            )
+        }
 
-            if (wallpaperBitmap != null) {
-                Image(bitmap = wallpaperBitmap, contentDescription = "Fondo del escritorio",
-                    modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-                Box(Modifier.fillMaxSize().background(Color(0x660B1728)))
-            }
+        Column {
+            Text(
+                "INFINITY",
+                color = Color.White,
+                fontSize = 27.sp,
+                fontWeight = FontWeight.Black,
+                letterSpacing = 3.sp
+            )
+            Text(
+                "A U R O R A",
+                color = Color(0xFF8EDFD9),
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 3.sp
+            )
+            Text(
+                "WORKSPACE 0$workspace  •  CORE 0.6",
+                color = Color.White.copy(alpha = 0.65f),
+                fontSize = 9.sp,
+                letterSpacing = 1.sp
+            )
+        }
+    }
+}
             Box(Modifier.offset(x = maxW * .58f, y = maxH * .12f).size(240.dp)
                 .background(accentColor.copy(alpha = .08f), CircleShape))
             Column(Modifier.align(Alignment.TopStart).padding(start = 18.dp, top = 14.dp)) {
