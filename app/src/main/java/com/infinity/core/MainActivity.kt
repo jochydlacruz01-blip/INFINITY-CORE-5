@@ -248,11 +248,7 @@ Column(
 }
             Box(Modifier.offset(x = maxW * .58f, y = maxH * .12f).size(240.dp)
                 .background(accentColor.copy(alpha = .08f), CircleShape))
-            Column(Modifier.align(Alignment.TopStart).padding(start = 18.dp, top = 14.dp)) {
-                Text("INFINITY", color = Color.White.copy(alpha = .20f), fontSize = 34.sp,
-                    fontWeight = FontWeight.Black, letterSpacing = 5.sp)
-                Text("CORE 0.5  •  WORKSPACE $workspace", color = Muted.copy(alpha = .65f),
-                    fontSize = 10.sp, letterSpacing = 2.sp)
+           
             }
 
             shortcuts.forEach { item ->
