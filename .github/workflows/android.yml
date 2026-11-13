@@ -1,4 +1,4 @@
-name: Build INFINITY CORE 0.5
+name: Build INFINITY AURORA 0.6
 
 on:
   push:
