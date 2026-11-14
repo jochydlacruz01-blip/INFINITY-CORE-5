@@ -551,9 +551,12 @@ private fun Infinity08App() {
                     )
                 ) {
                     Column(
-                        Modifier.fillMaxWidth().padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
+    Modifier
+        .fillMaxWidth()
+        .verticalScroll(rememberScrollState())
+        .padding(16.dp),
+    horizontalAlignment = Alignment.CenterHorizontally
+) {
                         // CABECERA Y NUCLEO ORBITAL
                         Row(
                             Modifier.fillMaxWidth(),
