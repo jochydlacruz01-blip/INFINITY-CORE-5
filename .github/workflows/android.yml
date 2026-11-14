@@ -1,9 +1,9 @@
-name: INFINITY 0.8 - AURORA NEXT BUILD
+name: PROJECT INFINITY 0.9 - APK BUILD
 
 on:
   push:
     branches:
-      - INFINITY-0.8
+      - INFINITY-0.9
 
   workflow_dispatch:
 
@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   build:
-    name: Build INFINITY 0.8 APK
+    name: Build PROJECT INFINITY 0.9
     runs-on: ubuntu-latest
 
     steps:
@@ -26,24 +26,28 @@ jobs:
           java-version: '17'
           cache: gradle
 
-      - name: Instalar Gradle
+      - name: Configurar Gradle 8.9
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
 
-      - name: Revisar estructura del proyecto
+      - name: Verificar estructura
         run: |
-          echo "Verificando archivos..."
+          echo "Verificando proyecto INFINITY 0.9..."
           ls -la
-          find . -maxdepth 3 \( -name "build.gradle" -o -name "build.gradle.kts" -o -name "settings.gradle" -o -name "settings.gradle.kts" \)
+          test -f settings.gradle.kts
+          test -f build.gradle.kts
+          test -f app/build.gradle.kts
+          test -f app/src/main/java/com/infinity/core/MainActivity.kt
+          test -f app/src/main/java/com/infinity/core/InfinityConnect.kt
 
       - name: Compilar APK
         run: gradle assembleDebug --stacktrace
 
-      - name: Guardar APK
+      - name: Publicar APK
         uses: actions/upload-artifact@v4
         with:
-          name: INFINITY-AURORA-0.8-APK
+          name: PROJECT-INFINITY-0.9-APK
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
