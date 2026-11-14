@@ -1,9 +1,9 @@
-name: INFINITY CORE 0.7 - AURORA BUILD
+name: PROJECT INFINITY 0.10 - APK BUILD
 
 on:
   push:
     branches:
-      - INFINITY-0.7
+      - INFINITY-0.9
 
   workflow_dispatch:
 
@@ -12,11 +12,11 @@ permissions:
 
 jobs:
   build:
-    name: Build INFINITY APK
+    name: Build PROJECT INFINITY 0.10
     runs-on: ubuntu-latest
 
     steps:
-      - name: Descargar código
+      - name: Descargar proyecto
         uses: actions/checkout@v4
 
       - name: Configurar Java 17
@@ -24,19 +24,31 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+          cache: gradle
 
-      - name: Configurar Gradle
+      - name: Configurar Gradle 8.9
         uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
 
-      - name: Dar permisos a Gradle
-        run: chmod +x gradlew
+      - name: Verificar estructura
+        run: |
+          echo "Verificando PROJECT INFINITY 0.10..."
+          ls -la
+          test -f settings.gradle.kts
+          test -f build.gradle.kts
+          test -f app/build.gradle.kts
+          test -f app/src/main/java/com/infinity/core/MainActivity.kt
+          test -f app/src/main/java/com/infinity/core/InfinityConnect.kt
+          test -f app/src/main/java/com/infinity/core/OrbitSystemMonitor.kt
 
       - name: Compilar APK
-        run: ./gradlew assembleDebug --stacktrace
+        run: gradle assembleDebug --stacktrace
 
-      - name: Guardar APK
+      - name: Publicar APK
         uses: actions/upload-artifact@v4
         with:
-          name: INFINITY-AURORA-0.7-APK
+          name: PROJECT-INFINITY-0.10-APK
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
+          retention-days: 14
