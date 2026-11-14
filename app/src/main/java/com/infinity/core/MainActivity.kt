@@ -711,6 +711,7 @@ private fun openInfinityWindow(
         "files" to "Explorador de archivos",
         "notes" to "Notas rápidas",
         "apps" to "Aplicaciones instaladas",
+        "connect" to "INFINITY CONNECT",
         "settings" to "Preferencias",
         "about" to "Acerca de INFINITY"
     )
