@@ -2,7 +2,12 @@ package com.infinity.core
 
 import android.app.ActivityManager
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.os.BatteryManager
+import android.os.Build
+import android.os.PowerManager
+import android.os.StatFs
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -16,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -26,6 +32,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
+import java.util.Locale
 
 @Composable
 fun OrbitSystemMonitor(
@@ -37,8 +44,13 @@ fun OrbitSystemMonitor(
 
     var batteryPercent by remember { mutableIntStateOf(-1) }
     var ramPercent by remember { mutableIntStateOf(0) }
+    var storagePercent by remember { mutableIntStateOf(0) }
+    var batteryTemperature by remember { mutableStateOf("--") }
+    var chargingState by remember { mutableStateOf("CONSULTANDO") }
+    var thermalState by remember { mutableStateOf("NO DISPONIBLE") }
+    var storageDetail by remember { mutableStateOf("--") }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(context) {
         while (true) {
             try {
                 val batteryManager = context.getSystemService(
@@ -46,10 +58,39 @@ fun OrbitSystemMonitor(
                 ) as? BatteryManager
 
                 batteryPercent = batteryManager
-                    ?.getIntProperty(
-                        BatteryManager.BATTERY_PROPERTY_CAPACITY
-                    )
+                    ?.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
                     ?.takeIf { it in 0..100 } ?: -1
+
+                val batteryIntent = context.registerReceiver(
+                    null,
+                    IntentFilter(Intent.ACTION_BATTERY_CHANGED)
+                )
+
+                val temperatureTenths = batteryIntent?.getIntExtra(
+                    BatteryManager.EXTRA_TEMPERATURE, -1
+                ) ?: -1
+
+                batteryTemperature = if (temperatureTenths > 0) {
+                    String.format(
+                        Locale.getDefault(),
+                        "%.1f °C",
+                        temperatureTenths / 10f
+                    )
+                } else {
+                    "--"
+                }
+
+                val batteryStatus = batteryIntent?.getIntExtra(
+                    BatteryManager.EXTRA_STATUS, -1
+                ) ?: -1
+
+                chargingState = when (batteryStatus) {
+                    BatteryManager.BATTERY_STATUS_CHARGING -> "CARGANDO"
+                    BatteryManager.BATTERY_STATUS_FULL -> "COMPLETA"
+                    BatteryManager.BATTERY_STATUS_DISCHARGING -> "EN BATERÍA"
+                    BatteryManager.BATTERY_STATUS_NOT_CHARGING -> "SIN CARGA"
+                    else -> "DESCONOCIDO"
+                }
 
                 val activityManager = context.getSystemService(
                     Context.ACTIVITY_SERVICE
@@ -62,13 +103,47 @@ fun OrbitSystemMonitor(
                     if (memoryInfo.totalMem > 0L) {
                         ramPercent = (
                             (memoryInfo.totalMem - memoryInfo.availMem)
-                                .toDouble() /
-                                memoryInfo.totalMem * 100
+                                .toDouble() / memoryInfo.totalMem * 100
                             ).toInt().coerceIn(0, 100)
                     }
                 }
+
+                val stat = StatFs(context.filesDir.absolutePath)
+                val totalBytes = stat.totalBytes
+                val availableBytes = stat.availableBytes
+
+                if (totalBytes > 0L) {
+                    storagePercent = (
+                        (totalBytes - availableBytes).toDouble() /
+                            totalBytes * 100
+                        ).toInt().coerceIn(0, 100)
+
+                    storageDetail = String.format(
+                        Locale.getDefault(),
+                        "%.1f / %.1f GB",
+                        (totalBytes - availableBytes) / 1_073_741_824.0,
+                        totalBytes / 1_073_741_824.0
+                    )
+                }
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    val powerManager = context.getSystemService(
+                        Context.POWER_SERVICE
+                    ) as? PowerManager
+
+                    thermalState = when (powerManager?.currentThermalStatus) {
+                        PowerManager.THERMAL_STATUS_NONE -> "NORMAL"
+                        PowerManager.THERMAL_STATUS_LIGHT -> "LEVE"
+                        PowerManager.THERMAL_STATUS_MODERATE -> "MODERADA"
+                        PowerManager.THERMAL_STATUS_SEVERE -> "ALTA"
+                        PowerManager.THERMAL_STATUS_CRITICAL -> "CRÍTICA"
+                        PowerManager.THERMAL_STATUS_EMERGENCY -> "EMERGENCIA"
+                        PowerManager.THERMAL_STATUS_SHUTDOWN -> "APAGADO"
+                        else -> "NO DISPONIBLE"
+                    }
+                }
             } catch (_: Exception) {
-                // Conserva el último valor disponible.
+                // Conserva los últimos valores válidos.
             }
 
             delay(15000)
@@ -93,22 +168,45 @@ fun OrbitSystemMonitor(
             OrbitMetric(
                 modifier = Modifier.weight(1f),
                 label = "BATERÍA",
-                value = if (batteryPercent >= 0)
-                    "$batteryPercent%" else "--",
+                value = if (batteryPercent >= 0) "$batteryPercent%" else "--",
                 accent = accent
             )
-
             OrbitMetric(
                 modifier = Modifier.weight(1f),
                 label = "RAM EN USO",
                 value = "$ramPercent%",
                 accent = accent
             )
-
             OrbitMetric(
                 modifier = Modifier.weight(1f),
                 label = "VENTANAS",
                 value = "$activeWindows / $totalWindows",
+                accent = accent
+            )
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            OrbitMetric(
+                modifier = Modifier.weight(1f),
+                label = "ALMACENAMIENTO",
+                value = "$storagePercent%",
+                detail = storageDetail,
+                accent = accent
+            )
+            OrbitMetric(
+                modifier = Modifier.weight(1f),
+                label = "TEMP. BATERÍA",
+                value = batteryTemperature,
+                detail = chargingState,
+                accent = accent
+            )
+            OrbitMetric(
+                modifier = Modifier.weight(1f),
+                label = "ESTADO TÉRMICO",
+                value = thermalState,
                 accent = accent
             )
         }
@@ -120,6 +218,7 @@ private fun OrbitMetric(
     modifier: Modifier = Modifier,
     label: String,
     value: String,
+    detail: String? = null,
     accent: Color
 ) {
     Column(
@@ -138,14 +237,25 @@ private fun OrbitMetric(
             label,
             color = Color(0xFFB7C7D9),
             fontSize = 8.sp,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Bold,
+            maxLines = 1
         )
 
         Text(
             value,
             color = accent,
-            fontSize = 15.sp,
-            fontWeight = FontWeight.Bold
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold,
+            maxLines = 1
         )
+
+        if (detail != null) {
+            Text(
+                detail,
+                color = Color(0xFFB7C7D9),
+                fontSize = 7.sp,
+                maxLines = 1
+            )
+        }
     }
 }
