@@ -9,6 +9,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -539,10 +541,10 @@ private fun Infinity08App() {
             // INFINITY ORBIT 0.9: centro de mando futurista.
             if (orbitOpen) {
                 Card(
-                    Modifier.align(Alignment.BottomCenter)
-                        .padding(horizontal = 12.dp, vertical = 78.dp)
-                        .widthIn(min = 300.dp, max = 410.dp)
-                        .heightIn(max = maxH - 100.dp),
+                 Modifier.align(Alignment.BottomCenter)
+    .padding(horizontal = 12.dp, vertical = 40.dp)
+    .widthIn(min = 300.dp, max = 410.dp)
+    .heightIn(max = maxH - 80.dp),  
                     shape = RoundedCornerShape(28.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = Color(0xF20D1B30)
