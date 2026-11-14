@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -47,7 +46,9 @@ fun OrbitSystemMonitor(
                 ) as? BatteryManager
 
                 batteryPercent = batteryManager
-                    ?.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
+                    ?.getIntProperty(
+                        BatteryManager.BATTERY_PROPERTY_CAPACITY
+                    )
                     ?.takeIf { it in 0..100 } ?: -1
 
                 val activityManager = context.getSystemService(
@@ -67,7 +68,7 @@ fun OrbitSystemMonitor(
                     }
                 }
             } catch (_: Exception) {
-                // El monitor conserva el último valor disponible.
+                // Conserva el último valor disponible.
             }
 
             delay(15000)
