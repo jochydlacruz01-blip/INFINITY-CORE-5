@@ -597,6 +597,19 @@ private fun Infinity08App() {
 
                         Spacer(Modifier.height(14.dp))
 
+                        // ORBIT 0.9.1: MONITOR DEL SISTEMA EN TIEMPO REAL
+OrbitSystemMonitor(
+    accent = accent,
+    activeWindows = windows.count {
+        it.workspace == workspace && !it.minimized
+    },
+    totalWindows = windows.count {
+        it.workspace == workspace
+    }
+)
+
+Spacer(Modifier.height(14.dp))
+
                         // INDICADORES DEL SISTEMA
                         Row(
                             Modifier.fillMaxWidth(),
