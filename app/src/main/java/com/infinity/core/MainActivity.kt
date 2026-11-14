@@ -535,28 +535,118 @@ private fun Infinity08App() {
                 }
             }
 
-            // ORBIT: acciones del espacio de trabajo; no vuelve a listar las apps.
+           
+            // INFINITY ORBIT 0.9: centro de mando futurista.
             if (orbitOpen) {
                 Card(
                     Modifier.align(Alignment.BottomCenter)
-                        .padding(bottom = 78.dp)
-                        .widthIn(min = 290.dp, max = 350.dp),
+                        .padding(horizontal = 12.dp, vertical = 78.dp)
+                        .widthIn(min = 300.dp, max = 410.dp)
+                        .heightIn(max = maxH - 100.dp),
                     shape = RoundedCornerShape(28.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xF21B2945))
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color(0xF20D1B30)
+                    )
                 ) {
                     Column(
-                        Modifier.padding(16.dp),
+                        Modifier.fillMaxWidth().padding(16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
+                        // CABECERA Y NUCLEO ORBITAL
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                Modifier.size(66.dp)
+                                    .border(2.dp, accent, CircleShape)
+                                    .padding(7.dp)
+                                    .border(1.dp, Color.White.copy(.35f), CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    "∞",
+                                    color = accent,
+                                    fontSize = 37.sp,
+                                    fontWeight = FontWeight.Black
+                                )
+                            }
+
+                            Column(Modifier.padding(start = 12.dp)) {
+                                Text(
+                                    "INFINITY ORBIT",
+                                    color = Color.White,
+                                    fontSize = 19.sp,
+                                    fontWeight = FontWeight.Black,
+                                    letterSpacing = 2.sp
+                                )
+                                Text(
+                                    "COMMAND CENTER • 0.9",
+                                    color = accent,
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 1.sp
+                                )
+                                Text(
+                                    "Sistema de control del escritorio",
+                                    color = InfinityMuted,
+                                    fontSize = 10.sp
+                                )
+                            }
+                        }
+
+                        Spacer(Modifier.height(14.dp))
+
+                        // INDICADORES DEL SISTEMA
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            listOf(
+                                "WORKSPACE" to "$workspace / 3",
+                                "VENTANAS" to "${windows.count { it.workspace == workspace && !it.minimized }}",
+                                "ESTADO" to "ACTIVO"
+                            ).forEach { (label, value) ->
+                                Column(
+                                    Modifier.weight(1f)
+                                        .clip(RoundedCornerShape(13.dp))
+                                        .background(Color(0xFF192D47))
+                                        .border(
+                                            1.dp,
+                                            accent.copy(.25f),
+                                            RoundedCornerShape(13.dp)
+                                        )
+                                        .padding(9.dp)
+                                ) {
+                                    Text(
+                                        label,
+                                        color = InfinityMuted,
+                                        fontSize = 8.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        value,
+                                        color = accent,
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(Modifier.height(14.dp))
+
+                        // SELECTOR DE ESPACIOS
                         Text(
-                            "INFINITY ORBIT",
-                            color = Color.White,
-                            fontWeight = FontWeight.Black,
-                            letterSpacing = 2.sp
+                            "◈  ESPACIOS DE TRABAJO",
+                            color = accent,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.align(Alignment.Start)
                         )
-                        Text("Centro de acciones del escritorio", color = InfinityMuted, fontSize = 10.sp)
-                        Spacer(Modifier.height(12.dp))
-                        Text("ESPACIOS DE TRABAJO", color = accent, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+
+                        Spacer(Modifier.height(7.dp))
+
                         Row(
                             Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -568,37 +658,169 @@ private fun Infinity08App() {
                                         orbitOpen = false
                                     },
                                     modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(12.dp),
                                     colors = ButtonDefaults.buttonColors(
-                                        containerColor = if (workspace == number) accent
-                                        else Color.White.copy(.12f)
+                                        containerColor = if (workspace == number)
+                                            accent
+                                        else Color(0xFF263B57)
                                     )
-                                ) { Text("$number") }
+                                ) {
+                                    Text(
+                                        "ORBIT $number",
+                                        fontSize = 10.sp,
+                                        color = if (workspace == number)
+                                            Color(0xFF102238)
+                                        else Color.White
+                                    )
+                                }
                             }
                         }
-                        Spacer(Modifier.height(8.dp))
-                        OutlinedButton(
-                            onClick = {
-                                windows.indices.forEach { index ->
-                                    windows[index] = windows[index].copy(minimized = true)
+
+                        Spacer(Modifier.height(14.dp))
+
+                        // ACCIONES RAPIDAS
+                        Text(
+                            "◈  QUICK ACTIONS",
+                            color = accent,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.align(Alignment.Start)
+                        )
+
+                        Spacer(Modifier.height(7.dp))
+
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Button(
+                                onClick = {
+                                    openInfinityWindow("connect", windows, workspace)
+                                    orbitOpen = false
+                                },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Text("CONNECT", fontSize = 10.sp)
+                            }
+
+                            OutlinedButton(
+                                onClick = {
+                                    windows.indices.forEach { index ->
+                                        windows[index] =
+                                            windows[index].copy(minimized = true)
+                                    }
+                                    orbitOpen = false
+                                },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Text("MINIMIZAR TODO", fontSize = 9.sp)
+                            }
+                        }
+
+                        Spacer(Modifier.height(14.dp))
+
+                        // ADMINISTRADOR DE VENTANAS
+                        Text(
+                            "◈  WINDOW MANAGER",
+                            color = accent,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.align(Alignment.Start)
+                        )
+
+                        Spacer(Modifier.height(6.dp))
+
+                        val orbitWindows = windows.filter {
+                            it.workspace == workspace
+                        }
+
+                        if (orbitWindows.isEmpty()) {
+                            Text(
+                                "No hay ventanas abiertas en este espacio.",
+                                color = InfinityMuted,
+                                fontSize = 11.sp,
+                                modifier = Modifier.padding(10.dp)
+                            )
+                        } else {
+                            LazyColumn(
+                                Modifier.fillMaxWidth()
+                                    .heightIn(max = 145.dp)
+                            ) {
+                                items(orbitWindows, key = { it.id }) { win ->
+                                    Row(
+                                        Modifier.fillMaxWidth()
+                                            .clip(RoundedCornerShape(10.dp))
+                                            .background(Color(0xFF192D47))
+                                            .padding(horizontal = 9.dp, vertical = 5.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            if (win.minimized) "○" else "●",
+                                            color = if (win.minimized)
+                                                InfinityMuted else accent
+                                        )
+
+                                        Text(
+                                            win.title,
+                                            color = Color.White,
+                                            fontSize = 11.sp,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                            modifier = Modifier.weight(1f)
+                                                .clickable {
+                                                    val index = windows.indexOfFirst {
+                                                        it.id == win.id
+                                                    }
+                                                    if (index >= 0) {
+                                                        windows[index] =
+                                                            windows[index].copy(minimized = false)
+                                                    }
+                                                    orbitOpen = false
+                                                }
+                                                .padding(start = 8.dp)
+                                        )
+
+                                        TextButton(
+                                            onClick = {
+                                                val index = windows.indexOfFirst {
+                                                    it.id == win.id
+                                                }
+                                                if (index >= 0) {
+                                                    windows[index] =
+                                                        windows[index].copy(minimized = !win.minimized)
+                                                }
+                                            }
+                                        ) {
+                                            Text(
+                                                if (win.minimized) "ABRIR" else "MIN",
+                                                fontSize = 9.sp
+                                            )
+                                        }
+
+                                        TextButton(
+                                            onClick = {
+                                                windows.removeAll { it.id == win.id }
+                                            }
+                                        ) {
+                                            Text("×", color = Color(0xFFFF8294))
+                                        }
+                                    }
+                                    Spacer(Modifier.height(4.dp))
                                 }
-                                orbitOpen = false
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        ) { Text("Minimizar todas las ventanas") }
-                        OutlinedButton(
-                            onClick = {
-                                appearance = if (lightMode) "dark" else "light"
-                                prefs.edit().putString("appearance", appearance).apply()
-                                orbitOpen = false
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        ) { Text(if (lightMode) "Activar modo oscuro" else "Activar modo claro") }
+                            }
+                        }
+
+                        Spacer(Modifier.height(10.dp))
+
                         TextButton(onClick = { orbitOpen = false }) {
-                            Text("Cerrar Orbit", color = accent)
+                            Text("CERRAR ORBIT", color = accent, fontSize = 10.sp)
                         }
                     }
                 }
             }
+ 
 
             // CONTROL CENTER: personalización, sin accesos de lanzamiento repetidos.
             if (controlOpen) {
