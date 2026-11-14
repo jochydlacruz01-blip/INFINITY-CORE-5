@@ -99,6 +99,7 @@ private fun Infinity08App() {
             DeskItem("files", "Archivos", "▣"),
             DeskItem("notes", "Notas", "✎"),
             DeskItem("apps", "Aplicaciones", "◈"),
+            DeskItem("connect", "INFINITY CONNECT", "◉"),
             DeskItem("settings", "Personalizar", "⚙"),
             DeskItem("about", "INFINITY", "∞")
         )
