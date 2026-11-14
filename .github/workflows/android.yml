@@ -1,9 +1,9 @@
-name: INFINITY CORE 0.7 - AURORA BUILD
+name: INFINITY 0.8 - AURORA NEXT BUILD
 
 on:
   push:
     branches:
-      - INFINITY-0.7
+      - INFINITY-0.8
 
   workflow_dispatch:
 
@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   build:
-    name: Build INFINITY APK
+    name: Build INFINITY 0.8 APK
     runs-on: ubuntu-latest
 
     steps:
@@ -24,16 +24,18 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+          cache: gradle
 
-      - name: Instalar Gradle 8.9
+      - name: Instalar Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
 
-      - name: Verificar archivos
+      - name: Revisar estructura del proyecto
         run: |
+          echo "Verificando archivos..."
           ls -la
-          find . -maxdepth 3 -name "build.gradle*" -o -name "settings.gradle*"
+          find . -maxdepth 3 \( -name "build.gradle" -o -name "build.gradle.kts" -o -name "settings.gradle" -o -name "settings.gradle.kts" \)
 
       - name: Compilar APK
         run: gradle assembleDebug --stacktrace
@@ -41,6 +43,7 @@ jobs:
       - name: Guardar APK
         uses: actions/upload-artifact@v4
         with:
-          name: INFINITY-AURORA-0.7-APK
+          name: INFINITY-AURORA-0.8-APK
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
+          retention-days: 14
