@@ -997,7 +997,7 @@ private fun Infinity08Window(
                         }
                     }
                 }
-
+                "connect" -> InfinityConnectPanel()
                 "settings" -> Column(
                     Modifier.fillMaxSize().padding(14.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
