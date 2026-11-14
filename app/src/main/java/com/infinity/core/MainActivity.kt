@@ -649,45 +649,66 @@ Spacer(Modifier.height(14.dp))
 
                         Spacer(Modifier.height(14.dp))
 
-                        // SELECTOR DE ESPACIOS
-                        Text(
-                            "◈  ESPACIOS DE TRABAJO",
-                            color = accent,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.align(Alignment.Start)
-                        )
+                        
+// SELECTOR DE ESPACIOS — ALTO CONTRASTE
+Text(
+    "◈  ESPACIOS DE TRABAJO",
+    color = accent,
+    fontSize = 11.sp,
+    fontWeight = FontWeight.Bold,
+    modifier = Modifier.align(Alignment.Start)
+)
 
-                        Spacer(Modifier.height(7.dp))
+Spacer(Modifier.height(9.dp))
 
-                        Row(
-                            Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            (1..3).forEach { number ->
-                                Button(
-                                    onClick = {
-                                        workspace = number
-                                        orbitOpen = false
-                                    },
-                                    modifier = Modifier.weight(1f),
-                                    shape = RoundedCornerShape(12.dp),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = if (workspace == number)
-                                            accent
-                                        else Color(0xFF263B57)
-                                    )
-                                ) {
-                                    Text(
-                                        "ORBIT $number",
-                                        fontSize = 10.sp,
-                                        color = if (workspace == number)
-                                            Color(0xFF102238)
-                                        else Color.White
-                                    )
-                                }
-                            }
-                        }
+Row(
+    Modifier.fillMaxWidth(),
+    horizontalArrangement = Arrangement.spacedBy(9.dp)
+) {
+    (1..3).forEach { number ->
+        val selected = workspace == number
+        val buttonShape = RoundedCornerShape(12.dp)
+
+        Button(
+            onClick = {
+                workspace = number
+                orbitOpen = false
+            },
+            modifier = Modifier
+                .weight(1f)
+                .height(46.dp)
+                .border(
+                    1.dp,
+                    if (selected) Color(0xFFB8FFE9)
+                    else Color(0xFF52789C),
+                    buttonShape
+                ),
+            shape = buttonShape,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = if (selected)
+                    Color(0xFF42F5C5)
+                else
+                    Color(0xFF13263D)
+            ),
+            elevation = ButtonDefaults.buttonElevation(
+                defaultElevation = if (selected) 5.dp else 1.dp
+            )
+        ) {
+            Text(
+                "ORBIT $number",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.ExtraBold,
+                letterSpacing = 0.4.sp,
+                color = if (selected)
+                    Color(0xFF062A27)
+                else
+                    Color(0xFFF4F8FF),
+                maxLines = 1
+            )
+        }
+    }
+}
+
 
                         Spacer(Modifier.height(14.dp))
 
