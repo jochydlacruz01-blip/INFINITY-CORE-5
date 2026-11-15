@@ -404,6 +404,7 @@ val iconOffsets = remember {
 
                     Infinity08Window(
                         win = shown,
+                        isFocused = focusedWindowId == win.id,
                         installedApps = installedApps,
                         accent = accent,
                         lightMode = lightMode,
