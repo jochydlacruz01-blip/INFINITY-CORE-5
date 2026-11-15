@@ -1352,8 +1352,14 @@ private fun Infinity08Window(
         label = "windowScale"
     )
     Column(
+            Column(
         Modifier.offset { IntOffset(win.x.roundToInt(), win.y.roundToInt()) }
             .zIndex(if (isFocused) 1f else 0f)
+            .graphicsLayer {
+                alpha = windowAlpha
+                scaleX = windowScale
+                scaleY = windowScale
+            }
             .width(win.width.dp)
             .height(win.height.dp)
             .shadow(26.dp, RoundedCornerShape(20.dp))
