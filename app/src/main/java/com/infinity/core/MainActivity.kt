@@ -8,7 +8,7 @@ import android.provider.DocumentsContract
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.contract.ActivityResultContractsc
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.Image
@@ -1315,7 +1315,7 @@ private fun Infinity08Window(
                 }
 
                 else -> Column(Modifier.padding(14.dp)) {
-                    Text("PROJECT INFINITY 0.8", color = accent, fontWeight = FontWeight.Bold)
+                   Text("PROJECT INFINITY 0.10", color = accent, fontWeight = FontWeight.Bold)
                     Text(
                         "AURORA NEXT\nEscritorio Android nativo • Kotlin • Jetpack Compose\n" +
                             "Dock sin accesos duplicados • Orbit de acciones • Control Center\n" +
