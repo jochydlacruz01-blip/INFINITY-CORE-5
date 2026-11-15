@@ -1351,7 +1351,8 @@ private fun Infinity08Window(
                         topStart = 20.dp,
                         topEnd = 20.dp
                     )
-                )
+                ) 
+                .clickable { onFocus() }
                 .pointerInput(win.id) {
                     detectDragGestures { change, drag ->
                         change.consume()
