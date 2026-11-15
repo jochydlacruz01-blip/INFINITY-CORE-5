@@ -655,7 +655,8 @@ Spacer(Modifier.height(14.dp))
                         Spacer(Modifier.height(14.dp))
 
                         
-// SELECTOR DE ESPACIOS — ALTO CONTRASTE
+
+// SELECTOR ORBIT 0.10 — ESPACIOS DE TRABAJO
 Text(
     "◈  ESPACIOS DE TRABAJO",
     color = accent,
@@ -664,34 +665,33 @@ Text(
     modifier = Modifier.align(Alignment.Start)
 )
 
-Spacer(Modifier.height(9.dp))
+Spacer(Modifier.height(10.dp))
 
 Row(
     Modifier.fillMaxWidth(),
-    horizontalArrangement = Arrangement.spacedBy(9.dp)
+    horizontalArrangement = Arrangement.spacedBy(8.dp)
 ) {
     (1..3).forEach { number ->
         val selected = workspace == number
-        val buttonShape = RoundedCornerShape(12.dp)
+        val buttonShape = RoundedCornerShape(14.dp)
 
         Button(
             onClick = {
                 workspace = number
-                orbitOpen = false
             },
             modifier = Modifier
                 .weight(1f)
-                .height(46.dp)
+                .height(58.dp)
                 .border(
-                    1.dp,
-                    if (selected) Color(0xFFB8FFE9)
-                    else Color(0xFF52789C),
+                    1.5.dp,
+                    if (selected) accent else Color(0xFF52789C),
                     buttonShape
                 ),
             shape = buttonShape,
+            contentPadding = PaddingValues(3.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = if (selected)
-                    Color(0xFF42F5C5)
+                    accent.copy(alpha = 0.24f)
                 else
                     Color(0xFF13263D)
             ),
@@ -699,17 +699,23 @@ Row(
                 defaultElevation = if (selected) 5.dp else 1.dp
             )
         ) {
-            Text(
-                "ORBIT $number",
-                fontSize = 11.sp,
-                fontWeight = FontWeight.ExtraBold,
-                letterSpacing = 0.4.sp,
-                color = if (selected)
-                    Color(0xFF062A27)
-                else
-                    Color(0xFFF4F8FF),
-                maxLines = 1
-            )
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    "ORBIT $number",
+                    color = if (selected) accent else Color.White,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.ExtraBold
+                )
+                Text(
+                    if (selected) "EN USO" else "DISPONIBLE",
+                    color = if (selected) accent else InfinityMuted,
+                    fontSize = 8.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
         }
     }
 }
