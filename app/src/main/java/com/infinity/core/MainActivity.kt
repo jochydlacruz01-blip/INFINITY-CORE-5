@@ -1304,6 +1304,7 @@ private fun FileExplorer08(
 @Composable
 private fun Infinity08Window(
     win: DeskWindow,
+    isFocused: Boolean,
     installedApps: List<InstalledApp>,
     accent: Color,
     lightMode: Boolean,
