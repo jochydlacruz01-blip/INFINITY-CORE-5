@@ -1334,6 +1334,7 @@ private fun Infinity08Window(
 
     Column(
         Modifier.offset { IntOffset(win.x.roundToInt(), win.y.roundToInt()) }
+            .zIndex(if (isFocused) 1f else 0f)
             .width(win.width.dp)
             .height(win.height.dp)
             .shadow(26.dp, RoundedCornerShape(20.dp))
