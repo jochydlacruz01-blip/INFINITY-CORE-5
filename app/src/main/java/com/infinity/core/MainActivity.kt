@@ -586,7 +586,7 @@ private fun Infinity08App() {
                                     letterSpacing = 2.sp
                                 )
                                 Text(
-                                    "COMMAND CENTER • 0.9",
+                                    "COMMAND CENTER • 0.10",
                                     color = accent,
                                     fontSize = 9.sp,
                                     fontWeight = FontWeight.Bold,
@@ -602,7 +602,7 @@ private fun Infinity08App() {
 
                         Spacer(Modifier.height(14.dp))
 
-                        // ORBIT 0.9.1: MONITOR DEL SISTEMA EN TIEMPO REAL
+                        // ORBIT 0.10: MONITOR DEL SISTEMA EN TIEMPO REAL
 OrbitSystemMonitor(
     accent = accent,
     activeWindows = windows.count {
