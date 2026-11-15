@@ -290,56 +290,103 @@ private fun Infinity08App() {
                 Text(dateText, color = InfinityMuted, fontSize = 10.sp)
             }
 
-            // Escritorio: accesos a herramientas, no se repiten dentro del Dock ni Orbit.
+            // INFINITY DESKTOP 0.11 — ICONOS MEJORADOS
             desktopItems.forEach { item ->
                 val offset = iconOffsets[item.id] ?: Offset(22f, 90f)
+
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier
-                        .offset { IntOffset(offset.x.roundToInt(), offset.y.roundToInt()) }
-                        .width(82.dp)
+                        .offset {
+                            IntOffset(
+                                offset.x.roundToInt(),
+                                offset.y.roundToInt()
+                            )
+                        }
+                        .width(94.dp)
                         .pointerInput(item.id) {
                             detectDragGestures { change, drag ->
                                 change.consume()
+
                                 val next = Offset(
                                     (iconOffsets[item.id]?.x ?: 0f) + drag.x,
                                     (iconOffsets[item.id]?.y ?: 0f) + drag.y
                                 )
+
                                 iconOffsets[item.id] = next
+
                                 prefs.edit()
                                     .putFloat("${item.id}_x", next.x)
                                     .putFloat("${item.id}_y", next.y)
                                     .apply()
                             }
                         }
-                        .clickable { openInfinityWindow(item.id, windows, workspace) }
-                        .padding(5.dp)
+                        .clickable {
+                            openInfinityWindow(item.id, windows, workspace)
+                        }
+                        .padding(6.dp)
                 ) {
                     Box(
-                        Modifier.size(iconSize.dp)
-                            .shadow(12.dp, RoundedCornerShape(18.dp))
+                        modifier = Modifier
+                            .size((iconSize + 8f).dp)
+                            .shadow(
+                                16.dp,
+                                RoundedCornerShape(21.dp)
+                            )
                             .background(
                                 Brush.linearGradient(
-                                    listOf(Color(0xDD294968), Color(0xCC142A43))
+                                    listOf(
+                                        Color(0xFF315B80),
+                                        Color(0xFF142A43),
+                                        Color(0xFF101827)
+                                    )
                                 ),
-                                RoundedCornerShape(18.dp)
+                                RoundedCornerShape(21.dp)
                             )
-                            .border(1.dp, Color.White.copy(.22f), RoundedCornerShape(18.dp)),
+                            .border(
+                                1.5.dp,
+                                accent.copy(alpha = 0.75f),
+                                RoundedCornerShape(21.dp)
+                            ),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(item.glyph, color = accent, fontSize = 27.sp, fontWeight = FontWeight.Bold)
+                        Text(
+                            item.glyph,
+                            color = accent,
+                            fontSize = 31.sp,
+                            fontWeight = FontWeight.Black
+                        )
                     }
-                    Spacer(Modifier.height(5.dp))
+
+                    Spacer(Modifier.height(7.dp))
+
                     Text(
                         item.label,
+                        modifier = Modifier
+                            .background(
+                                Color(0xCC101827),
+                                RoundedCornerShape(8.dp)
+                            )
+                            .border(
+                                0.7.dp,
+                                Color.White.copy(alpha = 0.18f),
+                                RoundedCornerShape(8.dp)
+                            )
+                            .padding(
+                                horizontal = 7.dp,
+                                vertical = 4.dp
+                            ),
                         color = Color.White,
-                        fontSize = 11.sp,
-                        maxLines = 1,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 2,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                         overflow = TextOverflow.Ellipsis
                     )
                 }
             }
 
+ 
             windows.filter { !it.minimized && it.workspace == workspace }.forEach { win ->
                 key(win.id) {
                     val shown = if (win.maximized) {
