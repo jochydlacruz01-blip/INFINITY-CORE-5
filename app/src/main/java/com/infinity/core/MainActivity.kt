@@ -1312,7 +1312,7 @@ private fun Infinity08Window(
             )
             .border(1.dp, accent.copy(.38f), RoundedCornerShape(20.dp))
     ) {
-       
+        
         // INFINITY SMART WINDOWS 0.11 — BARRA DE CONTROLES
         Row(
             Modifier
