@@ -297,3 +297,74 @@ fun InfinityAdvancedPanel(
                     }
                 }
             }
+
+            
+            Text(
+                "INFINITY ADVANCED · MÓDULO 1",
+                color = AdvancedMuted,
+                fontSize = 9.sp
+            )
+        }
+    }
+}
+
+@Composable
+private fun AdvancedActionTile(
+    modifier: Modifier = Modifier,
+    glyph: String,
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit
+) {
+    Card(
+        onClick = onClick,
+        modifier = modifier,
+        shape = RoundedCornerShape(17.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0xFF203A57)
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(13.dp),
+            verticalArrangement = Arrangement.spacedBy(5.dp)
+        ) {
+            Text(
+                glyph,
+                color = AdvancedAccent,
+                fontSize = 23.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                title,
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+                fontSize = 12.sp
+            )
+            Text(
+                subtitle,
+                color = AdvancedMuted,
+                fontSize = 9.sp
+            )
+        }
+    }
+}
+
+private fun openAdvancedSettings(
+    context: Context,
+    action: String,
+    extra: Pair<String, String>? = null
+) {
+    try {
+        val intent = Intent(action)
+        extra?.let {
+            intent.putExtra(it.first, it.second)
+        }
+        context.startActivity(intent)
+    } catch (_: Exception) {
+        try {
+            context.startActivity(Intent(Settings.ACTION_SETTINGS))
+        } catch (_: Exception) {
+            // El dispositivo no pudo abrir los ajustes.
+        }
+    }
+}
