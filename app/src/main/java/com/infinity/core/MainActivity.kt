@@ -479,10 +479,8 @@ val iconOffsets = remember {
                                 )
                             }
                         },
-                     onFocus = {
-    focusedWindowId = win.id
-}
-                            }
+                     onFocus = { focusedWindowId = win.id
+                            
                         }
                     )
                 }
