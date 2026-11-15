@@ -1,0 +1,245 @@
+package com.infinity.core
+
+import android.content.Context
+import android.content.Intent
+import android.provider.Settings
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+
+private val AdvancedBackground = Color(0xF20D1B30)
+private val AdvancedAccent = Color(0xFF56D6C9)
+private val AdvancedMuted = Color(0xFFB7C7D9)
+
+@Composable
+fun InfinityAdvancedPanel(
+    onClose: () -> Unit
+) {
+    val context = LocalContext.current
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(12.dp),
+        shape = RoundedCornerShape(26.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = AdvancedBackground
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        "INFINITY ADVANCED",
+                        color = Color.White,
+                        fontSize = 19.sp,
+                        fontWeight = FontWeight.Black
+                    )
+                    Text(
+                        "Centro de notificaciones y acciones rápidas",
+                        color = AdvancedMuted,
+                        fontSize = 10.sp
+                    )
+                }
+
+                TextButton(onClick = onClose) {
+                    Text("CERRAR", color = AdvancedAccent)
+                }
+            }
+
+            Text(
+                "ACCIONES RÁPIDAS",
+                color = AdvancedAccent,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(9.dp)
+            ) {
+                AdvancedActionTile(
+                    modifier = Modifier.weight(1f),
+                    glyph = "◉",
+                    title = "Wi-Fi",
+                    subtitle = "Redes e Internet"
+                ) {
+                    openAdvancedSettings(context, Settings.ACTION_WIFI_SETTINGS)
+                }
+
+                AdvancedActionTile(
+                    modifier = Modifier.weight(1f),
+                    glyph = "ᛒ",
+                    title = "Bluetooth",
+                    subtitle = "Dispositivos"
+                ) {
+                    openAdvancedSettings(context, Settings.ACTION_BLUETOOTH_SETTINGS)
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(9.dp)
+            ) {
+                AdvancedActionTile(
+                    modifier = Modifier.weight(1f),
+                    glyph = "☼",
+                    title = "Pantalla",
+                    subtitle = "Brillo y visualización"
+                ) {
+                    openAdvancedSettings(context, Settings.ACTION_DISPLAY_SETTINGS)
+                }
+
+                AdvancedActionTile(
+                    modifier = Modifier.weight(1f),
+                    glyph = "♫",
+                    title = "Sonido",
+                    subtitle = "Volumen y audio"
+                ) {
+                    openAdvancedSettings(context, Settings.ACTION_SOUND_SETTINGS)
+                }
+            }
+
+            Text(
+                "NOTIFICACIONES",
+                color = AdvancedAccent,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold
+            )
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(17.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = Color(0xFF1B304A)
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(15.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        "Centro de notificaciones",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Text(
+                        "La integración para mostrar las notificaciones reales " +
+                            "del dispositivo se habilitará en el siguiente paso.",
+                        color = AdvancedMuted,
+                        fontSize = 11.sp
+                    )
+
+                    TextButton(
+                        onClick = {
+                            openAdvancedSettings(
+                                context,
+                                Settings.ACTION_APP_NOTIFICATION_SETTINGS,
+                                Settings.EXTRA_APP_PACKAGE to context.packageName
+                            )
+                        }
+                    ) {
+                        Text(
+                            "CONFIGURAR NOTIFICACIONES",
+                            color = AdvancedAccent,
+                            fontSize = 10.sp
+                        )
+                    }
+                }
+            }
+
+            Text(
+                "INFINITY ADVANCED · MÓDULO 1",
+                color = AdvancedMuted,
+                fontSize = 9.sp
+            )
+        }
+    }
+}
+
+@Composable
+private fun AdvancedActionTile(
+    modifier: Modifier = Modifier,
+    glyph: String,
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit
+) {
+    Card(
+        onClick = onClick,
+        modifier = modifier,
+        shape = RoundedCornerShape(17.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0xFF203A57)
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(13.dp),
+            verticalArrangement = Arrangement.spacedBy(5.dp)
+        ) {
+            Text(
+                glyph,
+                color = AdvancedAccent,
+                fontSize = 23.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                title,
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+                fontSize = 12.sp
+            )
+            Text(
+                subtitle,
+                color = AdvancedMuted,
+                fontSize = 9.sp
+            )
+        }
+    }
+}
+
+private fun openAdvancedSettings(
+    context: Context,
+    action: String,
+    extra: Pair<String, String>? = null
+) {
+    try {
+        val intent = Intent(action)
+        extra?.let {
+            intent.putExtra(it.first, it.second)
+        }
+        context.startActivity(intent)
+    } catch (_: Exception) {
+        try {
+            context.startActivity(Intent(Settings.ACTION_SETTINGS))
+        } catch (_: Exception) {
+            // El dispositivo no pudo abrir los ajustes.
+        }
+    }
+}
