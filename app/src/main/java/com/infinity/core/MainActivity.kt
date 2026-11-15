@@ -433,29 +433,47 @@ private fun Infinity08App() {
                                 windows[index].copy(maximized = !windows[index].maximized)
                         },
                         onMove = { dx, dy ->
+                                                // INFINITY 0.11 — MOVIMIENTO CON LÍMITES
+                        onMove = { dx, dy ->
                             val index = windows.indexOfFirst { it.id == win.id }
                             if (index >= 0) {
                                 val current = windows[index]
                                 windows[index] = current.copy(
-                                    x = (current.x + dx).coerceIn(0f, (maxW.value - 280f).coerceAtLeast(0f)),
-                                    y = (current.y + dy).coerceIn(0f, (maxH.value - 160f).coerceAtLeast(0f))
+                                    x = (current.x + dx).coerceIn(
+                                        0f,
+                                        (maxW.value - current.width).coerceAtLeast(0f)
+                                    ),
+                                    y = (current.y + dy).coerceIn(
+                                        0f,
+                                        (maxH.value - current.height).coerceAtLeast(0f)
+                                    )
                                 )
                             }
                         },
+                        // INFINITY 0.11 — REDIMENSIONAMIENTO ADAPTABLE
                         onResize = { dx, dy ->
                             val index = windows.indexOfFirst { it.id == win.id }
                             if (index >= 0) {
                                 val current = windows[index]
+
+                                val availableWidth =
+                                    (maxW.value - current.x).coerceAtLeast(1f)
+
+                                val availableHeight =
+                                    (maxH.value - current.y).coerceAtLeast(1f)
+
                                 windows[index] = current.copy(
                                     width = (current.width + dx).coerceIn(
-                                        280f, (maxW.value - current.x).coerceAtLeast(280f)
+                                        minOf(280f, availableWidth),
+                                        availableWidth
                                     ),
                                     height = (current.height + dy).coerceIn(
-                                        190f, (maxH.value - current.y - 80f).coerceAtLeast(190f)
+                                        minOf(190f, availableHeight),
+                                        availableHeight
                                     )
                                 )
                             }
-                        }
+                        }    
                     )
                 }
             }
