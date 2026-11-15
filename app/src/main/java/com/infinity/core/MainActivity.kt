@@ -191,10 +191,13 @@ private fun Infinity08App() {
     }
 
     val windows = remember { mutableStateListOf<DeskWindow>() }
-    val iconOffsets = remember {
-        mutableStateMapOf<String, Offset>().apply {
-            desktopItems.forEachIndexed { index, item ->
-                put(
+
+var focusedWindowId by remember { mutableStateOf<String?>(null) }
+
+val iconOffsets = remember {
+    mutableStateMapOf<String, Offset>().apply {
+        desktopItems.forEachIndexed { index, item ->
+            put(
                     item.id,
                     Offset(
                         prefs.getFloat("${item.id}_x", 22f),
