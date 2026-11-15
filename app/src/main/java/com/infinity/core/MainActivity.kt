@@ -1,4 +1,4 @@
-package com.infinity.core
+ package com.infinity.core
 
 import android.content.Intent
 import android.graphics.BitmapFactory
@@ -1312,11 +1312,18 @@ private fun Infinity08Window(
             )
             .border(1.dp, accent.copy(.38f), RoundedCornerShape(20.dp))
     ) {
+       
+        // INFINITY SMART WINDOWS 0.11 — BARRA DE CONTROLES
         Row(
-            Modifier.fillMaxWidth()
+            Modifier
+                .fillMaxWidth()
                 .background(
-                    if (lightMode) Color(0xFFE0EAF5) else Color(0xFF263D57),
-                    RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
+                    if (lightMode) Color(0xFFE0EAF5)
+                    else Color(0xFF263D57),
+                    RoundedCornerShape(
+                        topStart = 20.dp,
+                        topEnd = 20.dp
+                    )
                 )
                 .pointerInput(win.id) {
                     detectDragGestures { change, drag ->
@@ -1324,31 +1331,103 @@ private fun Infinity08Window(
                         onMove(drag.x, drag.y)
                     }
                 }
-                .padding(start = 13.dp, end = 7.dp, top = 5.dp, bottom = 5.dp),
+                .padding(horizontal = 10.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                win.title,
-                color = foreground,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 13.sp,
-                modifier = Modifier.weight(1f),
-                maxLines = 1
-            )
-            IconButton(onClick = onMinimize, modifier = Modifier.size(30.dp)) {
-                Icon(Icons.Default.Minimize, contentDescription = "Minimizar", tint = foreground)
+            Box(
+                Modifier
+                    .size(34.dp)
+                    .background(
+                        accent.copy(alpha = 0.18f),
+                        RoundedCornerShape(10.dp)
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    "▣",
+                    color = accent,
+                    fontSize = 19.sp,
+                    fontWeight = FontWeight.Bold
+                )
             }
-            IconButton(onClick = onMaximize, modifier = Modifier.size(30.dp)) {
+
+            Column(
+                Modifier
+                    .weight(1f)
+                    .padding(start = 9.dp)
+            ) {
+                Text(
+                    win.title,
+                    color = foreground,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 12.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    "VENTANA ACTIVA",
+                    color = accent,
+                    fontSize = 8.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            IconButton(
+                onClick = onMinimize,
+                modifier = Modifier
+                    .size(38.dp)
+                    .background(
+                        Color(0xFF71849B).copy(alpha = 0.22f),
+                        CircleShape
+                    )
+            ) {
                 Icon(
-                    if (win.maximized) Icons.Default.FullscreenExit else Icons.Default.Fullscreen,
+                    Icons.Default.Minimize,
+                    contentDescription = "Minimizar",
+                    tint = foreground
+                )
+            }
+
+            Spacer(Modifier.width(5.dp))
+
+            IconButton(
+                onClick = onMaximize,
+                modifier = Modifier
+                    .size(38.dp)
+                    .background(
+                        accent.copy(alpha = 0.20f),
+                        CircleShape
+                    )
+            ) {
+                Icon(
+                    if (win.maximized)
+                        Icons.Default.FullscreenExit
+                    else
+                        Icons.Default.Fullscreen,
                     contentDescription = "Maximizar o restaurar",
                     tint = foreground
                 )
             }
-            IconButton(onClick = onClose, modifier = Modifier.size(30.dp)) {
-                Icon(Icons.Default.Close, contentDescription = "Cerrar", tint = Color(0xFFFF8B8B))
+
+            Spacer(Modifier.width(5.dp))
+
+            IconButton(
+                onClick = onClose,
+                modifier = Modifier
+                    .size(38.dp)
+                    .background(
+                        Color(0xFFFF6262).copy(alpha = 0.20f),
+                        CircleShape
+                    )
+            ) {
+                Icon(
+                    Icons.Default.Close,
+                    contentDescription = "Cerrar",
+                    tint = Color(0xFFFF8B8B)
+                )
             }
         }
+
 
         Box(Modifier.weight(1f).fillMaxWidth()) {
             when (win.kind) {
