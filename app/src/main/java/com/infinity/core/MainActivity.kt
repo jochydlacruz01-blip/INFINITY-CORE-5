@@ -413,35 +413,69 @@ private fun Infinity08App() {
                 }
             }
 
-            // Dock: navegación y controles generales. No duplica herramientas del escritorio.
+          
+            // DOCK INFINITY 0.10 — DISEÑO MEJORADO
             Row(
-                Modifier.align(Alignment.BottomCenter)
-                    .padding(bottom = 12.dp)
-                    .shadow(22.dp, RoundedCornerShape(26.dp))
-                    .background(Color(0xE8172B43), RoundedCornerShape(26.dp))
-                    .border(1.dp, Color.White.copy(.18f), RoundedCornerShape(26.dp))
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(horizontal = 12.dp, vertical = 12.dp)
+                    .shadow(26.dp, RoundedCornerShape(24.dp))
+                    .background(
+                        Color(0xF016263D),
+                        RoundedCornerShape(24.dp)
+                    )
+                    .border(
+                        1.dp,
+                        Color(0xFF6686B5),
+                        RoundedCornerShape(24.dp)
+                    )
+                    .padding(horizontal = 18.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                horizontalArrangement = Arrangement.spacedBy(22.dp)
             ) {
-                DockAction("✦", "Start", accent) {
+                DockAction("✦", "START", accent) {
                     startOpen = !startOpen
                     orbitOpen = false
                     controlOpen = false
                 }
-                DockAction("◎", "Orbit", Color(0xFFB69CFF)) {
+
+                DockAction("◎", "ORBIT", Color(0xFFB69CFF)) {
                     orbitOpen = !orbitOpen
                     startOpen = false
                     controlOpen = false
                 }
-                DockAction("☷", "Control Center", Color(0xFFFFC27A)) {
+
+                DockAction("☷", "CONTROL", Color(0xFFFFC27A)) {
                     controlOpen = !controlOpen
                     startOpen = false
                     orbitOpen = false
                 }
-                Box(Modifier.width(1.dp).height(30.dp).background(Color.White.copy(.2f)))
-                Text(clockText, color = Color.White, fontSize = 10.sp)
+
+                Box(
+                    Modifier
+                        .width(1.dp)
+                        .height(38.dp)
+                        .background(Color.White.copy(alpha = 0.30f))
+                )
+
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        clockText,
+                        color = Color.White,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        "INFINITY",
+                        color = Color(0xFF9DB9E8),
+                        fontSize = 8.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
+
 
             // INFINITY START: búsqueda y catálogo de aplicaciones.
             if (startOpen) {
