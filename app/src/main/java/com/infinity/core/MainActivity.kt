@@ -1331,7 +1331,26 @@ private fun Infinity08Window(
         mutableStateOf(prefs.getString("note_${win.id}", "") ?: "")
     }
     val foreground = if (lightMode) Color(0xFF203149) else Color.White
+ 
+    var windowVisible by remember(win.id) {
+        mutableStateOf(false)
+    }
 
+    LaunchedEffect(win.id) {
+        windowVisible = true
+    }
+
+    val windowAlpha by animateFloatAsState(
+        targetValue = if (windowVisible) 1f else 0f,
+        animationSpec = tween(durationMillis = 280),
+        label = "windowAlpha"
+    )
+
+    val windowScale by animateFloatAsState(
+        targetValue = if (windowVisible) 1f else 0.92f,
+        animationSpec = tween(durationMillis = 280),
+        label = "windowScale"
+    )
     Column(
         Modifier.offset { IntOffset(win.x.roundToInt(), win.y.roundToInt()) }
             .zIndex(if (isFocused) 1f else 0f)
