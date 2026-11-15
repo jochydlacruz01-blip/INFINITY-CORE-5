@@ -723,30 +723,41 @@ Row(
 
                         Spacer(Modifier.height(14.dp))
 
-                        // ACCIONES RAPIDAS
+                       
+                        // ORBIT 0.10 — ACCIONES RÁPIDAS
                         Text(
-                            "◈  QUICK ACTIONS",
+                            "◈  ACCIONES RÁPIDAS",
                             color = accent,
-                            fontSize = 10.sp,
+                            fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.align(Alignment.Start)
                         )
 
-                        Spacer(Modifier.height(7.dp))
+                        Spacer(Modifier.height(9.dp))
 
                         Row(
                             Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(9.dp)
                         ) {
                             Button(
                                 onClick = {
                                     openInfinityWindow("connect", windows, workspace)
                                     orbitOpen = false
                                 },
-                                modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(12.dp)
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(50.dp),
+                                shape = RoundedCornerShape(13.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = accent,
+                                    contentColor = Color(0xFF071C2B)
+                                )
                             ) {
-                                Text("CONNECT", fontSize = 10.sp)
+                                Text(
+                                    "◉ CONNECT",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.ExtraBold
+                                )
                             }
 
                             OutlinedButton(
@@ -757,14 +768,28 @@ Row(
                                     }
                                     orbitOpen = false
                                 },
-                                modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(12.dp)
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(50.dp),
+                                shape = RoundedCornerShape(13.dp),
+                                border = androidx.compose.foundation.BorderStroke(
+                                    1.dp,
+                                    Color(0xFFFFB86B)
+                                ),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = Color(0xFFFFC27A)
+                                )
                             ) {
-                                Text("MINIMIZAR TODO", fontSize = 9.sp)
+                                Text(
+                                    "▱ MINIMIZAR",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
                             }
                         }
 
                         Spacer(Modifier.height(14.dp))
+
 
                         // ADMINISTRADOR DE VENTANAS
                         Text(
