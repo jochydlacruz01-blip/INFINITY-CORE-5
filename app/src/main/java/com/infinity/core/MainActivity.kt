@@ -432,8 +432,8 @@ private fun Infinity08App() {
                             if (index >= 0) windows[index] =
                                 windows[index].copy(maximized = !windows[index].maximized)
                         },
-                        onMove = { dx, dy ->
-                                                // INFINITY 0.11 — MOVIMIENTO CON LÍMITES
+                        
+                        // INFINITY 0.11 — MOVIMIENTO CON LÍMITES
                         onMove = { dx, dy ->
                             val index = windows.indexOfFirst { it.id == win.id }
                             if (index >= 0) {
