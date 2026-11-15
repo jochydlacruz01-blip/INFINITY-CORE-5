@@ -1563,8 +1563,21 @@ private fun Infinity08Window(
             }
         }
 
+         // INFINITY DESKTOP 0.11 — CONTROL DE REDIMENSIONAMIENTO
         Box(
-            Modifier.align(Alignment.End).size(30.dp)
+            Modifier
+                .align(Alignment.End)
+                .padding(end = 8.dp, bottom = 8.dp)
+                .size(44.dp)
+                .background(
+                    accent.copy(alpha = 0.18f),
+                    RoundedCornerShape(14.dp)
+                )
+                .border(
+                    1.dp,
+                    accent.copy(alpha = 0.65f),
+                    RoundedCornerShape(14.dp)
+                )
                 .pointerInput(win.id) {
                     detectDragGestures { change, drag ->
                         change.consume()
@@ -1573,7 +1586,12 @@ private fun Infinity08Window(
                 },
             contentAlignment = Alignment.Center
         ) {
-            Text("⤡", color = accent, fontSize = 19.sp)
-        }
+            Text(
+                "⤡",
+                color = accent,
+                fontSize = 25.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }      
     }
 }
