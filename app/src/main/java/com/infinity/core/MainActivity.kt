@@ -1133,6 +1133,20 @@ Row(
                     }
                 }
             }
+              // INFINITY ADVANCED — CENTRO DE NOTIFICACIONES Y ACCIONES RÁPIDAS.
+            if (advancedOpen) {
+                Box(
+                    Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = 76.dp)
+                        .widthIn(min = 300.dp, max = 430.dp)
+                        .fillMaxWidth()
+                ) {
+                    InfinityAdvancedPanel(
+                        onClose = { advancedOpen = false }
+                    )
+                }
+            }
         }
     }
 }
