@@ -1,4 +1,4 @@
-name: PROJECT INFINITY 0.9 - APK BUILD
+name: PROJECT INFINITY 0.10 - APK BUILD
 
 on:
   push:
@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   build:
-    name: Build PROJECT INFINITY 0.9
+    name: PROJECT-INFINITY-0.10-APK
     runs-on: ubuntu-latest
 
     steps:
