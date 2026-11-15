@@ -3,6 +3,12 @@ package com.infinity.core
 import android.content.Context
 import android.content.Intent
 import android.provider.Settings
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.heightIn
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -132,6 +138,7 @@ fun InfinityAdvancedPanel(
                 fontWeight = FontWeight.Bold
             )
 
+            
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(17.dp),
@@ -141,105 +148,152 @@ fun InfinityAdvancedPanel(
             ) {
                 Column(
                     modifier = Modifier.padding(15.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(9.dp)
                 ) {
-                    Text(
-                        "Centro de notificaciones",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    Text(
-                        "La integración para mostrar las notificaciones reales " +
-                            "del dispositivo se habilitará en el siguiente paso.",
-                        color = AdvancedMuted,
-                        fontSize = 11.sp
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                "Centro de notificaciones",
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                if (InfinityNotificationStore.accessEnabled.value)
+                                    "Acceso autorizado"
+                                else
+                                    "Acceso pendiente de autorización",
+                                color = if (InfinityNotificationStore.accessEnabled.value)
+                                    AdvancedAccent else AdvancedMuted,
+                                fontSize = 10.sp
+                            )
+                        }
+                    }
 
                     TextButton(
                         onClick = {
                             openAdvancedSettings(
                                 context,
-                                Settings.ACTION_APP_NOTIFICATION_SETTINGS,
-                                Settings.EXTRA_APP_PACKAGE to context.packageName
+                                Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS
                             )
                         }
                     ) {
                         Text(
-                            "CONFIGURAR NOTIFICACIONES",
+                            "PERMITIR ACCESO A NOTIFICACIONES",
                             color = AdvancedAccent,
                             fontSize = 10.sp
                         )
                     }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            "NOTIFICACIONES RECIBIDAS",
+                            color = AdvancedAccent,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.weight(1f)
+                        )
+
+                        TextButton(
+                            onClick = {
+                                InfinityNotificationStore.clearAll()
+                            },
+                            enabled = InfinityNotificationStore.notifications.isNotEmpty()
+                        ) {
+                            Text("LIMPIAR", color = AdvancedAccent, fontSize = 9.sp)
+                        }
+                    }
+
+                    if (InfinityNotificationStore.notifications.isEmpty()) {
+                        Text(
+                            "Todavía no hay notificaciones disponibles.",
+                            color = AdvancedMuted,
+                            fontSize = 11.sp
+                        )
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.heightIn(max = 260.dp),
+                            verticalArrangement = Arrangement.spacedBy(7.dp)
+                        ) {
+                            items(
+                                InfinityNotificationStore.notifications,
+                                key = { it.key }
+                            ) { notification ->
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(13.dp),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = Color(0xFF263D57)
+                                    )
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(11.dp),
+                                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                notification.appName,
+                                                color = AdvancedAccent,
+                                                fontSize = 10.sp,
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                            Text(
+                                                SimpleDateFormat(
+                                                    "HH:mm",
+                                                    Locale.getDefault()
+                                                ).format(Date(notification.timestamp)),
+                                                color = AdvancedMuted,
+                                                fontSize = 9.sp
+                                            )
+                                        }
+
+                                        Text(
+                                            notification.title.ifBlank {
+                                                "Notificación"
+                                            },
+                                            color = Color.White,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 12.sp
+                                        )
+
+                                        Text(
+                                            notification.message,
+                                            color = AdvancedMuted,
+                                            fontSize = 11.sp
+                                        )
+
+                                        Row {
+                                            TextButton(
+                                                onClick = {
+                                                    InfinityNotificationStore.open(notification)
+                                                },
+                                                enabled = notification.contentIntent != null
+                                            ) {
+                                                Text("ABRIR", color = AdvancedAccent)
+                                            }
+
+                                            TextButton(
+                                                onClick = {
+                                                    InfinityNotificationStore.dismiss(
+                                                        notification.key
+                                                    )
+                                                },
+                                                enabled = notification.clearable
+                                            ) {
+                                                Text("DESCARTAR", color = AdvancedMuted)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
-
-            Text(
-                "INFINITY ADVANCED · MÓDULO 1",
-                color = AdvancedMuted,
-                fontSize = 9.sp
-            )
-        }
-    }
-}
-
-@Composable
-private fun AdvancedActionTile(
-    modifier: Modifier = Modifier,
-    glyph: String,
-    title: String,
-    subtitle: String,
-    onClick: () -> Unit
-) {
-    Card(
-        onClick = onClick,
-        modifier = modifier,
-        shape = RoundedCornerShape(17.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color(0xFF203A57)
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(13.dp),
-            verticalArrangement = Arrangement.spacedBy(5.dp)
-        ) {
-            Text(
-                glyph,
-                color = AdvancedAccent,
-                fontSize = 23.sp,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                title,
-                color = Color.White,
-                fontWeight = FontWeight.Bold,
-                fontSize = 12.sp
-            )
-            Text(
-                subtitle,
-                color = AdvancedMuted,
-                fontSize = 9.sp
-            )
-        }
-    }
-}
-
-private fun openAdvancedSettings(
-    context: Context,
-    action: String,
-    extra: Pair<String, String>? = null
-) {
-    try {
-        val intent = Intent(action)
-        extra?.let {
-            intent.putExtra(it.first, it.second)
-        }
-        context.startActivity(intent)
-    } catch (_: Exception) {
-        try {
-            context.startActivity(Intent(Settings.ACTION_SETTINGS))
-        } catch (_: Exception) {
-            // El dispositivo no pudo abrir los ajustes.
-        }
-    }
-}
