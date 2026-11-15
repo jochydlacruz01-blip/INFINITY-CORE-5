@@ -1336,7 +1336,8 @@ private fun Infinity08Window(
                 if (lightMode) Color(0xF2F5F8FC) else Color(0xF21B2B40),
                 RoundedCornerShape(20.dp)
             )
-            .border(1.dp, accent.copy(.38f), RoundedCornerShape(20.dp))
+            .border(1.dp, accent.copy(.38f), RoundedCornerShape(20.dp)) 
+            .clickable { onFocus() }
     ) {
         
         // INFINITY SMART WINDOWS 0.11 — BARRA DE CONTROLES
