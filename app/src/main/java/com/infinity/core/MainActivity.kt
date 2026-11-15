@@ -479,11 +479,9 @@ val iconOffsets = remember {
                                 )
                             }
                         },
-                            onFocus = {
-                            val index = windows.indexOfFirst { it.id == win.id }
-                            if (index >= 0) {
-                                val selected = windows.removeAt(index)
-                                windows.add(selected)
+                     onFocus = {
+    focusedWindowId = win.id
+}
                             }
                         }
                     )
