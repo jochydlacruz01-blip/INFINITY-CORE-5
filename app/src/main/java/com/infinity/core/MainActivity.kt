@@ -115,6 +115,7 @@ private fun Infinity08App() {
     var startOpen by remember { mutableStateOf(false) }
     var orbitOpen by remember { mutableStateOf(false) }
     var controlOpen by remember { mutableStateOf(false) }
+    var advancedOpen by remember { mutableStateOf(false) }
     var search by remember { mutableStateOf("") }
     var selectedFolder by remember {
         mutableStateOf(prefs.getString("selected_folder_uri", null)?.let(Uri::parse))
