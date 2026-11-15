@@ -33,13 +33,17 @@ jobs:
 
       - name: Verificar estructura
         run: |
-          echo "Verificando proyecto INFINITY 0.9..."
+          echo "Verificando PROJECT INFINITY 0.10..."
           ls -la
           test -f settings.gradle.kts
           test -f build.gradle.kts
           test -f app/build.gradle.kts
           test -f app/src/main/java/com/infinity/core/MainActivity.kt
           test -f app/src/main/java/com/infinity/core/InfinityConnect.kt
+          test -f app/src/main/java/com/infinity/core/OrbitSystemMonitor.kt
+
+      - name: Compilar APK
+        run: gradle assembleDebug --stacktrace
 
       - name: Publicar APK
         uses: actions/upload-artifact@v4
