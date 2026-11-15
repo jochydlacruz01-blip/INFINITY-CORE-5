@@ -1310,7 +1310,8 @@ private fun Infinity08Window(
     onMinimize: () -> Unit,
     onMaximize: () -> Unit,
     onMove: (Float, Float) -> Unit,
-    onResize: (Float, Float) -> Unit
+    onResize: (Float, Float) -> Unit,
+    onFocus: () -> Unit
 ) {
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences("infinity_desktop", 0) }
