@@ -791,39 +791,64 @@ Row(
                         Spacer(Modifier.height(14.dp))
 
 
-                        // ADMINISTRADOR DE VENTANAS
+                        
+                        // ORBIT 0.10 — ADMINISTRADOR DE VENTANAS
                         Text(
-                            "◈  WINDOW MANAGER",
+                            "◈  ADMINISTRADOR DE VENTANAS",
                             color = accent,
-                            fontSize = 10.sp,
+                            fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.align(Alignment.Start)
                         )
 
-                        Spacer(Modifier.height(6.dp))
+                        Spacer(Modifier.height(8.dp))
 
                         val orbitWindows = windows.filter {
                             it.workspace == workspace
                         }
 
                         if (orbitWindows.isEmpty()) {
-                            Text(
-                                "No hay ventanas abiertas en este espacio.",
-                                color = InfinityMuted,
-                                fontSize = 11.sp,
-                                modifier = Modifier.padding(10.dp)
-                            )
-                        } else {
-                            LazyColumn(
+                            Column(
                                 Modifier.fillMaxWidth()
-                                    .heightIn(max = 145.dp)
+                                    .clip(RoundedCornerShape(14.dp))
+                                    .background(Color(0xFF192D47))
+                                    .padding(16.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                items(orbitWindows, key = { it.id }) { win ->
+                                Text("▱", color = accent, fontSize = 25.sp)
+                                Text(
+                                    "ESCRITORIO DESPEJADO",
+                                    color = Color.White,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    "No hay ventanas en este espacio.",
+                                    color = InfinityMuted,
+                                    fontSize = 10.sp
+                                )
+                            }
+                        } else {
+                            Column(
+                                Modifier.fillMaxWidth()
+                                    .heightIn(max = 190.dp)
+                                    .verticalScroll(rememberScrollState()),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                orbitWindows.forEach { win ->
                                     Row(
                                         Modifier.fillMaxWidth()
-                                            .clip(RoundedCornerShape(10.dp))
+                                            .clip(RoundedCornerShape(12.dp))
                                             .background(Color(0xFF192D47))
-                                            .padding(horizontal = 9.dp, vertical = 5.dp),
+                                            .border(
+                                                1.dp,
+                                                accent.copy(alpha = 0.20f),
+                                                RoundedCornerShape(12.dp)
+                                            )
+                                            .padding(
+                                                horizontal = 9.dp,
+                                                vertical = 5.dp
+                                            ),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Text(
@@ -832,25 +857,37 @@ Row(
                                                 InfinityMuted else accent
                                         )
 
-                                        Text(
-                                            win.title,
-                                            color = Color.White,
-                                            fontSize = 11.sp,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis,
-                                            modifier = Modifier.weight(1f)
+                                        Column(
+                                            Modifier.weight(1f)
                                                 .clickable {
                                                     val index = windows.indexOfFirst {
                                                         it.id == win.id
                                                     }
                                                     if (index >= 0) {
                                                         windows[index] =
-                                                            windows[index].copy(minimized = false)
+                                                            windows[index].copy(
+                                                                minimized = false
+                                                            )
                                                     }
                                                     orbitOpen = false
                                                 }
                                                 .padding(start = 8.dp)
-                                        )
+                                        ) {
+                                            Text(
+                                                win.title,
+                                                color = Color.White,
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                            Text(
+                                                if (win.minimized) "MINIMIZADA" else "ACTIVA",
+                                                color = if (win.minimized)
+                                                    InfinityMuted else accent,
+                                                fontSize = 8.sp
+                                            )
+                                        }
 
                                         TextButton(
                                             onClick = {
@@ -859,7 +896,9 @@ Row(
                                                 }
                                                 if (index >= 0) {
                                                     windows[index] =
-                                                        windows[index].copy(minimized = !win.minimized)
+                                                        windows[index].copy(
+                                                            minimized = !win.minimized
+                                                        )
                                                 }
                                             }
                                         ) {
@@ -871,18 +910,24 @@ Row(
 
                                         TextButton(
                                             onClick = {
-                                                windows.removeAll { it.id == win.id }
+                                                windows.removeAll {
+                                                    it.id == win.id
+                                                }
                                             }
                                         ) {
-                                            Text("×", color = Color(0xFFFF8294))
+                                            Text(
+                                                "×",
+                                                color = Color(0xFFFF8294),
+                                                fontSize = 18.sp
+                                            )
                                         }
                                     }
-                                    Spacer(Modifier.height(4.dp))
                                 }
                             }
                         }
 
                         Spacer(Modifier.height(10.dp))
+
 
                         TextButton(onClick = { orbitOpen = false }) {
                             Text("CERRAR ORBIT", color = accent, fontSize = 10.sp)
