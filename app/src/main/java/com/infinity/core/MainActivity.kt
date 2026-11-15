@@ -527,7 +527,12 @@ val iconOffsets = remember {
                     startOpen = false
                     orbitOpen = false
                 }
-
+DockAction("▤", "ADVANCED", accent) {
+    advancedOpen = !advancedOpen
+    startOpen = false
+    orbitOpen = false
+    controlOpen = false
+}
                 Box(
                     Modifier
                         .width(1.dp)
