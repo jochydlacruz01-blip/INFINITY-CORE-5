@@ -73,26 +73,36 @@ object InfinityNotificationStore {
     }
 }
 
-override fun onListenerConnected() {
+class InfinityNotificationListener : NotificationListenerService() {
 
-        internal fun dismissNotification(key: String) {
+    internal fun dismissNotification(key: String) {
         try {
             cancelNotification(key)
         } catch (_: Exception) {
             // Android puede impedir retirar determinadas notificaciones del sistema.
         }
     }
+
+    internal fun openNotification(notification: InfinityNotification) {
+        try {
+            val pendingIntent = notification.contentIntent
+            if (pendingIntent != null) {
+                pendingIntent.send()
+                return
+            }
         } catch (_: Exception) {
-            // Si el destino directo ya no existe, intentamos abrir la aplicación.
+            // Si el destino directo no existe, intentamos abrir la aplicación.
         }
 
         try {
             val launchIntent = packageManager
                 .getLaunchIntentForPackage(notification.packageName)
+
             launchIntent?.addFlags(
                 android.content.Intent.FLAG_ACTIVITY_NEW_TASK or
                     android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP
             )
+
             if (launchIntent != null) {
                 startActivity(launchIntent)
             }
