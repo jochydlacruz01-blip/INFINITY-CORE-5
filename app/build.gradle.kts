@@ -1,3 +1,4 @@
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -14,6 +15,22 @@ android {
         targetSdk = 35
         versionCode = 7
         versionName = "0.10.0"
+    }
+
+    signingConfigs {
+        create("release") {
+            storeFile = System.getenv("INFINITY_KEYSTORE_FILE")?.let { file(it) }
+            storePassword = System.getenv("INFINITY_KEYSTORE_PASSWORD")
+            keyAlias = System.getenv("INFINITY_KEY_ALIAS")
+            keyPassword = System.getenv("INFINITY_KEY_PASSWORD")
+        }
+    }
+
+    buildTypes {
+        release {
+            signingConfig = signingConfigs.getByName("release")
+            isMinifyEnabled = false
+        }
     }
 
     buildFeatures {
