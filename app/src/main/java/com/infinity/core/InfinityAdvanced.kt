@@ -285,7 +285,7 @@ fun InfinityAdvancedPanel(
                                                         notification.key
                                                     )
                                                 },
-                                                enabled = notification.clearable
+                                                
                                             ) {
                                                 Text("DESCARTAR", color = AdvancedMuted)
                                             }
