@@ -1,4 +1,4 @@
- package com.infinity.core
+package com.infinity.core
 
 import android.content.Intent
 import android.graphics.BitmapFactory
