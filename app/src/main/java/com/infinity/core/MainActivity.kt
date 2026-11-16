@@ -724,9 +724,7 @@ OrbitSystemMonitor(
     activeWindows = windows.count {
         it.workspace == workspace && !it.minimized
     },
-    totalWindows = windows.count {
-        it.workspace == workspace
-    }
+    
 )
 OrbitSystemMonitor(
     accent = accent,
