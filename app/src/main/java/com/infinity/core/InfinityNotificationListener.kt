@@ -75,13 +75,13 @@ object InfinityNotificationStore {
 
 class InfinityNotificationListener : NotificationListenerService() {
 
-    internal fun openNotification(notification: InfinityNotification) {
+        internal fun dismissNotification(key: String) {
         try {
-            val pendingIntent = notification.contentIntent
-            if (pendingIntent != null) {
-                pendingIntent.send()
-                return
-            }
+            cancelNotification(key)
+        } catch (_: Exception) {
+            // Android puede impedir retirar determinadas notificaciones del sistema.
+        }
+    }
         } catch (_: Exception) {
             // Si el destino directo ya no existe, intentamos abrir la aplicación.
         }
