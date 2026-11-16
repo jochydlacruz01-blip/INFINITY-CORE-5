@@ -58,9 +58,13 @@ object InfinityNotificationStore {
     }
 
     internal fun disconnected() {
-        service = null
-        accessEnabled.value = false
+    service = null
+    accessEnabled.value = false
+
+    mainHandler.post {
+        notifications.clear()
     }
+}
 
     fun dismiss(key: String) {
     service?.dismissNotification(key)
