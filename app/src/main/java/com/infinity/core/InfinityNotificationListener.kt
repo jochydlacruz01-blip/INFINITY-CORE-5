@@ -61,7 +61,7 @@ object InfinityNotificationStore {
     }
 
     fun dismiss(key: String) {
-    service?.cancelNotification(key)
+    service?.dismissNotification(key)
 }
 
     fun clearAll() {
