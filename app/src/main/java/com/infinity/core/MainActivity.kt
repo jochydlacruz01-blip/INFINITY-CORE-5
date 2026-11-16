@@ -737,7 +737,72 @@ OrbitSystemMonitor(
         it.workspace == workspace
     }
 )
+// INFINITY ORBIT 0.11 — CONTROL DE NOTIFICACIONES
+Card(
+    modifier = Modifier.fillMaxWidth(),
+    shape = RoundedCornerShape(16.dp),
+    colors = CardDefaults.cardColors(
+        containerColor = Color(0xFF192D47)
+    )
+) {
+    Column(
+        modifier = Modifier.padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    "CENTRO DE NOTIFICACIONES",
+                    color = accent,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    if (InfinityNotificationStore.accessEnabled.value)
+                        "● SERVICIO CONECTADO"
+                    else
+                        "● SERVICIO DESCONECTADO",
+                    color = if (InfinityNotificationStore.accessEnabled.value)
+                        Color(0xFF55D6A4)
+                    else
+                        Color(0xFFFFA66B),
+                    fontSize = 9.sp
+                )
+            }
 
+            Text(
+                "${InfinityNotificationStore.notifications.size}",
+                color = Color.White,
+                fontSize = 25.sp,
+                fontWeight = FontWeight.Black
+            )
+        }
+
+        Text(
+            "Notificaciones recibidas",
+            color = InfinityMuted,
+            fontSize = 10.sp
+        )
+
+        Button(
+            onClick = { advancedOpen = true },
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = accent
+            )
+        ) {
+            Text(
+                "ABRIR CENTRO DE NOTIFICACIONES",
+                color = Color(0xFF101827),
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+    }
+}
 Spacer(Modifier.height(14.dp))
 
                         // INDICADORES DEL SISTEMA
