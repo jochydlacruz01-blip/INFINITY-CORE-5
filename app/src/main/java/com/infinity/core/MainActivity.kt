@@ -728,6 +728,15 @@ OrbitSystemMonitor(
         it.workspace == workspace
     }
 )
+OrbitSystemMonitor(
+    accent = accent,
+    activeWindows = windows.count {
+        it.workspace == workspace && !it.minimized
+    },
+    totalWindows = windows.count {
+        it.workspace == workspace
+    }
+)
 
 Spacer(Modifier.height(14.dp))
 
