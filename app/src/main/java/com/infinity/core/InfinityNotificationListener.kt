@@ -68,18 +68,12 @@ object InfinityNotificationStore {
         service?.cancelAllNotifications()
     }
 
-        fun open(notification: InfinityNotification) {
+          fun open(notification: InfinityNotification) {
         service?.openNotification(notification)
     }
+}
 
 class InfinityNotificationListener : NotificationListenerService() {
-    internal fun dismissNotification(key: String) {
-        try {
-            cancelNotification(key)
-        } catch (_: Exception) {
-            // Android puede impedir retirar determinadas notificaciones del sistema.
-        }
-    }
 
     internal fun openNotification(notification: InfinityNotification) {
         try {
