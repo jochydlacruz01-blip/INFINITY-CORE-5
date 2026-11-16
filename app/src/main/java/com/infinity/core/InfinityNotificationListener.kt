@@ -85,33 +85,51 @@ class InfinityNotificationListener : NotificationListenerService() {
         }
     }
 
-    internal fun openNotification(notification: InfinityNotification) {
-        try {
-            val pendingIntent = notification.contentIntent
-            if (pendingIntent != null) {
+   internal fun openNotification(notification: InfinityNotification) {
+    try {
+        val pendingIntent = notification.contentIntent
+
+        if (pendingIntent != null) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                val options = ActivityOptions.makeBasic()
+                    .setPendingIntentBackgroundActivityStartMode(
+                        ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED
+                    )
+
+                pendingIntent.send(
+                    this,
+                    0,
+                    null,
+                    null,
+                    null,
+                    null,
+                    options.toBundle()
+                )
+            } else {
                 pendingIntent.send()
-                return
             }
-        } catch (_: Exception) {
-            // Si el destino directo no existe, intentamos abrir la aplicación.
+
+            return
         }
+    } catch (_: Exception) {
+        // Continuar con el método alternativo.
+    }
 
-        try {
-            val launchIntent = packageManager
-                .getLaunchIntentForPackage(notification.packageName)
+    try {
+        val launchIntent = packageManager
+            .getLaunchIntentForPackage(notification.packageName)
 
-            launchIntent?.addFlags(
+        if (launchIntent != null) {
+            launchIntent.addFlags(
                 android.content.Intent.FLAG_ACTIVITY_NEW_TASK or
                     android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP
             )
-
-            if (launchIntent != null) {
-                startActivity(launchIntent)
-            }
-        } catch (_: Exception) {
-            // Algunas aplicaciones no ofrecen una pantalla de inicio accesible.
+            startActivity(launchIntent)
         }
+    } catch (_: Exception) {
+        // La aplicación puede no permitir este inicio.
     }
+}
     override fun onListenerConnected() {
         super.onListenerConnected()
 
