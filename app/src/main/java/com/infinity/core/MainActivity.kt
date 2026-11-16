@@ -718,7 +718,7 @@ DockAction("▤", "ADVANCED", accent) {
 
                         Spacer(Modifier.height(14.dp))
 
-                        // ORBIT 0.10: MONITOR DEL SISTEMA EN TIEMPO REAL
+                        Fix: remove duplicate Orbit system monitor
 OrbitSystemMonitor(
     accent = accent,
     activeWindows = windows.count {
