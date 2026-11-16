@@ -73,7 +73,7 @@ object InfinityNotificationStore {
     }
 }
 
-class InfinityNotificationListener : NotificationListenerService() {
+override fun onListenerConnected() {
 
         internal fun dismissNotification(key: String) {
         try {
