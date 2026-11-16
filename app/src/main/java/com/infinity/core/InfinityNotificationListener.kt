@@ -61,14 +61,16 @@ object InfinityNotificationStore {
     }
 
     fun dismiss(key: String) {
-        service?.cancelNotification(key)
-    }
+    service?.cancelNotification(key)
+}
 
     fun clearAll() {
         service?.cancelAllNotifications()
     }
 
-    fun open(notification: InfinityNotification) {
+    ffun open(notification: InfinityNotification) {
+    service?.openNotification(notification)
+}
         try {
             notification.contentIntent?.send()
         } catch (_: Exception) {
