@@ -274,7 +274,7 @@ fun InfinityAdvancedPanel(
                                                 onClick = {
                                                     InfinityNotificationStore.open(notification)
                                                 },
-                                                enabled = notification.contentIntent != null
+                                                
                                             ) {
                                                 Text("ABRIR", color = AdvancedAccent)
                                             }
