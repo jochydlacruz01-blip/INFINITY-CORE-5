@@ -68,15 +68,9 @@ object InfinityNotificationStore {
         service?.cancelAllNotifications()
     }
 
-    ffun open(notification: InfinityNotification) {
-    service?.openNotification(notification)
-}
-        try {
-            notification.contentIntent?.send()
-        } catch (_: Exception) {
-        }
+        fun open(notification: InfinityNotification) {
+        service?.openNotification(notification)
     }
-}
 
 class InfinityNotificationListener : NotificationListenerService() {
     internal fun dismissNotification(key: String) {
