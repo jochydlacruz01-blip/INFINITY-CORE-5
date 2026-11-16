@@ -71,8 +71,12 @@ object InfinityNotificationStore {
 }
 
     fun clearAll() {
+    try {
         service?.cancelAllNotifications()
+    } catch (_: Exception) {
+        // Evitar que un error del servicio cierre INFINITY.
     }
+}
 
           fun open(notification: InfinityNotification) {
         service?.openNotification(notification)
