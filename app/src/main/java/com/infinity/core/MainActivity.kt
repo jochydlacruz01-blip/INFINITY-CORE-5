@@ -718,7 +718,6 @@ DockAction("▤", "ADVANCED", accent) {
 
                         Spacer(Modifier.height(14.dp))         
     
-)
 OrbitSystemMonitor(
     accent = accent,
     activeWindows = windows.count {
