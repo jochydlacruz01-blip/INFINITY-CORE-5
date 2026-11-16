@@ -716,14 +716,7 @@ DockAction("▤", "ADVANCED", accent) {
                             }
                         }
 
-                        Spacer(Modifier.height(14.dp))
-
-                        Fix: remove duplicate Orbit system monitor
-OrbitSystemMonitor(
-    accent = accent,
-    activeWindows = windows.count {
-        it.workspace == workspace && !it.minimized
-    },
+                        Spacer(Modifier.height(14.dp))         
     
 )
 OrbitSystemMonitor(
