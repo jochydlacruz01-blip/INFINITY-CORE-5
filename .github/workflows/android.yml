@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - INFINITY-0.9
-
   workflow_dispatch:
 
 permissions:
@@ -42,13 +41,34 @@ jobs:
           test -f app/src/main/java/com/infinity/core/InfinityConnect.kt
           test -f app/src/main/java/com/infinity/core/OrbitSystemMonitor.kt
 
-      - name: Compilar APK
-        run: gradle assembleDebug --stacktrace
+      - name: Preparar firma
+        env:
+          INFINITY_KEYSTORE_BASE64: ${{ secrets.INFINITY_KEYSTORE_BASE64 }}
+        run: |
+          test -n "$INFINITY_KEYSTORE_BASE64"
+          printf '%s' "$INFINITY_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/infinity-release.jks"
+          test -s "$RUNNER_TEMP/infinity-release.jks"
 
-      - name: Publicar APK
+      - name: Compilar APK Debug y Release firmado
+        env:
+          INFINITY_KEYSTORE_FILE: ${{ runner.temp }}/infinity-release.jks
+          INFINITY_KEYSTORE_PASSWORD: ${{ secrets.INFINITY_KEYSTORE_PASSWORD }}
+          INFINITY_KEY_ALIAS: ${{ secrets.INFINITY_KEY_ALIAS }}
+          INFINITY_KEY_PASSWORD: ${{ secrets.INFINITY_KEY_PASSWORD }}
+        run: gradle assembleDebug assembleRelease --stacktrace
+
+      - name: Publicar APK Debug
         uses: actions/upload-artifact@v4
         with:
-          name: PROJECT-INFINITY-0.10-APK
+          name: PROJECT-INFINITY-0.10-DEBUG-APK
           path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Publicar APK Release firmado
+        uses: actions/upload-artifact@v4
+        with:
+          name: PROJECT-INFINITY-0.10-RELEASE-APK
+          path: app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
           retention-days: 14
