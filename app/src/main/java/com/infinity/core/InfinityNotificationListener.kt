@@ -71,10 +71,10 @@ object InfinityNotificationStore {
 }
 
     fun clearAll() {
-    try {
-        service?.cancelAllNotifications()
-    } catch (_: Exception) {
-        // Evitar que un error del servicio cierre INFINITY.
+    // Limpiar únicamente la lista local de INFINITY.
+    // No retirar las notificaciones del panel de Android.
+    mainHandler.post {
+        notifications.clear()
     }
 }
 
