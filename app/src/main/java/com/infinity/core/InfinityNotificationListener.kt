@@ -161,7 +161,7 @@ class InfinityNotificationListener : NotificationListenerService() {
         InfinityNotificationStore.remove(sbn.key)
     }
 
-    ```kotlin
+   
 private fun publishNotification(sbn: StatusBarNotification) {
     try {
         val notification = sbn.notification ?: return
@@ -204,4 +204,5 @@ private fun publishNotification(sbn: StatusBarNotification) {
         // Ignorar notificaciones defectuosas sin cerrar INFINITY.
     }
 }
+} 
 
