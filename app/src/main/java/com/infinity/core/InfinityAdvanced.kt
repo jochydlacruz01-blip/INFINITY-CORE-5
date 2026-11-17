@@ -321,8 +321,8 @@ fun InfinityAdvancedPanel(
         color = AdvancedMuted,
         fontSize = 11.sp
     )
-}                                      )
-
+} 
+  
                                         Row {
                                             TextButton(
                                                 onClick = {
