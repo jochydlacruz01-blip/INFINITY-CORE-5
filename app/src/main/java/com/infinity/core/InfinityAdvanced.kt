@@ -236,22 +236,27 @@ fun InfinityAdvancedPanel(
         }
     )
 }
-                            "NOTIFICACIONES RECIBIDAS",
-                            color = AdvancedAccent,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.weight(1f)
-                        )
+                    Row(
+    modifier = Modifier.fillMaxWidth(),
+    verticalAlignment = Alignment.CenterVertically
+) {
+    Text(
+        "NOTIFICACIONES RECIBIDAS",
+        color = AdvancedAccent,
+        fontSize = 10.sp,
+        fontWeight = FontWeight.Bold,
+        modifier = Modifier.weight(1f)
+    )
 
-                        TextButton(
-                            onClick = {
-                                InfinityNotificationStore.clearAll()
-                            },
-                            enabled = InfinityNotificationStore.notifications.isNotEmpty()
-                        ) {
-                            Text("LIMPIAR", color = AdvancedAccent, fontSize = 9.sp)
-                        }
-                    }
+    TextButton(
+        onClick = {
+            InfinityNotificationStore.clearAll()
+        },
+        enabled = InfinityNotificationStore.notifications.isNotEmpty()
+    ) {
+        Text("LIMPIAR", color = AdvancedAccent, fontSize = 9.sp)
+    }
+}
 
                     if (InfinityNotificationStore.notifications.isEmpty()) {
                         Text(
