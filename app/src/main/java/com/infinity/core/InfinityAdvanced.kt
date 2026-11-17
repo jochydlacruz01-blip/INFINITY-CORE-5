@@ -54,9 +54,11 @@ fun InfinityAdvancedPanel(
         )
     ) {
         Column(
-            modifier = Modifier.padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
+    modifier = Modifier
+        .padding(18.dp)
+        .verticalScroll(rememberScrollState()),
+    verticalArrangement = Arrangement.spacedBy(14.dp)
+) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
