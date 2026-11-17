@@ -25,6 +25,11 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.Switch
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,6 +48,15 @@ fun InfinityAdvancedPanel(
     onClose: () -> Unit
 ) {
     val context = LocalContext.current
+        val privacyPrefs = remember {
+        context.getSharedPreferences("infinity_privacy", Context.MODE_PRIVATE)
+    }
+
+    var hideNotificationContent by remember {
+        mutableStateOf(
+            privacyPrefs.getBoolean("hide_notification_content", true)
+        )
+    }
 
     Card(
         modifier = Modifier
@@ -195,7 +209,34 @@ fun InfinityAdvancedPanel(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
+                        Text( Row(
+    modifier = Modifier.fillMaxWidth(),
+    verticalAlignment = Alignment.CenterVertically
+) {
+    Column(modifier = Modifier.weight(1f)) {
+        Text(
+            "OCULTAR CONTENIDO PRIVADO",
+            color = AdvancedMuted,
+            fontSize = 9.sp,
+            fontWeight = FontWeight.Bold
+        )
+        Text(
+            "Oculta títulos y mensajes de las notificaciones",
+            color = AdvancedMuted,
+            fontSize = 9.sp
+        )
+    }
+
+    Switch(
+        checked = hideNotificationContent,
+        onCheckedChange = { enabled ->
+            hideNotificationContent = enabled
+            privacyPrefs.edit()
+                .putBoolean("hide_notification_content", enabled)
+                .apply()
+        }
+    )
+}
                             "NOTIFICACIONES RECIBIDAS",
                             color = AdvancedAccent,
                             fontSize = 10.sp,
@@ -259,18 +300,25 @@ fun InfinityAdvancedPanel(
                                         }
 
                                         Text(
-                                            notification.title.ifBlank {
-                                                "Notificación"
-                                            },
-                                            color = Color.White,
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 12.sp
-                                        )
-
-                                        Text(
-                                            notification.message,
-                                            color = AdvancedMuted,
-                                            fontSize = 11.sp
+                                           if (hideNotificationContent) {
+    Text(
+        "Contenido oculto por privacidad",
+        color = AdvancedMuted,
+        fontSize = 11.sp
+    )
+} else {
+    Text(
+        notification.title.ifBlank { "Notificación" },
+        color = Color.White,
+        fontWeight = FontWeight.Bold,
+        fontSize = 12.sp
+    )
+    Text(
+        notification.message,
+        color = AdvancedMuted,
+        fontSize = 11.sp
+    )
+}
                                         )
 
                                         Row {
