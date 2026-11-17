@@ -303,7 +303,7 @@ fun InfinityAdvancedPanel(
                                             )
                                         }
 
-                                       if (hideNotificationContent) {
+  if (hideNotificationContent) {
     Text(
         "Contenido oculto por privacidad",
         color = AdvancedMuted,
@@ -321,22 +321,7 @@ fun InfinityAdvancedPanel(
         color = AdvancedMuted,
         fontSize = 11.sp
     )
-}
-    )
-} else {
-    Text(
-        notification.title.ifBlank { "Notificación" },
-        color = Color.White,
-        fontWeight = FontWeight.Bold,
-        fontSize = 12.sp
-    )
-    Text(
-        notification.message,
-        color = AdvancedMuted,
-        fontSize = 11.sp
-    )
-}
-                                        )
+}                                      )
 
                                         Row {
                                             TextButton(
