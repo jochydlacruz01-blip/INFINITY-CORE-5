@@ -74,10 +74,55 @@ fun InfinityAdvancedPanel(
     verticalArrangement = Arrangement.spacedBy(14.dp)
 ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
+    modifier = Modifier.fillMaxWidth(),
+    verticalAlignment = Alignment.CenterVertically
+) {
+    Column(modifier = Modifier.weight(1f)) {
+        Text(
+            "OCULTAR CONTENIDO PRIVADO",
+            color = AdvancedMuted,
+            fontSize = 9.sp,
+            fontWeight = FontWeight.Bold
+        )
+        Text(
+            "Oculta títulos y mensajes de las notificaciones",
+            color = AdvancedMuted,
+            fontSize = 9.sp
+        )
+    }
+
+    Switch(
+        checked = hideNotificationContent,
+        onCheckedChange = { enabled ->
+            hideNotificationContent = enabled
+            privacyPrefs.edit()
+                .putBoolean("hide_notification_content", enabled)
+                .apply()
+        }
+    )
+}
+
+Row(
+    modifier = Modifier.fillMaxWidth(),
+    verticalAlignment = Alignment.CenterVertically
+) {
+    Text(
+        "NOTIFICACIONES RECIBIDAS",
+        color = AdvancedAccent,
+        fontSize = 10.sp,
+        fontWeight = FontWeight.Bold,
+        modifier = Modifier.weight(1f)
+    )
+
+    TextButton(
+        onClick = {
+            InfinityNotificationStore.clearAll()
+        },
+        enabled = InfinityNotificationStore.notifications.isNotEmpty()
+    ) {
+        Text("LIMPIAR", color = AdvancedAccent, fontSize = 9.sp)
+    }
+}
                     Text(
                         "INFINITY ADVANCED",
                         color = Color.White,
@@ -299,12 +344,25 @@ fun InfinityAdvancedPanel(
                                             )
                                         }
 
-                                        Text(
-                                           if (hideNotificationContent) {
+                                       if (hideNotificationContent) {
     Text(
         "Contenido oculto por privacidad",
         color = AdvancedMuted,
         fontSize = 11.sp
+    )
+} else {
+    Text(
+        notification.title.ifBlank { "Notificación" },
+        color = Color.White,
+        fontWeight = FontWeight.Bold,
+        fontSize = 12.sp
+    )
+    Text(
+        notification.message,
+        color = AdvancedMuted,
+        fontSize = 11.sp
+    )
+}
     )
 } else {
     Text(
