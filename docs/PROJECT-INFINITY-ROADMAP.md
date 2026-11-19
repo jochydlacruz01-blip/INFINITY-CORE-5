@@ -12,6 +12,7 @@ This roadmap is a work plan; checkboxes indicate completion only after evidence 
 - [x] Bounded notification text rules
 - [x] File Manager capability helper rules and regression tests (CI verified)
 - [ ] Physical-device SAF testing across document providers
+- [x] Prevent cancelled older SAF listing requests from clearing the loading state of a newer folder/refresh request (implementation and regression test; CI #247 verified).
 - [x] Retain failed delete targets in selection for retry (logic covered by unit tests; CI #192 verified)
 - [x] Expand filename boundary, MIME fallback and retry-order regression tests (CI #195 verified)
 - [x] File Manager refresh selection-retention regression test (CI #199 verified)
@@ -24,7 +25,7 @@ This roadmap is a work plan; checkboxes indicate completion only after evidence 
 - [x] Notification text sanitizer removes control characters while preserving readable line breaks and tabs (unit regression tests; CI validation status tracked in earlier runs).
 
 ## Core modules
-- [ ] File Manager: provider compatibility, refresh, navigation, selections, clipboard operations, viewers (SAF cycle prevention CI #237 verified; provider/device acceptance still pending)
+- [ ] File Manager: provider compatibility, refresh, navigation, selections, clipboard operations, viewers (SAF cycle prevention CI #237 and stale-query loading race CI #247 verified; provider/device acceptance still pending)
 - [x] Reset transient File Manager selection and clipboard state whenever the user switches SAF tree grants (CI #236 verified).
 - [x] Partial copy retry retains only unconfirmed items in original order (implementation and regression tests; CI #230 passed).
 - [x] Interrupted copy retry now retains only unconfirmed items after cancellation (implementation and regression test; CI #244 passed).
@@ -36,7 +37,7 @@ This roadmap is a work plan; checkboxes indicate completion only after evidence 
 - [ ] Notifications: physical-device permission UX, disconnect/reconnect, privacy display options, open/dismiss behavior
 - [x] Add direct system-settings shortcut when notification-listener permission is not granted (validated by successful CI #220; device UX still pending)
 - [x] Notification privacy redaction: hidden titles/messages are not retained in the in-memory feed; existing feed entries are sanitized when protection is enabled (unit tests and CI #228 verified). Android permission and physical-device behavior remain pending.
-- [x] Harden persisted CONNECT profiles: skip malformed/invalid rows independently, normalize valid ports, ignore duplicate endpoints, and cap saved profiles at 100 (unit validation rules added; CI verification pending).
+- [x] Harden persisted CONNECT profiles: skip malformed/invalid rows independently, normalize valid ports, ignore duplicate endpoints, and cap saved profiles at 100 (CI #239 verified).
 - [ ] CONNECT: profile management UX, security review, RDP native feasibility and device testing
 - [x] Extend CONNECT hostname/IP rejection regression coverage (CI #225 verified)
 - [x] Expand File Manager Unicode filename and control-character boundary tests (CI #230 verified).

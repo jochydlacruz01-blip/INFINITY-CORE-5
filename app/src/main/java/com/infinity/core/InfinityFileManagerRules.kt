@@ -33,6 +33,10 @@ internal fun formatInfinityMimeType(mime: String?): String {
     }
 }
 
+/** Only the latest SAF listing request may clear the shared loading state. */
+internal fun infinityShouldClearLoading(requestGeneration: Int, currentGeneration: Int): Boolean =
+    requestGeneration == currentGeneration
+
 /** Unknown sizes sort after files with a known size. */
 internal fun infinityFileSizeSortRank(bytes: Long): Int = if (bytes < 0L) 1 else 0
 

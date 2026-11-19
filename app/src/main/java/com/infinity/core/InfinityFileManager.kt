@@ -58,6 +58,7 @@ internal fun InfinityFileManager(
     var folderPath by remember(rootUri) { mutableStateOf(listOf("Inicio")) }
     var entries by remember { mutableStateOf<List<InfinityFileEntry>>(emptyList()) }
     var loading by remember { mutableStateOf(false) }
+    var loadGeneration by remember { mutableIntStateOf(0) }
     var error by remember { mutableStateOf<String?>(null) }
     var refreshKey by remember { mutableIntStateOf(0) }
     var search by remember { mutableStateOf("") }
@@ -92,6 +93,7 @@ internal fun InfinityFileManager(
     }
 
     LaunchedEffect(rootUri, currentId, refreshKey) {
+        val requestGeneration = ++loadGeneration
         val tree = rootUri
         val parentId = currentId
         if (tree == null || parentId == null) {
@@ -153,7 +155,11 @@ internal fun InfinityFileManager(
             entries = emptyList()
             error = exception.localizedMessage ?: "No se pudo leer esta ubicación."
         } finally {
-            loading = false
+            // A cancelled older query must not clear the loading indicator
+            // belonging to a newer folder/refresh request.
+            if (infinityShouldClearLoading(requestGeneration, loadGeneration)) {
+                loading = false
+            }
         }
     }
 

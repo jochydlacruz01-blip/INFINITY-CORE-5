@@ -60,6 +60,11 @@ class InfinityFileManagerRulesTest {
         assertEquals("image/png", infinityOptionalMimeType(true, "image/png"))
     }
 
+    @Test fun staleFolderQueryCannotClearNewerLoadingState() {
+        assertFalse(infinityShouldClearLoading(4, 5))
+        assertTrue(infinityShouldClearLoading(5, 5))
+    }
+
     @Test fun unknownSizeSortsAfterKnown() {
         assertEquals(0, infinityFileSizeSortRank(0))
         assertEquals(0, infinityFileSizeSortRank(1))
