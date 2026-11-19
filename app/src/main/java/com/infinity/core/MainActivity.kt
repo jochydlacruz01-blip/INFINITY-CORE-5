@@ -811,6 +811,27 @@ Card(
                 fontWeight = FontWeight.Bold
             )
         }
+
+        if (!InfinityNotificationStore.accessGranted.value) {
+            OutlinedButton(
+                onClick = {
+                    try {
+                        context.startActivity(
+                            Intent(android.provider.Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
+                        )
+                    } catch (_: Exception) {
+                        Toast.makeText(
+                            context,
+                            "No se pudo abrir la configuración de notificaciones",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("CONFIGURAR ACCESO A NOTIFICACIONES")
+            }
+        }
     }
 }
 Spacer(Modifier.height(14.dp))

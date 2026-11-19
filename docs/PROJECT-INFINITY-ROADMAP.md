@@ -25,6 +25,7 @@ This roadmap is a work plan; checkboxes indicate completion only after evidence 
 - [ ] ORBIT: verify metric labels, sampling lifecycle, thermal and battery reporting, layout on narrow screens
 - [x] ORBIT monitor clears displayed telemetry when a sampling cycle fails instead of presenting stale values (CI validation pending)
 - [ ] Notifications: permission UX, disconnect/reconnect, privacy display options, open/dismiss behavior
+- [x] Add direct system-settings shortcut when notification-listener permission is not granted (CI validation pending)
 - [x] Notification privacy redaction: hidden titles/messages are not retained in the in-memory feed; existing feed entries are sanitized when protection is enabled (unit tests and CI #212 verified). Android permission and physical-device behavior remain pending.
 - [ ] CONNECT: profile management UX, security review, RDP native feasibility and device testing
 
