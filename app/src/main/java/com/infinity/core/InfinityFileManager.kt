@@ -155,8 +155,9 @@ internal fun InfinityFileManager(
     }
 
     fun pasteClipboard() {
+        val tree = rootUri ?: return
         val sourceParent = clipboardParent
-        val targetParent = currentId?.let(::documentUri)
+        val targetParent = currentId?.let { DocumentsContract.buildDocumentUriUsingTree(tree, it) }
         val ids = clipboardIds
         val isMove = clipboardIsMove
         if (sourceParent == null || targetParent == null || ids.isEmpty() || loading) return
@@ -168,7 +169,7 @@ internal fun InfinityFileManager(
                     var errors = 0
                     ids.forEach { id ->
                         try {
-                            val source = documentUri(id) ?: error("No se pudo localizar un elemento.")
+                            val source = DocumentsContract.buildDocumentUriUsingTree(tree, id)
                             val result = if (isMove) {
                                 DocumentsContract.moveDocument(resolver, source, sourceParent, targetParent)
                             } else {
