@@ -1294,11 +1294,12 @@ private fun FileExplorer08(
     var currentDocumentId by remember(rootUri) {
         mutableStateOf(rootUri?.let { DocumentsContract.getTreeDocumentId(it) })
     }
+    var refreshVersion by remember(rootUri) { mutableIntStateOf(0) }
     var entries by remember(rootUri, currentDocumentId) { mutableStateOf<List<ExplorerEntry>>(emptyList()) }
     var loading by remember(rootUri, currentDocumentId) { mutableStateOf(false) }
     var error by remember(rootUri, currentDocumentId) { mutableStateOf<String?>(null) }
 
-    LaunchedEffect(rootUri, currentDocumentId) {
+    LaunchedEffect(rootUri, currentDocumentId, refreshVersion) {
         val tree = rootUri
         val documentId = currentDocumentId
         if (tree != null && documentId != null) {
@@ -1357,6 +1358,12 @@ private fun FileExplorer08(
                 Icon(Icons.Default.FolderOpen, contentDescription = null)
                 Spacer(Modifier.width(5.dp))
                 Text(if (rootUri == null) "Elegir carpeta" else "Cambiar carpeta")
+            }
+            if (rootUri != null) {
+                OutlinedButton(
+                    onClick = { refreshVersion++ },
+                    enabled = !loading
+                ) { Text(if (loading) "Actualizando…" else "Actualizar") }
             }
             if (rootUri != null && currentDocumentId != DocumentsContract.getTreeDocumentId(rootUri)) {
                 OutlinedButton(
