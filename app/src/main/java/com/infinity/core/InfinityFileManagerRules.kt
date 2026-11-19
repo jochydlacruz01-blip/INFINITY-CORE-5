@@ -66,3 +66,7 @@ internal fun infinityRemainingMoveIds(ids: List<String>, failedIds: Set<String>)
 /** Retains only failed deletion targets, keeping the original selection order. */
 internal fun infinityRemainingDeleteIds(ids: List<String>, failedIds: Set<String>): List<String> =
     ids.filter { it in failedIds }
+
+/** Retains selected document IDs still present after a refresh. */
+internal fun infinityRetainedSelection(selectedIds: Set<String>, visibleIds: Set<String>): Set<String> =
+    selectedIds.intersect(visibleIds)

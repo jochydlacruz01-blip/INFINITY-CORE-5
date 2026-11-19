@@ -123,7 +123,7 @@ internal fun InfinityFileManager(
             }
             entries = found
             // Keep retry targets during refresh, but discard selections no longer present.
-            selected = selected.intersect(found.map { it.id }.toSet())
+            selected = infinityRetainedSelection(selected, found.map { it.id }.toSet())
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (exception: Exception) {
