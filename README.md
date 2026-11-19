@@ -8,7 +8,7 @@ Aplicación Android nativa desarrollada con Kotlin y Jetpack Compose. INFINITY o
 - **INFINITY FILE MANAGER:** navegación por carpetas autorizadas, búsqueda, orden por nombre/tipo/tamaño/fecha, vistas Lista y Cuadrícula, selección múltiple, crear carpetas, renombrar, copiar, cortar, pegar/mover, eliminar con confirmación y detalles de archivos.
 - **Acceso a archivos:** utiliza el Storage Access Framework (SAF) oficial de Android. El usuario elige explícitamente las ubicaciones; INFINITY no intenta eludir las restricciones de almacenamiento de Android.
 - **INFINITY ORBIT:** indicadores de batería, memoria, almacenamiento y estado térmico, con actualización periódica.
-- **INFINITY ADVANCED:** ajustes rápidos y centro de notificaciones. El acceso requiere autorización especial del usuario en los ajustes de Android. La acción LIMPIAR borra la lista local de INFINITY; DESCARTAR solicita a Android retirar la notificación seleccionada.
+- **INFINITY ADVANCED:** ajustes rápidos y centro de notificaciones. El acceso requiere autorización especial del usuario en los ajustes de Android. La acción LIMPIAR borra la lista local de INFINITY; DESCARTAR solicita a Android retirar la notificación seleccionada. El feed limita su tamaño y sanitiza texto de notificaciones; el modo privacidad oculta títulos y mensajes.
 - **INFINITY CONNECT:** perfiles de equipos remotos, edición, validación de puerto, prevención de duplicados y copia de dirección. **El cliente RDP integrado todavía no está implementado**, por lo que guardar un perfil no significa que la conexión remota esté disponible o verificada.
 
 ## Requisitos técnicos
