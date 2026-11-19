@@ -213,4 +213,13 @@ class InfinityConnectRulesTest {
         assertTrue(isValidInfinityDocumentName("x".repeat(255)))
         assertFalse(isValidInfinityDocumentName("x".repeat(256)))
     }
+    @Test
+    fun validatesCompletePersistedConnectionProfiles() {
+        assertTrue(isValidInfinityProfileRecord("Oficina", "office-pc.local", "3389", "DOMAIN\\\\user"))
+        assertFalse(isValidInfinityProfileRecord("", "office-pc.local", "3389", "user"))
+        assertFalse(isValidInfinityProfileRecord("Oficina", "https://office-pc", "3389", "user"))
+        assertFalse(isValidInfinityProfileRecord("Oficina", "office-pc.local", "70000", "user"))
+        assertFalse(isValidInfinityProfileRecord("Oficina", "office-pc.local", "3389", ""))
+    }
+
 }

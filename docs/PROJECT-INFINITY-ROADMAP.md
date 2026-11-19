@@ -35,6 +35,7 @@ This roadmap is a work plan; checkboxes indicate completion only after evidence 
 - [ ] Notifications: physical-device permission UX, disconnect/reconnect, privacy display options, open/dismiss behavior
 - [x] Add direct system-settings shortcut when notification-listener permission is not granted (validated by successful CI #220; device UX still pending)
 - [x] Notification privacy redaction: hidden titles/messages are not retained in the in-memory feed; existing feed entries are sanitized when protection is enabled (unit tests and CI #228 verified). Android permission and physical-device behavior remain pending.
+- [x] Harden persisted CONNECT profiles: skip malformed/invalid rows independently, normalize valid ports, ignore duplicate endpoints, and cap saved profiles at 100 (unit validation rules added; CI verification pending).
 - [ ] CONNECT: profile management UX, security review, RDP native feasibility and device testing
 - [x] Extend CONNECT hostname/IP rejection regression coverage (CI #225 verified)
 - [x] Expand File Manager Unicode filename and control-character boundary tests (CI #230 verified).

@@ -45,6 +45,7 @@ private data class InfinityConnectionProfile(
 
 private const val INFINITY_CONNECT_PREFS = "infinity_connect_profiles"
 private const val INFINITY_CONNECT_KEY = "saved_profiles"
+private const val INFINITY_CONNECT_MAX_PROFILES = 100
 
 private fun loadInfinityProfiles(
     context: Context
@@ -59,16 +60,42 @@ private fun loadInfinityProfiles(
             prefs.getString(INFINITY_CONNECT_KEY, "[]")
         )
 
-        List(json.length()) { index ->
-            val item = json.getJSONObject(index)
+        val validProfiles = mutableListOf<InfinityConnectionProfile>()
+        val seenEndpoints = mutableListOf<Pair<String, String>>()
 
-            InfinityConnectionProfile(
-                name = item.optString("name"),
-                host = item.optString("host"),
-                port = item.optString("port", "3389"),
-                username = item.optString("username")
-            )
+        // A malformed provider/legacy row must not hide every other saved profile.
+        for (index in 0 until minOf(json.length(), INFINITY_CONNECT_MAX_PROFILES)) {
+            val profile = try {
+                val item = json.optJSONObject(index) ?: continue
+                val name = item.optString("name", "").trim()
+                val host = item.optString("host", "").trim()
+                val port = parseInfinityPort(item.optString("port", "3389"))
+                    ?: continue
+                val username = item.optString("username", "").trim()
+
+                if (!isValidInfinityProfileRecord(name, host, port.toString(), username)) {
+                    continue
+                }
+                if (hasDuplicateInfinityEndpoint(host, port.toString(), seenEndpoints)) {
+                    continue
+                }
+
+                InfinityConnectionProfile(
+                    name = name,
+                    host = host,
+                    port = port.toString(),
+                    username = username
+                )
+            } catch (_: Exception) {
+                // Skip only the unreadable row and continue with the remaining profiles.
+                null
+            } ?: continue
+
+            validProfiles.add(profile)
+            seenEndpoints.add(profile.host to profile.port)
         }
+
+        validProfiles
     } catch (_: Exception) {
         emptyList()
     }
@@ -80,7 +107,7 @@ private fun saveInfinityProfiles(
 ) {
     val json = JSONArray()
 
-    profiles.forEach { profile ->
+    profiles.take(INFINITY_CONNECT_MAX_PROFILES).forEach { profile ->
         json.put(
             JSONObject().apply {
                 put("name", profile.name)
@@ -189,6 +216,10 @@ fun InfinityConnectPanel() {
 
         Button(
             onClick = {
+                if (profiles.size >= INFINITY_CONNECT_MAX_PROFILES) {
+                    notifyUser("Límite alcanzado: máximo 100 computadoras")
+                    return@Button
+                }
                 editingIndex.value = -1
                 editingName.value = ""
                 editingHost.value = ""

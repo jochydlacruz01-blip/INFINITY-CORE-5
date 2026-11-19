@@ -101,3 +101,17 @@ internal fun isValidInfinityHost(value: String): Boolean {
             label.matches(Regex("[A-Za-z0-9-]+"))
     }
 }
+
+
+/** Validate a complete persisted profile before it is exposed to the CONNECT UI. */
+internal fun isValidInfinityProfileRecord(
+    name: String,
+    host: String,
+    port: String,
+    username: String
+): Boolean {
+    return isValidInfinityProfileName(name) &&
+        isValidInfinityHost(host) &&
+        parseInfinityPort(port) != null &&
+        isValidInfinityUsername(username)
+}
