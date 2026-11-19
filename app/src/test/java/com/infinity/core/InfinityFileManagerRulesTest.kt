@@ -77,5 +77,8 @@ class InfinityFileManagerRulesTest {
 
     @Test fun failedDeletesRemainSelectedInOriginalOrder() { assertEquals(listOf("b", "d"), infinityRemainingDeleteIds(listOf("a", "b", "c", "d"), setOf("b", "d"))) }
     @Test fun allDeleteFailuresRetainAllTargets() { assertEquals(listOf("a", "b"), infinityRemainingDeleteIds(listOf("a", "b"), setOf("a", "b"))) }
+    @Test fun moveRetryPreservesDuplicatesAndIgnoresUnknownFailures() { assertEquals(listOf("a", "a", "c"), infinityRemainingMoveIds(listOf("a", "a", "b", "c"), setOf("a", "c", "missing"))) }
+    @Test fun filenameValidationAcceptsMaximumLengthAndRejectsDotNames() { assertTrue(isValidInfinityDocumentName("a".repeat(255))); assertFalse(isValidInfinityDocumentName(".")); assertFalse(isValidInfinityDocumentName("..")); assertFalse(isValidInfinityDocumentName(" . ")) }
+    @Test fun unknownMimePreservesUsefulSubtype() { assertEquals("OCTET STREAM", formatInfinityMimeType("application/octet-stream")); assertEquals("Tipo no disponible", formatInfinityMimeType("  ")) }
     @Test fun successfulDeletesClearTargets() { assertEquals(emptyList<String>(), infinityRemainingDeleteIds(listOf("a", "b"), emptySet())) }
 }
