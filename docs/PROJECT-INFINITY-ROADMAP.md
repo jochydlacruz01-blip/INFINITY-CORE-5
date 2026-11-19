@@ -27,7 +27,8 @@ This roadmap is a work plan; checkboxes indicate completion only after evidence 
 - [x] Notification text sanitizer removes control characters while preserving readable line breaks and tabs (unit regression tests; CI validation status tracked in earlier runs).
 
 ## Core modules
-- [ ] Centralize File Manager filtering and sort order (folders-first, localized display-type ordering, known sizes before unknown, date/name tie-breakers, trimmed case-insensitive search); implementation and regression tests added, CI pending.
+- [x] Centralize File Manager filtering and sort order (folders-first, localized display-type ordering, known sizes before unknown, date/name tie-breakers, trimmed case-insensitive search); CI #270 passed Debug/Release build, lint, unit tests and Release APK signature validation.
+- [ ] Expand centralized sorting edge-case regression coverage (unknown sort fallback and deterministic name tie-breakers); tests added, CI pending.
 - [ ] File Manager: provider compatibility, refresh, navigation, selections, clipboard operations, viewers (SAF cycle prevention CI #237 and stale-query loading race CI #247 verified; provider/device acceptance still pending)
 - [x] Reset transient File Manager selection and clipboard state whenever the user switches SAF tree grants (CI #236 verified).
 - [x] Partial copy retry retains only unconfirmed items in original order (implementation and regression tests; CI #230 passed).
