@@ -27,7 +27,8 @@ private data class InfinityFileEntry(
     val id: String,
     val name: String,
     val mime: String?,
-    val size: Long
+    val size: Long,
+    val modified: Long
 ) {
     val isFolder: Boolean get() = mime == DocumentsContract.Document.MIME_TYPE_DIR
 }
@@ -79,7 +80,8 @@ internal fun InfinityFileManager(
                     DocumentsContract.Document.COLUMN_DOCUMENT_ID,
                     DocumentsContract.Document.COLUMN_DISPLAY_NAME,
                     DocumentsContract.Document.COLUMN_MIME_TYPE,
-                    DocumentsContract.Document.COLUMN_SIZE
+                    DocumentsContract.Document.COLUMN_SIZE,
+                    DocumentsContract.Document.COLUMN_LAST_MODIFIED
                 )
                 val found = mutableListOf<InfinityFileEntry>()
                 resolver.query(children, projection, null, null, null)?.use { cursor ->
@@ -87,12 +89,14 @@ internal fun InfinityFileManager(
                     val nameCol = cursor.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_DISPLAY_NAME)
                     val mimeCol = cursor.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_MIME_TYPE)
                     val sizeCol = cursor.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_SIZE)
+                    val modifiedCol = cursor.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_LAST_MODIFIED)
                     while (cursor.moveToNext()) {
                         found += InfinityFileEntry(
                             cursor.getString(idCol),
                             cursor.getString(nameCol) ?: "Sin nombre",
                             if (cursor.isNull(mimeCol)) null else cursor.getString(mimeCol),
-                            if (cursor.isNull(sizeCol)) 0L else cursor.getLong(sizeCol)
+                            if (cursor.isNull(sizeCol)) 0L else cursor.getLong(sizeCol),
+                            if (cursor.isNull(modifiedCol)) 0L else cursor.getLong(modifiedCol)
                         )
                     }
                 }
@@ -113,6 +117,7 @@ internal fun InfinityFileManager(
             when (sortBy) {
                 "Tipo" -> list.sortedWith(compareByDescending<InfinityFileEntry> { it.isFolder }.thenBy { it.name.lowercase(Locale.getDefault()) })
                 "Tamaño" -> list.sortedWith(compareByDescending<InfinityFileEntry> { it.isFolder }.thenByDescending { it.size })
+                "Fecha" -> list.sortedWith(compareByDescending<InfinityFileEntry> { it.isFolder }.thenByDescending { it.modified })
                 else -> list.sortedWith(compareByDescending<InfinityFileEntry> { it.isFolder }.thenBy { it.name.lowercase(Locale.getDefault()) })
             }
         }
@@ -205,7 +210,7 @@ internal fun InfinityFileManager(
             Box {
                 OutlinedButton(onClick = { sortMenu = true }) { Text("Ordenar") }
                 DropdownMenu(expanded = sortMenu, onDismissRequest = { sortMenu = false }) {
-                    listOf("Nombre", "Tipo", "Tamaño").forEach { option ->
+                    listOf("Nombre", "Tipo", "Tamaño", "Fecha").forEach { option ->
                         DropdownMenuItem(text = { Text(option) }, onClick = {
                             sortBy = option
                             sortMenu = false
