@@ -51,6 +51,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -159,14 +160,48 @@ private fun Infinity08App() {
         }
     }
 
-    val wallpaperBitmap = remember(wallpaperUri) {
-        wallpaperUri?.let { uri ->
-            try {
-                context.contentResolver.openInputStream(uri)?.use {
-                    BitmapFactory.decodeStream(it)?.asImageBitmap()
+    val wallpaperBitmap by produceState(
+        initialValue = null as androidx.compose.ui.graphics.ImageBitmap?,
+        key1 = wallpaperUri
+    ) {
+        val uri = wallpaperUri
+        value = null
+        if (uri != null) {
+            val decoded = withContext(Dispatchers.IO) {
+                try {
+                    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                    context.contentResolver.openInputStream(uri)?.use {
+                        BitmapFactory.decodeStream(it, null, bounds)
+                    }
+                    val maxDimension = maxOf(bounds.outWidth, bounds.outHeight)
+                    var sampleSize = 1
+                    while (maxDimension > 0 && maxDimension / sampleSize > 2048) {
+                        sampleSize *= 2
+                    }
+                    val options = BitmapFactory.Options().apply {
+                        inSampleSize = sampleSize
+                    }
+                    context.contentResolver.openInputStream(uri)?.use {
+                        BitmapFactory.decodeStream(it, null, options)?.asImageBitmap()
+                    }
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (_: Exception) {
+                    null
                 }
-            } catch (_: Exception) {
-                null
+            }
+            value = decoded
+            if (decoded == null && wallpaperUri == uri) {
+                // Clear only the failed URI; never erase a newer wallpaper selection.
+                if (prefs.getString("wallpaper_uri", null) == uri.toString()) {
+                    prefs.edit().remove("wallpaper_uri").apply()
+                }
+                wallpaperUri = null
+                Toast.makeText(
+                    context,
+                    "No se pudo acceder al fondo guardado. Selecciona otra imagen.",
+                    Toast.LENGTH_LONG
+                ).show()
             }
         }
     }
