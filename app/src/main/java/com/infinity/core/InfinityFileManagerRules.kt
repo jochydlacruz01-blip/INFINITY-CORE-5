@@ -49,6 +49,38 @@ internal fun formatInfinityMimeType(mime: String?): String {
 internal fun infinityShouldClearLoading(requestGeneration: Int, currentGeneration: Int): Boolean =
     requestGeneration == currentGeneration
 
+/** Filters and sorts SAF entries consistently, keeping folders ahead of files. */
+internal fun sortInfinityFileEntries(
+    entries: List<InfinityFileEntry>,
+    query: String,
+    sortBy: String,
+    locale: Locale = Locale.getDefault()
+): List<InfinityFileEntry> {
+    val filtered = entries.filter { it.name.contains(query.trim(), ignoreCase = true) }
+    val nameKey: (InfinityFileEntry) -> String = { it.name.lowercase(locale) }
+    return when (sortBy) {
+        "Tipo" -> filtered.sortedWith(
+            compareByDescending<InfinityFileEntry> { it.isFolder }
+                .thenBy { if (it.isFolder) "" else formatInfinityMimeType(it.mime).lowercase(locale) }
+                .thenBy(nameKey)
+        )
+        "Tamaño" -> filtered.sortedWith(
+            compareByDescending<InfinityFileEntry> { it.isFolder }
+                .thenBy { infinityFileSizeSortRank(it.size) }
+                .thenByDescending { it.size }
+                .thenBy(nameKey)
+        )
+        "Fecha" -> filtered.sortedWith(
+            compareByDescending<InfinityFileEntry> { it.isFolder }
+                .thenByDescending { it.modified }
+                .thenBy(nameKey)
+        )
+        else -> filtered.sortedWith(
+            compareByDescending<InfinityFileEntry> { it.isFolder }.thenBy(nameKey)
+        )
+    }
+}
+
 /** Unknown sizes sort after files with a known size. */
 internal fun infinityFileSizeSortRank(bytes: Long): Int = if (bytes < 0L) 1 else 0
 

@@ -30,7 +30,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
 import java.util.Locale
 
-private data class InfinityFileEntry(
+internal data class InfinityFileEntry(
     val id: String,
     val name: String,
     val mime: String?,
@@ -178,20 +178,7 @@ internal fun InfinityFileManager(
     val canMoveSelected = selectedEntries.isNotEmpty() &&
         selectedEntries.all { supportsFlag(it, DocumentsContract.Document.FLAG_SUPPORTS_MOVE.toLong()) }
 
-    val visibleEntries = entries
-        .filter { it.name.contains(search, ignoreCase = true) }
-        .let { list ->
-            when (sortBy) {
-                "Tipo" -> list.sortedWith(compareByDescending<InfinityFileEntry> { it.isFolder }.thenBy { it.mime.orEmpty() }.thenBy { it.name.lowercase(Locale.getDefault()) })
-                "Tamaño" -> list.sortedWith(
-                    compareByDescending<InfinityFileEntry> { it.isFolder }
-                        .thenBy { infinityFileSizeSortRank(it.size) }
-                        .thenByDescending { it.size }
-                )
-                "Fecha" -> list.sortedWith(compareByDescending<InfinityFileEntry> { it.isFolder }.thenByDescending { it.modified })
-                else -> list.sortedWith(compareByDescending<InfinityFileEntry> { it.isFolder }.thenBy { it.name.lowercase(Locale.getDefault()) })
-            }
-        }
+    val visibleEntries = sortInfinityFileEntries(entries, search, sortBy)
 
     fun documentUri(id: String): Uri? = rootUri?.let { DocumentsContract.buildDocumentUriUsingTree(it, id) }
 

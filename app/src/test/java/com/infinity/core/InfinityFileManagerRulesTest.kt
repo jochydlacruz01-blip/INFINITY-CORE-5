@@ -6,6 +6,58 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class InfinityFileManagerRulesTest {
+    @Test
+    fun centralizedSortKeepsFoldersFirstAndNamesCaseInsensitive() {
+        val entries = listOf(
+            InfinityFileEntry("z", "zeta.txt", "text/plain", 10, 0, null),
+            InfinityFileEntry("folder", "Folder", "vnd.android.document/directory", -1, 0, null),
+            InfinityFileEntry("a", "Alpha.txt", "text/plain", 10, 0, null)
+        )
+        assertEquals(listOf("folder", "a", "z"), sortInfinityFileEntries(entries, "", "Nombre", java.util.Locale.ROOT).map { it.id })
+    }
+
+    @Test
+    fun typeSortUsesDisplayTypeAndKeepsFoldersFirst() {
+        val entries = listOf(
+            InfinityFileEntry("image", "photo.png", "image/png", 20, 0, null),
+            InfinityFileEntry("folder", "folder", "vnd.android.document/directory", -1, 0, null),
+            InfinityFileEntry("pdf", "report.pdf", "application/pdf", 10, 0, null)
+        )
+        assertEquals(listOf("folder", "pdf", "image"), sortInfinityFileEntries(entries, "", "Tipo", java.util.Locale.ROOT).map { it.id })
+    }
+
+    @Test
+    fun sizeSortPlacesUnknownSizesAfterKnownAndBreaksTiesByName() {
+        val entries = listOf(
+            InfinityFileEntry("unknown", "unknown.bin", null, -1, 0, null),
+            InfinityFileEntry("small", "small.bin", null, 10, 0, null),
+            InfinityFileEntry("large", "large.bin", null, 100, 0, null),
+            InfinityFileEntry("folder", "folder", "vnd.android.document/directory", -1, 0, null)
+        )
+        assertEquals(listOf("folder", "large", "small", "unknown"), sortInfinityFileEntries(entries, "", "Tamaño", java.util.Locale.ROOT).map { it.id })
+    }
+
+    @Test
+    fun dateSortKeepsFoldersFirstThenNewestAndNameForTies() {
+        val entries = listOf(
+            InfinityFileEntry("older", "older", null, 1, 10, null),
+            InfinityFileEntry("newer-b", "b", null, 1, 20, null),
+            InfinityFileEntry("folder", "folder", "vnd.android.document/directory", -1, 0, null),
+            InfinityFileEntry("newer-a", "a", null, 1, 20, null)
+        )
+        assertEquals(listOf("folder", "newer-a", "newer-b", "older"), sortInfinityFileEntries(entries, "", "Fecha", java.util.Locale.ROOT).map { it.id })
+    }
+
+    @Test
+    fun sortSearchTrimsQueryAndMatchesNamesCaseInsensitively() {
+        val entries = listOf(
+            InfinityFileEntry("one", "Report-final.pdf", "application/pdf", 1, 0, null),
+            InfinityFileEntry("two", "notes.txt", "text/plain", 1, 0, null)
+        )
+        assertEquals(listOf("one"), sortInfinityFileEntries(entries, "  REPORT  ", "Nombre", java.util.Locale.ROOT).map { it.id })
+        assertEquals(2, sortInfinityFileEntries(entries, "   ", "Nombre", java.util.Locale.ROOT).size)
+    }
+
     @Test fun unknownFlagsPermitAttempt() {
         assertTrue(infinitySupportsDocumentFlag(null, 4L))
     }
