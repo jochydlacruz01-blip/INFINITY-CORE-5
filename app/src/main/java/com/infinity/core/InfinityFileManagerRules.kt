@@ -57,3 +57,7 @@ internal fun isValidInfinityDocumentName(value: String): Boolean {
     return name.isNotEmpty() && name.length <= 255 && name != "." && name != ".." &&
         name.none { it == '/' || it == '\\' || it.isISOControl() }
 }
+
+/** Keeps only failed move items, preserving their original clipboard order. */
+internal fun infinityRemainingMoveIds(ids: List<String>, failedIds: Set<String>): List<String> =
+    ids.filter { it in failedIds }

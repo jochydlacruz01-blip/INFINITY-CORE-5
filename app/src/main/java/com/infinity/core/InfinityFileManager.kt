@@ -187,9 +187,9 @@ internal fun InfinityFileManager(
         loading = true
         scope.launch {
             try {
-                val (completed, failed) = withContext(Dispatchers.IO) {
+                val (completed, failedIds) = withContext(Dispatchers.IO) {
                     var done = 0
-                    var errors = 0
+                    val failures = mutableSetOf<String>()
                     ids.forEach { id ->
                         try {
                             val source = DocumentsContract.buildDocumentUriUsingTree(tree, id)
@@ -203,21 +203,22 @@ internal fun InfinityFileManager(
                         } catch (cancelled: CancellationException) {
                             throw cancelled
                         } catch (_: Exception) {
-                            errors++
+                            failures += id
                         }
                     }
-                    done to errors
+                    done to failures
                 }
-                if (isMove && failed == 0) {
-                    clipboardIds = emptyList()
-                    clipboardParent = null
+                val failed = failedIds.size
+                if (isMove) {
+                    clipboardIds = infinityRemainingMoveIds(ids, failedIds)
+                    if (clipboardIds.isEmpty()) clipboardParent = null
                 }
                 selected = emptySet()
                 refreshKey++
                 message = if (failed == 0) {
                     "$completed de ${ids.size} elemento(s) procesado(s)."
                 } else {
-                    "$completed completado(s) y $failed no procesado(s). El portapapeles se conserva para reintentar."
+                    "$completed completado(s) y $failed pendiente(s). El portapapeles conserva solo los elementos pendientes para reintentar."
                 }
             } catch (cancelled: CancellationException) {
                 throw cancelled

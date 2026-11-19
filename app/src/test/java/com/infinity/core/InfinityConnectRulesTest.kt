@@ -163,6 +163,15 @@ class InfinityConnectRulesTest {
     }
 
     @Test
+    fun partialMoveClipboardRetainsOnlyFailedIdsInOriginalOrder() {
+        val ids = listOf("a", "b", "c", "d")
+        assertEquals(listOf("b", "d"), infinityRemainingMoveIds(ids, setOf("d", "b")))
+        assertEquals(ids, infinityRemainingMoveIds(ids, ids.toSet()))
+        assertEquals(emptyList<String>(), infinityRemainingMoveIds(ids, emptySet()))
+        assertEquals(emptyList<String>(), infinityRemainingMoveIds(emptyList(), setOf("a")))
+    }
+
+    @Test
     fun documentNameValidationAcceptsUnicodeAndBoundaries() {
         assertTrue(isValidInfinityDocumentName("área de trabajo"))
         assertTrue(isValidInfinityDocumentName("x".repeat(255)))
