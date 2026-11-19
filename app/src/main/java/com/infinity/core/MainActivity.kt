@@ -1021,7 +1021,7 @@ Row(
                         ) {
                             Button(
                                 onClick = {
-                                    openInfinityWindow("connect", windows, workspace)
+                                    focusedWindowId = openInfinityWindow("connect", windows, workspace)
                                     orbitOpen = false
                                 },
                                 modifier = Modifier
