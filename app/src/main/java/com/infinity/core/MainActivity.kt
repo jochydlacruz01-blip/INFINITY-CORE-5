@@ -1315,32 +1315,41 @@ private fun FileExplorer08(
                         DocumentsContract.Document.COLUMN_SIZE
                     )
                     val found = mutableListOf<ExplorerEntry>()
-                    context.contentResolver.query(childrenUri, projection, null, null, null)?.use { cursor ->
-                        val idColumn = cursor.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_DOCUMENT_ID)
-                        val nameColumn = cursor.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_DISPLAY_NAME)
-                        val mimeColumn = cursor.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_MIME_TYPE)
-                        val sizeColumn = cursor.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_SIZE)
-                        while (cursor.moveToNext()) {
+                    val cursor = context.contentResolver.query(
+                        childrenUri, projection, null, null, null
+                    ) ?: throw IllegalStateException(
+                        "El proveedor de documentos no pudo consultar esta carpeta."
+                    )
+                    cursor.use {
+                        val idColumn = it.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_DOCUMENT_ID)
+                        val nameColumn = it.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_DISPLAY_NAME)
+                        val mimeColumn = it.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_MIME_TYPE)
+                        val sizeColumn = it.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_SIZE)
+                        while (it.moveToNext()) {
                             found.add(
                                 ExplorerEntry(
-                                    cursor.getString(idColumn),
-                                    cursor.getString(nameColumn) ?: "Sin nombre",
-                                    if (cursor.isNull(mimeColumn)) null else cursor.getString(mimeColumn),
-                                    if (cursor.isNull(sizeColumn)) 0L else cursor.getLong(sizeColumn)
+                                    it.getString(idColumn),
+                                    it.getString(nameColumn) ?: "Sin nombre",
+                                    if (it.isNull(mimeColumn)) null else it.getString(mimeColumn),
+                                    if (it.isNull(sizeColumn)) 0L else it.getLong(sizeColumn)
                                 )
                             )
                         }
                     }
-                    found.sortedWith(
-                        compareByDescending<ExplorerEntry> { it.isDirectory }
-                            .thenBy { it.name.lowercase(Locale.getDefault()) }
+                    Result.success(
+                        found.sortedWith(
+                            compareByDescending<ExplorerEntry> { it.isDirectory }
+                                .thenBy { it.name.lowercase(Locale.getDefault()) }
+                        )
                     )
                 } catch (exception: Exception) {
-                    error = exception.message ?: "No se pudo leer esta carpeta."
-                    emptyList()
+                    Result.failure(exception)
                 }
             }
-            entries = result
+            entries = result.getOrDefault(emptyList())
+            error = result.exceptionOrNull()?.let {
+                it.message?.takeIf(String::isNotBlank) ?: "No se pudo leer esta carpeta."
+            }
             loading = false
         } else {
             entries = emptyList()
