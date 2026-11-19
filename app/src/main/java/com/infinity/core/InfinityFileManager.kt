@@ -79,12 +79,14 @@ internal fun InfinityFileManager(
         val parentId = currentId
         if (tree == null || parentId == null) {
             entries = emptyList()
+            loading = false
+            error = null
             return@LaunchedEffect
         }
         loading = true
         error = null
-        val result = withContext(Dispatchers.IO) {
-            runCatching {
+        try {
+            val found = withContext(Dispatchers.IO) {
                 val children = DocumentsContract.buildChildDocumentsUriUsingTree(tree, parentId)
                 val projection = arrayOf(
                     DocumentsContract.Document.COLUMN_DOCUMENT_ID,
@@ -93,7 +95,7 @@ internal fun InfinityFileManager(
                     DocumentsContract.Document.COLUMN_SIZE,
                     DocumentsContract.Document.COLUMN_LAST_MODIFIED
                 )
-                val found = mutableListOf<InfinityFileEntry>()
+                val result = mutableListOf<InfinityFileEntry>()
                 val cursor = resolver.query(children, projection, null, null, null)
                     ?: error("Android no pudo consultar esta ubicación. El proveedor de archivos no devolvió resultados.")
                 cursor.use {
@@ -104,7 +106,7 @@ internal fun InfinityFileManager(
                     val modifiedCol = cursor.getColumnIndex(DocumentsContract.Document.COLUMN_LAST_MODIFIED)
                     check(idCol >= 0 && nameCol >= 0 && mimeCol >= 0) { "El proveedor no devolvió las columnas básicas de archivos." }
                     while (cursor.moveToNext()) {
-                        found += InfinityFileEntry(
+                        result += InfinityFileEntry(
                             cursor.getString(idCol),
                             cursor.getString(nameCol) ?: "Sin nombre",
                             if (cursor.isNull(mimeCol)) null else cursor.getString(mimeCol),
@@ -113,15 +115,18 @@ internal fun InfinityFileManager(
                         )
                     }
                 }
-                found
+                result
             }
+            entries = found
+            selected = emptySet()
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (exception: Exception) {
+            entries = emptyList()
+            error = exception.localizedMessage ?: "No se pudo leer esta ubicación."
+        } finally {
+            loading = false
         }
-        entries = result.getOrElse {
-            error = it.localizedMessage ?: "No se pudo leer esta ubicación."
-            emptyList()
-        }
-        loading = false
-        selected = emptySet()
     }
 
     val visibleEntries = entries
@@ -129,7 +134,11 @@ internal fun InfinityFileManager(
         .let { list ->
             when (sortBy) {
                 "Tipo" -> list.sortedWith(compareByDescending<InfinityFileEntry> { it.isFolder }.thenBy { it.mime.orEmpty() }.thenBy { it.name.lowercase(Locale.getDefault()) })
-                "Tamaño" -> list.sortedWith(compareByDescending<InfinityFileEntry> { it.isFolder }.thenByDescending { it.size })
+                "Tamaño" -> list.sortedWith(
+                    compareByDescending<InfinityFileEntry> { it.isFolder }
+                        .thenBy { if (it.size < 0L) 1 else 0 }
+                        .thenByDescending { it.size }
+                )
                 "Fecha" -> list.sortedWith(compareByDescending<InfinityFileEntry> { it.isFolder }.thenByDescending { it.modified })
                 else -> list.sortedWith(compareByDescending<InfinityFileEntry> { it.isFolder }.thenBy { it.name.lowercase(Locale.getDefault()) })
             }
