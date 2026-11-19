@@ -1320,6 +1320,8 @@ private fun FileExplorer08(
     var entries by remember(rootUri, currentDocumentId) { mutableStateOf<List<ExplorerEntry>>(emptyList()) }
     var loading by remember(rootUri, currentDocumentId) { mutableStateOf(false) }
     var error by remember(rootUri, currentDocumentId) { mutableStateOf<String?>(null) }
+    var fileSearch by remember(rootUri, currentDocumentId) { mutableStateOf("") }
+    val filteredEntries = entries.filter { it.name.contains(fileSearch.trim(), ignoreCase = true) }
 
     LaunchedEffect(rootUri, currentDocumentId, refreshVersion) {
         val tree = rootUri
@@ -1389,6 +1391,15 @@ private fun FileExplorer08(
     Column(Modifier.fillMaxSize().padding(12.dp)) {
         Text("INFINITY FILE EXPLORER", color = accent, fontWeight = FontWeight.Bold)
         Text("Navega por carpetas y abre archivos con aplicaciones Android.", color = InfinityMuted, fontSize = 10.sp)
+        OutlinedTextField(
+            value = fileSearch,
+            onValueChange = { fileSearch = it },
+            modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
+            singleLine = true,
+            placeholder = { Text("Buscar en esta carpeta…") },
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Buscar") },
+            trailingIcon = { if (fileSearch.isNotEmpty()) IconButton(onClick = { fileSearch = "" }) { Icon(Icons.Default.Close, contentDescription = "Limpiar") } }
+        )
         Row(
             Modifier.fillMaxWidth().padding(vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -1445,6 +1456,7 @@ private fun FileExplorer08(
                         if (entry.isDirectory) Text("›", color = accent, fontSize = 22.sp)
                     }
                     HorizontalDivider(color = Color.White.copy(.08f))
+                }
                 }
             }
         }

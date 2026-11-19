@@ -23,7 +23,7 @@ This roadmap is a work plan; checkboxes indicate completion only after evidence 
 - [x] Notification text sanitizer removes control characters while preserving readable line breaks and tabs (unit regression tests added; pending CI validation).
 
 ## Core modules
-- [ ] File Manager: provider compatibility, refresh, navigation, selections, clipboard operations, viewers
+- [ ] File Manager: provider compatibility, refresh, navigation, selections, clipboard operations, viewers\n- [x] Add live folder-scoped filename search to File Explorer UI (CI validation pending)
 - [x] SAF enumeration tolerates providers omitting optional MIME/size columns; missing size is displayed as unavailable (CI #217 verified).
 - [ ] ORBIT: verify metric labels, sampling lifecycle, thermal and battery reporting, layout on narrow screens
 - [x] ORBIT monitor clears displayed telemetry when a sampling cycle fails instead of presenting stale values (validated by successful CI #220)
