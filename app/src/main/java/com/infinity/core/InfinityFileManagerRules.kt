@@ -52,6 +52,7 @@ internal fun infinitySupportsDocumentFlag(flags: Long?, requiredFlag: Long): Boo
 
 /** Conservative portable document-name validation before calling a provider. */
 internal fun isValidInfinityDocumentName(value: String): Boolean {
+    if (value.any { it.isISOControl() }) return false
     val name = value.trim()
     return name.isNotEmpty() && name.length <= 255 && name != "." && name != ".." &&
         name.none { it == '/' || it == '\\' || it.isISOControl() }
