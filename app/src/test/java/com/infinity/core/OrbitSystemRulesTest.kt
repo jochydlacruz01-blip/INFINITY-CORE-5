@@ -35,4 +35,23 @@ class OrbitSystemRulesTest {
         assertEquals(75, infinityRamUsagePercent(400L, 100L))
         assertEquals(null, infinityRamUsagePercent(0L, 0L))
     }
+    @Test
+    fun usagePercentageHandlesSmallCapacityAndFractionalValues() {
+        assertEquals(33, infinityUsagePercent(3L, 2L))
+        assertEquals(99, infinityUsagePercent(100L, 1L))
+        assertEquals(0, infinityUsagePercent(1L, 1L))
+    }
+
+    @Test
+    fun storageSummaryBoundsAvailableBytesAndRejectsNegativeTotal() {
+        assertEquals("0.0 / 1.0 GiB", infinityStorageSummary(1_073_741_824L, 2_000_000_000L))
+        assertEquals("No disponible", infinityStorageSummary(-10L, 0L))
+    }
+
+    @Test
+    fun batteryTemperatureFormattingRemainsLocaleIndependent() {
+        assertEquals("36.6 °C", infinityBatteryTemperature(366))
+        assertEquals("--", infinityBatteryTemperature(Int.MIN_VALUE))
+    }
+
 }
