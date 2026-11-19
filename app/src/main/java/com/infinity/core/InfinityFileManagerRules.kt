@@ -28,7 +28,7 @@ internal fun formatInfinityMimeType(mime: String?): String {
         "video/mp4" -> "Vídeo MP4"
         "application/vnd.android.package-archive" -> "Instalador APK"
         else -> mime.substringAfter('/').replace('-', ' ').replace('_', ' ')
-            .uppercase(Locale.getDefault())
+            .uppercase(Locale.ROOT)
     }
 }
 
