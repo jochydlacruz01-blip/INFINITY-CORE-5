@@ -41,9 +41,10 @@ internal fun InfinityFileManager(
 ) {
     val context = LocalContext.current
     val resolver = context.contentResolver
-    var currentId by remember(rootUri) {
-        mutableStateOf(rootUri?.let { DocumentsContract.getTreeDocumentId(it) })
-    }
+    val rootDocumentId = remember(rootUri) { rootUri?.let { DocumentsContract.getTreeDocumentId(it) } }
+    var currentId by remember(rootUri) { mutableStateOf(rootDocumentId) }
+    var folderIds by remember(rootUri) { mutableStateOf(listOfNotNull(rootDocumentId)) }
+    var folderPath by remember(rootUri) { mutableStateOf(listOf("Inicio")) }
     var entries by remember { mutableStateOf<List<InfinityFileEntry>>(emptyList()) }
     var loading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -201,9 +202,19 @@ internal fun InfinityFileManager(
         ) {
             if (rootUri != null) {
                 OutlinedButton(onClick = {
-                    currentId = DocumentsContract.getTreeDocumentId(rootUri)
+                    currentId = rootDocumentId
+                    folderIds = listOfNotNull(rootDocumentId)
+                    folderPath = listOf("Inicio")
                     selected = emptySet()
                 }) { Text("Inicio") }
+                if (folderIds.size > 1) {
+                    OutlinedButton(onClick = {
+                        folderIds = folderIds.dropLast(1)
+                        folderPath = folderPath.dropLast(1)
+                        currentId = folderIds.lastOrNull()
+                        selected = emptySet()
+                    }) { Text("Atrás") }
+                }
                 OutlinedButton(onClick = { createDialog = true }) { Text("+ Carpeta") }
                 if (selected.size == 1) {
                     OutlinedButton(onClick = {
@@ -211,6 +222,7 @@ internal fun InfinityFileManager(
                         renameDialog = true
                     }) { Text("Renombrar") }
                 }
+                Text(folderPath.joinToString(" > "), color = Color(0xFFB7C7D9), fontSize = 10.sp, maxLines = 1)
                 if (selected.isNotEmpty()) {
                     OutlinedButton(onClick = { stageClipboard(false) }) { Text("Copiar") }
                     OutlinedButton(onClick = { stageClipboard(true) }) { Text("Cortar") }
@@ -255,6 +267,8 @@ internal fun InfinityFileManager(
                                     selected = if (isSelected) selected - entry.id else selected + entry.id
                                 } else if (entry.isFolder) {
                                     currentId = entry.id
+                                    folderIds = folderIds + entry.id
+                                    folderPath = folderPath + entry.name
                                 } else {
                                     documentUri(entry.id)?.let { onOpenFile(it, entry.mime) }
                                 }
