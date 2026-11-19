@@ -88,3 +88,4 @@ class InfinityFileManagerRulesTest {
         assertEquals(listOf("a", "b"), infinityUnfinishedOperationIds(listOf("a", "b"), emptySet()))
         assertEquals(emptyList<String>(), infinityUnfinishedOperationIds(listOf("a", "b"), setOf("a", "b")))
     }
+}
