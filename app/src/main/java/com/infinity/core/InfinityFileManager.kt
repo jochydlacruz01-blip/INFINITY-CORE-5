@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -16,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -42,6 +45,7 @@ internal fun InfinityFileManager(
     onOpenFile: (Uri, String?) -> Unit
 ) {
     val context = LocalContext.current
+    val screenWidth = LocalConfiguration.current.screenWidthDp
     val resolver = context.contentResolver
     val rootDocumentId = remember(rootUri) { rootUri?.let { DocumentsContract.getTreeDocumentId(it) } }
     var currentId by remember(rootUri) { mutableStateOf(rootDocumentId) }
@@ -87,18 +91,19 @@ internal fun InfinityFileManager(
                 )
                 val found = mutableListOf<InfinityFileEntry>()
                 resolver.query(children, projection, null, null, null)?.use { cursor ->
-                    val idCol = cursor.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_DOCUMENT_ID)
-                    val nameCol = cursor.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_DISPLAY_NAME)
-                    val mimeCol = cursor.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_MIME_TYPE)
-                    val sizeCol = cursor.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_SIZE)
-                    val modifiedCol = cursor.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_LAST_MODIFIED)
+                    val idCol = cursor.getColumnIndex(DocumentsContract.Document.COLUMN_DOCUMENT_ID)
+                    val nameCol = cursor.getColumnIndex(DocumentsContract.Document.COLUMN_DISPLAY_NAME)
+                    val mimeCol = cursor.getColumnIndex(DocumentsContract.Document.COLUMN_MIME_TYPE)
+                    val sizeCol = cursor.getColumnIndex(DocumentsContract.Document.COLUMN_SIZE)
+                    val modifiedCol = cursor.getColumnIndex(DocumentsContract.Document.COLUMN_LAST_MODIFIED)
+                    check(idCol >= 0 && nameCol >= 0 && mimeCol >= 0) { "El proveedor no devolvió las columnas básicas de archivos." }
                     while (cursor.moveToNext()) {
                         found += InfinityFileEntry(
                             cursor.getString(idCol),
                             cursor.getString(nameCol) ?: "Sin nombre",
                             if (cursor.isNull(mimeCol)) null else cursor.getString(mimeCol),
-                            if (cursor.isNull(sizeCol)) 0L else cursor.getLong(sizeCol),
-                            if (cursor.isNull(modifiedCol)) 0L else cursor.getLong(modifiedCol)
+                            if (sizeCol < 0 || cursor.isNull(sizeCol)) 0L else cursor.getLong(sizeCol),
+                            if (modifiedCol < 0 || cursor.isNull(modifiedCol)) 0L else cursor.getLong(modifiedCol)
                         )
                     }
                 }
@@ -173,7 +178,7 @@ internal fun InfinityFileManager(
     }
 
     Row(Modifier.fillMaxSize().background(Color(0xFF0B1220))) {
-        Column(Modifier.width(126.dp).fillMaxHeight().padding(start = 8.dp, top = 14.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+        Column(Modifier.width(if (screenWidth < 600) 104.dp else 150.dp).fillMaxHeight().verticalScroll(rememberScrollState()).padding(start = 6.dp, top = 14.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
             Text("INFINITY", color = accent, fontWeight = FontWeight.ExtraBold, fontSize = 13.sp)
             Text("NAVEGACIÓN", color = Color(0xFF8FA6BF), fontSize = 9.sp)
             listOf("Inicio", "Escritorio", "Documentos", "Descargas", "Imágenes", "Música", "Vídeos", "Almacenamiento interno", "Unidades y dispositivos").forEach { place ->
@@ -188,7 +193,7 @@ internal fun InfinityFileManager(
                         onChooseFolder()
                     }
                 }, modifier = Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = 5.dp, vertical = 4.dp)) {
-                    Text(place, color = if (place == "Inicio" && folderIds.size == 1) accent else Color(0xFFD7E2EF), fontSize = 10.sp, maxLines = 2)
+                    Text(place, color = if (place == "Inicio" && folderIds.size == 1) accent else Color(0xFFD7E2EF), fontSize = if (screenWidth < 600) 9.sp else 10.sp, maxLines = 2)
                 }
             }
         }
