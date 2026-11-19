@@ -161,8 +161,8 @@ internal fun InfinityFileManager(
         val ids = clipboardIds
         val isMove = clipboardIsMove
         if (sourceParent == null || targetParent == null || ids.isEmpty() || loading) return
+        loading = true
         scope.launch {
-            loading = true
             try {
                 val (completed, failed) = withContext(Dispatchers.IO) {
                     var done = 0
@@ -473,8 +473,8 @@ internal fun InfinityFileManager(
                     val requestedName = nameInput.trim()
                     createDialog = false
                     if (parent != null && requestedName.isNotBlank() && !loading) {
+                        loading = true
                         scope.launch {
-                            loading = true
                             try {
                                 val created = withContext(Dispatchers.IO) {
                                     val result = DocumentsContract.createDocument(
@@ -513,8 +513,8 @@ internal fun InfinityFileManager(
                     val requestedName = nameInput.trim()
                     renameDialog = false
                     if (target != null && requestedName.isNotBlank() && !loading) {
+                        loading = true
                         scope.launch {
-                            loading = true
                             try {
                                 val renamed = withContext(Dispatchers.IO) {
                                     val result = DocumentsContract.renameDocument(resolver, target, requestedName)
