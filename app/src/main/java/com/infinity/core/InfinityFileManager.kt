@@ -6,8 +6,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -119,7 +117,7 @@ internal fun InfinityFileManager(
         .filter { it.name.contains(search, ignoreCase = true) }
         .let { list ->
             when (sortBy) {
-                "Tipo" -> list.sortedWith(compareByDescending<InfinityFileEntry> { it.isFolder }.thenBy { it.name.lowercase(Locale.getDefault()) })
+                "Tipo" -> list.sortedWith(compareByDescending<InfinityFileEntry> { it.isFolder }.thenBy { it.mime.orEmpty() }.thenBy { it.name.lowercase(Locale.getDefault()) })
                 "Tamaño" -> list.sortedWith(compareByDescending<InfinityFileEntry> { it.isFolder }.thenByDescending { it.size })
                 "Fecha" -> list.sortedWith(compareByDescending<InfinityFileEntry> { it.isFolder }.thenByDescending { it.modified })
                 else -> list.sortedWith(compareByDescending<InfinityFileEntry> { it.isFolder }.thenBy { it.name.lowercase(Locale.getDefault()) })
@@ -348,7 +346,7 @@ internal fun InfinityFileManager(
         AlertDialog(
             onDismissRequest = { detailsEntry = null },
             title = { Text("Detalles del elemento") },
-            text = { Text("Nombre: ${entry.name}\nTipo: ${entry.mime ?: "No disponible"}\nTamaño: ${if (entry.isFolder) "Carpeta" else if (entry.size > 0) "${entry.size} bytes" else "No disponible"}") },
+            text = { Text("Nombre: ${entry.name}\nTipo: ${entry.mime ?: "No disponible"}\nTamaño: ${if (entry.isFolder) "Carpeta" else if (entry.size > 0) "${entry.size} bytes" else "No disponible"}\nÚltima modificación: ${if (entry.modified > 0) java.text.DateFormat.getDateTimeInstance().format(java.util.Date(entry.modified)) else "No disponible"}") },
             confirmButton = { TextButton(onClick = { detailsEntry = null }) { Text("Cerrar") } }
         )
     }
