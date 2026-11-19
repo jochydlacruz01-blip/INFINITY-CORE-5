@@ -3,7 +3,7 @@ package com.infinity.core
 /** Limits and removes non-printable control characters from notification text. */
 private fun sanitizeInfinityNotificationText(value: String?, limit: Int): String {
     val bounded = value.orEmpty()
-        .filter { it == '\\n' || it == '\\t' || !it.isISOControl() }
+        .filter { it == '\n' || it == '\t' || !it.isISOControl() }
         .take(limit)
 
     // Do not leave an unmatched high surrogate when a limit cuts an emoji pair.
