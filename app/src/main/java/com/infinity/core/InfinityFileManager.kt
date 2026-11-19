@@ -271,7 +271,11 @@ internal fun InfinityFileManager(
     }
 
     Row(Modifier.fillMaxSize().background(Color(0xFF0B1220))) {
-        Column(Modifier.width(if (screenWidth < 600) 104.dp else 150.dp).fillMaxHeight().verticalScroll(rememberScrollState()).padding(start = 6.dp, top = 14.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+        Column(Modifier.width(when {
+            screenWidth < 400 -> 80.dp
+            screenWidth < 600 -> 104.dp
+            else -> 150.dp
+        }).fillMaxHeight().verticalScroll(rememberScrollState()).padding(start = 6.dp, top = 14.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
             Text("INFINITY", color = accent, fontWeight = FontWeight.ExtraBold, fontSize = 13.sp)
             Text("NAVEGACIÓN", color = Color(0xFF8FA6BF), fontSize = 9.sp)
             listOf("Inicio", "Escritorio", "Documentos", "Descargas", "Imágenes", "Música", "Vídeos", "Almacenamiento interno", "Unidades y dispositivos").forEach { place ->
@@ -286,7 +290,7 @@ internal fun InfinityFileManager(
                         onChooseFolder()
                     }
                 }, modifier = Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = 5.dp, vertical = 4.dp)) {
-                    Text(place, color = if (place == "Inicio" && folderIds.size == 1) accent else Color(0xFFD7E2EF), fontSize = if (screenWidth < 600) 9.sp else 10.sp, maxLines = 2)
+                    Text(place, color = if (place == "Inicio" && folderIds.size == 1) accent else Color(0xFFD7E2EF), fontSize = if (screenWidth < 400) 8.sp else if (screenWidth < 600) 9.sp else 10.sp, maxLines = 2)
                 }
             }
         }
