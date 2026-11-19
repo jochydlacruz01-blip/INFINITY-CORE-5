@@ -56,6 +56,9 @@ internal fun InfinityFileManager(
     var nameInput by remember { mutableStateOf("") }
     var sortMenu by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf<String?>(null) }
+    var clipboardIds by remember { mutableStateOf<List<String>>(emptyList()) }
+    var clipboardParent by remember { mutableStateOf<Uri?>(null) }
+    var clipboardIsMove by remember { mutableStateOf(false) }
 
     LaunchedEffect(rootUri, currentId, refreshKey) {
         val tree = rootUri
@@ -113,6 +116,40 @@ internal fun InfinityFileManager(
 
     fun documentUri(id: String): Uri? = rootUri?.let { DocumentsContract.buildDocumentUriUsingTree(it, id) }
 
+    fun stageClipboard(move: Boolean) {
+        if (selected.isEmpty() || currentId == null) return
+        clipboardIds = selected.toList()
+        clipboardParent = documentUri(currentId!!)
+        clipboardIsMove = move
+        message = if (move) "Elementos preparados para mover. Entra en la carpeta destino y pulsa Pegar." else "Elementos copiados. Entra en la carpeta destino y pulsa Pegar."
+    }
+
+    fun pasteClipboard() {
+        val sourceParent = clipboardParent
+        val targetParent = currentId?.let(::documentUri)
+        if (sourceParent == null || targetParent == null || clipboardIds.isEmpty()) return
+        try {
+            val total = clipboardIds.size
+            var completed = 0
+            clipboardIds.forEach { id ->
+                val source = documentUri(id)
+                if (source != null) {
+                    val result = if (clipboardIsMove) {
+                        DocumentsContract.moveDocument(resolver, source, sourceParent, targetParent)
+                    } else {
+                        DocumentsContract.copyDocument(resolver, source, targetParent)
+                    }
+                    if (result != null) completed++
+                }
+            }
+            if (clipboardIsMove) { clipboardIds = emptyList(); clipboardParent = null }
+            selected = emptySet()
+            refreshKey++
+            message = "$completed de $total elemento(s) procesado(s)."
+        } catch (e: Exception) {
+            message = e.localizedMessage ?: "El proveedor de almacenamiento no admite esta operación."
+        }
+    }
     fun deleteSelected() {
         val targets = selected.toList()
         try {
@@ -173,8 +210,13 @@ internal fun InfinityFileManager(
                     }) { Text("Renombrar") }
                 }
                 if (selected.isNotEmpty()) {
+                    OutlinedButton(onClick = { stageClipboard(false) }) { Text("Copiar") }
+                    OutlinedButton(onClick = { stageClipboard(true) }) { Text("Cortar") }
                     OutlinedButton(onClick = { deleteSelected() }) { Text("Eliminar ${selected.size}") }
                     TextButton(onClick = { selected = emptySet() }) { Text("Cancelar") }
+                }
+                if (clipboardIds.isNotEmpty()) {
+                    Button(onClick = { pasteClipboard() }) { Text(if (clipboardIsMove) "Pegar / mover" else "Pegar") }
                 }
             }
         }
