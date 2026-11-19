@@ -1,0 +1,26 @@
+version: 2
+updates:
+  - package-ecosystem: gradle
+    directory: /
+    target-branch: INFINITY-0.9
+    schedule:
+      interval: weekly
+      day: sunday
+      time: "06:00"
+      timezone: America/Santo_Domingo
+    open-pull-requests-limit: 3
+    groups:
+      gradle-minor-and-patch:
+        update-types:
+          - minor
+          - patch
+
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: INFINITY-0.9
+    schedule:
+      interval: weekly
+      day: sunday
+      time: "06:20"
+      timezone: America/Santo_Domingo
+    open-pull-requests-limit: 2
