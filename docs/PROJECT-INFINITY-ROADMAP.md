@@ -6,6 +6,7 @@ This roadmap is a work plan; checkboxes indicate completion only after evidence 
 
 ## Stabilization and regression
 - [x] CI Debug/Release build and signed Release artifact validation workflow
+- [x] Latest privacy changes passed Debug/Release builds, lint, unit tests and Release APK signature verification (CI #212); Debug and signed Release artifacts published.
 - [x] Unit tests for CONNECT host/port validation
 - [x] Unit tests for ORBIT system metric rules
 - [x] Bounded notification text rules
@@ -22,6 +23,7 @@ This roadmap is a work plan; checkboxes indicate completion only after evidence 
 - [ ] File Manager: provider compatibility, refresh, navigation, selections, clipboard operations, viewers
 - [ ] ORBIT: verify metric labels, sampling lifecycle, thermal and battery reporting, layout on narrow screens
 - [ ] Notifications: permission UX, disconnect/reconnect, privacy display options, open/dismiss behavior
+- [x] Notification privacy redaction: hidden titles/messages are not retained in the in-memory feed; existing feed entries are sanitized when protection is enabled (unit tests and CI #212 verified). Android permission and physical-device behavior remain pending.
 - [ ] CONNECT: profile management UX, security review, RDP native feasibility and device testing
 
 ## Real RDP integration gate
