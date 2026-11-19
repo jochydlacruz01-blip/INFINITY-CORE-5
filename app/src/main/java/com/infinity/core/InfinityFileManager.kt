@@ -165,7 +165,27 @@ internal fun InfinityFileManager(
         }
     }
 
-    Column(Modifier.fillMaxSize().padding(10.dp)) {
+    Row(Modifier.fillMaxSize().background(Color(0xFF0B1220))) {
+        Column(Modifier.width(126.dp).fillMaxHeight().padding(start = 8.dp, top = 14.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+            Text("INFINITY", color = accent, fontWeight = FontWeight.ExtraBold, fontSize = 13.sp)
+            Text("NAVEGACIÓN", color = Color(0xFF8FA6BF), fontSize = 9.sp)
+            listOf("Inicio", "Escritorio", "Documentos", "Descargas", "Imágenes", "Música", "Vídeos", "Almacenamiento interno", "Unidades y dispositivos").forEach { place ->
+                TextButton(onClick = {
+                    if (place == "Inicio" && rootUri != null) {
+                        currentId = rootDocumentId
+                        folderIds = listOfNotNull(rootDocumentId)
+                        folderPath = listOf("Inicio")
+                        selected = emptySet()
+                    } else {
+                        message = "Selecciona la ubicación de " + place + " en el selector seguro de Android."
+                        onChooseFolder()
+                    }
+                }, modifier = Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = 5.dp, vertical = 4.dp)) {
+                    Text(place, color = if (place == "Inicio" && folderIds.size == 1) accent else Color(0xFFD7E2EF), fontSize = 10.sp, maxLines = 2)
+                }
+            }
+        }
+        Column(Modifier.weight(1f).fillMaxHeight().padding(10.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text("INFINITY FILE MANAGER", color = accent, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp)
@@ -297,6 +317,8 @@ internal fun InfinityFileManager(
                     }
                 }
             }
+        }
+    }
         }
     }
 
