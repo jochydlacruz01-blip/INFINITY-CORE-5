@@ -113,7 +113,14 @@ fun OrbitSystemMonitor(
                     thermalState = infinityThermalState(powerManager?.currentThermalStatus)
                 }
             } catch (_: Exception) {
-                // Conserva los últimos valores válidos.
+                // Evita mostrar métricas antiguas como si fueran datos actuales.
+                batteryPercent = -1
+                batteryTemperature = "--"
+                chargingState = "NO DISPONIBLE"
+                ramPercent = null
+                storagePercent = null
+                storageDetail = "--"
+                thermalState = "NO DISPONIBLE"
             }
 
             delay(15000)
