@@ -521,6 +521,8 @@ internal fun InfinityFileManager(
                                 loading = false
                             }
                         }
+                    } else if (parent != null && !isValidInfinityDocumentName(requestedName)) {
+                        message = "Nombre inválido: usa hasta 255 caracteres y evita barras o caracteres de control."
                     }
                     nameInput = ""
                 }) { Text("Crear") }
@@ -558,6 +560,8 @@ internal fun InfinityFileManager(
                                 loading = false
                             }
                         }
+                    } else if (target != null && !isValidInfinityDocumentName(requestedName)) {
+                        message = "Nombre inválido: usa hasta 255 caracteres y evita barras o caracteres de control."
                     }
                 }) { Text("Guardar") }
             },
