@@ -40,7 +40,7 @@ fun OrbitSystemMonitor(
     activeWindows: Int,
     totalWindows: Int
 ) {
-    val context = LocalContext.current
+    val context = LocalContext.current.applicationContext
 
     var batteryPercent by remember { mutableIntStateOf(-1) }
     var ramPercent by remember { mutableStateOf<Int?>(null) }
