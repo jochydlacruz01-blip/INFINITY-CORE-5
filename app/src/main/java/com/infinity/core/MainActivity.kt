@@ -1145,9 +1145,8 @@ Row(
                                                     }
                                                     if (index >= 0) {
                                                         windows[index] =
-                                                            windows[index].copy(
-                                                                minimized = false
-                                                            )
+                                                            windows[index].copy(minimized = false)
+                                                        focusedWindowId = win.id
                                                     }
                                                     orbitOpen = false
                                                 }
@@ -1175,10 +1174,14 @@ Row(
                                                     it.id == win.id
                                                 }
                                                 if (index >= 0) {
-                                                    windows[index] =
-                                                        windows[index].copy(
-                                                            minimized = !win.minimized
-                                                        )
+                                                    if (win.minimized) {
+                                                        windows[index] = windows[index].copy(minimized = false)
+                                                        focusedWindowId = win.id
+                                                        orbitOpen = false
+                                                    } else {
+                                                        windows[index] = windows[index].copy(minimized = true)
+                                                        if (focusedWindowId == win.id) focusedWindowId = null
+                                                    }
                                                 }
                                             }
                                         ) {
