@@ -41,3 +41,11 @@ internal fun isSameInfinityFolder(sourceFolderId: String?, targetFolderId: Strin
         !targetFolderId.isNullOrBlank() &&
         sourceFolderId == targetFolderId
 }
+
+/**
+ * A missing provider flag column means capability is unknown, not unsupported.
+ * In that case the operation may be attempted and Android remains authoritative.
+ */
+internal fun infinitySupportsDocumentFlag(flags: Long?, requiredFlag: Long): Boolean {
+    return flags == null || flags and requiredFlag != 0L
+}
