@@ -1,13 +1,17 @@
 package com.infinity.core
 
+/** Limits and removes non-printable control characters from notification text. */
+private fun sanitizeInfinityNotificationText(value: String?, limit: Int): String =
+    value.orEmpty().filter { it == '\\n' || it == '\\t' || !it.isISOControl() }.take(limit)
+
 internal fun infinityNotificationTitle(value: String?): String =
-    value.orEmpty().take(300)
+    sanitizeInfinityNotificationText(value, 300)
 
 internal fun infinityNotificationMessage(value: String?): String =
-    value.orEmpty().take(2_000)
+    sanitizeInfinityNotificationText(value, 2_000)
 
 internal fun infinityNotificationAppName(value: String?): String =
-    value.orEmpty().take(200)
+    sanitizeInfinityNotificationText(value, 200)
 
 /**
  * Returns notification text suitable for the in-memory feed.

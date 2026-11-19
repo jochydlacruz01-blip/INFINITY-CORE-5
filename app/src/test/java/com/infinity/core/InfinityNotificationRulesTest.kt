@@ -23,20 +23,20 @@ class InfinityNotificationRulesTest {
 
     @Test
     fun privateNotificationContentIsRedactedBeforeStorage() {
-        assertEquals(
-            "" to "",
-            infinityNotificationContent("Private title", "Private message", true)
-        )
+        assertEquals("" to "", infinityNotificationContent("Private title", "Private message", true))
     }
 
     @Test
     fun visibleNotificationContentRemainsBounded() {
-        val content = infinityNotificationContent(
-            "T".repeat(400),
-            "M".repeat(2_500),
-            false
-        )
+        val content = infinityNotificationContent("T".repeat(400), "M".repeat(2_500), false)
         assertEquals(300, content.first.length)
         assertEquals(2_000, content.second.length)
+    }
+
+    @Test
+    fun controlCharactersAreRemovedButLineBreaksAndTabsRemain() {
+        assertEquals("ab", infinityNotificationTitle("a\\u0000b"))
+        assertEquals("a\\nb\\tc", infinityNotificationMessage("a\\nb\\tc"))
+        assertEquals("AppName", infinityNotificationAppName("App\\u0007Name"))
     }
 }

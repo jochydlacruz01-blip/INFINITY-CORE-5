@@ -19,6 +19,9 @@ This roadmap is a work plan; checkboxes indicate completion only after evidence 
 
 - [x] CONNECT endpoint duplicate matching normalizes internationalized DNS names (CI #196 verified)
 
+
+- [x] Notification text sanitizer removes control characters while preserving readable line breaks and tabs (unit regression tests added; pending CI validation).
+
 ## Core modules
 - [ ] File Manager: provider compatibility, refresh, navigation, selections, clipboard operations, viewers
 - [x] SAF enumeration tolerates providers omitting optional MIME/size columns; missing size is displayed as unavailable (CI #217 verified).
