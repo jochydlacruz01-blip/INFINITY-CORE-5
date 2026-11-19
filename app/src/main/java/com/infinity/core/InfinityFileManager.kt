@@ -187,6 +187,7 @@ internal fun InfinityFileManager(
         }
         loading = true
         scope.launch {
+            val completedIds = mutableSetOf<String>()
             try {
                 val (completed, failedIds) = withContext(Dispatchers.IO) {
                     var done = 0
@@ -200,6 +201,7 @@ internal fun InfinityFileManager(
                                 DocumentsContract.copyDocument(resolver, source, targetParent)
                             }
                             checkNotNull(result) { "El proveedor no confirmó la operación." }
+                            completedIds += id
                             done++
                         } catch (cancelled: CancellationException) {
                             throw cancelled
@@ -222,6 +224,14 @@ internal fun InfinityFileManager(
                     "$completed completado(s) y $failed pendiente(s). El portapapeles conserva solo los elementos pendientes para reintentar."
                 }
             } catch (cancelled: CancellationException) {
+                val unfinished = infinityUnfinishedOperationIds(ids, completedIds)
+                if (isMove) {
+                    clipboardIds = unfinished
+                    if (unfinished.isEmpty()) clipboardParent = null
+                }
+                selected = unfinished.toSet()
+                refreshKey++
+                message = "Operación interrumpida: ${completedIds.size} completado(s); ${unfinished.size} pendiente(s). Se conservaron los elementos pendientes para reintentar."
                 throw cancelled
             } catch (exception: Exception) {
                 message = exception.localizedMessage ?: "No se pudo completar la operación de archivos."
@@ -236,6 +246,7 @@ internal fun InfinityFileManager(
         if (targets.isEmpty() || loading) return
         loading = true
         scope.launch {
+            val completedIds = mutableSetOf<String>()
             try {
                 val (completed, failed) = withContext(Dispatchers.IO) {
                     var done = 0
@@ -246,6 +257,7 @@ internal fun InfinityFileManager(
                             check(DocumentsContract.deleteDocument(resolver, uri)) {
                                 "El proveedor no confirmó la eliminación."
                             }
+                            completedIds += id
                             done++
                         } catch (cancelled: CancellationException) {
                             throw cancelled
@@ -263,6 +275,10 @@ internal fun InfinityFileManager(
                     "$completed eliminado(s) y ${failed.size} no eliminado(s). Los elementos pendientes siguen seleccionados para reintentar."
                 }
             } catch (cancelled: CancellationException) {
+                val unfinished = infinityUnfinishedOperationIds(targets, completedIds)
+                selected = unfinished.toSet()
+                refreshKey++
+                message = "Eliminación interrumpida: ${completedIds.size} eliminado(s); ${unfinished.size} pendiente(s). Los elementos pendientes siguen seleccionados para reintentar."
                 throw cancelled
             } catch (exception: Exception) {
                 message = exception.localizedMessage ?: "No se pudo completar la eliminación."
