@@ -99,4 +99,15 @@ class InfinityConnectRulesTest {
         assertEquals("X CUSTOM FORMAT", formatInfinityMimeType("application/x-custom-format"))
     }
 
+    @Test
+    fun mimeFallbackUsesLocaleIndependentUppercase() {
+        val originalLocale = java.util.Locale.getDefault()
+        try {
+            java.util.Locale.setDefault(java.util.Locale.forLanguageTag("tr-TR"))
+            assertEquals("IMAGE CUSTOM", formatInfinityMimeType("image/custom"))
+        } finally {
+            java.util.Locale.setDefault(originalLocale)
+        }
+    }
+
 }
