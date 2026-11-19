@@ -374,20 +374,20 @@ fun InfinityConnectPanel() {
             confirmButton = {
                 TextButton(
                     onClick = {
-                        val portNumber = editingPort.value.toIntOrNull()
+                        val portNumber = parseInfinityPort(editingPort.value)
                         val host = editingHost.value.trim()
-                        val duplicate = profiles.withIndex().any { (index, saved) ->
-                            index != editingIndex.value &&
-                                saved.host.equals(host, ignoreCase = true) &&
-                                saved.port == portNumber?.toString()
-                        }
+                        val duplicate = hasDuplicateInfinityEndpoint(
+                            host = host,
+                            port = editingPort.value,
+                            savedEndpoints = profiles.map { it.host to it.port },
+                            excludedIndex = editingIndex.value
+                        )
 
                         if (
                             editingName.value.isBlank() ||
                             host.isBlank() ||
                             editingUsername.value.isBlank() ||
-                            portNumber == null ||
-                            portNumber !in 1..65535
+                            portNumber == null
                         ) {
                             notifyUser("Revisa los datos del perfil")
                         } else if (duplicate) {
