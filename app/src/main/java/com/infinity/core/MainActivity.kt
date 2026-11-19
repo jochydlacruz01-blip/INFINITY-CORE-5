@@ -1588,10 +1588,10 @@ private fun Infinity08Window(
                     )
                 }
 
-                "files" -> FileExplorer08(
-                    selectedFolder,
-                    accent,
-                    onChooseFolder
+                "files" -> InfinityFileManager(
+                    rootUri = selectedFolder,
+                    accent = accent,
+                    onChooseFolder = onChooseFolder
                 ) { uri, mime ->
                     try {
                         val viewIntent = Intent(Intent.ACTION_VIEW).apply {
