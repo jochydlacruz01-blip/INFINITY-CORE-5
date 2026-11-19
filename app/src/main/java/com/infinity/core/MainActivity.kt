@@ -175,13 +175,27 @@ private fun Infinity08App() {
         ActivityResultContracts.OpenDocument()
     ) { uri ->
         if (uri != null) {
-            try {
+            val persisted = try {
                 context.contentResolver.takePersistableUriPermission(
                     uri, Intent.FLAG_GRANT_READ_URI_PERMISSION
                 )
-            } catch (_: SecurityException) { }
+                true
+            } catch (_: SecurityException) {
+                false
+            }
+            // Use the selected image for this session, but only persist a URI
+            // when Android confirms that its read grant survives process restarts.
             wallpaperUri = uri
-            prefs.edit().putString("wallpaper_uri", uri.toString()).apply()
+            if (persisted) {
+                prefs.edit().putString("wallpaper_uri", uri.toString()).apply()
+            } else {
+                prefs.edit().remove("wallpaper_uri").apply()
+                Toast.makeText(
+                    context,
+                    "Fondo temporal: Android no permitió conservar el permiso. Selecciona la imagen de nuevo al reiniciar.",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
         }
     }
 
