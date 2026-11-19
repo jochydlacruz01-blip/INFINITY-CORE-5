@@ -114,6 +114,7 @@ fun InfinityConnectPanel() {
     val editingHost = remember { mutableStateOf("") }
     val editingPort = remember { mutableStateOf("3389") }
     val editingUsername = remember { mutableStateOf("") }
+    val editingIndex = remember { mutableStateOf(-1) }
 
     fun notifyUser(message: String) {
         Toast.makeText(
@@ -188,6 +189,7 @@ fun InfinityConnectPanel() {
 
         Button(
             onClick = {
+                editingIndex.value = -1
                 editingName.value = ""
                 editingHost.value = ""
                 editingPort.value = "3389"
@@ -245,15 +247,27 @@ fun InfinityConnectPanel() {
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         OutlinedButton(
                             onClick = {
-                                copyAddress(profile)
+                                editingIndex.value = profiles.indexOf(profile)
+                                editingName.value = profile.name
+                                editingHost.value = profile.host
+                                editingPort.value = profile.port
+                                editingUsername.value = profile.username
+                                showEditor.value = true
                             },
                             modifier = Modifier.weight(1f)
                         ) {
-                            Text("Copiar dirección")
+                            Text("Editar")
+                        }
+
+                        OutlinedButton(
+                            onClick = { copyAddress(profile) },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Copiar")
                         }
 
                         OutlinedButton(
@@ -297,7 +311,7 @@ fun InfinityConnectPanel() {
                 showEditor.value = false
             },
             title = {
-                Text("Agregar computadora")
+                Text(if (editingIndex.value >= 0) "Editar computadora" else "Agregar computadora")
             },
             text = {
                 Column(
@@ -361,32 +375,45 @@ fun InfinityConnectPanel() {
                 TextButton(
                     onClick = {
                         val portNumber = editingPort.value.toIntOrNull()
+                        val host = editingHost.value.trim()
+                        val duplicate = profiles.withIndex().any { (index, saved) ->
+                            index != editingIndex.value &&
+                                saved.host.equals(host, ignoreCase = true) &&
+                                saved.port == portNumber?.toString()
+                        }
 
                         if (
                             editingName.value.isBlank() ||
-                            editingHost.value.isBlank() ||
+                            host.isBlank() ||
                             editingUsername.value.isBlank() ||
                             portNumber == null ||
                             portNumber !in 1..65535
                         ) {
                             notifyUser("Revisa los datos del perfil")
+                        } else if (duplicate) {
+                            notifyUser("Ya existe un perfil con ese equipo y puerto")
                         } else {
                             val profile = InfinityConnectionProfile(
                                 name = editingName.value.trim(),
-                                host = editingHost.value.trim(),
-                                port = editingPort.value,
+                                host = host,
+                                port = portNumber.toString(),
                                 username = editingUsername.value.trim()
                             )
 
-                            profiles.add(profile)
+                            if (editingIndex.value in profiles.indices) {
+                                profiles[editingIndex.value] = profile
+                            } else {
+                                profiles.add(profile)
+                            }
                             saveInfinityProfiles(context, profiles)
 
                             showEditor.value = false
+                            editingIndex.value = -1
                             notifyUser("Computadora guardada")
                         }
                     }
                 ) {
-                    Text("Guardar")
+                    Text(if (editingIndex.value >= 0) "Guardar cambios" else "Guardar")
                 }
             },
             dismissButton = {
