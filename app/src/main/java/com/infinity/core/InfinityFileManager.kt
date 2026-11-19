@@ -109,9 +109,12 @@ internal fun InfinityFileManager(
                     val flagsCol = cursor.getColumnIndex(DocumentsContract.Document.COLUMN_FLAGS)
                     check(idCol >= 0 && nameCol >= 0) { "El proveedor no devolvió las columnas básicas de archivos." }
                     while (cursor.moveToNext()) {
+                        // Some third-party SAF providers expose malformed rows. Ignore rows
+                        // without a usable document ID instead of crashing the whole listing.
+                        val documentId = infinityDocumentIdOrNull(cursor.getString(idCol)) ?: continue
                         result += InfinityFileEntry(
-                            cursor.getString(idCol),
-                            cursor.getString(nameCol) ?: "Sin nombre",
+                            documentId,
+                            infinityDocumentDisplayName(cursor.getString(nameCol)),
                             infinityOptionalMimeType(mimeCol >= 0, if (mimeCol >= 0 && !cursor.isNull(mimeCol)) cursor.getString(mimeCol) else null),
                             if (sizeCol < 0 || cursor.isNull(sizeCol)) -1L else cursor.getLong(sizeCol),
                             if (modifiedCol < 0 || cursor.isNull(modifiedCol)) 0L else cursor.getLong(modifiedCol),

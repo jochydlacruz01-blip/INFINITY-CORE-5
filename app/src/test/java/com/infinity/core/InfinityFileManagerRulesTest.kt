@@ -104,4 +104,16 @@ class InfinityFileManagerRulesTest {
     @Test fun copyRetryIgnoresUnknownFailuresAndPreservesRepeatedIds() {
         assertEquals(listOf("a", "a", "c"), infinityRemainingOperationIds(listOf("a", "a", "b", "c"), setOf("a", "c", "missing")))
     }
+
+    @Test fun malformedSafDocumentIdsAreSkippedAndNamesGetSafeFallbacks() {
+        assertEquals(null, infinityDocumentIdOrNull(null))
+        assertEquals(null, infinityDocumentIdOrNull(""))
+        assertEquals(null, infinityDocumentIdOrNull("   "))
+        assertEquals("document-42", infinityDocumentIdOrNull("document-42"))
+        assertEquals("Sin nombre", infinityDocumentDisplayName(null))
+        assertEquals("Sin nombre", infinityDocumentDisplayName(""))
+        assertEquals("Sin nombre", infinityDocumentDisplayName("  "))
+        assertEquals("reporte.pdf", infinityDocumentDisplayName("reporte.pdf"))
+    }
+
 }

@@ -83,3 +83,12 @@ internal fun infinityRemainingOperationIds(ids: List<String>, failedIds: Set<Str
 /** Treats an omitted or blank SAF MIME column as unknown metadata. */
 internal fun infinityOptionalMimeType(columnAvailable: Boolean, value: String?): String? =
     if (columnAvailable) value?.takeIf { it.isNotBlank() } else null
+
+
+/** Rejects malformed SAF rows that do not contain a usable document identifier. */
+internal fun infinityDocumentIdOrNull(value: String?): String? =
+    value?.takeIf { it.isNotBlank() }
+
+/** Provides a stable display fallback for providers returning null or blank names. */
+internal fun infinityDocumentDisplayName(value: String?): String =
+    value?.takeIf { it.isNotBlank() } ?: "Sin nombre"

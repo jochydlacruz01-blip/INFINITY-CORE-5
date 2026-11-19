@@ -28,6 +28,7 @@ This roadmap is a work plan; checkboxes indicate completion only after evidence 
 - [x] Partial copy retry retains only unconfirmed items in original order (implementation and regression tests; CI #230 passed).
 - [x] Add live folder-scoped filename search to File Explorer UI (CI #228 verified).
 - [x] SAF enumeration tolerates providers omitting optional MIME/size columns; missing size is displayed as unavailable (CI #217 and MIME hardening CI #231 verified).
+- [x] SAF listing skips malformed rows with blank document IDs and supplies a safe fallback for blank display names (implementation and regression tests; pending CI).
 - [ ] ORBIT: verify metric labels, sampling lifecycle, thermal and battery reporting, layout on narrow screens; sampling now propagates coroutine cancellation correctly (pending CI).
 - [x] ORBIT monitor clears displayed telemetry when a sampling cycle fails instead of presenting stale values (validated by successful CI #220)
 - [ ] Notifications: physical-device permission UX, disconnect/reconnect, privacy display options, open/dismiss behavior
