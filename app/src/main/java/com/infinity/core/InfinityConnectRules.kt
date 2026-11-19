@@ -43,6 +43,10 @@ internal fun isValidInfinityHost(value: String): Boolean {
         val parts = host.split('%')
         if (parts.size > 2) return false
         val address = parts[0]
+        if (!address.contains(':') || !address.matches(Regex("[0-9A-Fa-f:.]+"))) {
+            return false
+        }
+        if (host.count { it == '%' } > 1) return false
         if (parts.size == 2 && !parts[1].matches(Regex("[A-Za-z0-9_.-]{1,32}"))) {
             return false
         }
