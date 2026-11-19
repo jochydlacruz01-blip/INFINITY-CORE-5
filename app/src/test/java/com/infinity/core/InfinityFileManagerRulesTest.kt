@@ -59,3 +59,7 @@ class InfinityFileManagerRulesTest {
         assertEquals(1, infinityFileSizeSortRank(-1))
     }
 }
+
+    @Test fun failedDeletesRemainSelectedInOriginalOrder() { assertEquals(listOf("b", "d"), infinityRemainingDeleteIds(listOf("a", "b", "c", "d"), setOf("b", "d"))) }
+    @Test fun allDeleteFailuresRetainAllTargets() { assertEquals(listOf("a", "b"), infinityRemainingDeleteIds(listOf("a", "b"), setOf("a", "b"))) }
+    @Test fun successfulDeletesClearTargets() { assertEquals(emptyList<String>(), infinityRemainingDeleteIds(listOf("a", "b"), emptySet())) }

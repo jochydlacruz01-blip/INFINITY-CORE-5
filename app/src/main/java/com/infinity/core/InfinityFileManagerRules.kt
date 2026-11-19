@@ -61,3 +61,7 @@ internal fun isValidInfinityDocumentName(value: String): Boolean {
 /** Keeps only failed move items, preserving their original clipboard order. */
 internal fun infinityRemainingMoveIds(ids: List<String>, failedIds: Set<String>): List<String> =
     ids.filter { it in failedIds }
+
+/** Retains only failed deletion targets, keeping the original selection order. */
+internal fun infinityRemainingDeleteIds(ids: List<String>, failedIds: Set<String>): List<String> =
+    ids.filter { it in failedIds }

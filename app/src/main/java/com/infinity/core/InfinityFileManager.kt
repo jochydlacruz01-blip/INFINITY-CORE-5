@@ -238,7 +238,7 @@ internal fun InfinityFileManager(
             try {
                 val (completed, failed) = withContext(Dispatchers.IO) {
                     var done = 0
-                    var errors = 0
+                    val failures = mutableSetOf<String>()
                     targets.forEach { id ->
                         try {
                             val uri = DocumentsContract.buildDocumentUriUsingTree(tree, id)
@@ -249,17 +249,17 @@ internal fun InfinityFileManager(
                         } catch (cancelled: CancellationException) {
                             throw cancelled
                         } catch (_: Exception) {
-                            errors++
+                            failures += id
                         }
                     }
-                    done to errors
+                    done to failures
                 }
-                selected = emptySet()
+                selected = infinityRemainingDeleteIds(targets, failed)
                 refreshKey++
-                message = if (failed == 0) {
+                message = if (failed.isEmpty()) {
                     "$completed elemento(s) eliminado(s)."
                 } else {
-                    "$completed eliminado(s) y $failed no eliminado(s). Comprueba los elementos restantes y vuelve a intentarlo."
+                    "$completed eliminado(s) y ${failed.size} no eliminado(s). Los elementos pendientes siguen seleccionados para reintentar."
                 }
             } catch (cancelled: CancellationException) {
                 throw cancelled
