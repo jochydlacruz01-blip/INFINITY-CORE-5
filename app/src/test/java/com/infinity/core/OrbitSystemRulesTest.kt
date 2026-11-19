@@ -88,4 +88,28 @@ class OrbitSystemRulesTest {
         assertEquals("DESCONOCIDO", infinityChargingState(-1))
         assertEquals("DESCONOCIDO", infinityChargingState(99))
     }
+
+    @Test
+    fun storageSummaryFormattingIsIndependentOfDefaultLocale() {
+        val originalLocale = java.util.Locale.getDefault()
+        try {
+            java.util.Locale.setDefault(java.util.Locale.forLanguageTag("de-DE"))
+            assertEquals(
+                "1.0 / 2.0 GiB",
+                infinityStorageSummary(2_147_483_648L, 1_073_741_824L)
+            )
+            assertEquals("25.5 °C", infinityBatteryTemperature(255))
+        } finally {
+            java.util.Locale.setDefault(originalLocale)
+        }
+    }
+
+    @Test
+    fun batteryAndChargingRulesRemainSafeForExtremeUnknownValues() {
+        assertEquals(null, infinityBatteryPercent(Int.MIN_VALUE))
+        assertEquals(null, infinityBatteryPercent(Int.MAX_VALUE))
+        assertEquals("DESCONOCIDO", infinityChargingState(Int.MIN_VALUE))
+        assertEquals("DESCONOCIDO", infinityChargingState(Int.MAX_VALUE))
+    }
+
 }
