@@ -1,0 +1,31 @@
+package com.infinity.core
+
+import java.util.Locale
+
+/** Returns a bounded whole-number usage percentage, or null for unknown capacity. */
+internal fun infinityUsagePercent(totalBytes: Long, availableBytes: Long): Int? {
+    if (totalBytes <= 0L) return null
+    val available = availableBytes.coerceIn(0L, totalBytes)
+    return (((totalBytes - available).toDouble() / totalBytes) * 100.0)
+        .toInt()
+        .coerceIn(0, 100)
+}
+
+/** Formats used and total bytes as GiB, avoiding locale-dependent decimal separators. */
+internal fun infinityStorageSummary(totalBytes: Long, availableBytes: Long): String {
+    if (totalBytes <= 0L || availableBytes < 0L) return "No disponible"
+    val available = availableBytes.coerceAtMost(totalBytes)
+    val usedGiB = (totalBytes - available) / 1_073_741_824.0
+    val totalGiB = totalBytes / 1_073_741_824.0
+    return String.format(Locale.ROOT, "%.1f / %.1f GiB", usedGiB, totalGiB)
+}
+
+/** Android reports battery temperature in tenths of a degree Celsius. */
+internal fun infinityBatteryTemperature(tenthsCelsius: Int): String {
+    if (tenthsCelsius < 0) return "--"
+    return String.format(Locale.ROOT, "%.1f °C", tenthsCelsius / 10.0)
+}
+
+/** Returns a bounded RAM usage percentage, or null when Android cannot report capacity. */
+internal fun infinityRamUsagePercent(totalBytes: Long, availableBytes: Long): Int? =
+    infinityUsagePercent(totalBytes, availableBytes)
