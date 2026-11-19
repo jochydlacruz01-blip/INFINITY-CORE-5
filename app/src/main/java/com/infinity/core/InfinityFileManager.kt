@@ -58,6 +58,8 @@ internal fun InfinityFileManager(
     var folderPath by remember(rootUri) { mutableStateOf(listOf("Inicio")) }
     var entries by remember { mutableStateOf<List<InfinityFileEntry>>(emptyList()) }
     var loading by remember { mutableStateOf(false) }
+    var operationInProgress by remember { mutableStateOf(false) }
+    val isBusy = loading || operationInProgress
     var loadGeneration by remember { mutableIntStateOf(0) }
     var error by remember { mutableStateOf<String?>(null) }
     var refreshKey by remember { mutableIntStateOf(0) }
@@ -207,14 +209,14 @@ internal fun InfinityFileManager(
         val targetParent = currentId?.let { DocumentsContract.buildDocumentUriUsingTree(tree, it) }
         val ids = clipboardIds
         val isMove = clipboardIsMove
-        if (sourceParent == null || targetParent == null || ids.isEmpty() || loading) return
+        if (sourceParent == null || targetParent == null || ids.isEmpty() || isBusy) return
         val sourceParentId = runCatching { DocumentsContract.getDocumentId(sourceParent) }.getOrNull()
         val targetParentId = runCatching { DocumentsContract.getDocumentId(targetParent) }.getOrNull()
         if (isSameInfinityFolder(sourceParentId, targetParentId)) {
             message = "El destino es la misma carpeta de origen. Elige otra carpeta para pegar."
             return
         }
-        loading = true
+        operationInProgress = true
         scope.launch {
             val completedIds = mutableSetOf<String>()
             try {
@@ -264,15 +266,15 @@ internal fun InfinityFileManager(
             } catch (exception: Exception) {
                 message = exception.localizedMessage ?: "No se pudo completar la operación de archivos."
             } finally {
-                loading = false
+                operationInProgress = false
             }
         }
     }
     fun deleteSelected() {
         val tree = rootUri ?: return
         val targets = selected.toList()
-        if (targets.isEmpty() || loading) return
-        loading = true
+        if (targets.isEmpty() || isBusy) return
+        operationInProgress = true
         scope.launch {
             val completedIds = mutableSetOf<String>()
             try {
@@ -311,7 +313,7 @@ internal fun InfinityFileManager(
             } catch (exception: Exception) {
                 message = exception.localizedMessage ?: "No se pudo completar la eliminación."
             } finally {
-                loading = false
+                operationInProgress = false
             }
         }
     }
@@ -438,7 +440,7 @@ internal fun InfinityFileManager(
                     Button(onClick = onChooseFolder) { Text("Seleccionar ubicación") }
                 }
             }
-        } else if (loading) {
+        } else if (isBusy) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = accent)
             }
@@ -568,8 +570,8 @@ internal fun InfinityFileManager(
                     val parent = currentId?.let(::documentUri)
                     val requestedName = nameInput.trim()
                     createDialog = false
-                    if (parent != null && isValidInfinityDocumentName(requestedName) && !loading) {
-                        loading = true
+                    if (parent != null && isValidInfinityDocumentName(requestedName) && !isBusy) {
+                        operationInProgress = true
                         scope.launch {
                             try {
                                 val created = withContext(Dispatchers.IO) {
@@ -587,7 +589,7 @@ internal fun InfinityFileManager(
                             } catch (exception: Exception) {
                                 message = exception.localizedMessage ?: "No se pudo crear la carpeta."
                             } finally {
-                                loading = false
+                                operationInProgress = false
                             }
                         }
                     } else if (parent != null && !isValidInfinityDocumentName(requestedName)) {
@@ -610,8 +612,8 @@ internal fun InfinityFileManager(
                     val target = selected.singleOrNull()?.let(::documentUri)
                     val requestedName = nameInput.trim()
                     renameDialog = false
-                    if (target != null && isValidInfinityDocumentName(requestedName) && !loading) {
-                        loading = true
+                    if (target != null && isValidInfinityDocumentName(requestedName) && !isBusy) {
+                        operationInProgress = true
                         scope.launch {
                             try {
                                 val renamed = withContext(Dispatchers.IO) {
@@ -626,7 +628,7 @@ internal fun InfinityFileManager(
                             } catch (exception: Exception) {
                                 message = exception.localizedMessage ?: "No se pudo renombrar el elemento."
                             } finally {
-                                loading = false
+                                operationInProgress = false
                             }
                         }
                     } else if (target != null && !isValidInfinityDocumentName(requestedName)) {
