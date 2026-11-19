@@ -1615,22 +1615,23 @@ private fun Infinity08Window(
                 .padding(horizontal = 10.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                Modifier
-                    .size(34.dp)
-                    .background(
-                        accent.copy(alpha = 0.18f),
-                        RoundedCornerShape(10.dp)
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    "▣",
-                    color = accent,
-                    fontSize = 19.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
+            InfinityAppBadge(
+                DeskItem(
+                    win.kind,
+                    win.title,
+                    when (win.kind) {
+                        "files" -> "▣"
+                        "notes" -> "✎"
+                        "apps" -> "◈"
+                        "connect" -> "◉"
+                        "settings" -> "⚙"
+                        "about" -> "∞"
+                        else -> "◇"
+                    }
+                ),
+                34.dp,
+                accent
+            )
 
             Column(
                 Modifier
