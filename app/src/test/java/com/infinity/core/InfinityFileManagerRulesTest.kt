@@ -89,3 +89,12 @@ class InfinityFileManagerRulesTest {
         assertEquals(emptyList<String>(), infinityUnfinishedOperationIds(listOf("a", "b"), setOf("a", "b")))
     }
 }
+
+    @Test fun copyRetryKeepsOnlyFailedIdsInOriginalOrder() {
+        assertEquals(listOf("c", "a"), infinityRemainingOperationIds(listOf("c", "b", "a"), setOf("c", "a")))
+        assertEquals(emptyList<String>(), infinityRemainingOperationIds(listOf("a", "b"), emptySet()))
+    }
+
+    @Test fun copyRetryIgnoresUnknownFailuresAndPreservesRepeatedIds() {
+        assertEquals(listOf("a", "a", "c"), infinityRemainingOperationIds(listOf("a", "a", "b", "c"), setOf("a", "c", "missing")))
+    }

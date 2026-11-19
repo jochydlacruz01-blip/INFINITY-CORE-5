@@ -74,3 +74,7 @@ internal fun infinityRetainedSelection(selectedIds: Set<String>, visibleIds: Set
 /** Returns the original-order items not confirmed completed after an interrupted batch. */
 internal fun infinityUnfinishedOperationIds(ids: List<String>, completedIds: Set<String>): List<String> =
     ids.filter { it !in completedIds }
+
+/** Keeps only failed copy/move items, preserving their original order. */
+internal fun infinityRemainingOperationIds(ids: List<String>, failedIds: Set<String>): List<String> =
+    ids.filter { it in failedIds }

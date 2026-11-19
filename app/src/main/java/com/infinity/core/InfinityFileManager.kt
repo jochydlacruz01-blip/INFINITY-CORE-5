@@ -212,10 +212,9 @@ internal fun InfinityFileManager(
                     done to failures
                 }
                 val failed = failedIds.size
-                if (isMove) {
-                    clipboardIds = infinityRemainingMoveIds(ids, failedIds)
-                    if (clipboardIds.isEmpty()) clipboardParent = null
-                }
+                // Keep only unconfirmed items for both copy and move retries.
+                clipboardIds = infinityRemainingOperationIds(ids, failedIds)
+                if (clipboardIds.isEmpty()) clipboardParent = null
                 selected = emptySet()
                 refreshKey++
                 message = if (failed == 0) {

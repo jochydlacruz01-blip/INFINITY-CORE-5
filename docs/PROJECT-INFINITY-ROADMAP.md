@@ -6,7 +6,7 @@ This roadmap is a work plan; checkboxes indicate completion only after evidence 
 
 ## Stabilization and regression
 - [x] CI Debug/Release build and signed Release artifact validation workflow
-- [x] Latest privacy changes passed Debug/Release builds, lint, unit tests and Release APK signature verification (CI #212); Debug and signed Release artifacts published.
+- [x] Latest privacy changes passed Debug/Release builds, lint, unit tests and Release APK signature verification (CI #228); Debug and signed Release artifacts published.
 - [x] Unit tests for CONNECT host/port validation
 - [x] Unit tests for ORBIT system metric rules
 - [x] Bounded notification text rules
@@ -23,13 +23,14 @@ This roadmap is a work plan; checkboxes indicate completion only after evidence 
 - [x] Notification text sanitizer removes control characters while preserving readable line breaks and tabs (unit regression tests added; pending CI validation).
 
 ## Core modules
-- [ ] File Manager: provider compatibility, refresh, navigation, selections, clipboard operations, viewers\n- [ ] Add live folder-scoped filename search to File Explorer UI (fix compile issue and validate in CI)
+- [ ] File Manager: provider compatibility, refresh, navigation, selections, clipboard operations, viewers
+- [x] Partial copy retry retains only unconfirmed items in original order (implementation and regression tests added; pending CI validation)\n- [ ] Add live folder-scoped filename search to File Explorer UI (fix compile issue and validate in CI)
 - [x] SAF enumeration tolerates providers omitting optional MIME/size columns; missing size is displayed as unavailable (CI #217 verified).
 - [ ] ORBIT: verify metric labels, sampling lifecycle, thermal and battery reporting, layout on narrow screens
 - [x] ORBIT monitor clears displayed telemetry when a sampling cycle fails instead of presenting stale values (validated by successful CI #220)
 - [ ] Notifications: physical-device permission UX, disconnect/reconnect, privacy display options, open/dismiss behavior
 - [x] Add direct system-settings shortcut when notification-listener permission is not granted (validated by successful CI #220; device UX still pending)
-- [x] Notification privacy redaction: hidden titles/messages are not retained in the in-memory feed; existing feed entries are sanitized when protection is enabled (unit tests and CI #212 verified). Android permission and physical-device behavior remain pending.
+- [x] Notification privacy redaction: hidden titles/messages are not retained in the in-memory feed; existing feed entries are sanitized when protection is enabled (unit tests and CI #228 verified). Android permission and physical-device behavior remain pending.
 - [ ] CONNECT: profile management UX, security review, RDP native feasibility and device testing
 - [x] Extend CONNECT hostname/IP rejection regression coverage (CI #225 verified)\n- [x] Expand File Manager Unicode filename and control-character boundary tests (added in this batch; pending CI)
 
