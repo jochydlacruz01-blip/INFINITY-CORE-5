@@ -322,9 +322,10 @@ val iconOffsets = remember {
             val maxW = maxWidth
             val maxH = maxHeight
 
-            if (wallpaperBitmap != null) {
+            val currentWallpaperBitmap = wallpaperBitmap
+            if (currentWallpaperBitmap != null) {
                 Image(
-                    wallpaperBitmap,
+                    currentWallpaperBitmap,
                     contentDescription = "Fondo de escritorio",
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
