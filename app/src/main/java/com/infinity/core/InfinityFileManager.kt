@@ -35,7 +35,8 @@ private data class InfinityFileEntry(
     val name: String,
     val mime: String?,
     val size: Long,
-    val modified: Long
+    val modified: Long,
+    val flags: Long?
 ) {
     val isFolder: Boolean get() = mime == DocumentsContract.Document.MIME_TYPE_DIR
 }
@@ -93,7 +94,8 @@ internal fun InfinityFileManager(
                     DocumentsContract.Document.COLUMN_DISPLAY_NAME,
                     DocumentsContract.Document.COLUMN_MIME_TYPE,
                     DocumentsContract.Document.COLUMN_SIZE,
-                    DocumentsContract.Document.COLUMN_LAST_MODIFIED
+                    DocumentsContract.Document.COLUMN_LAST_MODIFIED,
+                    DocumentsContract.Document.COLUMN_FLAGS
                 )
                 val result = mutableListOf<InfinityFileEntry>()
                 val cursor = resolver.query(children, projection, null, null, null)
@@ -104,6 +106,7 @@ internal fun InfinityFileManager(
                     val mimeCol = cursor.getColumnIndex(DocumentsContract.Document.COLUMN_MIME_TYPE)
                     val sizeCol = cursor.getColumnIndex(DocumentsContract.Document.COLUMN_SIZE)
                     val modifiedCol = cursor.getColumnIndex(DocumentsContract.Document.COLUMN_LAST_MODIFIED)
+                    val flagsCol = cursor.getColumnIndex(DocumentsContract.Document.COLUMN_FLAGS)
                     check(idCol >= 0 && nameCol >= 0 && mimeCol >= 0) { "El proveedor no devolvió las columnas básicas de archivos." }
                     while (cursor.moveToNext()) {
                         result += InfinityFileEntry(
@@ -111,7 +114,8 @@ internal fun InfinityFileManager(
                             cursor.getString(nameCol) ?: "Sin nombre",
                             if (cursor.isNull(mimeCol)) null else cursor.getString(mimeCol),
                             if (sizeCol < 0 || cursor.isNull(sizeCol)) -1L else cursor.getLong(sizeCol),
-                            if (modifiedCol < 0 || cursor.isNull(modifiedCol)) 0L else cursor.getLong(modifiedCol)
+                            if (modifiedCol < 0 || cursor.isNull(modifiedCol)) 0L else cursor.getLong(modifiedCol),
+                            if (flagsCol < 0 || cursor.isNull(flagsCol)) null else cursor.getLong(flagsCol)
                         )
                     }
                 }
@@ -128,6 +132,19 @@ internal fun InfinityFileManager(
             loading = false
         }
     }
+
+    val selectedEntries = entries.filter { it.id in selected }
+    fun supportsFlag(entry: InfinityFileEntry, flag: Long): Boolean =
+        infinitySupportsDocumentFlag(entry.flags, flag)
+
+    val canRenameSelected = selectedEntries.size == 1 &&
+        supportsFlag(selectedEntries.first(), DocumentsContract.Document.FLAG_SUPPORTS_RENAME.toLong())
+    val canDeleteSelected = selectedEntries.isNotEmpty() &&
+        selectedEntries.all { supportsFlag(it, DocumentsContract.Document.FLAG_SUPPORTS_DELETE.toLong()) }
+    val canCopySelected = selectedEntries.isNotEmpty() &&
+        selectedEntries.all { supportsFlag(it, DocumentsContract.Document.FLAG_SUPPORTS_COPY.toLong()) }
+    val canMoveSelected = selectedEntries.isNotEmpty() &&
+        selectedEntries.all { supportsFlag(it, DocumentsContract.Document.FLAG_SUPPORTS_MOVE.toLong()) }
 
     val visibleEntries = entries
         .filter { it.name.contains(search, ignoreCase = true) }
@@ -337,7 +354,7 @@ internal fun InfinityFileManager(
                 }
                 OutlinedButton(onClick = { createDialog = true }) { Text("+ Carpeta") }
                 if (selected.size == 1) {
-                    OutlinedButton(onClick = {
+                    OutlinedButton(enabled = canRenameSelected, onClick = {
                         nameInput = entries.firstOrNull { it.id == selected.first() }?.name.orEmpty()
                         renameDialog = true
                     }) { Text("Renombrar") }
@@ -352,9 +369,9 @@ internal fun InfinityFileManager(
                     }
                 }) { Text(if (allVisibleSelected) "Quitar selección" else "Seleccionar todo") }
                 if (selected.isNotEmpty()) {
-                    OutlinedButton(onClick = { stageClipboard(false) }) { Text("Copiar") }
-                    OutlinedButton(onClick = { stageClipboard(true) }) { Text("Cortar") }
-                    OutlinedButton(onClick = { confirmDelete = true }) { Text("Eliminar ${selected.size}") }
+                    OutlinedButton(enabled = canCopySelected, onClick = { stageClipboard(false) }) { Text("Copiar") }
+                    OutlinedButton(enabled = canMoveSelected, onClick = { stageClipboard(true) }) { Text("Cortar") }
+                    OutlinedButton(enabled = canDeleteSelected, onClick = { confirmDelete = true }) { Text("Eliminar ${selected.size}") }
                     TextButton(onClick = { selected = emptySet() }) { Text("Cancelar") }
                 }
                 if (clipboardIds.isNotEmpty()) {
