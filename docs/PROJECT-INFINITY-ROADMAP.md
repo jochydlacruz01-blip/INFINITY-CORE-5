@@ -20,21 +20,21 @@ This roadmap is a work plan; checkboxes indicate completion only after evidence 
 - [x] CONNECT endpoint duplicate matching normalizes internationalized DNS names (CI #196 verified)
 
 
-- [x] Notification text sanitizer removes control characters while preserving readable line breaks and tabs (unit regression tests added; pending CI validation).
+- [x] Notification text sanitizer removes control characters while preserving readable line breaks and tabs (unit regression tests; CI validation status tracked in earlier runs).
 
 ## Core modules
-- [ ] File Manager: provider compatibility, refresh, navigation, selections, clipboard operations, viewers
+- [ ] File Manager: provider compatibility, refresh, navigation, selections, clipboard operations, viewers (provider/device acceptance still pending)
 - [x] Partial copy retry retains only unconfirmed items in original order (implementation and regression tests; CI #230 passed).
 - [x] Add live folder-scoped filename search to File Explorer UI (CI #228 verified).
-- [x] SAF enumeration tolerates providers omitting optional MIME/size columns; missing size is displayed as unavailable (CI #217 verified; optional MIME handling hardened in this batch, pending CI).
-- [ ] ORBIT: verify metric labels, sampling lifecycle, thermal and battery reporting, layout on narrow screens
+- [x] SAF enumeration tolerates providers omitting optional MIME/size columns; missing size is displayed as unavailable (CI #217 and MIME hardening CI #231 verified).
+- [ ] ORBIT: verify metric labels, sampling lifecycle, thermal and battery reporting, layout on narrow screens; sampling now propagates coroutine cancellation correctly (pending CI).
 - [x] ORBIT monitor clears displayed telemetry when a sampling cycle fails instead of presenting stale values (validated by successful CI #220)
 - [ ] Notifications: physical-device permission UX, disconnect/reconnect, privacy display options, open/dismiss behavior
 - [x] Add direct system-settings shortcut when notification-listener permission is not granted (validated by successful CI #220; device UX still pending)
 - [x] Notification privacy redaction: hidden titles/messages are not retained in the in-memory feed; existing feed entries are sanitized when protection is enabled (unit tests and CI #228 verified). Android permission and physical-device behavior remain pending.
 - [ ] CONNECT: profile management UX, security review, RDP native feasibility and device testing
 - [x] Extend CONNECT hostname/IP rejection regression coverage (CI #225 verified)
-- [x] Expand File Manager Unicode filename and control-character boundary tests (added in this batch; CI #230 pending validation)
+- [x] Expand File Manager Unicode filename and control-character boundary tests (CI #230 verified).
 
 ## Real RDP integration gate
 - [ ] Pin an upstream FreeRDP release and audit license/security changes

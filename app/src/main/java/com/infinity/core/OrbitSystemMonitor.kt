@@ -31,6 +31,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 
 @Composable
@@ -112,6 +113,9 @@ fun OrbitSystemMonitor(
 
                     thermalState = infinityThermalState(powerManager?.currentThermalStatus)
                 }
+            } catch (cancelled: CancellationException) {
+                // Respeta la cancelación de LaunchedEffect al salir de la pantalla.
+                throw cancelled
             } catch (_: Exception) {
                 // Evita mostrar métricas antiguas como si fueran datos actuales.
                 batteryPercent = -1
