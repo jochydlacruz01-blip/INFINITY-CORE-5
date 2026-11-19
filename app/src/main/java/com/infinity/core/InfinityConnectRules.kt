@@ -12,6 +12,12 @@ internal fun parseInfinityPort(value: String): Int? {
     return value.trim().toIntOrNull()?.takeIf { it in 1..65535 }
 }
 
+private fun normalizeInfinityEndpointHost(host: String): String = try {
+    val trimmed = host.trim()
+    if (trimmed.contains(':')) trimmed.lowercase(java.util.Locale.ROOT)
+    else IDN.toASCII(trimmed, IDN.USE_STD3_ASCII_RULES).lowercase(java.util.Locale.ROOT)
+} catch (_: IllegalArgumentException) { host.trim().lowercase(java.util.Locale.ROOT) }
+
 internal fun hasDuplicateInfinityEndpoint(
     host: String,
     port: String,
@@ -23,7 +29,7 @@ internal fun hasDuplicateInfinityEndpoint(
 
     return savedEndpoints.withIndex().any { (index, endpoint) ->
         index != excludedIndex &&
-            endpoint.first.trim().equals(normalizedHost, ignoreCase = true) &&
+            normalizeInfinityEndpointHost(endpoint.first) == normalizeInfinityEndpointHost(normalizedHost) &&
             parseInfinityPort(endpoint.second) == normalizedPort
     }
 }

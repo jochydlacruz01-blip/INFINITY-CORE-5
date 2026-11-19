@@ -75,6 +75,12 @@ class InfinityConnectRulesTest {
     }
 
     @Test
+    fun detectsDuplicateInternationalizedHostAcrossUnicodeAndPunycodeForms() {
+        assertTrue(hasDuplicateInfinityEndpoint("büro.local", "3389", listOf("xn--bro-hoa.local" to "3389")))
+        assertTrue(hasDuplicateInfinityEndpoint("XN--BRO-HOA.LOCAL", "3389", listOf("büro.local" to "3389")))
+    }
+
+    @Test
     fun invalidCandidatePortDoesNotMatchSavedEndpoint() {
         assertFalse(
             hasDuplicateInfinityEndpoint(

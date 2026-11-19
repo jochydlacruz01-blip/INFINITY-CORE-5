@@ -15,7 +15,7 @@ This roadmap is a work plan; checkboxes indicate completion only after evidence 
 - [x] Expand filename boundary, MIME fallback and retry-order regression tests (CI pending)
 - [ ] Exercise partial failure and cancellation handling for multi-file operations (provider/device tests pending)
 
-## Core modules
+- [x] CONNECT endpoint duplicate matching normalizes internationalized DNS names (CI pending)\n\n## Core modules
 - [ ] File Manager: provider compatibility, refresh, navigation, selections, clipboard operations, viewers
 - [ ] ORBIT: verify metric labels, sampling lifecycle, thermal and battery reporting, layout on narrow screens
 - [ ] Notifications: permission UX, disconnect/reconnect, privacy display options, open/dismiss behavior
