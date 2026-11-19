@@ -37,6 +37,25 @@ class InfinityConnectRulesTest {
     }
 
     @Test
+    fun validatesProfileNameLengthAndControlCharacters() {
+        assertTrue(isValidInfinityProfileName("PC de oficina"))
+        assertTrue(isValidInfinityProfileName("x".repeat(80)))
+        assertFalse(isValidInfinityProfileName(""))
+        assertFalse(isValidInfinityProfileName("   "))
+        assertFalse(isValidInfinityProfileName("x".repeat(81)))
+        assertFalse(isValidInfinityProfileName("PC" + 10.toChar() + "oficina"))
+    }
+
+    @Test
+    fun validatesWindowsUsernameLengthAndControlCharacters() {
+        assertTrue(isValidInfinityUsername("DOMAIN\\usuario"))
+        assertTrue(isValidInfinityUsername("x".repeat(128)))
+        assertFalse(isValidInfinityUsername(""))
+        assertFalse(isValidInfinityUsername("x".repeat(129)))
+        assertFalse(isValidInfinityUsername("user" + 0.toChar()))
+    }
+
+    @Test
     fun acceptsValidPortBoundaries() {
         assertEquals(1, parseInfinityPort("1"))
         assertEquals(3389, parseInfinityPort("3389"))

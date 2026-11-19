@@ -320,7 +320,7 @@ fun InfinityConnectPanel() {
                     OutlinedTextField(
                         value = editingName.value,
                         onValueChange = {
-                            editingName.value = it
+                            editingName.value = it.take(80)
                         },
                         label = {
                             Text("Nombre de la PC")
@@ -361,7 +361,7 @@ fun InfinityConnectPanel() {
                     OutlinedTextField(
                         value = editingUsername.value,
                         onValueChange = {
-                            editingUsername.value = it
+                            editingUsername.value = it.take(128)
                         },
                         label = {
                             Text("Usuario de Windows")
@@ -384,12 +384,12 @@ fun InfinityConnectPanel() {
                         )
 
                         if (
-                            editingName.value.isBlank() ||
+                            !isValidInfinityProfileName(editingName.value) ||
                             !isValidInfinityHost(host) ||
-                            editingUsername.value.isBlank() ||
+                            !isValidInfinityUsername(editingUsername.value) ||
                             portNumber == null
                         ) {
-                            notifyUser("Revisa el nombre, la dirección del equipo, el usuario y el puerto")
+                            notifyUser("Revisa los campos: nombre (1-80), equipo, usuario (1-128) y puerto")
                         } else if (duplicate) {
                             notifyUser("Ya existe un perfil con ese equipo y puerto")
                         } else {

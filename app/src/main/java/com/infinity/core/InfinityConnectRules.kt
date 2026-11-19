@@ -12,6 +12,18 @@ internal fun parseInfinityPort(value: String): Int? {
     return value.trim().toIntOrNull()?.takeIf { it in 1..65535 }
 }
 
+/** Profile labels are user-visible metadata; reject blank, oversized and control-character values. */
+internal fun isValidInfinityProfileName(value: String): Boolean {
+    val name = value.trim()
+    return name.isNotEmpty() && name.length <= 80 && name.none { it.isISOControl() }
+}
+
+/** Windows usernames may contain domain separators, but never control characters. */
+internal fun isValidInfinityUsername(value: String): Boolean {
+    val username = value.trim()
+    return username.isNotEmpty() && username.length <= 128 && username.none { it.isISOControl() }
+}
+
 private fun normalizeInfinityEndpointHost(host: String): String = try {
     val trimmed = host.trim()
     if (trimmed.contains(':')) trimmed.lowercase(java.util.Locale.ROOT)

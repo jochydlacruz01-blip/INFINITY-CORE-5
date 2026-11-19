@@ -18,6 +18,7 @@ This roadmap is a work plan; checkboxes indicate completion only after evidence 
 - [x] Implement partial-failure and cancellation-state recovery for multi-file operations (logic and regression tests CI #208 verified; provider/device acceptance tests remain pending)
 
 - [x] CONNECT endpoint duplicate matching normalizes internationalized DNS names (CI #196 verified)
+- [x] Bound CONNECT profile names and Windows usernames; reject control characters and test length boundaries (pending CI)
 
 
 - [x] Notification text sanitizer removes control characters while preserving readable line breaks and tabs (unit regression tests; CI validation status tracked in earlier runs).
