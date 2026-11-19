@@ -209,8 +209,8 @@ internal fun InfinityFileManager(
         val tree = rootUri ?: return
         val targets = selected.toList()
         if (targets.isEmpty() || loading) return
+        loading = true
         scope.launch {
-            loading = true
             try {
                 val (completed, failed) = withContext(Dispatchers.IO) {
                     var done = 0
