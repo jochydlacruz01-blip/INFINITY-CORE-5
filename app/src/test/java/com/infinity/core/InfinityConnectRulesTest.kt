@@ -11,12 +11,18 @@ class InfinityConnectRulesTest {
     fun acceptsHostnamesAndIpLiteralsWithoutUrlSyntax() {
         assertTrue(isValidInfinityHost("192.168.1.100"))
         assertTrue(isValidInfinityHost("office-pc.local"))
+        assertTrue(isValidInfinityHost("büro.local"))
         assertTrue(isValidInfinityHost("2001:db8::1"))
         assertTrue(isValidInfinityHost("fe80::1%wlan0"))
         assertFalse(isValidInfinityHost(""))
         assertFalse(isValidInfinityHost("https://office-pc"))
         assertFalse(isValidInfinityHost("office pc"))
         assertFalse(isValidInfinityHost("office..pc"))
+        assertFalse(isValidInfinityHost("999.999.1.1"))
+        assertFalse(isValidInfinityHost("-office.local"))
+        assertFalse(isValidInfinityHost("office-.local"))
+        assertFalse(isValidInfinityHost("2001:db8::1%wlan0%extra"))
+        assertFalse(isValidInfinityHost("host:3389"))
     }
 
     @Test
