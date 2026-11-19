@@ -35,8 +35,8 @@ class InfinityNotificationRulesTest {
 
     @Test
     fun controlCharactersAreRemovedButLineBreaksAndTabsRemain() {
-        assertEquals("ab", infinityNotificationTitle("a\\u0000b"))
-        assertEquals("a\\nb\\tc", infinityNotificationMessage("a\\nb\\tc"))
-        assertEquals("AppName", infinityNotificationAppName("App\\u0007Name"))
+        assertEquals("ab", infinityNotificationTitle("a\u0000b"))
+        assertEquals("a\nb\tc", infinityNotificationMessage("a\nb\tc"))
+        assertEquals("AppName", infinityNotificationAppName("App\u0007Name"))
     }
 }
