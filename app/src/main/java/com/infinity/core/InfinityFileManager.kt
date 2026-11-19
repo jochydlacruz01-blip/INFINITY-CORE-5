@@ -171,13 +171,23 @@ internal fun InfinityFileManager(
     }
     fun deleteSelected() {
         val targets = selected.toList()
-        try {
-            targets.forEach { id -> documentUri(id)?.let { DocumentsContract.deleteDocument(resolver, it) } }
-            selected = emptySet()
-            refreshKey++
-            message = "Operación de eliminación completada."
-        } catch (e: Exception) {
-            message = e.localizedMessage ?: "El proveedor no permitió eliminar el elemento."
+        var completed = 0
+        var failed = 0
+        targets.forEach { id ->
+            val result = runCatching {
+                val uri = documentUri(id) ?: error("No se pudo localizar un elemento.")
+                check(DocumentsContract.deleteDocument(resolver, uri)) {
+                    "El proveedor no confirmó la eliminación."
+                }
+            }
+            if (result.isSuccess) completed++ else failed++
+        }
+        selected = emptySet()
+        refreshKey++
+        message = if (failed == 0) {
+            "$completed elemento(s) eliminado(s)."
+        } else {
+            "$completed eliminado(s) y $failed no eliminado(s). Comprueba los elementos restantes y vuelve a intentarlo."
         }
     }
 
@@ -295,7 +305,7 @@ internal fun InfinityFileManager(
             }
         } else {
             LazyVerticalGrid(
-                columns = GridCells.Adaptive(minSize = if (gridView) 150.dp else 900.dp),
+                columns = if (gridView) GridCells.Adaptive(minSize = 150.dp) else GridCells.Fixed(1),
                 modifier = Modifier.fillMaxSize()
             ) {
                 items(visibleEntries, key = { it.id }) { entry ->
@@ -390,7 +400,8 @@ internal fun InfinityFileManager(
                     val parent = currentId?.let(::documentUri)
                     try {
                         if (parent != null && nameInput.isNotBlank()) {
-                            DocumentsContract.createDocument(resolver, parent, DocumentsContract.Document.MIME_TYPE_DIR, nameInput.trim())
+                            val created = DocumentsContract.createDocument(resolver, parent, DocumentsContract.Document.MIME_TYPE_DIR, nameInput.trim())
+                            checkNotNull(created) { "El proveedor no confirmó la creación de la carpeta." }
                             refreshKey++
                             message = "Carpeta creada."
                         }
@@ -415,7 +426,9 @@ internal fun InfinityFileManager(
                     try {
                         val target = selected.singleOrNull()?.let(::documentUri)
                         if (target != null && nameInput.isNotBlank()) {
-                            DocumentsContract.renameDocument(resolver, target, nameInput.trim())
+                            val renamed = DocumentsContract.renameDocument(resolver, target, nameInput.trim())
+                            checkNotNull(renamed) { "El proveedor no confirmó el cambio de nombre." }
+                            selected = emptySet()
                             refreshKey++
                             message = "Elemento renombrado."
                         }
