@@ -93,7 +93,9 @@ internal fun InfinityFileManager(
                     DocumentsContract.Document.COLUMN_LAST_MODIFIED
                 )
                 val found = mutableListOf<InfinityFileEntry>()
-                resolver.query(children, projection, null, null, null)?.use { cursor ->
+                val cursor = resolver.query(children, projection, null, null, null)
+                    ?: error("Android no pudo consultar esta ubicación. El proveedor de archivos no devolvió resultados.")
+                cursor.use {
                     val idCol = cursor.getColumnIndex(DocumentsContract.Document.COLUMN_DOCUMENT_ID)
                     val nameCol = cursor.getColumnIndex(DocumentsContract.Document.COLUMN_DISPLAY_NAME)
                     val mimeCol = cursor.getColumnIndex(DocumentsContract.Document.COLUMN_MIME_TYPE)
@@ -105,7 +107,7 @@ internal fun InfinityFileManager(
                             cursor.getString(idCol),
                             cursor.getString(nameCol) ?: "Sin nombre",
                             if (cursor.isNull(mimeCol)) null else cursor.getString(mimeCol),
-                            if (sizeCol < 0 || cursor.isNull(sizeCol)) 0L else cursor.getLong(sizeCol),
+                            if (sizeCol < 0 || cursor.isNull(sizeCol)) -1L else cursor.getLong(sizeCol),
                             if (modifiedCol < 0 || cursor.isNull(modifiedCol)) 0L else cursor.getLong(modifiedCol)
                         )
                     }
@@ -414,7 +416,7 @@ internal fun InfinityFileManager(
         AlertDialog(
             onDismissRequest = { detailsEntry = null },
             title = { Text("Detalles del elemento") },
-            text = { Text("Nombre: ${entry.name}\nTipo: ${entry.mime ?: "No disponible"}\nTamaño: ${if (entry.isFolder) "Carpeta" else if (entry.size > 0) "${entry.size} bytes" else "No disponible"}\nÚltima modificación: ${if (entry.modified > 0) java.text.DateFormat.getDateTimeInstance().format(java.util.Date(entry.modified)) else "No disponible"}") },
+            text = { Text("Nombre: ${entry.name}\nTipo: ${entry.mime ?: "No disponible"}\nTamaño: ${if (entry.isFolder) "Carpeta" else if (entry.size >= 0) "${entry.size} bytes" else "No disponible"}\nÚltima modificación: ${if (entry.modified > 0) java.text.DateFormat.getDateTimeInstance().format(java.util.Date(entry.modified)) else "No disponible"}") },
             confirmButton = { TextButton(onClick = { detailsEntry = null }) { Text("Cerrar") } }
         )
     }
