@@ -32,7 +32,82 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
+
+private data class OrbitSystemSnapshot(
+    val batteryPercent: Int,
+    val ramPercent: Int?,
+    val storagePercent: Int?,
+    val batteryTemperature: String,
+    val chargingState: String,
+    val thermalState: String,
+    val storageDetail: String
+)
+
+/**
+ * Reads system telemetry away from the main thread so periodic polling
+ * cannot stall Compose rendering or user interaction.
+ */
+private fun readOrbitSystemSnapshot(context: Context): OrbitSystemSnapshot {
+    val batteryManager = context.getSystemService(
+        Context.BATTERY_SERVICE
+    ) as? BatteryManager
+
+    val batteryPercent = infinityBatteryPercent(
+        batteryManager?.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
+    ) ?: -1
+
+    val batteryIntent = context.registerReceiver(
+        null,
+        IntentFilter(Intent.ACTION_BATTERY_CHANGED)
+    )
+
+    val temperatureTenths = batteryIntent?.getIntExtra(
+        BatteryManager.EXTRA_TEMPERATURE, -1
+    ) ?: -1
+    val batteryTemperature = infinityBatteryTemperature(temperatureTenths)
+
+    val batteryStatus = batteryIntent?.getIntExtra(
+        BatteryManager.EXTRA_STATUS, -1
+    ) ?: -1
+    val chargingState = infinityChargingState(batteryStatus.takeIf { it >= 0 })
+
+    val activityManager = context.getSystemService(
+        Context.ACTIVITY_SERVICE
+    ) as? ActivityManager
+    val ramPercent = activityManager?.let {
+        val memoryInfo = ActivityManager.MemoryInfo()
+        it.getMemoryInfo(memoryInfo)
+        infinityRamUsagePercent(memoryInfo.totalMem, memoryInfo.availMem)
+    }
+
+    val stat = StatFs(context.filesDir.absolutePath)
+    val totalBytes = stat.totalBytes
+    val availableBytes = stat.availableBytes
+    val storagePercent = infinityUsagePercent(totalBytes, availableBytes)
+    val storageDetail = infinityStorageSummary(totalBytes, availableBytes)
+
+    val thermalState = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        val powerManager = context.getSystemService(
+            Context.POWER_SERVICE
+        ) as? PowerManager
+        infinityThermalState(powerManager?.currentThermalStatus)
+    } else {
+        "NO DISPONIBLE"
+    }
+
+    return OrbitSystemSnapshot(
+        batteryPercent = batteryPercent,
+        ramPercent = ramPercent,
+        storagePercent = storagePercent,
+        batteryTemperature = batteryTemperature,
+        chargingState = chargingState,
+        thermalState = thermalState,
+        storageDetail = storageDetail
+    )
+}
 
 @Composable
 fun OrbitSystemMonitor(
@@ -53,60 +128,18 @@ fun OrbitSystemMonitor(
     LaunchedEffect(context) {
         while (true) {
             try {
-                val batteryManager = context.getSystemService(
-                    Context.BATTERY_SERVICE
-                ) as? BatteryManager
-
-                batteryPercent = infinityBatteryPercent(
-                    batteryManager?.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
-                ) ?: -1
-
-                val batteryIntent = context.registerReceiver(
-                    null,
-                    IntentFilter(Intent.ACTION_BATTERY_CHANGED)
-                )
-
-                val temperatureTenths = batteryIntent?.getIntExtra(
-                    BatteryManager.EXTRA_TEMPERATURE, -1
-                ) ?: -1
-
-                batteryTemperature = infinityBatteryTemperature(temperatureTenths)
-
-                val batteryStatus = batteryIntent?.getIntExtra(
-                    BatteryManager.EXTRA_STATUS, -1
-                ) ?: -1
-
-                chargingState = infinityChargingState(batteryStatus.takeIf { it >= 0 })
-
-                val activityManager = context.getSystemService(
-                    Context.ACTIVITY_SERVICE
-                ) as? ActivityManager
-
-                if (activityManager == null) {
-                    ramPercent = null
-                } else {
-                    val memoryInfo = ActivityManager.MemoryInfo()
-                    activityManager.getMemoryInfo(memoryInfo)
-                    ramPercent = infinityRamUsagePercent(
-                        memoryInfo.totalMem,
-                        memoryInfo.availMem
-                    )
+                // Keep framework and filesystem reads off Compose's main thread.
+                val snapshot = withContext(Dispatchers.IO) {
+                    readOrbitSystemSnapshot(context)
                 }
 
-                val stat = StatFs(context.filesDir.absolutePath)
-                val totalBytes = stat.totalBytes
-                val availableBytes = stat.availableBytes
-
-                storagePercent = infinityUsagePercent(totalBytes, availableBytes)
-                storageDetail = infinityStorageSummary(totalBytes, availableBytes)
-
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    val powerManager = context.getSystemService(
-                        Context.POWER_SERVICE
-                    ) as? PowerManager
-
-                    thermalState = infinityThermalState(powerManager?.currentThermalStatus)
-                }
+                batteryPercent = snapshot.batteryPercent
+                ramPercent = snapshot.ramPercent
+                storagePercent = snapshot.storagePercent
+                batteryTemperature = snapshot.batteryTemperature
+                chargingState = snapshot.chargingState
+                thermalState = snapshot.thermalState
+                storageDetail = snapshot.storageDetail
             } catch (cancelled: CancellationException) {
                 // Respeta la cancelación de LaunchedEffect al salir de la pantalla.
                 throw cancelled
