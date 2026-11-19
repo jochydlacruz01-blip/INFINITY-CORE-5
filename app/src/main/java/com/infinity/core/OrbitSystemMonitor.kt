@@ -169,9 +169,9 @@ fun OrbitSystemMonitor(
         ) {
             OrbitMetric(
                 modifier = Modifier.weight(1f),
-                label = "ALMAC. INFINITY",
+                label = "ALMAC. DATOS APP",
                 value = storagePercent?.let { "$it%" } ?: "--",
-                detail = "Datos de INFINITY · $storageDetail",
+                detail = "Filesystem de datos · $storageDetail",
                 accent = accent
             )
             OrbitMetric(
