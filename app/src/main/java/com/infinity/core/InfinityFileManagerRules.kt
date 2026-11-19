@@ -85,6 +85,10 @@ internal fun infinityOptionalMimeType(columnAvailable: Boolean, value: String?):
     if (columnAvailable) value?.takeIf { it.isNotBlank() } else null
 
 
+/** Prevents malformed providers from creating navigation loops through repeated folder IDs. */
+internal fun infinityCanNavigateFolder(currentPathIds: List<String>, candidateId: String): Boolean =
+    candidateId.isNotBlank() && candidateId !in currentPathIds
+
 /** Rejects malformed SAF rows that do not contain a usable document identifier. */
 internal fun infinityDocumentIdOrNull(value: String?): String? =
     value?.takeIf { it.isNotBlank() }

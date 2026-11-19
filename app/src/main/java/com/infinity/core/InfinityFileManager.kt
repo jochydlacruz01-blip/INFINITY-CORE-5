@@ -458,9 +458,13 @@ internal fun InfinityFileManager(
                         if (selected.isNotEmpty()) {
                             selected = if (isSelected) selected - entry.id else selected + entry.id
                         } else if (entry.isFolder) {
-                            currentId = entry.id
-                            folderIds = folderIds + entry.id
-                            folderPath = folderPath + entry.name
+                            if (infinityCanNavigateFolder(folderIds, entry.id)) {
+                                currentId = entry.id
+                                folderIds = folderIds + entry.id
+                                folderPath = folderPath + entry.name
+                            } else {
+                                message = "El proveedor devolvió una carpeta repetida; se evitó un ciclo de navegación."
+                            }
                         } else {
                             documentUri(entry.id)?.let { onOpenFile(it, entry.mime) }
                         }

@@ -105,6 +105,13 @@ class InfinityFileManagerRulesTest {
         assertEquals(listOf("a", "a", "c"), infinityRemainingOperationIds(listOf("a", "a", "b", "c"), setOf("a", "c", "missing")))
     }
 
+    @Test fun folderNavigationRejectsCurrentAndAncestorIdsButAllowsNewChildren() {
+        assertTrue(infinityCanNavigateFolder(listOf("root", "docs"), "images"))
+        assertFalse(infinityCanNavigateFolder(listOf("root", "docs"), "root"))
+        assertFalse(infinityCanNavigateFolder(listOf("root", "docs"), "docs"))
+        assertFalse(infinityCanNavigateFolder(listOf("root"), "  "))
+    }
+
     @Test fun malformedSafDocumentIdsAreSkippedAndNamesGetSafeFallbacks() {
         assertEquals(null, infinityDocumentIdOrNull(null))
         assertEquals(null, infinityDocumentIdOrNull(""))
