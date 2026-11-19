@@ -161,6 +161,12 @@ internal fun InfinityFileManager(
         val ids = clipboardIds
         val isMove = clipboardIsMove
         if (sourceParent == null || targetParent == null || ids.isEmpty() || loading) return
+        val sourceParentId = runCatching { DocumentsContract.getDocumentId(sourceParent) }.getOrNull()
+        val targetParentId = runCatching { DocumentsContract.getDocumentId(targetParent) }.getOrNull()
+        if (isSameInfinityFolder(sourceParentId, targetParentId)) {
+            message = "El destino es la misma carpeta de origen. Elige otra carpeta para pegar."
+            return
+        }
         loading = true
         scope.launch {
             try {
