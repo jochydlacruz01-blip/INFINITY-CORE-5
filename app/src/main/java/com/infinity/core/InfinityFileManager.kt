@@ -338,7 +338,7 @@ internal fun InfinityFileManager(
                             documentUri(entry.id)?.let { onOpenFile(it, entry.mime) }
                         }
                     }
-                    val fileSummary = if (entry.isFolder) "Carpeta" else "${if (entry.size > 0) "${(entry.size / 1024).coerceAtLeast(1)} KB" else "Tamaño no disponible"} • ${entry.mime ?: "Archivo"}"
+                    val fileSummary = if (entry.isFolder) "Carpeta" else "${formatInfinityFileSize(entry.size)} • ${formatInfinityMimeType(entry.mime)}"
                     if (gridView) {
                         Column(
                             itemModifier.clickable(onClick = activateEntry).padding(12.dp),
