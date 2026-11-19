@@ -11,7 +11,7 @@ This roadmap is a work plan; checkboxes indicate completion only after evidence 
 - [x] Bounded notification text rules
 - [x] File Manager capability helper rules and regression tests (CI verified)
 - [ ] Physical-device SAF testing across document providers
-- [x] Retain failed delete targets in selection for retry (logic covered by unit tests; CI pending)
+- [x] Retain failed delete targets in selection for retry (logic covered by unit tests; CI #192 verified)
 - [ ] Exercise partial failure and cancellation handling for multi-file operations (provider/device tests pending)
 
 ## Core modules

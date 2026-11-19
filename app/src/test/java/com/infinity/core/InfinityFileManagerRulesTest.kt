@@ -59,6 +59,22 @@ class InfinityFileManagerRulesTest {
         assertEquals(1, infinityFileSizeSortRank(-1))
     }
 
+    @Test fun documentNameValidationRejectsInvalidAndAcceptsNormalNames() {
+        assertTrue(isValidInfinityDocumentName("informe final.pdf"))
+        assertTrue(isValidInfinityDocumentName("  nombre  "))
+        assertFalse(isValidInfinityDocumentName(""))
+        assertFalse(isValidInfinityDocumentName("   "))
+        assertFalse(isValidInfinityDocumentName("../escape"))
+        assertFalse(isValidInfinityDocumentName("folder\\\\name"))
+        assertFalse(isValidInfinityDocumentName("bad\\u0000name"))
+        assertFalse(isValidInfinityDocumentName("a".repeat(256)))
+    }
+
+    @Test fun moveRetryKeepsOnlyFailedIdsInOriginalOrder() {
+        assertEquals(listOf("c", "a"), infinityRemainingMoveIds(listOf("c", "b", "a"), setOf("c", "a")))
+        assertEquals(emptyList<String>(), infinityRemainingMoveIds(listOf("a", "b"), emptySet()))
+    }
+
     @Test fun failedDeletesRemainSelectedInOriginalOrder() { assertEquals(listOf("b", "d"), infinityRemainingDeleteIds(listOf("a", "b", "c", "d"), setOf("b", "d"))) }
     @Test fun allDeleteFailuresRetainAllTargets() { assertEquals(listOf("a", "b"), infinityRemainingDeleteIds(listOf("a", "b"), setOf("a", "b"))) }
     @Test fun successfulDeletesClearTargets() { assertEquals(emptyList<String>(), infinityRemainingDeleteIds(listOf("a", "b"), emptySet())) }
