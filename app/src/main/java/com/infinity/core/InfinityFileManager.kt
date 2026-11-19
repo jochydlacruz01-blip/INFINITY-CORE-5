@@ -206,6 +206,7 @@ internal fun InfinityFileManager(
         }
     }
     fun deleteSelected() {
+        val tree = rootUri ?: return
         val targets = selected.toList()
         if (targets.isEmpty() || loading) return
         scope.launch {
@@ -216,7 +217,7 @@ internal fun InfinityFileManager(
                     var errors = 0
                     targets.forEach { id ->
                         try {
-                            val uri = documentUri(id) ?: error("No se pudo localizar un elemento.")
+                            val uri = DocumentsContract.buildDocumentUriUsingTree(tree, id)
                             check(DocumentsContract.deleteDocument(resolver, uri)) {
                                 "El proveedor no confirmó la eliminación."
                             }
