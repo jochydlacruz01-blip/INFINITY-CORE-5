@@ -109,16 +109,7 @@ fun OrbitSystemMonitor(
                         Context.POWER_SERVICE
                     ) as? PowerManager
 
-                    thermalState = when (powerManager?.currentThermalStatus) {
-                        PowerManager.THERMAL_STATUS_NONE -> "NORMAL"
-                        PowerManager.THERMAL_STATUS_LIGHT -> "LEVE"
-                        PowerManager.THERMAL_STATUS_MODERATE -> "MODERADA"
-                        PowerManager.THERMAL_STATUS_SEVERE -> "ALTA"
-                        PowerManager.THERMAL_STATUS_CRITICAL -> "CRÍTICA"
-                        PowerManager.THERMAL_STATUS_EMERGENCY -> "EMERGENCIA"
-                        PowerManager.THERMAL_STATUS_SHUTDOWN -> "APAGADO"
-                        else -> "NO DISPONIBLE"
-                    }
+                    thermalState = infinityThermalState(powerManager?.currentThermalStatus)
                 }
             } catch (_: Exception) {
                 // Conserva los últimos valores válidos.

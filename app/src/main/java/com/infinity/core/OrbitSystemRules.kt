@@ -29,3 +29,15 @@ internal fun infinityBatteryTemperature(tenthsCelsius: Int): String {
 /** Returns a bounded RAM usage percentage, or null when Android cannot report capacity. */
 internal fun infinityRamUsagePercent(totalBytes: Long, availableBytes: Long): Int? =
     infinityUsagePercent(totalBytes, availableBytes)
+
+/** Maps Android thermal status codes to concise, user-facing Spanish labels. */
+internal fun infinityThermalState(status: Int?): String = when (status) {
+    0 -> "NORMAL"
+    1 -> "LEVE"
+    2 -> "MODERADA"
+    3 -> "ALTA"
+    4 -> "CRÍTICA"
+    5 -> "EMERGENCIA"
+    6 -> "APAGADO"
+    else -> "NO DISPONIBLE"
+}

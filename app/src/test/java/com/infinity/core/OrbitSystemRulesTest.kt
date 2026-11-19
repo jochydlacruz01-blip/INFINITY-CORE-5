@@ -49,6 +49,20 @@ class OrbitSystemRulesTest {
     }
 
     @Test
+    fun thermalStatusMapsEveryAndroidLevelAndUnknownValues() {
+        assertEquals("NORMAL", infinityThermalState(0))
+        assertEquals("LEVE", infinityThermalState(1))
+        assertEquals("MODERADA", infinityThermalState(2))
+        assertEquals("ALTA", infinityThermalState(3))
+        assertEquals("CRÍTICA", infinityThermalState(4))
+        assertEquals("EMERGENCIA", infinityThermalState(5))
+        assertEquals("APAGADO", infinityThermalState(6))
+        assertEquals("NO DISPONIBLE", infinityThermalState(null))
+        assertEquals("NO DISPONIBLE", infinityThermalState(-1))
+        assertEquals("NO DISPONIBLE", infinityThermalState(99))
+    }
+
+    @Test
     fun batteryTemperatureFormattingRemainsLocaleIndependent() {
         assertEquals("36.6 °C", infinityBatteryTemperature(366))
         assertEquals("--", infinityBatteryTemperature(Int.MIN_VALUE))
