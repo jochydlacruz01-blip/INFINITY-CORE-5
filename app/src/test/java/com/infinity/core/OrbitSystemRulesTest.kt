@@ -68,7 +68,6 @@ class OrbitSystemRulesTest {
         assertEquals("--", infinityBatteryTemperature(Int.MIN_VALUE))
     }
 
-}
     @Test
     fun batteryCapacityIsBoundedAndUnknownValuesStayUnavailable() {
         assertEquals(0, infinityBatteryPercent(0))
