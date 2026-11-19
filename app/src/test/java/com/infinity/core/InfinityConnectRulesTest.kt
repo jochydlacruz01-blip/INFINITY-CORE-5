@@ -1,0 +1,69 @@
+package com.infinity.core
+
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+class InfinityConnectRulesTest {
+
+    @Test
+    fun acceptsValidPortBoundaries() {
+        assertEquals(1, parseInfinityPort("1"))
+        assertEquals(3389, parseInfinityPort("3389"))
+        assertEquals(65535, parseInfinityPort("65535"))
+        assertEquals(3389, parseInfinityPort(" 3389 "))
+    }
+
+    @Test
+    fun rejectsInvalidPorts() {
+        assertEquals(null, parseInfinityPort(""))
+        assertEquals(null, parseInfinityPort("0"))
+        assertEquals(null, parseInfinityPort("65536"))
+        assertEquals(null, parseInfinityPort("-1"))
+        assertEquals(null, parseInfinityPort("abc"))
+    }
+
+    @Test
+    fun detectsDuplicateHostAndPortIgnoringHostCase() {
+        val saved = listOf("PC-OFICINA" to "3389", "192.168.1.20" to "3390")
+
+        assertTrue(hasDuplicateInfinityEndpoint(" pc-oficina ", "3389", saved))
+        assertTrue(hasDuplicateInfinityEndpoint("192.168.1.20", "3390", saved))
+        assertFalse(hasDuplicateInfinityEndpoint("pc-oficina", "3391", saved))
+        assertFalse(hasDuplicateInfinityEndpoint("pc-casa", "3389", saved))
+    }
+
+    @Test
+    fun excludesProfileBeingEditedFromDuplicateCheck() {
+        val saved = listOf("PC-OFICINA" to "3389", "PC-CASA" to "3389")
+
+        assertFalse(
+            hasDuplicateInfinityEndpoint(
+                host = "pc-oficina",
+                port = "3389",
+                savedEndpoints = saved,
+                excludedIndex = 0
+            )
+        )
+        assertTrue(
+            hasDuplicateInfinityEndpoint(
+                host = "pc-oficina",
+                port = "3389",
+                savedEndpoints = saved,
+                excludedIndex = 1
+            )
+        )
+    }
+
+    @Test
+    fun invalidCandidatePortDoesNotMatchSavedEndpoint() {
+        assertFalse(
+            hasDuplicateInfinityEndpoint(
+                host = "PC-OFICINA",
+                port = "70000",
+                savedEndpoints = listOf("PC-OFICINA" to "3389")
+            )
+        )
+    }
+}
