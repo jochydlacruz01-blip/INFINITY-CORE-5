@@ -88,4 +88,4 @@ class OrbitSystemRulesTest {
         assertEquals("DESCONOCIDO", infinityChargingState(-1))
         assertEquals("DESCONOCIDO", infinityChargingState(99))
     }
-
+}
