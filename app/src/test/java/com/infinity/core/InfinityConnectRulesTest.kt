@@ -158,4 +158,13 @@ class InfinityConnectRulesTest {
         assertFalse(isValidInfinityDocumentName("line\\nfeed"))
     }
 
+    @Test
+    fun documentNameValidationAcceptsUnicodeAndBoundaries() {
+        assertTrue(isValidInfinityDocumentName("área de trabajo"))
+        assertTrue(isValidInfinityDocumentName("x".repeat(255)))
+        assertFalse(isValidInfinityDocumentName("x".repeat(256)))
+        assertFalse(isValidInfinityDocumentName("name\\u0000"))
+        assertFalse(isValidInfinityDocumentName("name\\u007f"))
+    }
+
 }
