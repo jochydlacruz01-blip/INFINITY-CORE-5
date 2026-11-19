@@ -254,7 +254,7 @@ internal fun InfinityFileManager(
                     }
                     done to failures
                 }
-                selected = infinityRemainingDeleteIds(targets, failed)
+                selected = infinityRemainingDeleteIds(targets, failed).toSet()
                 refreshKey++
                 message = if (failed.isEmpty()) {
                     "$completed elemento(s) eliminado(s)."
