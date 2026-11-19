@@ -239,7 +239,10 @@ val iconOffsets = remember {
         else darkColorScheme(primary = accent)
     ) {
         BoxWithConstraints(
-            Modifier.fillMaxSize().background(
+            Modifier.fillMaxSize()
+                // Respeta cámaras, barras del sistema y navegación por gestos.
+                .windowInsetsPadding(WindowInsets.safeDrawing)
+                .background(
                 Brush.linearGradient(
                     if (lightMode) listOf(
                         Color(0xFFEAF1FA), Color(0xFFD4E2F2), Color(0xFFB9CDE2)
