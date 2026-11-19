@@ -42,8 +42,8 @@ fun OrbitSystemMonitor(
     val context = LocalContext.current
 
     var batteryPercent by remember { mutableIntStateOf(-1) }
-    var ramPercent by remember { mutableIntStateOf(0) }
-    var storagePercent by remember { mutableIntStateOf(0) }
+    var ramPercent by remember { mutableStateOf<Int?>(null) }
+    var storagePercent by remember { mutableStateOf<Int?>(null) }
     var batteryTemperature by remember { mutableStateOf("--") }
     var chargingState by remember { mutableStateOf("CONSULTANDO") }
     var thermalState by remember { mutableStateOf("NO DISPONIBLE") }
@@ -94,14 +94,14 @@ fun OrbitSystemMonitor(
                     ramPercent = infinityRamUsagePercent(
                         memoryInfo.totalMem,
                         memoryInfo.availMem
-                    ) ?: 0
+                    ) 
                 }
 
                 val stat = StatFs(context.filesDir.absolutePath)
                 val totalBytes = stat.totalBytes
                 val availableBytes = stat.availableBytes
 
-                storagePercent = infinityUsagePercent(totalBytes, availableBytes) ?: 0
+                storagePercent = infinityUsagePercent(totalBytes, availableBytes)
                 storageDetail = infinityStorageSummary(totalBytes, availableBytes)
 
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -152,7 +152,7 @@ fun OrbitSystemMonitor(
             OrbitMetric(
                 modifier = Modifier.weight(1f),
                 label = "RAM EN USO",
-                value = "$ramPercent%",
+                value = ramPercent?.let { "$it%" } ?: "--",
                 accent = accent
             )
             OrbitMetric(
@@ -170,7 +170,7 @@ fun OrbitSystemMonitor(
             OrbitMetric(
                 modifier = Modifier.weight(1f),
                 label = "ALMAC. INFINITY",
-                value = "$storagePercent%",
+                value = storagePercent?.let { "$it%" } ?: "--",
                 detail = "Datos de INFINITY · $storageDetail",
                 accent = accent
             )
