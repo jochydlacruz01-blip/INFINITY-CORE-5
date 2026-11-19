@@ -5,12 +5,17 @@ import java.util.Locale
 internal fun formatInfinityFileSize(bytes: Long): String {
     if (bytes < 0L) return "Tamaño no disponible"
     if (bytes < 1024L) return "$bytes B"
-    val kb = bytes / 1024.0
-    if (kb < 1024.0) return String.format(Locale.ROOT, "%.1f KB", kb)
-    val mb = kb / 1024.0
-    if (mb < 1024.0) return String.format(Locale.ROOT, "%.1f MB", mb)
-    val gb = mb / 1024.0
-    return String.format(Locale.ROOT, "%.2f GB", gb)
+
+    val units = arrayOf("KB", "MB", "GB", "TB", "PB", "EB")
+    var value = bytes.toDouble()
+    var unitIndex = -1
+    do {
+        value /= 1024.0
+        unitIndex++
+    } while (value >= 1024.0 && unitIndex < units.lastIndex)
+
+    val precision = if (unitIndex <= 1) 1 else 2
+    return String.format(Locale.ROOT, "%.${precision}f %s", value, units[unitIndex])
 }
 
 internal fun formatInfinityMimeType(mime: String?): String {
