@@ -385,11 +385,11 @@ fun InfinityConnectPanel() {
 
                         if (
                             editingName.value.isBlank() ||
-                            host.isBlank() ||
+                            !isValidInfinityHost(host) ||
                             editingUsername.value.isBlank() ||
                             portNumber == null
                         ) {
-                            notifyUser("Revisa los datos del perfil")
+                            notifyUser("Revisa el nombre, la dirección del equipo, el usuario y el puerto")
                         } else if (duplicate) {
                             notifyUser("Ya existe un perfil con ese equipo y puerto")
                         } else {
