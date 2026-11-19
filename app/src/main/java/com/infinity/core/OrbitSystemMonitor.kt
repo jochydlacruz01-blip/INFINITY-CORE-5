@@ -57,9 +57,9 @@ fun OrbitSystemMonitor(
                     Context.BATTERY_SERVICE
                 ) as? BatteryManager
 
-                batteryPercent = batteryManager
-                    ?.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
-                    ?.takeIf { it in 0..100 } ?: -1
+                batteryPercent = infinityBatteryPercent(
+                    batteryManager?.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
+                ) ?: -1
 
                 val batteryIntent = context.registerReceiver(
                     null,
@@ -76,13 +76,7 @@ fun OrbitSystemMonitor(
                     BatteryManager.EXTRA_STATUS, -1
                 ) ?: -1
 
-                chargingState = when (batteryStatus) {
-                    BatteryManager.BATTERY_STATUS_CHARGING -> "CARGANDO"
-                    BatteryManager.BATTERY_STATUS_FULL -> "COMPLETA"
-                    BatteryManager.BATTERY_STATUS_DISCHARGING -> "EN BATERÍA"
-                    BatteryManager.BATTERY_STATUS_NOT_CHARGING -> "SIN CARGA"
-                    else -> "DESCONOCIDO"
-                }
+                chargingState = infinityChargingState(batteryStatus.takeIf { it >= 0 })
 
                 val activityManager = context.getSystemService(
                     Context.ACTIVITY_SERVICE

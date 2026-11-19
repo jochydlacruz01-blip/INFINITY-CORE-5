@@ -41,3 +41,17 @@ internal fun infinityThermalState(status: Int?): String = when (status) {
     6 -> "APAGADO"
     else -> "NO DISPONIBLE"
 }
+
+
+/** Converts Android's battery capacity reading into a display-safe percentage. */
+internal fun infinityBatteryPercent(value: Int?): Int? =
+    value?.takeIf { it in 0..100 }
+
+/** Maps ACTION_BATTERY_CHANGED status values to stable Spanish labels. */
+internal fun infinityChargingState(status: Int?): String = when (status) {
+    2 -> "CARGANDO"
+    3 -> "EN BATERÍA"
+    4 -> "SIN CARGA"
+    5 -> "COMPLETA"
+    else -> "DESCONOCIDO"
+}

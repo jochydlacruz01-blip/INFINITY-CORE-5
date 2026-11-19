@@ -69,3 +69,24 @@ class OrbitSystemRulesTest {
     }
 
 }
+    @Test
+    fun batteryCapacityIsBoundedAndUnknownValuesStayUnavailable() {
+        assertEquals(0, infinityBatteryPercent(0))
+        assertEquals(100, infinityBatteryPercent(100))
+        assertEquals(42, infinityBatteryPercent(42))
+        assertEquals(null, infinityBatteryPercent(null))
+        assertEquals(null, infinityBatteryPercent(-1))
+        assertEquals(null, infinityBatteryPercent(101))
+    }
+
+    @Test
+    fun chargingStatusMapsAndroidStatesAndUnknownValues() {
+        assertEquals("CARGANDO", infinityChargingState(2))
+        assertEquals("EN BATERÍA", infinityChargingState(3))
+        assertEquals("SIN CARGA", infinityChargingState(4))
+        assertEquals("COMPLETA", infinityChargingState(5))
+        assertEquals("DESCONOCIDO", infinityChargingState(null))
+        assertEquals("DESCONOCIDO", infinityChargingState(-1))
+        assertEquals("DESCONOCIDO", infinityChargingState(99))
+    }
+
