@@ -443,7 +443,26 @@ internal fun InfinityFileManager(
                 CircularProgressIndicator(color = accent)
             }
         } else if (error != null) {
-            Text("Error: $error", color = Color(0xFFFF9999), fontSize = 11.sp)
+            Column(
+                Modifier.fillMaxWidth().padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Text(
+                    "No se pudo abrir esta ubicación",
+                    color = Color(0xFFFF9999),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    error.orEmpty(),
+                    color = Color(0xFFB7C7D9),
+                    fontSize = 10.sp
+                )
+                OutlinedButton(onClick = { refreshKey++ }) {
+                    Text("Reintentar")
+                }
+            }
         } else if (visibleEntries.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(if (search.isBlank()) "Esta carpeta está vacía." else "No hay resultados.", color = Color(0xFFB7C7D9), fontSize = 12.sp)
