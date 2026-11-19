@@ -14,7 +14,8 @@ internal fun formatInfinityFileSize(bytes: Long): String {
 }
 
 internal fun formatInfinityMimeType(mime: String?): String {
-    return when (mime?.lowercase(Locale.ROOT)) {
+    if (mime.isNullOrBlank()) return "Tipo no disponible"
+    return when (mime.lowercase(Locale.ROOT)) {
         null, "" -> "Tipo no disponible"
         "application/pdf" -> "Documento PDF"
         "text/plain" -> "Texto"
