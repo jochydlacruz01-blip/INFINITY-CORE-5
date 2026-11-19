@@ -70,15 +70,7 @@ fun OrbitSystemMonitor(
                     BatteryManager.EXTRA_TEMPERATURE, -1
                 ) ?: -1
 
-                batteryTemperature = if (temperatureTenths > 0) {
-                    String.format(
-                        Locale.getDefault(),
-                        "%.1f °C",
-                        temperatureTenths / 10f
-                    )
-                } else {
-                    "--"
-                }
+                batteryTemperature = infinityBatteryTemperature(temperatureTenths)
 
                 val batteryStatus = batteryIntent?.getIntExtra(
                     BatteryManager.EXTRA_STATUS, -1
@@ -100,31 +92,18 @@ fun OrbitSystemMonitor(
                     val memoryInfo = ActivityManager.MemoryInfo()
                     activityManager.getMemoryInfo(memoryInfo)
 
-                    if (memoryInfo.totalMem > 0L) {
-                        ramPercent = (
-                            (memoryInfo.totalMem - memoryInfo.availMem)
-                                .toDouble() / memoryInfo.totalMem * 100
-                            ).toInt().coerceIn(0, 100)
-                    }
+                    ramPercent = infinityRamUsagePercent(
+                        memoryInfo.totalMem,
+                        memoryInfo.availMem
+                    ) ?: 0
                 }
 
                 val stat = StatFs(context.filesDir.absolutePath)
                 val totalBytes = stat.totalBytes
                 val availableBytes = stat.availableBytes
 
-                if (totalBytes > 0L) {
-                    storagePercent = (
-                        (totalBytes - availableBytes).toDouble() /
-                            totalBytes * 100
-                        ).toInt().coerceIn(0, 100)
-
-                    storageDetail = String.format(
-                        Locale.getDefault(),
-                        "%.1f / %.1f GB",
-                        (totalBytes - availableBytes) / 1_073_741_824.0,
-                        totalBytes / 1_073_741_824.0
-                    )
-                }
+                storagePercent = infinityUsagePercent(totalBytes, availableBytes) ?: 0
+                storageDetail = infinityStorageSummary(totalBytes, availableBytes)
 
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                     val powerManager = context.getSystemService(
