@@ -143,26 +143,30 @@ internal fun InfinityFileManager(
         val sourceParent = clipboardParent
         val targetParent = currentId?.let(::documentUri)
         if (sourceParent == null || targetParent == null || clipboardIds.isEmpty()) return
-        try {
-            val total = clipboardIds.size
-            var completed = 0
-            clipboardIds.forEach { id ->
-                val source = documentUri(id)
-                if (source != null) {
-                    val result = if (clipboardIsMove) {
-                        DocumentsContract.moveDocument(resolver, source, sourceParent, targetParent)
-                    } else {
-                        DocumentsContract.copyDocument(resolver, source, targetParent)
-                    }
-                    if (result != null) completed++
+        val total = clipboardIds.size
+        var completed = 0
+        var failed = 0
+        clipboardIds.forEach { id ->
+            val result = runCatching {
+                val source = documentUri(id) ?: error("No se pudo localizar un elemento.")
+                if (clipboardIsMove) {
+                    DocumentsContract.moveDocument(resolver, source, sourceParent, targetParent)
+                } else {
+                    DocumentsContract.copyDocument(resolver, source, targetParent)
                 }
             }
-            if (clipboardIsMove) { clipboardIds = emptyList(); clipboardParent = null }
-            selected = emptySet()
-            refreshKey++
-            message = "$completed de $total elemento(s) procesado(s)."
-        } catch (e: Exception) {
-            message = e.localizedMessage ?: "El proveedor de almacenamiento no admite esta operación."
+            if (result.getOrNull() != null) completed++ else failed++
+        }
+        if (clipboardIsMove && failed == 0) {
+            clipboardIds = emptyList()
+            clipboardParent = null
+        }
+        selected = emptySet()
+        refreshKey++
+        message = if (failed == 0) {
+            "$completed de $total elemento(s) procesado(s)."
+        } else {
+            "$completed completado(s) y $failed no procesado(s). El portapapeles se conserva para reintentar."
         }
     }
     fun deleteSelected() {
@@ -256,6 +260,9 @@ internal fun InfinityFileManager(
                     }) { Text("Renombrar") }
                 }
                 Text(folderPath.joinToString(" > "), color = Color(0xFFB7C7D9), fontSize = 10.sp, maxLines = 1)
+                OutlinedButton(onClick = {
+                    selected = if (selected.size == visibleEntries.size) emptySet() else visibleEntries.map { it.id }.toSet()
+                }) { Text(if (visibleEntries.isNotEmpty() && selected.size == visibleEntries.size) "Quitar selección" else "Seleccionar todo") }
                 if (selected.isNotEmpty()) {
                     OutlinedButton(onClick = { stageClipboard(false) }) { Text("Copiar") }
                     OutlinedButton(onClick = { stageClipboard(true) }) { Text("Cortar") }
