@@ -247,10 +247,10 @@ internal fun InfinityFileManager(
                 }
             } catch (cancelled: CancellationException) {
                 val unfinished = infinityUnfinishedOperationIds(ids, completedIds)
-                if (isMove) {
-                    clipboardIds = unfinished
-                    if (unfinished.isEmpty()) clipboardParent = null
-                }
+                // Copy and move both retain only unconfirmed items. Retrying a
+                // partially completed copy must not duplicate items already copied.
+                clipboardIds = unfinished
+                if (unfinished.isEmpty()) clipboardParent = null
                 selected = unfinished.toSet()
                 refreshKey++
                 message = "Operación interrumpida: ${completedIds.size} completado(s); ${unfinished.size} pendiente(s). Se conservaron los elementos pendientes para reintentar."

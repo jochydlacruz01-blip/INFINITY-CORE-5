@@ -105,6 +105,20 @@ class InfinityFileManagerRulesTest {
         assertEquals(listOf("a", "a", "c"), infinityRemainingOperationIds(listOf("a", "a", "b", "c"), setOf("a", "c", "missing")))
     }
 
+    @Test fun interruptedCopyRetainsOnlyUnconfirmedItemsForRetry() {
+        assertEquals(
+            listOf("second", "fourth"),
+            infinityUnfinishedOperationIds(
+                listOf("first", "second", "third", "fourth"),
+                setOf("first", "third")
+            )
+        )
+        assertEquals(
+            emptyList<String>(),
+            infinityUnfinishedOperationIds(listOf("first", "second"), setOf("first", "second"))
+        )
+    }
+
     @Test fun folderNavigationRejectsCurrentAndAncestorIdsButAllowsNewChildren() {
         assertTrue(infinityCanNavigateFolder(listOf("root", "docs"), "images"))
         assertFalse(infinityCanNavigateFolder(listOf("root", "docs"), "root"))
