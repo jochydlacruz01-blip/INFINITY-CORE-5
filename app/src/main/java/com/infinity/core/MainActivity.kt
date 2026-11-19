@@ -1426,37 +1426,39 @@ private fun FileExplorer08(
             loading -> CircularProgressIndicator(color = accent, modifier = Modifier.size(26.dp))
             error != null -> Text("Error: $error", color = Color(0xFFFF9999), fontSize = 11.sp)
             entries.isEmpty() -> Text("Esta carpeta está vacía o no contiene elementos accesibles.", color = InfinityMuted, fontSize = 11.sp)
-            else -> LazyColumn(Modifier.fillMaxSize()) {
-                items(entries, key = { it.documentId }) { entry ->
-                    Row(
-                        Modifier.fillMaxWidth().clickable {
-                            if (entry.isDirectory) {
-                                currentDocumentId = entry.documentId
-                            } else {
-                                onOpenFile(
-                                    DocumentsContract.buildDocumentUriUsingTree(rootUri, entry.documentId),
-                                    entry.mimeType
+            else -> Column(Modifier.fillMaxSize()) {
+                Text("${filteredEntries.size} elementos", color = accent, fontSize = 10.sp, modifier = Modifier.padding(vertical = 5.dp))
+                LazyColumn(Modifier.fillMaxSize()) {
+                    items(filteredEntries, key = { it.documentId }) { entry ->
+                        Row(
+                            Modifier.fillMaxWidth().clickable {
+                                if (entry.isDirectory) {
+                                    currentDocumentId = entry.documentId
+                                } else {
+                                    onOpenFile(
+                                        DocumentsContract.buildDocumentUriUsingTree(rootUri, entry.documentId),
+                                        entry.mimeType
+                                    )
+                                }
+                            }.padding(vertical = 9.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(if (entry.isDirectory) "📁" else "📄", fontSize = 20.sp)
+                            Spacer(Modifier.width(10.dp))
+                            Column(Modifier.weight(1f)) {
+                                Text(entry.name, color = Color.White, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Text(
+                                    if (entry.isDirectory) "Carpeta"
+                                    else if (entry.size > 0) "${(entry.size / 1024).coerceAtLeast(1)} KB"
+                                    else (entry.mimeType ?: "Archivo"),
+                                    color = InfinityMuted,
+                                    fontSize = 9.sp
                                 )
                             }
-                        }.padding(vertical = 9.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(if (entry.isDirectory) "📁" else "📄", fontSize = 20.sp)
-                        Spacer(Modifier.width(10.dp))
-                        Column(Modifier.weight(1f)) {
-                            Text(entry.name, color = Color.White, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            Text(
-                                if (entry.isDirectory) "Carpeta"
-                                else if (entry.size > 0) "${(entry.size / 1024).coerceAtLeast(1)} KB"
-                                else (entry.mimeType ?: "Archivo"),
-                                color = InfinityMuted,
-                                fontSize = 9.sp
-                            )
+                            if (entry.isDirectory) Text("›", color = accent, fontSize = 22.sp)
                         }
-                        if (entry.isDirectory) Text("›", color = accent, fontSize = 22.sp)
+                        HorizontalDivider(color = Color.White.copy(.08f))
                     }
-                    HorizontalDivider(color = Color.White.copy(.08f))
-                }
                 }
             }
         }
