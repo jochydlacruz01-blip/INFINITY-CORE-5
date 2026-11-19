@@ -189,15 +189,29 @@ private fun Infinity08App() {
         ActivityResultContracts.OpenDocumentTree()
     ) { uri ->
         if (uri != null) {
-            try {
+            val persisted = try {
                 context.contentResolver.takePersistableUriPermission(
                     uri,
                     Intent.FLAG_GRANT_READ_URI_PERMISSION or
                         Intent.FLAG_GRANT_WRITE_URI_PERMISSION
                 )
-            } catch (_: SecurityException) { }
+                true
+            } catch (_: SecurityException) {
+                false
+            }
+            // Keep the grant usable for this session, but never store a URI
+            // that Android did not allow the app to persist across restarts.
             selectedFolder = uri
-            prefs.edit().putString("selected_folder_uri", uri.toString()).apply()
+            if (persisted) {
+                prefs.edit().putString("selected_folder_uri", uri.toString()).apply()
+            } else {
+                prefs.edit().remove("selected_folder_uri").apply()
+                Toast.makeText(
+                    context,
+                    "Acceso temporal: Android no permitió guardar el permiso. Selecciona la carpeta de nuevo al reiniciar.",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
         }
     }
 

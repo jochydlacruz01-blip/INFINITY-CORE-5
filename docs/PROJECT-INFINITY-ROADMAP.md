@@ -27,10 +27,11 @@ This roadmap is a work plan; checkboxes indicate completion only after evidence 
 - [ ] File Manager: provider compatibility, refresh, navigation, selections, clipboard operations, viewers (SAF cycle prevention CI #237 verified; provider/device acceptance still pending)
 - [x] Reset transient File Manager selection and clipboard state whenever the user switches SAF tree grants (CI #236 verified).
 - [x] Partial copy retry retains only unconfirmed items in original order (implementation and regression tests; CI #230 passed).
+- [x] Interrupted copy retry now retains only unconfirmed items after cancellation (implementation and regression test; CI #244 passed).
 - [x] Add live folder-scoped filename search to File Explorer UI (CI #228 verified).
 - [x] SAF enumeration tolerates providers omitting optional MIME/size columns; missing size is displayed as unavailable (CI #217 and MIME hardening CI #231 verified).
 - [x] SAF listing skips malformed rows with blank document IDs, supplies safe display-name fallbacks, and isolates malformed provider rows (CI #234 verified).
-- [ ] ORBIT: verify metric labels, sampling lifecycle, thermal and battery reporting, layout on narrow screens; locale-independent storage/battery formatting and extreme unknown-value regression tests added (CI pending); sampling propagates coroutine cancellation (CI #232) and uses application context (CI #238); battery capacity and charging-state mapping now have isolated regression tests (CI verification pending); physical-device checks remain pending.
+- [ ] ORBIT: verify metric labels, sampling lifecycle, thermal and battery reporting, layout on narrow screens; locale-independent storage/battery formatting and extreme unknown-value regression tests passed in CI #245; sampling propagates coroutine cancellation (CI #232) and uses application context (CI #238); battery capacity and charging-state mapping regression tests passed in CI #245; physical-device checks remain pending.
 - [x] ORBIT monitor clears displayed telemetry when a sampling cycle fails instead of presenting stale values (validated by successful CI #220)
 - [ ] Notifications: physical-device permission UX, disconnect/reconnect, privacy display options, open/dismiss behavior
 - [x] Add direct system-settings shortcut when notification-listener permission is not granted (validated by successful CI #220; device UX still pending)
