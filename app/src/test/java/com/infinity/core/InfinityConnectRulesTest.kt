@@ -66,4 +66,22 @@ class InfinityConnectRulesTest {
             )
         )
     }
+
+    @Test
+    fun formatsFileSizesAcrossUnits() {
+        assertEquals("0 B", formatInfinityFileSize(0))
+        assertEquals("512 B", formatInfinityFileSize(512))
+        assertEquals("1.0 KB", formatInfinityFileSize(1024))
+        assertEquals("1.0 MB", formatInfinityFileSize(1024L * 1024L))
+        assertEquals("1.00 GB", formatInfinityFileSize(1024L * 1024L * 1024L))
+        assertEquals("Tamaño no disponible", formatInfinityFileSize(-1))
+    }
+
+    @Test
+    fun formatsCommonMimeTypesForPeople() {
+        assertEquals("Documento PDF", formatInfinityMimeType("application/pdf"))
+        assertEquals("Imagen PNG", formatInfinityMimeType("image/png"))
+        assertEquals("Instalador APK", formatInfinityMimeType("application/vnd.android.package-archive"))
+        assertEquals("Tipo no disponible", formatInfinityMimeType(null))
+    }
 }
