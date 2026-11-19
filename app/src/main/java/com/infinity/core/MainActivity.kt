@@ -427,7 +427,7 @@ val iconOffsets = remember {
                             }
                         }
                         .clickable {
-                            openInfinityWindow(item.id, windows, workspace)
+                            focusedWindowId = openInfinityWindow(item.id, windows, workspace)
                         }
                         .padding(6.dp)
                 ) {
@@ -675,7 +675,7 @@ DockAction("▤", "ADVANCED", accent) {
                                 Row(
                                     Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
                                         .clickable {
-                                            openInfinityWindow(item.id, windows, workspace)
+                                            focusedWindowId = openInfinityWindow(item.id, windows, workspace)
                                             startOpen = false
                                         }.padding(9.dp),
                                     verticalAlignment = Alignment.CenterVertically
@@ -1337,7 +1337,7 @@ private fun openInfinityWindow(
     id: String,
     windows: MutableList<DeskWindow>,
     workspace: Int
-) {
+): String {
     val titles = mapOf(
         "files" to "Explorador de archivos",
         "notes" to "Notas rápidas",
@@ -1347,12 +1347,13 @@ private fun openInfinityWindow(
         "about" to "Acerca de INFINITY"
     )
     val existing = windows.indexOfFirst { it.kind == id && it.workspace == workspace }
+    val windowId = "${id}_$workspace"
     if (existing >= 0) {
         windows[existing] = windows[existing].copy(minimized = false)
     } else {
         windows.add(
             DeskWindow(
-                id = "${id}_$workspace",
+                id = windowId,
                 title = titles[id] ?: "INFINITY",
                 kind = id,
                 x = 90f + windows.size * 22f,
@@ -1361,6 +1362,7 @@ private fun openInfinityWindow(
             )
         )
     }
+    return windowId
 }
 
 @Composable
