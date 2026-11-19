@@ -290,7 +290,16 @@ private fun Infinity08App() {
 
     val windows = remember { mutableStateListOf<DeskWindow>() }
 
-var focusedWindowId by remember { mutableStateOf<String?>(null) }
+    var focusedWindowId by remember { mutableStateOf<String?>(null) }
+
+    fun switchWorkspace(target: Int) {
+        workspace = target.coerceIn(1, 3)
+        focusedWindowId = null
+        startOpen = false
+        orbitOpen = false
+        controlOpen = false
+        advancedOpen = false
+    }
 
 val iconOffsets = remember {
     mutableStateMapOf<String, Offset>().apply {
@@ -961,7 +970,7 @@ Row(
 
         Button(
             onClick = {
-                workspace = number
+                switchWorkspace(number)
             },
             modifier = Modifier
                 .weight(1f)
@@ -1297,7 +1306,7 @@ Row(
                         ) { Text("Cambiar fondo") }
                         OutlinedButton(
                             onClick = {
-                                workspace = if (workspace == 3) 1 else workspace + 1
+                                switchWorkspace(if (workspace == 3) 1 else workspace + 1)
                             },
                             modifier = Modifier.fillMaxWidth()
                         ) { Text("Siguiente espacio • $workspace / 3") }
