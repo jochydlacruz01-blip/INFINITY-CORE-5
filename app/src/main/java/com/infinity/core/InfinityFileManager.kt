@@ -42,7 +42,7 @@ internal fun InfinityFileManager(
     val context = LocalContext.current
     val resolver = context.contentResolver
     var currentId by remember(rootUri) {
-        mutableStateOf(rootUri?.let(DocumentsContract::getTreeDocumentId))
+        mutableStateOf(rootUri?.let { DocumentsContract.getTreeDocumentId(it) })
     }
     var entries by remember { mutableStateOf<List<InfinityFileEntry>>(emptyList()) }
     var loading by remember { mutableStateOf(false) }
@@ -67,7 +67,7 @@ internal fun InfinityFileManager(
         loading = true
         error = null
         val result = withContext(Dispatchers.IO) {
-            try {
+            runCatching {
                 val children = DocumentsContract.buildChildDocumentsUriUsingTree(tree, parentId)
                 val projection = arrayOf(
                     DocumentsContract.Document.COLUMN_DOCUMENT_ID,
@@ -91,8 +91,6 @@ internal fun InfinityFileManager(
                     }
                 }
                 found
-            } catch (e: Exception) {
-                throw e
             }
         }
         entries = result.getOrElse {
