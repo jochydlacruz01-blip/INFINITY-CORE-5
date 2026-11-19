@@ -499,7 +499,7 @@ internal fun InfinityFileManager(
                     val parent = currentId?.let(::documentUri)
                     val requestedName = nameInput.trim()
                     createDialog = false
-                    if (parent != null && requestedName.isNotBlank() && !loading) {
+                    if (parent != null && isValidInfinityDocumentName(requestedName) && !loading) {
                         loading = true
                         scope.launch {
                             try {
@@ -539,7 +539,7 @@ internal fun InfinityFileManager(
                     val target = selected.singleOrNull()?.let(::documentUri)
                     val requestedName = nameInput.trim()
                     renameDialog = false
-                    if (target != null && requestedName.isNotBlank() && !loading) {
+                    if (target != null && isValidInfinityDocumentName(requestedName) && !loading) {
                         loading = true
                         scope.launch {
                             try {
