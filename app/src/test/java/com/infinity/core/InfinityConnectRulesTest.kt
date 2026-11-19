@@ -100,6 +100,14 @@ class InfinityConnectRulesTest {
     }
 
     @Test
+    fun respectsStorageProviderOperationFlags() {
+        assertTrue(infinitySupportsDocumentFlag(null, 1L))
+        assertTrue(infinitySupportsDocumentFlag(1L or 2L, 1L))
+        assertFalse(infinitySupportsDocumentFlag(2L, 1L))
+        assertFalse(infinitySupportsDocumentFlag(0L, 1L))
+    }
+
+    @Test
     fun detectsSameFolderPasteTargets() {
         assertTrue(isSameInfinityFolder("folder-1", "folder-1"))
         assertFalse(isSameInfinityFolder("folder-1", "folder-2"))
