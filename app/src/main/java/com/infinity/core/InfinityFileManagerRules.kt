@@ -49,3 +49,10 @@ internal fun isSameInfinityFolder(sourceFolderId: String?, targetFolderId: Strin
 internal fun infinitySupportsDocumentFlag(flags: Long?, requiredFlag: Long): Boolean {
     return flags == null || flags and requiredFlag != 0L
 }
+
+/** Conservative portable document-name validation before calling a provider. */
+internal fun isValidInfinityDocumentName(value: String): Boolean {
+    val name = value.trim()
+    return name.isNotEmpty() && name.length <= 255 && name != "." && name != ".." &&
+        name.none { it == '/' || it == '\\' || it.isISOControl() }
+}
