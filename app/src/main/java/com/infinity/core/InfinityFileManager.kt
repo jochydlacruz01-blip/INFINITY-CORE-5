@@ -25,6 +25,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
 import java.util.Locale
@@ -152,34 +153,41 @@ internal fun InfinityFileManager(
         if (sourceParent == null || targetParent == null || ids.isEmpty() || loading) return
         scope.launch {
             loading = true
-            val (completed, failed) = withContext(Dispatchers.IO) {
-                var done = 0
-                var errors = 0
-                ids.forEach { id ->
-                    val result = runCatching {
-                        val source = documentUri(id) ?: error("No se pudo localizar un elemento.")
-                        if (isMove) {
-                            DocumentsContract.moveDocument(resolver, source, sourceParent, targetParent)
-                        } else {
-                            DocumentsContract.copyDocument(resolver, source, targetParent)
+            try {
+                val (completed, failed) = withContext(Dispatchers.IO) {
+                    var done = 0
+                    var errors = 0
+                    ids.forEach { id ->
+                        val result = runCatching {
+                            val source = documentUri(id) ?: error("No se pudo localizar un elemento.")
+                            if (isMove) {
+                                DocumentsContract.moveDocument(resolver, source, sourceParent, targetParent)
+                            } else {
+                                DocumentsContract.copyDocument(resolver, source, targetParent)
+                            }
                         }
+                        if (result.getOrNull() != null) done++ else errors++
                     }
-                    if (result.getOrNull() != null) done++ else errors++
+                    done to errors
                 }
-                done to errors
+                if (isMove && failed == 0) {
+                    clipboardIds = emptyList()
+                    clipboardParent = null
+                }
+                selected = emptySet()
+                refreshKey++
+                message = if (failed == 0) {
+                    "$completed de ${ids.size} elemento(s) procesado(s)."
+                } else {
+                    "$completed completado(s) y $failed no procesado(s). El portapapeles se conserva para reintentar."
+                }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (exception: Exception) {
+                message = exception.localizedMessage ?: "No se pudo completar la operación de archivos."
+            } finally {
+                loading = false
             }
-            if (isMove && failed == 0) {
-                clipboardIds = emptyList()
-                clipboardParent = null
-            }
-            selected = emptySet()
-            refreshKey++
-            message = if (failed == 0) {
-                "$completed de ${ids.size} elemento(s) procesado(s)."
-            } else {
-                "$completed completado(s) y $failed no procesado(s). El portapapeles se conserva para reintentar."
-            }
-            loading = false
         }
     }
     fun deleteSelected() {
@@ -187,28 +195,35 @@ internal fun InfinityFileManager(
         if (targets.isEmpty() || loading) return
         scope.launch {
             loading = true
-            val (completed, failed) = withContext(Dispatchers.IO) {
-                var done = 0
-                var errors = 0
-                targets.forEach { id ->
-                    val result = runCatching {
-                        val uri = documentUri(id) ?: error("No se pudo localizar un elemento.")
-                        check(DocumentsContract.deleteDocument(resolver, uri)) {
-                            "El proveedor no confirmó la eliminación."
+            try {
+                val (completed, failed) = withContext(Dispatchers.IO) {
+                    var done = 0
+                    var errors = 0
+                    targets.forEach { id ->
+                        val result = runCatching {
+                            val uri = documentUri(id) ?: error("No se pudo localizar un elemento.")
+                            check(DocumentsContract.deleteDocument(resolver, uri)) {
+                                "El proveedor no confirmó la eliminación."
+                            }
                         }
+                        if (result.isSuccess) done++ else errors++
                     }
-                    if (result.isSuccess) done++ else errors++
+                    done to errors
                 }
-                done to errors
+                selected = emptySet()
+                refreshKey++
+                message = if (failed == 0) {
+                    "$completed elemento(s) eliminado(s)."
+                } else {
+                    "$completed eliminado(s) y $failed no eliminado(s). Comprueba los elementos restantes y vuelve a intentarlo."
+                }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (exception: Exception) {
+                message = exception.localizedMessage ?: "No se pudo completar la eliminación."
+            } finally {
+                loading = false
             }
-            selected = emptySet()
-            refreshKey++
-            message = if (failed == 0) {
-                "$completed elemento(s) eliminado(s)."
-            } else {
-                "$completed eliminado(s) y $failed no eliminado(s). Comprueba los elementos restantes y vuelve a intentarlo."
-            }
-            loading = false
         }
     }
 
@@ -435,23 +450,30 @@ internal fun InfinityFileManager(
                     if (parent != null && requestedName.isNotBlank() && !loading) {
                         scope.launch {
                             loading = true
-                            val result = withContext(Dispatchers.IO) {
-                                runCatching {
-                                    val created = DocumentsContract.createDocument(
-                                        resolver, parent,
-                                        DocumentsContract.Document.MIME_TYPE_DIR,
-                                        requestedName
-                                    )
-                                    checkNotNull(created) { "El proveedor no confirmó la creación de la carpeta." }
+                            try {
+                                val result = withContext(Dispatchers.IO) {
+                                    runCatching {
+                                        val created = DocumentsContract.createDocument(
+                                            resolver, parent,
+                                            DocumentsContract.Document.MIME_TYPE_DIR,
+                                            requestedName
+                                        )
+                                        checkNotNull(created) { "El proveedor no confirmó la creación de la carpeta." }
+                                    }
                                 }
+                                result.onSuccess {
+                                    refreshKey++
+                                    message = "Carpeta creada."
+                                }.onFailure {
+                                    message = it.localizedMessage ?: "No se pudo crear la carpeta."
+                                }
+                            } catch (cancelled: CancellationException) {
+                                throw cancelled
+                            } catch (exception: Exception) {
+                                message = exception.localizedMessage ?: "No se pudo crear la carpeta."
+                            } finally {
+                                loading = false
                             }
-                            result.onSuccess {
-                                refreshKey++
-                                message = "Carpeta creada."
-                            }.onFailure {
-                                message = it.localizedMessage ?: "No se pudo crear la carpeta."
-                            }
-                            loading = false
                         }
                     }
                     nameInput = ""
@@ -474,20 +496,27 @@ internal fun InfinityFileManager(
                     if (target != null && requestedName.isNotBlank() && !loading) {
                         scope.launch {
                             loading = true
-                            val result = withContext(Dispatchers.IO) {
-                                runCatching {
-                                    val renamed = DocumentsContract.renameDocument(resolver, target, requestedName)
-                                    checkNotNull(renamed) { "El proveedor no confirmó el cambio de nombre." }
+                            try {
+                                val result = withContext(Dispatchers.IO) {
+                                    runCatching {
+                                        val renamed = DocumentsContract.renameDocument(resolver, target, requestedName)
+                                        checkNotNull(renamed) { "El proveedor no confirmó el cambio de nombre." }
+                                    }
                                 }
+                                result.onSuccess {
+                                    selected = emptySet()
+                                    refreshKey++
+                                    message = "Elemento renombrado."
+                                }.onFailure {
+                                    message = it.localizedMessage ?: "El proveedor no permitió renombrar."
+                                }
+                            } catch (cancelled: CancellationException) {
+                                throw cancelled
+                            } catch (exception: Exception) {
+                                message = exception.localizedMessage ?: "No se pudo renombrar el elemento."
+                            } finally {
+                                loading = false
                             }
-                            result.onSuccess {
-                                selected = emptySet()
-                                refreshKey++
-                                message = "Elemento renombrado."
-                            }.onFailure {
-                                message = it.localizedMessage ?: "El proveedor no permitió renombrar."
-                            }
-                            loading = false
                         }
                     }
                 }) { Text("Guardar") }
