@@ -341,7 +341,6 @@ internal fun InfinityFileManager(
                 }
             }
         }
-    }
         }
     }
 
