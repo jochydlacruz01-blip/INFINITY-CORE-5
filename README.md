@@ -1,30 +1,58 @@
-# INFINITY CORE 0.5 — Fase 5: INFINITY Hub
+# PROJECT INFINITY — Android
 
-Entorno de escritorio Android nativo construido con Kotlin y Jetpack Compose.
+Aplicación Android nativa desarrollada con Kotlin y Jetpack Compose. INFINITY ofrece un espacio de trabajo con estética de escritorio, ventanas y herramientas del sistema, adaptado a tablets y teléfonos Android.
 
-## Novedades de Fase 5
-- Explorador de archivos funcional mediante el selector oficial SAF de Android.
-- Recuerda la carpeta autorizada entre reinicios, conservando el permiso persistente concedido por Android.
-- Lista carpetas y archivos, permite entrar en subcarpetas y volver a la carpeta inicial.
-- Abre archivos con las aplicaciones Android compatibles instaladas en la tablet.
-- Buscador de aplicaciones por nombre o identificador de paquete.
-- Conserva la personalización de Fase 4: cinco temas, modo claro/oscuro, fondo, tamaño de iconos y el icono multicolor INFINITY.
+## Funciones disponibles
 
-## Compilar en GitHub Actions
-El workflow está en `.github/workflows/android.yml`.
-1. Descomprime el ZIP.
-2. Sube el contenido de la carpeta del proyecto a la raíz del repositorio, incluyendo `.github`.
-3. Haz commit en `main` o `master`.
-4. Abre Actions y espera **Build INFINITY CORE 0.5**.
-5. Descarga el artefacto `INFINITY-CORE-0.5-debug`.
+- **Escritorio INFINITY:** espacios de trabajo, ventanas, accesos directos y personalización visual.
+- **INFINITY FILE MANAGER:** navegación por carpetas autorizadas, búsqueda, orden por nombre/tipo/tamaño/fecha, vistas Lista y Cuadrícula, selección múltiple, crear carpetas, renombrar, copiar, cortar, pegar/mover, eliminar con confirmación y detalles de archivos.
+- **Acceso a archivos:** utiliza el Storage Access Framework (SAF) oficial de Android. El usuario elige explícitamente las ubicaciones; INFINITY no intenta eludir las restricciones de almacenamiento de Android.
+- **INFINITY ORBIT:** indicadores de batería, memoria, almacenamiento y estado térmico, con actualización periódica.
+- **INFINITY ADVANCED:** ajustes rápidos y centro de notificaciones. El acceso requiere autorización especial del usuario en los ajustes de Android. La acción LIMPIAR borra la lista local de INFINITY; DESCARTAR solicita a Android retirar la notificación seleccionada.
+- **INFINITY CONNECT:** perfiles de equipos remotos, edición, validación de puerto, prevención de duplicados y copia de dirección. **El cliente RDP integrado todavía no está implementado**, por lo que guardar un perfil no significa que la conexión remota esté disponible o verificada.
 
-## Requisitos
-- JDK 17
-- Gradle 8.9
-- Android compileSdk 35
-- Android mínimo 8.0 (API 26)
+## Requisitos técnicos
 
-## Alcance y permisos
-INFINITY solo puede explorar la carpeta que el usuario elige explícitamente en el selector de Android. No accede silenciosamente a todo el almacenamiento. La apertura de un archivo depende de que exista una aplicación compatible. Esta fase no incluye todavía copiar, mover, renombrar ni eliminar archivos.
+- Android Studio / Android Gradle Plugin compatible con el proyecto.
+- JDK 17.
+- Gradle 8.9.
+- Android compileSdk 35 / targetSdk 35.
+- Android mínimo: API 26 (Android 8.0).
+- Kotlin 2.0.21 y Jetpack Compose.
 
-El paquete fuente se ha validado estructuralmente, pero debe compilarse en GitHub Actions; no se presenta como APK ya probado.
+## Compilar con GitHub Actions
+
+El workflow se encuentra en `.github/workflows/android.yml` y se ejecuta al enviar cambios a la rama `INFINITY-0.9`.
+
+1. Abre la pestaña **Actions** del repositorio.
+2. Selecciona el workflow **PROJECT INFINITY 0.10 - APK BUILD**.
+3. Espera a que terminen la compilación Debug/Release, el análisis estático, las pruebas unitarias disponibles y la verificación de firma del APK Release.
+4. Descarga los artefactos Debug o Release firmado cuando el proceso termine correctamente.
+
+### Secretos necesarios para firmar Release
+
+Configura estos secretos en GitHub Actions; nunca guardes el archivo keystore ni sus contraseñas en el repositorio:
+
+- `INFINITY_KEYSTORE_BASE64`
+- `INFINITY_KEYSTORE_PASSWORD`
+- `INFINITY_KEY_ALIAS`
+- `INFINITY_KEY_PASSWORD`
+
+El workflow utiliza el keystore existente. No lo regeneres si necesitas conservar la capacidad de actualizar instalaciones anteriores.
+
+## Seguridad y privacidad
+
+- `allowBackup=false` y reglas de extracción de datos.
+- Tráfico HTTP sin cifrar deshabilitado mediante `usesCleartextTraffic=false`.
+- No solicita permisos generales de almacenamiento; utiliza permisos SAF concedidos por el usuario.
+- INFINITY CONNECT no guarda contraseñas de Windows.
+- El contenido de las notificaciones puede ocultarse desde los controles de privacidad.
+- La autorización de acceso a notificaciones se concede o revoca desde los ajustes especiales de Android.
+
+## Estado y límites conocidos
+
+- Las compilaciones de GitHub verifican que el código compile y que el APK Release tenga una firma válida; no sustituyen las pruebas funcionales en dispositivos físicos.
+- Las operaciones de copiar/mover dependen de que el proveedor SAF elegido por Android las admita. Algunos proveedores pueden rechazarlas.
+- La apertura de documentos se delega a aplicaciones Android compatibles; no todos los formatos tienen vista previa integrada.
+- INFINITY CONNECT administra perfiles, pero aún no establece sesiones RDP.
+- Antes de publicar una versión definitiva se deben completar las pruebas funcionales en teléfono/tablet y validar los flujos de permisos en las versiones Android objetivo.
