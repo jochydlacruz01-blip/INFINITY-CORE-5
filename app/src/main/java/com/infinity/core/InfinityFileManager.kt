@@ -167,15 +167,20 @@ internal fun InfinityFileManager(
                     var done = 0
                     var errors = 0
                     ids.forEach { id ->
-                        val result = runCatching {
+                        try {
                             val source = documentUri(id) ?: error("No se pudo localizar un elemento.")
-                            if (isMove) {
+                            val result = if (isMove) {
                                 DocumentsContract.moveDocument(resolver, source, sourceParent, targetParent)
                             } else {
                                 DocumentsContract.copyDocument(resolver, source, targetParent)
                             }
+                            checkNotNull(result) { "El proveedor no confirmó la operación." }
+                            done++
+                        } catch (cancelled: CancellationException) {
+                            throw cancelled
+                        } catch (_: Exception) {
+                            errors++
                         }
-                        if (result.getOrNull() != null) done++ else errors++
                     }
                     done to errors
                 }
@@ -209,13 +214,17 @@ internal fun InfinityFileManager(
                     var done = 0
                     var errors = 0
                     targets.forEach { id ->
-                        val result = runCatching {
+                        try {
                             val uri = documentUri(id) ?: error("No se pudo localizar un elemento.")
                             check(DocumentsContract.deleteDocument(resolver, uri)) {
                                 "El proveedor no confirmó la eliminación."
                             }
+                            done++
+                        } catch (cancelled: CancellationException) {
+                            throw cancelled
+                        } catch (_: Exception) {
+                            errors++
                         }
-                        if (result.isSuccess) done++ else errors++
                     }
                     done to errors
                 }
@@ -460,22 +469,16 @@ internal fun InfinityFileManager(
                         scope.launch {
                             loading = true
                             try {
-                                val result = withContext(Dispatchers.IO) {
-                                    runCatching {
-                                        val created = DocumentsContract.createDocument(
-                                            resolver, parent,
-                                            DocumentsContract.Document.MIME_TYPE_DIR,
-                                            requestedName
-                                        )
-                                        checkNotNull(created) { "El proveedor no confirmó la creación de la carpeta." }
-                                    }
+                                val created = withContext(Dispatchers.IO) {
+                                    val result = DocumentsContract.createDocument(
+                                        resolver, parent,
+                                        DocumentsContract.Document.MIME_TYPE_DIR,
+                                        requestedName
+                                    )
+                                    checkNotNull(result) { "El proveedor no confirmó la creación de la carpeta." }
                                 }
-                                result.onSuccess {
-                                    refreshKey++
-                                    message = "Carpeta creada."
-                                }.onFailure {
-                                    message = it.localizedMessage ?: "No se pudo crear la carpeta."
-                                }
+                                refreshKey++
+                                message = "Carpeta creada."
                             } catch (cancelled: CancellationException) {
                                 throw cancelled
                             } catch (exception: Exception) {
@@ -506,19 +509,13 @@ internal fun InfinityFileManager(
                         scope.launch {
                             loading = true
                             try {
-                                val result = withContext(Dispatchers.IO) {
-                                    runCatching {
-                                        val renamed = DocumentsContract.renameDocument(resolver, target, requestedName)
-                                        checkNotNull(renamed) { "El proveedor no confirmó el cambio de nombre." }
-                                    }
+                                val renamed = withContext(Dispatchers.IO) {
+                                    val result = DocumentsContract.renameDocument(resolver, target, requestedName)
+                                    checkNotNull(result) { "El proveedor no confirmó el cambio de nombre." }
                                 }
-                                result.onSuccess {
-                                    selected = emptySet()
-                                    refreshKey++
-                                    message = "Elemento renombrado."
-                                }.onFailure {
-                                    message = it.localizedMessage ?: "El proveedor no permitió renombrar."
-                                }
+                                selected = emptySet()
+                                refreshKey++
+                                message = "Elemento renombrado."
                             } catch (cancelled: CancellationException) {
                                 throw cancelled
                             } catch (exception: Exception) {
