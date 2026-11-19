@@ -25,6 +25,10 @@ data class InfinityNotification(
 
 object InfinityNotificationStore {
 
+    private const val MAX_NOTIFICATIONS = 100
+    private const val MAX_TITLE_LENGTH = 300
+    private const val MAX_MESSAGE_LENGTH = 2_000
+
     val notifications = mutableStateListOf<InfinityNotification>()
     val accessEnabled = mutableStateOf(false)
 
@@ -42,6 +46,11 @@ object InfinityNotificationStore {
                 notifications[index] = notification
             } else {
                 notifications.add(0, notification)
+            }
+
+            // Keep the in-memory notification feed bounded.
+            while (notifications.size > MAX_NOTIFICATIONS) {
+                notifications.removeAt(notifications.lastIndex)
             }
         }
     }
@@ -171,12 +180,13 @@ private fun publishNotification(sbn: StatusBarNotification) {
             .getCharSequence(Notification.EXTRA_TITLE)
             ?.toString()
             .orEmpty()
+            .take(300)
 
         val message = (
             extras.getCharSequence(Notification.EXTRA_BIG_TEXT)
                 ?: extras.getCharSequence(Notification.EXTRA_TEXT)
                 ?: extras.getCharSequence(Notification.EXTRA_SUB_TEXT)
-        )?.toString().orEmpty()
+        )?.toString().orEmpty().take(2_000)
 
         val appName = try {
             packageManager.getApplicationLabel(
