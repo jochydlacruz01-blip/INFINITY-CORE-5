@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.launch
 import java.util.Locale
 
 private data class InfinityFileEntry(
@@ -48,6 +49,7 @@ internal fun InfinityFileManager(
     val context = LocalContext.current
     val screenWidth = LocalConfiguration.current.screenWidthDp
     val resolver = context.contentResolver
+    val scope = rememberCoroutineScope()
     val rootDocumentId = remember(rootUri) { rootUri?.let { DocumentsContract.getTreeDocumentId(it) } }
     var currentId by remember(rootUri) { mutableStateOf(rootDocumentId) }
     var folderIds by remember(rootUri) { mutableStateOf(listOfNotNull(rootDocumentId)) }
@@ -143,52 +145,68 @@ internal fun InfinityFileManager(
     fun pasteClipboard() {
         val sourceParent = clipboardParent
         val targetParent = currentId?.let(::documentUri)
-        if (sourceParent == null || targetParent == null || clipboardIds.isEmpty()) return
-        val total = clipboardIds.size
-        var completed = 0
-        var failed = 0
-        clipboardIds.forEach { id ->
-            val result = runCatching {
-                val source = documentUri(id) ?: error("No se pudo localizar un elemento.")
-                if (clipboardIsMove) {
-                    DocumentsContract.moveDocument(resolver, source, sourceParent, targetParent)
-                } else {
-                    DocumentsContract.copyDocument(resolver, source, targetParent)
+        val ids = clipboardIds
+        val isMove = clipboardIsMove
+        if (sourceParent == null || targetParent == null || ids.isEmpty() || loading) return
+        scope.launch {
+            loading = true
+            val (completed, failed) = withContext(Dispatchers.IO) {
+                var done = 0
+                var errors = 0
+                ids.forEach { id ->
+                    val result = runCatching {
+                        val source = documentUri(id) ?: error("No se pudo localizar un elemento.")
+                        if (isMove) {
+                            DocumentsContract.moveDocument(resolver, source, sourceParent, targetParent)
+                        } else {
+                            DocumentsContract.copyDocument(resolver, source, targetParent)
+                        }
+                    }
+                    if (result.getOrNull() != null) done++ else errors++
                 }
+                done to errors
             }
-            if (result.getOrNull() != null) completed++ else failed++
-        }
-        if (clipboardIsMove && failed == 0) {
-            clipboardIds = emptyList()
-            clipboardParent = null
-        }
-        selected = emptySet()
-        refreshKey++
-        message = if (failed == 0) {
-            "$completed de $total elemento(s) procesado(s)."
-        } else {
-            "$completed completado(s) y $failed no procesado(s). El portapapeles se conserva para reintentar."
+            if (isMove && failed == 0) {
+                clipboardIds = emptyList()
+                clipboardParent = null
+            }
+            selected = emptySet()
+            refreshKey++
+            message = if (failed == 0) {
+                "$completed de ${ids.size} elemento(s) procesado(s)."
+            } else {
+                "$completed completado(s) y $failed no procesado(s). El portapapeles se conserva para reintentar."
+            }
+            loading = false
         }
     }
     fun deleteSelected() {
         val targets = selected.toList()
-        var completed = 0
-        var failed = 0
-        targets.forEach { id ->
-            val result = runCatching {
-                val uri = documentUri(id) ?: error("No se pudo localizar un elemento.")
-                check(DocumentsContract.deleteDocument(resolver, uri)) {
-                    "El proveedor no confirmó la eliminación."
+        if (targets.isEmpty() || loading) return
+        scope.launch {
+            loading = true
+            val (completed, failed) = withContext(Dispatchers.IO) {
+                var done = 0
+                var errors = 0
+                targets.forEach { id ->
+                    val result = runCatching {
+                        val uri = documentUri(id) ?: error("No se pudo localizar un elemento.")
+                        check(DocumentsContract.deleteDocument(resolver, uri)) {
+                            "El proveedor no confirmó la eliminación."
+                        }
+                    }
+                    if (result.isSuccess) done++ else errors++
                 }
+                done to errors
             }
-            if (result.isSuccess) completed++ else failed++
-        }
-        selected = emptySet()
-        refreshKey++
-        message = if (failed == 0) {
-            "$completed elemento(s) eliminado(s)."
-        } else {
-            "$completed eliminado(s) y $failed no eliminado(s). Comprueba los elementos restantes y vuelve a intentarlo."
+            selected = emptySet()
+            refreshKey++
+            message = if (failed == 0) {
+                "$completed elemento(s) eliminado(s)."
+            } else {
+                "$completed eliminado(s) y $failed no eliminado(s). Comprueba los elementos restantes y vuelve a intentarlo."
+            }
+            loading = false
         }
     }
 
@@ -410,18 +428,31 @@ internal fun InfinityFileManager(
             confirmButton = {
                 TextButton(onClick = {
                     val parent = currentId?.let(::documentUri)
-                    try {
-                        if (parent != null && nameInput.isNotBlank()) {
-                            val created = DocumentsContract.createDocument(resolver, parent, DocumentsContract.Document.MIME_TYPE_DIR, nameInput.trim())
-                            checkNotNull(created) { "El proveedor no confirmó la creación de la carpeta." }
-                            refreshKey++
-                            message = "Carpeta creada."
+                    val requestedName = nameInput.trim()
+                    createDialog = false
+                    if (parent != null && requestedName.isNotBlank() && !loading) {
+                        scope.launch {
+                            loading = true
+                            val result = withContext(Dispatchers.IO) {
+                                runCatching {
+                                    val created = DocumentsContract.createDocument(
+                                        resolver, parent,
+                                        DocumentsContract.Document.MIME_TYPE_DIR,
+                                        requestedName
+                                    )
+                                    checkNotNull(created) { "El proveedor no confirmó la creación de la carpeta." }
+                                }
+                            }
+                            result.onSuccess {
+                                refreshKey++
+                                message = "Carpeta creada."
+                            }.onFailure {
+                                message = it.localizedMessage ?: "No se pudo crear la carpeta."
+                            }
+                            loading = false
                         }
-                    } catch (e: Exception) {
-                        message = e.localizedMessage ?: "No se pudo crear la carpeta."
                     }
                     nameInput = ""
-                    createDialog = false
                 }) { Text("Crear") }
             },
             dismissButton = { TextButton(onClick = { createDialog = false }) { Text("Cancelar") } }
@@ -435,19 +466,28 @@ internal fun InfinityFileManager(
             text = { OutlinedTextField(value = nameInput, onValueChange = { nameInput = it }, singleLine = true, label = { Text("Nuevo nombre") }) },
             confirmButton = {
                 TextButton(onClick = {
-                    try {
-                        val target = selected.singleOrNull()?.let(::documentUri)
-                        if (target != null && nameInput.isNotBlank()) {
-                            val renamed = DocumentsContract.renameDocument(resolver, target, nameInput.trim())
-                            checkNotNull(renamed) { "El proveedor no confirmó el cambio de nombre." }
-                            selected = emptySet()
-                            refreshKey++
-                            message = "Elemento renombrado."
-                        }
-                    } catch (e: Exception) {
-                        message = e.localizedMessage ?: "El proveedor no permitió renombrar."
-                    }
+                    val target = selected.singleOrNull()?.let(::documentUri)
+                    val requestedName = nameInput.trim()
                     renameDialog = false
+                    if (target != null && requestedName.isNotBlank() && !loading) {
+                        scope.launch {
+                            loading = true
+                            val result = withContext(Dispatchers.IO) {
+                                runCatching {
+                                    val renamed = DocumentsContract.renameDocument(resolver, target, requestedName)
+                                    checkNotNull(renamed) { "El proveedor no confirmó el cambio de nombre." }
+                                }
+                            }
+                            result.onSuccess {
+                                selected = emptySet()
+                                refreshKey++
+                                message = "Elemento renombrado."
+                            }.onFailure {
+                                message = it.localizedMessage ?: "El proveedor no permitió renombrar."
+                            }
+                            loading = false
+                        }
+                    }
                 }) { Text("Guardar") }
             },
             dismissButton = { TextButton(onClick = { renameDialog = false }) { Text("Cancelar") } }
