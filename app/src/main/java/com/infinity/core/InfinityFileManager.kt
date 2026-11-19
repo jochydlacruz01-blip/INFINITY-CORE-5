@@ -109,17 +109,21 @@ internal fun InfinityFileManager(
                     val flagsCol = cursor.getColumnIndex(DocumentsContract.Document.COLUMN_FLAGS)
                     check(idCol >= 0 && nameCol >= 0) { "El proveedor no devolvió las columnas básicas de archivos." }
                     while (cursor.moveToNext()) {
-                        // Some third-party SAF providers expose malformed rows. Ignore rows
-                        // without a usable document ID instead of crashing the whole listing.
-                        val documentId = infinityDocumentIdOrNull(cursor.getString(idCol)) ?: continue
-                        result += InfinityFileEntry(
-                            documentId,
-                            infinityDocumentDisplayName(cursor.getString(nameCol)),
-                            infinityOptionalMimeType(mimeCol >= 0, if (mimeCol >= 0 && !cursor.isNull(mimeCol)) cursor.getString(mimeCol) else null),
-                            if (sizeCol < 0 || cursor.isNull(sizeCol)) -1L else cursor.getLong(sizeCol),
-                            if (modifiedCol < 0 || cursor.isNull(modifiedCol)) 0L else cursor.getLong(modifiedCol),
-                            if (flagsCol < 0 || cursor.isNull(flagsCol)) null else cursor.getLong(flagsCol)
-                        )
+                        // A malformed third-party provider row must not abort the entire listing.
+                        try {
+                            val documentId = infinityDocumentIdOrNull(cursor.getString(idCol)) ?: continue
+                            result += InfinityFileEntry(
+                                documentId,
+                                infinityDocumentDisplayName(cursor.getString(nameCol)),
+                                infinityOptionalMimeType(mimeCol >= 0, if (mimeCol >= 0 && !cursor.isNull(mimeCol)) cursor.getString(mimeCol) else null),
+                                if (sizeCol < 0 || cursor.isNull(sizeCol)) -1L else cursor.getLong(sizeCol),
+                                if (modifiedCol < 0 || cursor.isNull(modifiedCol)) 0L else cursor.getLong(modifiedCol),
+                                if (flagsCol < 0 || cursor.isNull(flagsCol)) null else cursor.getLong(flagsCol)
+                            )
+                        } catch (_: Exception) {
+                            // Continue with the next row; other documents may still be readable.
+                            continue
+                        }
                     }
                 }
                 result

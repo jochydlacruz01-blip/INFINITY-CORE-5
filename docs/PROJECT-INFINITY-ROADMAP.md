@@ -18,7 +18,7 @@ This roadmap is a work plan; checkboxes indicate completion only after evidence 
 - [x] Implement partial-failure and cancellation-state recovery for multi-file operations (logic and regression tests CI #208 verified; provider/device acceptance tests remain pending)
 
 - [x] CONNECT endpoint duplicate matching normalizes internationalized DNS names (CI #196 verified)
-- [x] Bound CONNECT profile names and Windows usernames; reject control characters and test length boundaries (pending CI)
+- [x] Bound CONNECT profile names and Windows usernames; reject control characters and test length boundaries (CI #233 verified)
 
 
 - [x] Notification text sanitizer removes control characters while preserving readable line breaks and tabs (unit regression tests; CI validation status tracked in earlier runs).
@@ -28,8 +28,8 @@ This roadmap is a work plan; checkboxes indicate completion only after evidence 
 - [x] Partial copy retry retains only unconfirmed items in original order (implementation and regression tests; CI #230 passed).
 - [x] Add live folder-scoped filename search to File Explorer UI (CI #228 verified).
 - [x] SAF enumeration tolerates providers omitting optional MIME/size columns; missing size is displayed as unavailable (CI #217 and MIME hardening CI #231 verified).
-- [x] SAF listing skips malformed rows with blank document IDs and supplies a safe fallback for blank display names (implementation and regression tests; pending CI).
-- [ ] ORBIT: verify metric labels, sampling lifecycle, thermal and battery reporting, layout on narrow screens; sampling now propagates coroutine cancellation correctly (pending CI).
+- [x] SAF listing skips malformed rows with blank document IDs, supplies safe display-name fallbacks, and isolates malformed provider rows (CI #234 verified).
+- [ ] ORBIT: verify metric labels, sampling lifecycle, thermal and battery reporting, layout on narrow screens; sampling now propagates coroutine cancellation correctly (CI #232 verified; physical-device checks remain pending).
 - [x] ORBIT monitor clears displayed telemetry when a sampling cycle fails instead of presenting stale values (validated by successful CI #220)
 - [ ] Notifications: physical-device permission UX, disconnect/reconnect, privacy display options, open/dismiss behavior
 - [x] Add direct system-settings shortcut when notification-listener permission is not granted (validated by successful CI #220; device UX still pending)
