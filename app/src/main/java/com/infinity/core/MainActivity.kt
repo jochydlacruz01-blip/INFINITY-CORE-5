@@ -160,11 +160,12 @@ private fun Infinity08App() {
         }
     }
 
-    val wallpaperBitmap by produceState(
-        initialValue = null as androidx.compose.ui.graphics.ImageBitmap?,
-        key1 = wallpaperUri
-    ) {
+    var wallpaperBitmap by remember {
+        mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(null)
+    }
+    LaunchedEffect(wallpaperUri) {
         val uri = wallpaperUri
+        wallpaperBitmap = null
         val decoded = if (uri == null) {
             null
         } else {
@@ -192,10 +193,8 @@ private fun Infinity08App() {
                 }
             }
         }
-        // Always publish a value, including when no wallpaper URI is selected.
-        value = decoded
+        wallpaperBitmap = decoded
         if (uri != null && decoded == null && wallpaperUri == uri) {
-            // Clear only the failed URI; never erase a newer wallpaper selection.
             if (prefs.getString("wallpaper_uri", null) == uri.toString()) {
                 prefs.edit().remove("wallpaper_uri").apply()
             }
