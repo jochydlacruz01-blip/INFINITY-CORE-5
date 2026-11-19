@@ -79,6 +79,29 @@ class MainActivity : ComponentActivity() {
 }
 
 private data class DeskItem(val id: String, val label: String, val glyph: String)
+
+@Composable
+private fun InfinityAppBadge(item: DeskItem, size: androidx.compose.ui.unit.Dp, accent: Color) {
+    val identity = when (item.id) {
+        "files" -> Color(0xFF48B5FF)
+        "notes" -> Color(0xFFFFC66D)
+        "apps" -> Color(0xFFB69CFF)
+        "connect" -> Color(0xFF55D6A4)
+        "settings" -> Color(0xFFFF8E78)
+        else -> Color(0xFF56D6C9)
+    }
+    Box(
+        Modifier.size(size).shadow(14.dp, RoundedCornerShape(size * .25f))
+            .background(Brush.linearGradient(listOf(identity.copy(.36f), Color(0xFF142A43), Color(0xFF101827))), RoundedCornerShape(size * .25f))
+            .border(1.4.dp, identity.copy(.82f), RoundedCornerShape(size * .25f)),
+        contentAlignment = Alignment.Center
+    ) {
+        Box(Modifier.fillMaxSize().padding(size * .12f).border(1.dp, Color.White.copy(.08f), RoundedCornerShape(size * .2f)))
+        Text(item.glyph, color = identity, fontSize = (size.value * .53f).sp, fontWeight = FontWeight.Black)
+        Box(Modifier.align(Alignment.BottomEnd).padding(size * .10f).size(size * .10f).background(accent, CircleShape))
+    }
+}
+
 private data class DeskWindow(
     val id: String,
     val title: String,
@@ -408,37 +431,7 @@ val iconOffsets = remember {
                         }
                         .padding(6.dp)
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size((iconSize + 8f).dp)
-                            .shadow(
-                                16.dp,
-                                RoundedCornerShape(21.dp)
-                            )
-                            .background(
-                                Brush.linearGradient(
-                                    listOf(
-                                        Color(0xFF315B80),
-                                        Color(0xFF142A43),
-                                        Color(0xFF101827)
-                                    )
-                                ),
-                                RoundedCornerShape(21.dp)
-                            )
-                            .border(
-                                1.5.dp,
-                                accent.copy(alpha = 0.75f),
-                                RoundedCornerShape(21.dp)
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            item.glyph,
-                            color = accent,
-                            fontSize = 31.sp,
-                            fontWeight = FontWeight.Black
-                        )
-                    }
+                    InfinityAppBadge(item, (iconSize + 8f).dp, accent)
 
                     Spacer(Modifier.height(7.dp))
 
@@ -687,7 +680,7 @@ DockAction("▤", "ADVANCED", accent) {
                                         }.padding(9.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text(item.glyph, color = accent, fontSize = 20.sp)
+                                    InfinityAppBadge(item, 34.dp, accent)
                                     Text(item.label, color = Color.White, modifier = Modifier.padding(start = 12.dp))
                                 }
                             }
