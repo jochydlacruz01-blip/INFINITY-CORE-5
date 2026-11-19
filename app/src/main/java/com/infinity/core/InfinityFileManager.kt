@@ -300,42 +300,59 @@ internal fun InfinityFileManager(
             ) {
                 items(visibleEntries, key = { it.id }) { entry ->
                     val isSelected = entry.id in selected
-                    Row(
-                        Modifier.fillMaxWidth()
-                            .padding(vertical = 3.dp)
-                            .background(if (isSelected) accent.copy(alpha = .16f) else Color(0x331B2B40), RoundedCornerShape(10.dp))
-                            .border(1.dp, if (isSelected) accent.copy(.65f) else Color.White.copy(.06f), RoundedCornerShape(10.dp))
-                            .clickable {
+                    val itemModifier = Modifier
+                        .fillMaxWidth()
+                        .padding(4.dp)
+                        .background(if (isSelected) accent.copy(alpha = .16f) else Color(0x331B2B40), RoundedCornerShape(12.dp))
+                        .border(1.dp, if (isSelected) accent.copy(.7f) else Color.White.copy(.07f), RoundedCornerShape(12.dp))
+                    val activateEntry: () -> Unit = {
+                        if (selected.isNotEmpty()) {
+                            selected = if (isSelected) selected - entry.id else selected + entry.id
+                        } else if (entry.isFolder) {
+                            currentId = entry.id
+                            folderIds = folderIds + entry.id
+                            folderPath = folderPath + entry.name
+                        } else {
+                            documentUri(entry.id)?.let { onOpenFile(it, entry.mime) }
+                        }
+                    }
+                    val fileSummary = if (entry.isFolder) "Carpeta" else "${if (entry.size > 0) "${(entry.size / 1024).coerceAtLeast(1)} KB" else "Tamaño no disponible"} • ${entry.mime ?: "Archivo"}"
+                    if (gridView) {
+                        Column(
+                            itemModifier.clickable(onClick = activateEntry).padding(12.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(7.dp)
+                        ) {
+                            Text(if (entry.isFolder) "📁" else "📄", fontSize = 32.sp)
+                            Text(entry.name, color = Color.White, fontSize = 11.sp, maxLines = 2, overflow = TextOverflow.Ellipsis, minLines = 2)
+                            Text(fileSummary, color = Color(0xFFB7C7D9), fontSize = 9.sp, maxLines = 2, minLines = 2, overflow = TextOverflow.Ellipsis)
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+                                TextButton(onClick = { detailsEntry = entry }) { Text("Detalles") }
                                 if (selected.isNotEmpty()) {
-                                    selected = if (isSelected) selected - entry.id else selected + entry.id
-                                } else if (entry.isFolder) {
-                                    currentId = entry.id
-                                    folderIds = folderIds + entry.id
-                                    folderPath = folderPath + entry.name
-                                } else {
-                                    documentUri(entry.id)?.let { onOpenFile(it, entry.mime) }
+                                    Checkbox(checked = isSelected, onCheckedChange = { checked -> selected = if (checked) selected + entry.id else selected - entry.id })
+                                } else if (!entry.isFolder) {
+                                    TextButton(onClick = { selected = setOf(entry.id) }) { Text("Elegir") }
                                 }
                             }
-                            .padding(horizontal = 9.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(if (entry.isFolder) "📁" else "📄", fontSize = 20.sp)
-                        Column(Modifier.weight(1f).padding(start = 9.dp)) {
-                            Text(entry.name, color = Color.White, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            Text(
-                                if (entry.isFolder) "Carpeta" else "${if (entry.size > 0) "${(entry.size / 1024).coerceAtLeast(1)} KB" else "Tamaño no disponible"} • ${entry.mime ?: "Archivo"}",
-                                color = Color(0xFFB7C7D9), fontSize = 9.sp, maxLines = 1, overflow = TextOverflow.Ellipsis
-                            )
                         }
-                        TextButton(onClick = { detailsEntry = entry }) { Text("Detalles") }
-                        if (selected.isNotEmpty()) {
-                            Checkbox(checked = isSelected, onCheckedChange = {
-                                selected = if (it) selected + entry.id else selected - entry.id
-                            })
-                        } else if (entry.isFolder) {
-                            Text("›", color = accent, fontSize = 22.sp)
-                        } else {
-                            TextButton(onClick = { selected = setOf(entry.id) }) { Text("Seleccionar") }
+                    } else {
+                        Row(
+                            itemModifier.clickable(onClick = activateEntry).padding(horizontal = 9.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(if (entry.isFolder) "📁" else "📄", fontSize = 20.sp)
+                            Column(Modifier.weight(1f).padding(start = 9.dp)) {
+                                Text(entry.name, color = Color.White, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Text(fileSummary, color = Color(0xFFB7C7D9), fontSize = 9.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            }
+                            TextButton(onClick = { detailsEntry = entry }) { Text("Detalles") }
+                            if (selected.isNotEmpty()) {
+                                Checkbox(checked = isSelected, onCheckedChange = { checked -> selected = if (checked) selected + entry.id else selected - entry.id })
+                            } else if (entry.isFolder) {
+                                Text("›", color = accent, fontSize = 22.sp)
+                            } else {
+                                TextButton(onClick = { selected = setOf(entry.id) }) { Text("Seleccionar") }
+                            }
                         }
                     }
                 }
