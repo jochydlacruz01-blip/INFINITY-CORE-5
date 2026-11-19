@@ -34,3 +34,10 @@ internal fun formatInfinityMimeType(mime: String?): String {
 
 /** Unknown sizes sort after files with a known size. */
 internal fun infinityFileSizeSortRank(bytes: Long): Int = if (bytes < 0L) 1 else 0
+
+/** Prevents no-op copy/move operations within the same parent folder. */
+internal fun isSameInfinityFolder(sourceFolderId: String?, targetFolderId: String?): Boolean {
+    return !sourceFolderId.isNullOrBlank() &&
+        !targetFolderId.isNullOrBlank() &&
+        sourceFolderId == targetFolderId
+}
