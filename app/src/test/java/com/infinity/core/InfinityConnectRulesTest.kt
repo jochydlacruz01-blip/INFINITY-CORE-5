@@ -145,4 +145,17 @@ class InfinityConnectRulesTest {
         }
     }
 
+    @Test
+    fun portableFileNamesRejectUnsafeAndOverlongValues() {
+        assertTrue(isValidInfinityDocumentName("Informe final.pdf"))
+        assertFalse(isValidInfinityDocumentName(""))
+        assertFalse(isValidInfinityDocumentName("  "))
+        assertFalse(isValidInfinityDocumentName("."))
+        assertFalse(isValidInfinityDocumentName(".."))
+        assertFalse(isValidInfinityDocumentName("folder/name"))
+        assertFalse(isValidInfinityDocumentName("folder\\\\name"))
+        assertFalse(isValidInfinityDocumentName("x".repeat(256)))
+        assertFalse(isValidInfinityDocumentName("line\\nfeed"))
+    }
+
 }
