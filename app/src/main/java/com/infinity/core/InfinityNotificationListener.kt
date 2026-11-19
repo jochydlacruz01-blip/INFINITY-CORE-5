@@ -23,11 +23,11 @@ data class InfinityNotification(
     val contentIntent: PendingIntent?
 )
 
-object InfinityNotificationStore {
+private const val MAX_NOTIFICATIONS = 100
+private const val MAX_TITLE_LENGTH = 300
+private const val MAX_MESSAGE_LENGTH = 2_000
 
-    private const val MAX_NOTIFICATIONS = 100
-    private const val MAX_TITLE_LENGTH = 300
-    private const val MAX_MESSAGE_LENGTH = 2_000
+object InfinityNotificationStore {
 
     val notifications = mutableStateListOf<InfinityNotification>()
     val accessEnabled = mutableStateOf(false)
