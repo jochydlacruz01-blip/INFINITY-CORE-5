@@ -8,6 +8,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -63,6 +66,7 @@ internal fun InfinityFileManager(
     var clipboardIsMove by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
     var detailsEntry by remember { mutableStateOf<InfinityFileEntry?>(null) }
+    var gridView by remember { mutableStateOf(false) }
 
     LaunchedEffect(rootUri, currentId, refreshKey) {
         val tree = rootUri
@@ -207,6 +211,7 @@ internal fun InfinityFileManager(
                 singleLine = true,
                 placeholder = { Text("Buscar archivos…", fontSize = 11.sp) }
             )
+            OutlinedButton(onClick = { gridView = !gridView }) { Text(if (gridView) "Lista" else "Cuadrícula") }
             Box {
                 OutlinedButton(onClick = { sortMenu = true }) { Text("Ordenar") }
                 DropdownMenu(expanded = sortMenu, onDismissRequest = { sortMenu = false }) {
@@ -279,7 +284,10 @@ internal fun InfinityFileManager(
                 Text(if (search.isBlank()) "Esta carpeta está vacía." else "No hay resultados.", color = Color(0xFFB7C7D9), fontSize = 12.sp)
             }
         } else {
-            LazyColumn(Modifier.fillMaxSize()) {
+            LazyVerticalGrid(
+                columns = GridCells.Adaptive(minSize = if (gridView) 150.dp else 900.dp),
+                modifier = Modifier.fillMaxSize()
+            ) {
                 items(visibleEntries, key = { it.id }) { entry ->
                     val isSelected = entry.id in selected
                     Row(
