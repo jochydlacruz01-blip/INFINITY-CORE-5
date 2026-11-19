@@ -24,7 +24,8 @@ This roadmap is a work plan; checkboxes indicate completion only after evidence 
 
 ## Core modules
 - [ ] File Manager: provider compatibility, refresh, navigation, selections, clipboard operations, viewers
-- [x] Partial copy retry retains only unconfirmed items in original order (implementation and regression tests added; pending CI validation)\n- [ ] Add live folder-scoped filename search to File Explorer UI (fix compile issue and validate in CI)
+- [x] Partial copy retry retains only unconfirmed items in original order (implementation and regression tests added; CI #230 pending validation)
+- [ ] Add live folder-scoped filename search to File Explorer UI (fix compile issue and validate in CI)
 - [x] SAF enumeration tolerates providers omitting optional MIME/size columns; missing size is displayed as unavailable (CI #217 verified).
 - [ ] ORBIT: verify metric labels, sampling lifecycle, thermal and battery reporting, layout on narrow screens
 - [x] ORBIT monitor clears displayed telemetry when a sampling cycle fails instead of presenting stale values (validated by successful CI #220)
@@ -32,7 +33,8 @@ This roadmap is a work plan; checkboxes indicate completion only after evidence 
 - [x] Add direct system-settings shortcut when notification-listener permission is not granted (validated by successful CI #220; device UX still pending)
 - [x] Notification privacy redaction: hidden titles/messages are not retained in the in-memory feed; existing feed entries are sanitized when protection is enabled (unit tests and CI #228 verified). Android permission and physical-device behavior remain pending.
 - [ ] CONNECT: profile management UX, security review, RDP native feasibility and device testing
-- [x] Extend CONNECT hostname/IP rejection regression coverage (CI #225 verified)\n- [x] Expand File Manager Unicode filename and control-character boundary tests (added in this batch; pending CI)
+- [x] Extend CONNECT hostname/IP rejection regression coverage (CI #225 verified)
+- [x] Expand File Manager Unicode filename and control-character boundary tests (added in this batch; CI #230 pending validation)
 
 ## Real RDP integration gate
 - [ ] Pin an upstream FreeRDP release and audit license/security changes
