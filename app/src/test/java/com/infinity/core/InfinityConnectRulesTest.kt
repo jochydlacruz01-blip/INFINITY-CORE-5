@@ -84,4 +84,19 @@ class InfinityConnectRulesTest {
         assertEquals("Instalador APK", formatInfinityMimeType("application/vnd.android.package-archive"))
         assertEquals("Tipo no disponible", formatInfinityMimeType(null))
     }
+    @Test
+    fun sortsEntriesWithUnknownSizesAfterKnownSizes() {
+        assertEquals(0, infinityFileSizeSortRank(0))
+        assertEquals(0, infinityFileSizeSortRank(1024))
+        assertEquals(1, infinityFileSizeSortRank(-1))
+        assertEquals(1, infinityFileSizeSortRank(-100))
+    }
+
+    @Test
+    fun mimeFormattingIsCaseInsensitiveAndHasReadableFallback() {
+        assertEquals("Documento PDF", formatInfinityMimeType("APPLICATION/PDF"))
+        assertEquals("JPEG", formatInfinityMimeType("application/jpeg"))
+        assertEquals("X CUSTOM FORMAT", formatInfinityMimeType("application/x-custom-format"))
+    }
+
 }
