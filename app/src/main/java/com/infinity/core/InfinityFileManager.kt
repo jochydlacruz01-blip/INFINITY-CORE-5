@@ -335,9 +335,14 @@ internal fun InfinityFileManager(
                     }) { Text("Renombrar") }
                 }
                 Text(folderPath.joinToString(" > "), color = Color(0xFFB7C7D9), fontSize = 10.sp, maxLines = 1)
+                val allVisibleSelected = visibleEntries.isNotEmpty() && visibleEntries.all { it.id in selected }
                 OutlinedButton(onClick = {
-                    selected = if (selected.size == visibleEntries.size) emptySet() else visibleEntries.map { it.id }.toSet()
-                }) { Text(if (visibleEntries.isNotEmpty() && selected.size == visibleEntries.size) "Quitar selección" else "Seleccionar todo") }
+                    selected = if (allVisibleSelected) {
+                        selected - visibleEntries.map { it.id }.toSet()
+                    } else {
+                        selected + visibleEntries.map { it.id }
+                    }
+                }) { Text(if (allVisibleSelected) "Quitar selección" else "Seleccionar todo") }
                 if (selected.isNotEmpty()) {
                     OutlinedButton(onClick = { stageClipboard(false) }) { Text("Copiar") }
                     OutlinedButton(onClick = { stageClipboard(true) }) { Text("Cortar") }
