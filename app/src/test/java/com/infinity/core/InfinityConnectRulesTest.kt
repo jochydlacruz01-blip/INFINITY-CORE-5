@@ -8,6 +8,18 @@ import org.junit.Test
 class InfinityConnectRulesTest {
 
     @Test
+    fun acceptsHostnamesAndIpLiteralsWithoutUrlSyntax() {
+        assertTrue(isValidInfinityHost("192.168.1.100"))
+        assertTrue(isValidInfinityHost("office-pc.local"))
+        assertTrue(isValidInfinityHost("2001:db8::1"))
+        assertTrue(isValidInfinityHost("fe80::1%wlan0"))
+        assertFalse(isValidInfinityHost(""))
+        assertFalse(isValidInfinityHost("https://office-pc"))
+        assertFalse(isValidInfinityHost("office pc"))
+        assertFalse(isValidInfinityHost("office..pc"))
+    }
+
+    @Test
     fun acceptsValidPortBoundaries() {
         assertEquals(1, parseInfinityPort("1"))
         assertEquals(3389, parseInfinityPort("3389"))
