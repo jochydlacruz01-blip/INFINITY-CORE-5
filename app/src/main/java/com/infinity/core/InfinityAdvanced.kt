@@ -48,7 +48,7 @@ fun InfinityAdvancedPanel(
     onClose: () -> Unit
 ) {
     val context = LocalContext.current
-        val privacyPrefs = remember {
+    val privacyPrefs = remember {
         context.getSharedPreferences("infinity_privacy", Context.MODE_PRIVATE)
     }
 
@@ -68,18 +68,16 @@ fun InfinityAdvancedPanel(
         )
     ) {
         Column(
-    modifier = Modifier
-        .padding(18.dp)
-        .verticalScroll(rememberScrollState()),
-    verticalArrangement = Arrangement.spacedBy(14.dp)
-) {
+            modifier = Modifier
+                .padding(18.dp)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
             Row(
-    modifier = Modifier.fillMaxWidth(),
-    verticalAlignment = Alignment.CenterVertically
-) {
-    Column(modifier = Modifier.weight(1f)) {
-       
-           
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         "INFINITY ADVANCED",
                         color = Color.White,
@@ -158,7 +156,6 @@ fun InfinityAdvancedPanel(
                 fontWeight = FontWeight.Bold
             )
 
-            
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(17.dp),
@@ -207,56 +204,57 @@ fun InfinityAdvancedPanel(
                         )
                     }
 
-                
-                     Row(
-    modifier = Modifier.fillMaxWidth(),
-    verticalAlignment = Alignment.CenterVertically
-) {
-    Column(modifier = Modifier.weight(1f)) {
-        Text(
-            "OCULTAR CONTENIDO PRIVADO",
-            color = AdvancedMuted,
-            fontSize = 9.sp,
-            fontWeight = FontWeight.Bold
-        )
-        Text(
-            "Oculta títulos y mensajes de las notificaciones",
-            color = AdvancedMuted,
-            fontSize = 9.sp
-        )
-    }
-
-    Switch(
-        checked = hideNotificationContent,
-        onCheckedChange = { enabled ->
-            hideNotificationContent = enabled
-            privacyPrefs.edit()
-                .putBoolean("hide_notification_content", enabled)
-                .apply()
-        }
-    )
-}
                     Row(
-    modifier = Modifier.fillMaxWidth(),
-    verticalAlignment = Alignment.CenterVertically
-) {
-    Text(
-        "NOTIFICACIONES RECIBIDAS",
-        color = AdvancedAccent,
-        fontSize = 10.sp,
-        fontWeight = FontWeight.Bold,
-        modifier = Modifier.weight(1f)
-    )
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                "OCULTAR CONTENIDO PRIVADO",
+                                color = AdvancedMuted,
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                "Evita guardar títulos y mensajes en el feed mientras esté activado",
+                                color = AdvancedMuted,
+                                fontSize = 9.sp
+                            )
+                        }
 
-    TextButton(
-        onClick = {
-            InfinityNotificationStore.clearAll()
-        },
-        enabled = InfinityNotificationStore.notifications.isNotEmpty()
-    ) {
-        Text("LIMPIAR", color = AdvancedAccent, fontSize = 9.sp)
-    }
-}
+                        Switch(
+                            checked = hideNotificationContent,
+                            onCheckedChange = { enabled ->
+                                hideNotificationContent = enabled
+                                privacyPrefs.edit()
+                                    .putBoolean("hide_notification_content", enabled)
+                                    .apply()
+                                InfinityNotificationStore.setHideContent(enabled)
+                            }
+                        )
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            "NOTIFICACIONES RECIBIDAS",
+                            color = AdvancedAccent,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.weight(1f)
+                        )
+
+                        TextButton(
+                            onClick = {
+                                InfinityNotificationStore.clearAll()
+                            },
+                            enabled = InfinityNotificationStore.notifications.isNotEmpty()
+                        ) {
+                            Text("LIMPIAR", color = AdvancedAccent, fontSize = 9.sp)
+                        }
+                    }
 
                     if (InfinityNotificationStore.notifications.isEmpty()) {
                         Text(
@@ -303,32 +301,31 @@ fun InfinityAdvancedPanel(
                                             )
                                         }
 
-  if (hideNotificationContent) {
-    Text(
-        "Contenido oculto por privacidad",
-        color = AdvancedMuted,
-        fontSize = 11.sp
-    )
-} else {
-    Text(
-        notification.title.ifBlank { "Notificación" },
-        color = Color.White,
-        fontWeight = FontWeight.Bold,
-        fontSize = 12.sp
-    )
-    Text(
-        notification.message,
-        color = AdvancedMuted,
-        fontSize = 11.sp
-    )
-} 
-  
+                                        if (hideNotificationContent) {
+                                            Text(
+                                                "Contenido oculto por privacidad",
+                                                color = AdvancedMuted,
+                                                fontSize = 11.sp
+                                            )
+                                        } else {
+                                            Text(
+                                                notification.title.ifBlank { "Notificación" },
+                                                color = Color.White,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 12.sp
+                                            )
+                                            Text(
+                                                notification.message,
+                                                color = AdvancedMuted,
+                                                fontSize = 11.sp
+                                            )
+                                        }
+
                                         Row {
                                             TextButton(
                                                 onClick = {
                                                     InfinityNotificationStore.open(notification)
-                                                },
-                                                
+                                                }
                                             ) {
                                                 Text("ABRIR", color = AdvancedAccent)
                                             }
@@ -338,8 +335,7 @@ fun InfinityAdvancedPanel(
                                                     InfinityNotificationStore.dismiss(
                                                         notification.key
                                                     )
-                                                },
-                                                
+                                                }
                                             ) {
                                                 Text("DESCARTAR", color = AdvancedMuted)
                                             }
@@ -352,7 +348,6 @@ fun InfinityAdvancedPanel(
                 }
             }
 
-            
             Text(
                 "INFINITY ADVANCED · MÓDULO 1",
                 color = AdvancedMuted,

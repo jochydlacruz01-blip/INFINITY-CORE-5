@@ -13,6 +13,7 @@ class InfinityNotificationRulesTest {
         assertEquals(300, infinityNotificationTitle("x".repeat(500)).length)
         assertEquals(2_000, infinityNotificationMessage("x".repeat(2_500)).length)
     }
+
     @Test
     fun appLabelsAreNullSafeAndBounded() {
         assertEquals("", infinityNotificationAppName(null))
@@ -20,4 +21,22 @@ class InfinityNotificationRulesTest {
         assertEquals(200, infinityNotificationAppName("x".repeat(250)).length)
     }
 
+    @Test
+    fun privateNotificationContentIsRedactedBeforeStorage() {
+        assertEquals(
+            "" to "",
+            infinityNotificationContent("Private title", "Private message", true)
+        )
+    }
+
+    @Test
+    fun visibleNotificationContentRemainsBounded() {
+        val content = infinityNotificationContent(
+            "T".repeat(400),
+            "M".repeat(2_500),
+            false
+        )
+        assertEquals(300, content.first.length)
+        assertEquals(2_000, content.second.length)
+    }
 }

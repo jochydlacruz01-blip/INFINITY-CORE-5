@@ -3,6 +3,7 @@ package com.infinity.core
 import android.app.Notification
 import android.app.PendingIntent
 import android.app.ActivityOptions
+import android.content.Context
 import android.os.Build
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
@@ -34,16 +35,39 @@ object InfinityNotificationStore {
 
     private val mainHandler = Handler(Looper.getMainLooper())
 
+    @Volatile
+    private var hideContent = true
+
+    internal fun setHideContent(enabled: Boolean) {
+        hideContent = enabled
+        if (enabled) {
+            mainHandler.post {
+                notifications.indices.forEach { index ->
+                    val current = notifications[index]
+                    if (current.title.isNotEmpty() || current.message.isNotEmpty()) {
+                        notifications[index] = current.copy(title = "", message = "")
+                    }
+                }
+            }
+        }
+    }
+
     internal fun update(notification: InfinityNotification) {
+        val safeNotification = if (hideContent) {
+            notification.copy(title = "", message = "")
+        } else {
+            notification
+        }
+
         mainHandler.post {
             val index = notifications.indexOfFirst {
-                it.key == notification.key
+                it.key == safeNotification.key
             }
 
             if (index >= 0) {
-                notifications[index] = notification
+                notifications[index] = safeNotification
             } else {
-                notifications.add(0, notification)
+                notifications.add(0, safeNotification)
             }
 
             // Keep the in-memory notification feed bounded.
@@ -65,27 +89,27 @@ object InfinityNotificationStore {
     }
 
     internal fun disconnected() {
-    service = null
-    accessEnabled.value = false
+        service = null
+        accessEnabled.value = false
 
-    mainHandler.post {
-        notifications.clear()
+        mainHandler.post {
+            notifications.clear()
+        }
     }
-}
 
     fun dismiss(key: String) {
-    service?.dismissNotification(key)
-}
+        service?.dismissNotification(key)
+    }
 
     fun clearAll() {
-    // Limpiar únicamente la lista local de INFINITY.
-    // No retirar las notificaciones del panel de Android.
-    mainHandler.post {
-        notifications.clear()
+        // Limpiar únicamente la lista local de INFINITY.
+        // No retirar las notificaciones del panel de Android.
+        mainHandler.post {
+            notifications.clear()
+        }
     }
-}
 
-          fun open(notification: InfinityNotification) {
+    fun open(notification: InfinityNotification) {
         service?.openNotification(notification)
     }
 }
@@ -100,51 +124,52 @@ class InfinityNotificationListener : NotificationListenerService() {
         }
     }
 
-   internal fun openNotification(notification: InfinityNotification) {
-    try {
-        val pendingIntent = notification.contentIntent
+    internal fun openNotification(notification: InfinityNotification) {
+        try {
+            val pendingIntent = notification.contentIntent
 
-        if (pendingIntent != null) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                val options = ActivityOptions.makeBasic()
-                    .setPendingIntentBackgroundActivityStartMode(
-                        ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED
+            if (pendingIntent != null) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                    val options = ActivityOptions.makeBasic()
+                        .setPendingIntentBackgroundActivityStartMode(
+                            ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED
+                        )
+
+                    pendingIntent.send(
+                        this,
+                        0,
+                        null,
+                        null,
+                        null,
+                        null,
+                        options.toBundle()
                     )
+                } else {
+                    pendingIntent.send()
+                }
 
-                pendingIntent.send(
-                    this,
-                    0,
-                    null,
-                    null,
-                    null,
-                    null,
-                    options.toBundle()
-                )
-            } else {
-                pendingIntent.send()
+                return
             }
-
-            return
+        } catch (_: Exception) {
+            // Continuar con el método alternativo.
         }
-    } catch (_: Exception) {
-        // Continuar con el método alternativo.
+
+        try {
+            val launchIntent = packageManager
+                .getLaunchIntentForPackage(notification.packageName)
+
+            if (launchIntent != null) {
+                launchIntent.addFlags(
+                    android.content.Intent.FLAG_ACTIVITY_NEW_TASK or
+                        android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP
+                )
+                startActivity(launchIntent)
+            }
+        } catch (_: Exception) {
+            // La aplicación puede no permitir este inicio.
+        }
     }
 
-    try {
-        val launchIntent = packageManager
-            .getLaunchIntentForPackage(notification.packageName)
-
-        if (launchIntent != null) {
-            launchIntent.addFlags(
-                android.content.Intent.FLAG_ACTIVITY_NEW_TASK or
-                    android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP
-            )
-            startActivity(launchIntent)
-        }
-    } catch (_: Exception) {
-        // La aplicación puede no permitir este inicio.
-    }
-}
     override fun onListenerConnected() {
         super.onListenerConnected()
 
@@ -168,49 +193,53 @@ class InfinityNotificationListener : NotificationListenerService() {
         InfinityNotificationStore.remove(sbn.key)
     }
 
-   
-private fun publishNotification(sbn: StatusBarNotification) {
-    try {
-        val notification = sbn.notification ?: return
-        val extras = notification.extras
+    private fun publishNotification(sbn: StatusBarNotification) {
+        try {
+            val notification = sbn.notification ?: return
+            val extras = notification.extras
 
-        val title = extras
-            .getCharSequence(Notification.EXTRA_TITLE)
-            ?.toString()
-            .orEmpty()
-            .let(::infinityNotificationTitle)
+            val rawTitle = extras
+                .getCharSequence(Notification.EXTRA_TITLE)
+                ?.toString()
 
-        val message = (
-            extras.getCharSequence(Notification.EXTRA_BIG_TEXT)
-                ?: extras.getCharSequence(Notification.EXTRA_TEXT)
-                ?: extras.getCharSequence(Notification.EXTRA_SUB_TEXT)
-        )?.toString().orEmpty().let(::infinityNotificationMessage)
+            val rawMessage = (
+                extras.getCharSequence(Notification.EXTRA_BIG_TEXT)
+                    ?: extras.getCharSequence(Notification.EXTRA_TEXT)
+                    ?: extras.getCharSequence(Notification.EXTRA_SUB_TEXT)
+            )?.toString()
 
-        val appName = try {
-            packageManager.getApplicationLabel(
-                packageManager.getApplicationInfo(sbn.packageName, 0)
-            ).toString().let(::infinityNotificationAppName)
-        } catch (_: Exception) {
-            sbn.packageName
-        }
+            val hideContent = getSharedPreferences(
+                "infinity_privacy",
+                Context.MODE_PRIVATE
+            ).getBoolean("hide_notification_content", true)
 
-        InfinityNotificationStore.update(
-            InfinityNotification(
-                key = sbn.key,
-                packageName = sbn.packageName,
-                appName = appName,
-                title = title,
-                message = message,
-                timestamp = sbn.postTime,
-                ongoing = notification.flags and
-                    Notification.FLAG_ONGOING_EVENT != 0,
-                clearable = sbn.isClearable,
-                contentIntent = notification.contentIntent
+            InfinityNotificationStore.setHideContent(hideContent)
+            val content = infinityNotificationContent(rawTitle, rawMessage, hideContent)
+
+            val appName = try {
+                packageManager.getApplicationLabel(
+                    packageManager.getApplicationInfo(sbn.packageName, 0)
+                ).toString().let(::infinityNotificationAppName)
+            } catch (_: Exception) {
+                sbn.packageName
+            }
+
+            InfinityNotificationStore.update(
+                InfinityNotification(
+                    key = sbn.key,
+                    packageName = sbn.packageName,
+                    appName = appName,
+                    title = content.first,
+                    message = content.second,
+                    timestamp = sbn.postTime,
+                    ongoing = notification.flags and
+                        Notification.FLAG_ONGOING_EVENT != 0,
+                    clearable = sbn.isClearable,
+                    contentIntent = notification.contentIntent
+                )
             )
-        )
-    } catch (_: Exception) {
-        // Ignorar notificaciones defectuosas sin cerrar INFINITY.
+        } catch (_: Exception) {
+            // Ignorar notificaciones defectuosas sin cerrar INFINITY.
+        }
     }
 }
-} 
-
