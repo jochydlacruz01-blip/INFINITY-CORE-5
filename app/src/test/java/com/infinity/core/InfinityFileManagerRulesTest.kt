@@ -32,6 +32,15 @@ class InfinityFileManagerRulesTest {
         assertEquals("1.0 MB", formatInfinityFileSize(1024L * 1024L))
         assertEquals("1.00 GB", formatInfinityFileSize(1024L * 1024L * 1024L))
     }
+    @Test fun fileSizeFormattingHandlesLongMaximumWithoutOverflow() {
+        val formatted = formatInfinityFileSize(Long.MAX_VALUE)
+        assertTrue(formatted.endsWith(" GB"))
+        assertFalse(formatted.startsWith("-"))
+        assertEquals("1023 B", formatInfinityFileSize(1023L))
+        assertEquals("1.0 KB", formatInfinityFileSize(1024L))
+        assertEquals("1.0 MB", formatInfinityFileSize(1024L * 1024L))
+    }
+
 
     @Test fun mimeFormattingHandlesUnknownAndCommonTypes() {
         assertEquals("Tipo no disponible", formatInfinityMimeType(null))

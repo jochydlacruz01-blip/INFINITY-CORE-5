@@ -5,7 +5,7 @@ Current app version remains 0.10.0 / versionCode 7 until a deliberate release mi
 This roadmap is a work plan; checkboxes indicate completion only after evidence and testing.
 
 ## Stabilization and regression
-- [x] Load wallpaper images off the main thread with bounded downsampling, cancellation propagation and stale-URI-safe recovery when a persisted SAF grant or provider becomes unavailable (implementation; CI validation pending).
+- [x] Load wallpaper images off the main thread with bounded downsampling, cancellation propagation and stale-URI-safe recovery when a persisted SAF grant or provider becomes unavailable (CI #252 passed after replacing the lint-rejected producer with a lifecycle-scoped effect).
 - [x] CI Debug/Release build and signed Release artifact validation workflow
 - [x] Latest privacy changes passed Debug/Release builds, lint, unit tests and Release APK signature verification (CI #228); Debug and signed Release artifacts published.
 - [x] Unit tests for CONNECT host/port validation
@@ -13,7 +13,7 @@ This roadmap is a work plan; checkboxes indicate completion only after evidence 
 - [x] Bounded notification text rules
 - [x] File Manager capability helper rules and regression tests (CI verified)
 - [ ] Physical-device SAF testing across document providers
-- [x] Wallpaper picker persists its SAF URI only after Android confirms the read grant; denied persistence falls back to session-only use with a user notice (CI #248 verified).
+- [x] Wallpaper picker persists its SAF URI only after Android confirms the read grant; denied persistence falls back to session-only use with a user notice (CI #248 verified; async loading and recovery passed CI #252).
 - [x] Prevent cancelled older SAF listing requests from clearing the loading state of a newer folder/refresh request (implementation and regression test; CI #247 verified).
 - [x] Retain failed delete targets in selection for retry (logic covered by unit tests; CI #192 verified)
 - [x] Expand filename boundary, MIME fallback and retry-order regression tests (CI #195 verified)
