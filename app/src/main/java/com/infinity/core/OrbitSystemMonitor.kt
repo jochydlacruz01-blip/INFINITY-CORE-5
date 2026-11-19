@@ -169,9 +169,9 @@ fun OrbitSystemMonitor(
         ) {
             OrbitMetric(
                 modifier = Modifier.weight(1f),
-                label = "ALMACENAMIENTO",
+                label = "ALMAC. INFINITY",
                 value = "$storagePercent%",
-                detail = storageDetail,
+                detail = "Datos de INFINITY · $storageDetail",
                 accent = accent
             )
             OrbitMetric(
