@@ -31,3 +31,6 @@ internal fun formatInfinityMimeType(mime: String?): String {
             .uppercase(Locale.getDefault())
     }
 }
+
+/** Unknown sizes sort after files with a known size. */
+internal fun infinityFileSizeSortRank(bytes: Long): Int = if (bytes < 0L) 1 else 0
