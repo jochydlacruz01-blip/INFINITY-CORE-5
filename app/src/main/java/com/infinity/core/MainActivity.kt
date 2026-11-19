@@ -165,9 +165,10 @@ private fun Infinity08App() {
         key1 = wallpaperUri
     ) {
         val uri = wallpaperUri
-        value = null
-        if (uri != null) {
-            val decoded = withContext(Dispatchers.IO) {
+        val decoded = if (uri == null) {
+            null
+        } else {
+            withContext(Dispatchers.IO) {
                 try {
                     val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
                     context.contentResolver.openInputStream(uri)?.use {
@@ -190,19 +191,20 @@ private fun Infinity08App() {
                     null
                 }
             }
-            value = decoded
-            if (decoded == null && wallpaperUri == uri) {
-                // Clear only the failed URI; never erase a newer wallpaper selection.
-                if (prefs.getString("wallpaper_uri", null) == uri.toString()) {
-                    prefs.edit().remove("wallpaper_uri").apply()
-                }
-                wallpaperUri = null
-                Toast.makeText(
-                    context,
-                    "No se pudo acceder al fondo guardado. Selecciona otra imagen.",
-                    Toast.LENGTH_LONG
-                ).show()
+        }
+        // Always publish a value, including when no wallpaper URI is selected.
+        value = decoded
+        if (uri != null && decoded == null && wallpaperUri == uri) {
+            // Clear only the failed URI; never erase a newer wallpaper selection.
+            if (prefs.getString("wallpaper_uri", null) == uri.toString()) {
+                prefs.edit().remove("wallpaper_uri").apply()
             }
+            wallpaperUri = null
+            Toast.makeText(
+                context,
+                "No se pudo acceder al fondo guardado. Selecciona otra imagen.",
+                Toast.LENGTH_LONG
+            ).show()
         }
     }
 
