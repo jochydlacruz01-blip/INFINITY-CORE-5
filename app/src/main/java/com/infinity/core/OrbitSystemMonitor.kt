@@ -158,65 +158,46 @@ fun OrbitSystemMonitor(
         }
     }
 
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        Text(
-            "◈  SYSTEM MONITOR • LIVE",
-            color = accent,
-            fontSize = 10.sp,
-            fontWeight = FontWeight.Bold
-        )
-
-        Row(
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+        val compactLayout = maxWidth < 420.dp
+        Column(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            OrbitMetric(
-                modifier = Modifier.weight(1f),
-                label = "BATERÍA",
-                value = if (batteryPercent >= 0) "$batteryPercent%" else "--",
-                accent = accent
+            Text(
+                "◈  SYSTEM MONITOR • LIVE",
+                color = accent,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold
             )
-            OrbitMetric(
-                modifier = Modifier.weight(1f),
-                label = "RAM EN USO",
-                value = ramPercent?.let { "$it%" } ?: "--",
-                accent = accent
-            )
-            OrbitMetric(
-                modifier = Modifier.weight(1f),
-                label = "VENTANAS",
-                value = "$activeWindows / $totalWindows",
-                accent = accent
-            )
-        }
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            OrbitMetric(
-                modifier = Modifier.weight(1f),
-                label = "ALMAC. DATOS APP",
-                value = storagePercent?.let { "$it%" } ?: "--",
-                detail = "Filesystem de datos · $storageDetail",
-                accent = accent
-            )
-            OrbitMetric(
-                modifier = Modifier.weight(1f),
-                label = "TEMP. BATERÍA",
-                value = batteryTemperature,
-                detail = chargingState,
-                accent = accent
-            )
-            OrbitMetric(
-                modifier = Modifier.weight(1f),
-                label = "ESTADO TÉRMICO",
-                value = thermalState,
-                accent = accent
-            )
+            if (compactLayout) {
+                // Dos columnas en teléfonos estrechos: evita comprimir seis
+                // indicadores en dos filas de tres tarjetas.
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OrbitMetric(Modifier.weight(1f), "BATERÍA", if (batteryPercent >= 0) "$batteryPercent%" else "--", accent = accent)
+                    OrbitMetric(Modifier.weight(1f), "RAM EN USO", ramPercent?.let { "$it%" } ?: "--", accent = accent)
+                }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OrbitMetric(Modifier.weight(1f), "VENTANAS", "$activeWindows / $totalWindows", accent = accent)
+                    OrbitMetric(Modifier.weight(1f), "ALMAC. DATOS APP", storagePercent?.let { "$it%" } ?: "--", "Filesystem de datos · $storageDetail", accent)
+                }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OrbitMetric(Modifier.weight(1f), "TEMP. BATERÍA", batteryTemperature, chargingState, accent)
+                    OrbitMetric(Modifier.weight(1f), "ESTADO TÉRMICO", thermalState, accent = accent)
+                }
+            } else {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OrbitMetric(Modifier.weight(1f), "BATERÍA", if (batteryPercent >= 0) "$batteryPercent%" else "--", accent = accent)
+                    OrbitMetric(Modifier.weight(1f), "RAM EN USO", ramPercent?.let { "$it%" } ?: "--", accent = accent)
+                    OrbitMetric(Modifier.weight(1f), "VENTANAS", "$activeWindows / $totalWindows", accent = accent)
+                }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OrbitMetric(Modifier.weight(1f), "ALMAC. DATOS APP", storagePercent?.let { "$it%" } ?: "--", "Filesystem de datos · $storageDetail", accent)
+                    OrbitMetric(Modifier.weight(1f), "TEMP. BATERÍA", batteryTemperature, chargingState, accent)
+                    OrbitMetric(Modifier.weight(1f), "ESTADO TÉRMICO", thermalState, accent = accent)
+                }
+            }
         }
     }
 }
