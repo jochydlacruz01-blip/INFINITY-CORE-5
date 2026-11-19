@@ -5,6 +5,7 @@ import android.provider.DocumentsContract
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -220,30 +221,41 @@ internal fun InfinityFileManager(
             TextButton(onClick = onChooseFolder) { Text(if (rootUri == null) "Elegir carpeta" else "Cambiar") }
         }
 
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Column(
+            Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(5.dp)
+        ) {
             OutlinedTextField(
                 value = search,
                 onValueChange = { search = it },
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 placeholder = { Text("Buscar archivos…", fontSize = 11.sp) }
             )
-            OutlinedButton(onClick = { gridView = !gridView }) { Text(if (gridView) "Lista" else "Cuadrícula") }
-            Box {
-                OutlinedButton(onClick = { sortMenu = true }) { Text("Ordenar") }
-                DropdownMenu(expanded = sortMenu, onDismissRequest = { sortMenu = false }) {
-                    listOf("Nombre", "Tipo", "Tamaño", "Fecha").forEach { option ->
-                        DropdownMenuItem(text = { Text(option) }, onClick = {
-                            sortBy = option
-                            sortMenu = false
-                        })
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                OutlinedButton(onClick = { gridView = !gridView }) {
+                    Text(if (gridView) "Lista" else "Cuadrícula")
+                }
+                Box {
+                    OutlinedButton(onClick = { sortMenu = true }) { Text("Ordenar") }
+                    DropdownMenu(expanded = sortMenu, onDismissRequest = { sortMenu = false }) {
+                        listOf("Nombre", "Tipo", "Tamaño", "Fecha").forEach { option ->
+                            DropdownMenuItem(text = { Text(option) }, onClick = {
+                                sortBy = option
+                                sortMenu = false
+                            })
+                        }
                     }
                 }
             }
         }
 
         Row(
-            Modifier.fillMaxWidth().padding(vertical = 6.dp),
+            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(vertical = 6.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
