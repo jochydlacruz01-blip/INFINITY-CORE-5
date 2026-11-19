@@ -102,6 +102,7 @@ class InfinityConnectRulesTest {
         assertEquals("Instalador APK", formatInfinityMimeType("application/vnd.android.package-archive"))
         assertEquals("Tipo no disponible", formatInfinityMimeType(null))
     }
+
     @Test
     fun sortsEntriesWithUnknownSizesAfterKnownSizes() {
         assertEquals(0, infinityFileSizeSortRank(0))
@@ -153,9 +154,12 @@ class InfinityConnectRulesTest {
         assertFalse(isValidInfinityDocumentName("."))
         assertFalse(isValidInfinityDocumentName(".."))
         assertFalse(isValidInfinityDocumentName("folder/name"))
-        assertFalse(isValidInfinityDocumentName("folder\\\\name"))
+        assertFalse(isValidInfinityDocumentName("folder" + '\\' + "name"))
         assertFalse(isValidInfinityDocumentName("x".repeat(256)))
-        assertFalse(isValidInfinityDocumentName("line\\nfeed"))
+        assertFalse(isValidInfinityDocumentName("line" + 10.toChar() + "feed"))
+        assertFalse(isValidInfinityDocumentName("name" + 0.toChar()))
+        assertFalse(isValidInfinityDocumentName("name" + 127.toChar()))
+        assertFalse(isValidInfinityDocumentName("name" + 31.toChar()))
     }
 
     @Test
@@ -163,8 +167,5 @@ class InfinityConnectRulesTest {
         assertTrue(isValidInfinityDocumentName("área de trabajo"))
         assertTrue(isValidInfinityDocumentName("x".repeat(255)))
         assertFalse(isValidInfinityDocumentName("x".repeat(256)))
-        assertFalse(isValidInfinityDocumentName("name\\u0000"))
-        assertFalse(isValidInfinityDocumentName("name\\u007f"))
     }
-
 }

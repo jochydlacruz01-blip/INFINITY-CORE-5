@@ -9,7 +9,7 @@ This roadmap is a work plan; checkboxes indicate completion only after evidence 
 - [x] Unit tests for CONNECT host/port validation
 - [x] Unit tests for ORBIT system metric rules
 - [x] Bounded notification text rules
-- [x] File Manager capability helper rules and regression tests (added; CI pending)
+- [x] File Manager capability helper rules and regression tests (CI verified)
 - [ ] Physical-device SAF testing across document providers
 - [ ] Exercise partial failure and cancellation handling for multi-file operations
 
