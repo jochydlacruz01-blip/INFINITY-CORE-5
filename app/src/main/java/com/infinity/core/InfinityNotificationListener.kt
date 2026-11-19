@@ -180,13 +180,13 @@ private fun publishNotification(sbn: StatusBarNotification) {
             .getCharSequence(Notification.EXTRA_TITLE)
             ?.toString()
             .orEmpty()
-            .take(MAX_TITLE_LENGTH)
+            .let(::infinityNotificationTitle)
 
         val message = (
             extras.getCharSequence(Notification.EXTRA_BIG_TEXT)
                 ?: extras.getCharSequence(Notification.EXTRA_TEXT)
                 ?: extras.getCharSequence(Notification.EXTRA_SUB_TEXT)
-        )?.toString().orEmpty().take(MAX_MESSAGE_LENGTH)
+        )?.toString().orEmpty().let(::infinityNotificationMessage)
 
         val appName = try {
             packageManager.getApplicationLabel(
