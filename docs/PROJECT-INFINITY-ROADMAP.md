@@ -28,7 +28,7 @@ This roadmap is a work plan; checkboxes indicate completion only after evidence 
 
 ## Core modules
 - [x] Centralize File Manager filtering and sort order (folders-first, localized display-type ordering, known sizes before unknown, date/name tie-breakers, trimmed case-insensitive search); CI #270 passed Debug/Release build, lint, unit tests and Release APK signature validation.
-- [ ] Expand centralized sorting edge-case regression coverage (unknown sort fallback and deterministic name tie-breakers); tests added, CI pending.
+- [x] Expand centralized sorting edge-case regression coverage (unknown sort fallback and deterministic name tie-breakers); CI #271 passed all unit tests, lint, Debug/Release builds and signed APK validation.
 - [ ] File Manager: provider compatibility, refresh, navigation, selections, clipboard operations, viewers (SAF cycle prevention CI #237 and stale-query loading race CI #247 verified; provider/device acceptance still pending)
 - [x] Reset transient File Manager selection and clipboard state whenever the user switches SAF tree grants (CI #236 verified).
 - [x] Partial copy retry retains only unconfirmed items in original order (implementation and regression tests; CI #230 passed).
@@ -36,7 +36,7 @@ This roadmap is a work plan; checkboxes indicate completion only after evidence 
 - [x] Add live folder-scoped filename search to File Explorer UI (CI #228 verified).
 - [x] SAF enumeration tolerates providers omitting optional MIME/size columns; missing size is displayed as unavailable (CI #217 and MIME hardening CI #231 verified).
 - [x] SAF listing skips malformed rows with blank document IDs, supplies safe display-name fallbacks, and isolates malformed provider rows (CI #234 verified).
-- [ ] ORBIT: verify metric labels, sampling lifecycle, thermal and battery reporting, layout on narrow screens; locale-independent storage/battery formatting and extreme unknown-value regression tests passed in CI #245; sampling propagates coroutine cancellation (CI #232) and uses application context (CI #238); battery capacity and charging-state mapping regression tests passed in CI #245; physical-device checks remain pending.
+- [ ] ORBIT: verify metric labels, sampling lifecycle, thermal and battery reporting, layout on narrow screens; locale-independent formatting and battery edge cases passed CI #245; Long-boundary storage/usage tests added, CI pending; sampling propagates coroutine cancellation (CI #232) and uses application context (CI #238); battery capacity and charging-state mapping regression tests passed in CI #245; physical-device checks remain pending.
 - [x] ORBIT monitor clears displayed telemetry when a sampling cycle fails instead of presenting stale values (validated by successful CI #220)
 - [ ] Notifications: physical-device permission UX, disconnect/reconnect, privacy display options, open/dismiss behavior
 - [x] Add direct system-settings shortcut when notification-listener permission is not granted (validated by successful CI #220; device UX still pending)

@@ -112,4 +112,19 @@ class OrbitSystemRulesTest {
         assertEquals("DESCONOCIDO", infinityChargingState(Int.MAX_VALUE))
     }
 
+    @Test
+    fun usagePercentageHandlesLongBoundaryValuesWithoutOverflow() {
+        assertEquals(0, infinityUsagePercent(Long.MAX_VALUE, Long.MAX_VALUE))
+        assertEquals(100, infinityUsagePercent(Long.MAX_VALUE, 0L))
+        assertEquals(0, infinityUsagePercent(Long.MAX_VALUE, Long.MAX_VALUE - 1L))
+        assertEquals(100, infinityUsagePercent(Long.MAX_VALUE, Long.MIN_VALUE))
+    }
+
+    @Test
+    fun storageSummaryHandlesMaximumCapacityWithoutOverflow() {
+        val summary = infinityStorageSummary(Long.MAX_VALUE, 0L)
+        assertEquals(true, summary.endsWith(" / 8589934592.0 GiB"))
+        assertEquals("No disponible", infinityStorageSummary(Long.MAX_VALUE, Long.MIN_VALUE))
+    }
+
 }
