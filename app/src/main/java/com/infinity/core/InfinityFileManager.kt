@@ -59,6 +59,8 @@ internal fun InfinityFileManager(
     var clipboardIds by remember { mutableStateOf<List<String>>(emptyList()) }
     var clipboardParent by remember { mutableStateOf<Uri?>(null) }
     var clipboardIsMove by remember { mutableStateOf(false) }
+    var confirmDelete by remember { mutableStateOf(false) }
+    var detailsEntry by remember { mutableStateOf<InfinityFileEntry?>(null) }
 
     LaunchedEffect(rootUri, currentId, refreshKey) {
         val tree = rootUri
@@ -212,7 +214,7 @@ internal fun InfinityFileManager(
                 if (selected.isNotEmpty()) {
                     OutlinedButton(onClick = { stageClipboard(false) }) { Text("Copiar") }
                     OutlinedButton(onClick = { stageClipboard(true) }) { Text("Cortar") }
-                    OutlinedButton(onClick = { deleteSelected() }) { Text("Eliminar ${selected.size}") }
+                    OutlinedButton(onClick = { confirmDelete = true }) { Text("Eliminar ${selected.size}") }
                     TextButton(onClick = { selected = emptySet() }) { Text("Cancelar") }
                 }
                 if (clipboardIds.isNotEmpty()) {
@@ -268,6 +270,7 @@ internal fun InfinityFileManager(
                                 color = Color(0xFFB7C7D9), fontSize = 9.sp, maxLines = 1, overflow = TextOverflow.Ellipsis
                             )
                         }
+                        TextButton(onClick = { detailsEntry = entry }) { Text("Detalles") }
                         if (selected.isNotEmpty()) {
                             Checkbox(checked = isSelected, onCheckedChange = {
                                 selected = if (it) selected + entry.id else selected - entry.id
@@ -283,6 +286,23 @@ internal fun InfinityFileManager(
         }
     }
 
+    if (confirmDelete) {
+        AlertDialog(
+            onDismissRequest = { confirmDelete = false },
+            title = { Text("Confirmar eliminación") },
+            text = { Text("¿Deseas eliminar ${selected.size} elemento(s)? Esta acción puede no ser reversible.") },
+            confirmButton = { TextButton(onClick = { confirmDelete = false; deleteSelected() }) { Text("Eliminar") } },
+            dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Cancelar") } }
+        )
+    }
+    detailsEntry?.let { entry ->
+        AlertDialog(
+            onDismissRequest = { detailsEntry = null },
+            title = { Text("Detalles del elemento") },
+            text = { Text("Nombre: ${entry.name}\nTipo: ${entry.mime ?: "No disponible"}\nTamaño: ${if (entry.isFolder) "Carpeta" else if (entry.size > 0) "${entry.size} bytes" else "No disponible"}") },
+            confirmButton = { TextButton(onClick = { detailsEntry = null }) { Text("Cerrar") } }
+        )
+    }
     if (createDialog) {
         AlertDialog(
             onDismissRequest = { createDialog = false },
