@@ -397,12 +397,15 @@ val iconOffsets = remember {
  
             windows.filter { !it.minimized && it.workspace == workspace }.forEach { win ->
                 key(win.id) {
-                    val shown = if (win.maximized) {
+                    val shown = if (win.maximized || maxW < 600.dp) {
+                        // En teléfonos, las ventanas se ajustan automáticamente
+                        // al espacio disponible para evitar recortes horizontales.
                         win.copy(
                             x = 8f,
-                            y = 8f,
-                            width = (maxW.value - 16f).coerceAtLeast(280f),
-                            height = (maxH.value - 100f).coerceAtLeast(190f)
+                            y = if (maxW < 600.dp) 62f else 8f,
+                            width = (maxW.value - 16f).coerceAtLeast(240f),
+                            height = (maxH.value - if (maxW < 600.dp) 132f else 100f)
+                                .coerceAtLeast(180f)
                         )
                     } else win
 
@@ -506,9 +509,18 @@ val iconOffsets = remember {
                         Color(0xFF6686B5),
                         RoundedCornerShape(24.dp)
                     )
-                    .padding(horizontal = 18.dp, vertical = 10.dp),
+                    .padding(
+                        horizontal = if (maxW < 600.dp) 6.dp else 18.dp,
+                        vertical = 10.dp
+                    ),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(22.dp)
+                horizontalArrangement = Arrangement.spacedBy(
+                    when {
+                        maxW < 380.dp -> 5.dp
+                        maxW < 600.dp -> 8.dp
+                        else -> 22.dp
+                    }
+                )
             ) {
                 DockAction("✦", "START", accent) {
                     startOpen = !startOpen
