@@ -78,3 +78,8 @@ internal fun infinityUnfinishedOperationIds(ids: List<String>, completedIds: Set
 /** Keeps only failed copy/move items, preserving their original order. */
 internal fun infinityRemainingOperationIds(ids: List<String>, failedIds: Set<String>): List<String> =
     ids.filter { it in failedIds }
+
+
+/** Treats an omitted or blank SAF MIME column as unknown metadata. */
+internal fun infinityOptionalMimeType(columnAvailable: Boolean, value: String?): String? =
+    if (columnAvailable) value?.takeIf { it.isNotBlank() } else null

@@ -53,6 +53,13 @@ class InfinityFileManagerRulesTest {
         assertEquals("Imagen PNG", formatInfinityMimeType("IMAGE/PNG"))
     }
 
+    @Test fun optionalMimeMetadataHandlesMissingColumnAndBlankValues() {
+        assertEquals(null, infinityOptionalMimeType(false, "image/png"))
+        assertEquals(null, infinityOptionalMimeType(true, null))
+        assertEquals(null, infinityOptionalMimeType(true, "  "))
+        assertEquals("image/png", infinityOptionalMimeType(true, "image/png"))
+    }
+
     @Test fun unknownSizeSortsAfterKnown() {
         assertEquals(0, infinityFileSizeSortRank(0))
         assertEquals(0, infinityFileSizeSortRank(1))

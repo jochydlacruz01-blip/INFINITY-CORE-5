@@ -107,12 +107,12 @@ internal fun InfinityFileManager(
                     val sizeCol = cursor.getColumnIndex(DocumentsContract.Document.COLUMN_SIZE)
                     val modifiedCol = cursor.getColumnIndex(DocumentsContract.Document.COLUMN_LAST_MODIFIED)
                     val flagsCol = cursor.getColumnIndex(DocumentsContract.Document.COLUMN_FLAGS)
-                    check(idCol >= 0 && nameCol >= 0 && mimeCol >= 0) { "El proveedor no devolvió las columnas básicas de archivos." }
+                    check(idCol >= 0 && nameCol >= 0) { "El proveedor no devolvió las columnas básicas de archivos." }
                     while (cursor.moveToNext()) {
                         result += InfinityFileEntry(
                             cursor.getString(idCol),
                             cursor.getString(nameCol) ?: "Sin nombre",
-                            if (cursor.isNull(mimeCol)) null else cursor.getString(mimeCol),
+                            infinityOptionalMimeType(mimeCol >= 0, if (mimeCol >= 0 && !cursor.isNull(mimeCol)) cursor.getString(mimeCol) else null),
                             if (sizeCol < 0 || cursor.isNull(sizeCol)) -1L else cursor.getLong(sizeCol),
                             if (modifiedCol < 0 || cursor.isNull(modifiedCol)) 0L else cursor.getLong(modifiedCol),
                             if (flagsCol < 0 || cursor.isNull(flagsCol)) null else cursor.getLong(flagsCol)

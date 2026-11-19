@@ -24,9 +24,9 @@ This roadmap is a work plan; checkboxes indicate completion only after evidence 
 
 ## Core modules
 - [ ] File Manager: provider compatibility, refresh, navigation, selections, clipboard operations, viewers
-- [x] Partial copy retry retains only unconfirmed items in original order (implementation and regression tests added; CI #230 pending validation)
-- [ ] Add live folder-scoped filename search to File Explorer UI (fix compile issue and validate in CI)
-- [x] SAF enumeration tolerates providers omitting optional MIME/size columns; missing size is displayed as unavailable (CI #217 verified).
+- [x] Partial copy retry retains only unconfirmed items in original order (implementation and regression tests; CI #230 passed).
+- [x] Add live folder-scoped filename search to File Explorer UI (CI #228 verified).
+- [x] SAF enumeration tolerates providers omitting optional MIME/size columns; missing size is displayed as unavailable (CI #217 verified; optional MIME handling hardened in this batch, pending CI).
 - [ ] ORBIT: verify metric labels, sampling lifecycle, thermal and battery reporting, layout on narrow screens
 - [x] ORBIT monitor clears displayed telemetry when a sampling cycle fails instead of presenting stale values (validated by successful CI #220)
 - [ ] Notifications: physical-device permission UX, disconnect/reconnect, privacy display options, open/dismiss behavior
