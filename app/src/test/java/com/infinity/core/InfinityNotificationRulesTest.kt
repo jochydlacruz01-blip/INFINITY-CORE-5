@@ -13,4 +13,11 @@ class InfinityNotificationRulesTest {
         assertEquals(300, infinityNotificationTitle("x".repeat(500)).length)
         assertEquals(2_000, infinityNotificationMessage("x".repeat(2_500)).length)
     }
+    @Test
+    fun appLabelsAreNullSafeAndBounded() {
+        assertEquals("", infinityNotificationAppName(null))
+        assertEquals("App", infinityNotificationAppName("App"))
+        assertEquals(200, infinityNotificationAppName("x".repeat(250)).length)
+    }
+
 }
