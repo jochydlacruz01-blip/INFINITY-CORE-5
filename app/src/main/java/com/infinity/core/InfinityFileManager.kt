@@ -75,6 +75,22 @@ internal fun InfinityFileManager(
     var detailsEntry by remember { mutableStateOf<InfinityFileEntry?>(null) }
     var gridView by remember { mutableStateOf(false) }
 
+    // A newly selected SAF tree is a different security and document scope.
+    // Never carry IDs, selections, or clipboard state across tree grants.
+    LaunchedEffect(rootUri) {
+        selected = emptySet()
+        clipboardIds = emptyList()
+        clipboardParent = null
+        clipboardIsMove = false
+        search = ""
+        detailsEntry = null
+        confirmDelete = false
+        createDialog = false
+        renameDialog = false
+        nameInput = ""
+        message = null
+    }
+
     LaunchedEffect(rootUri, currentId, refreshKey) {
         val tree = rootUri
         val parentId = currentId

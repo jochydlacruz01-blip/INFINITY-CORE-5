@@ -25,6 +25,7 @@ This roadmap is a work plan; checkboxes indicate completion only after evidence 
 
 ## Core modules
 - [ ] File Manager: provider compatibility, refresh, navigation, selections, clipboard operations, viewers (provider/device acceptance still pending)
+- [ ] Reset transient File Manager selection and clipboard state whenever the user switches SAF tree grants (implementation queued for CI validation).
 - [x] Partial copy retry retains only unconfirmed items in original order (implementation and regression tests; CI #230 passed).
 - [x] Add live folder-scoped filename search to File Explorer UI (CI #228 verified).
 - [x] SAF enumeration tolerates providers omitting optional MIME/size columns; missing size is displayed as unavailable (CI #217 and MIME hardening CI #231 verified).
