@@ -1,8 +1,18 @@
 package com.infinity.core
 
 /** Limits and removes non-printable control characters from notification text. */
-private fun sanitizeInfinityNotificationText(value: String?, limit: Int): String =
-    value.orEmpty().filter { it == '\n' || it == '\t' || !it.isISOControl() }.take(limit)
+private fun sanitizeInfinityNotificationText(value: String?, limit: Int): String {
+    val bounded = value.orEmpty()
+        .filter { it == '\\n' || it == '\\t' || !it.isISOControl() }
+        .take(limit)
+
+    // Do not leave an unmatched high surrogate when a limit cuts an emoji pair.
+    return if (bounded.isNotEmpty() && Character.isHighSurrogate(bounded.last())) {
+        bounded.dropLast(1)
+    } else {
+        bounded
+    }
+}
 
 internal fun infinityNotificationTitle(value: String?): String =
     sanitizeInfinityNotificationText(value, 300)

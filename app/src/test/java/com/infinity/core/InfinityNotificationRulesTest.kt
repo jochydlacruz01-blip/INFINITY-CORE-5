@@ -1,6 +1,7 @@
 package com.infinity.core
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Test
 
 class InfinityNotificationRulesTest {
@@ -31,6 +32,16 @@ class InfinityNotificationRulesTest {
         val content = infinityNotificationContent("T".repeat(400), "M".repeat(2_500), false)
         assertEquals(300, content.first.length)
         assertEquals(2_000, content.second.length)
+    }
+
+    @Test
+    fun textLimitsNeverSplitUnicodeSurrogatePairs() {
+        val emoji = "\uD83D\uDE80"
+        assertEquals("a".repeat(299), infinityNotificationTitle("a".repeat(299) + emoji).take(300))
+        assertEquals(299, infinityNotificationTitle("a".repeat(299) + emoji).length)
+        assertEquals(1_999, infinityNotificationMessage("a".repeat(1_999) + emoji).length)
+        assertEquals(199, infinityNotificationAppName("a".repeat(199) + emoji).length)
+        assertFalse(infinityNotificationTitle("a".repeat(299) + emoji).last().isHighSurrogate())
     }
 
     @Test
