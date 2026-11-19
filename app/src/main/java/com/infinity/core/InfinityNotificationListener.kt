@@ -30,6 +30,22 @@ object InfinityNotificationStore {
 
     val notifications = mutableStateListOf<InfinityNotification>()
     val accessEnabled = mutableStateOf(false)
+    val accessGranted = mutableStateOf(false)
+
+    internal fun refreshAccess(context: Context) {
+        val enabledListeners = android.provider.Settings.Secure.getString(
+            context.contentResolver,
+            "enabled_notification_listeners"
+        ).orEmpty()
+
+        accessGranted.value = enabledListeners.split(':').any { flattened ->
+            android.content.ComponentName.unflattenFromString(flattened)
+                ?.let { component ->
+                    component.packageName == context.packageName &&
+                        component.className == InfinityNotificationListener::class.java.name
+                } == true
+        }
+    }
 
     internal var service: InfinityNotificationListener? = null
 

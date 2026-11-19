@@ -178,11 +178,15 @@ fun InfinityAdvancedPanel(
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                if (InfinityNotificationStore.accessEnabled.value)
-                                    "Acceso autorizado"
-                                else
-                                    "Acceso pendiente de autorización",
-                                color = if (InfinityNotificationStore.accessEnabled.value)
+                                when {
+                                    !InfinityNotificationStore.accessGranted.value ->
+                                        "Acceso pendiente de autorización"
+                                    InfinityNotificationStore.accessEnabled.value ->
+                                        "Acceso autorizado · servicio conectado"
+                                    else ->
+                                        "Acceso autorizado · esperando conexión"
+                                },
+                                color = if (InfinityNotificationStore.accessGranted.value)
                                     AdvancedAccent else AdvancedMuted,
                                 fontSize = 10.sp
                             )
@@ -198,7 +202,7 @@ fun InfinityAdvancedPanel(
                         }
                     ) {
                         Text(
-                            "PERMITIR ACCESO A NOTIFICACIONES",
+                            "ABRIR AJUSTES DE NOTIFICACIONES",
                             color = AdvancedAccent,
                             fontSize = 10.sp
                         )

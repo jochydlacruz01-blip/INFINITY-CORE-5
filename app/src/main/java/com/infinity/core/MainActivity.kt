@@ -63,6 +63,11 @@ private val InfinityMuted = Color(0xFFB7C7D9)
 private val InfinityPanel = Color(0xF0182A42)
 
 class MainActivity : ComponentActivity() {
+    override fun onResume() {
+        super.onResume()
+        InfinityNotificationStore.refreshAccess(this)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.statusBarColor = android.graphics.Color.rgb(13, 22, 37)
