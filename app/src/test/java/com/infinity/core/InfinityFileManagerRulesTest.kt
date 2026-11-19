@@ -83,3 +83,9 @@ class InfinityFileManagerRulesTest {
     @Test fun successfulDeletesClearTargets() { assertEquals(emptyList<String>(), infinityRemainingDeleteIds(listOf("a", "b"), emptySet())) }
     @Test fun refreshRetainsRetrySelectionOnlyForVisibleIds() { assertEquals(setOf("b", "d"), infinityRetainedSelection(setOf("a", "b", "d"), setOf("b", "d", "x"))); assertEquals(emptySet<String>(), infinityRetainedSelection(setOf("a"), setOf("b"))) }
 }
+
+    @Test fun interruptedBatchRetainsOnlyUnconfirmedItemsInOriginalOrder() {
+        assertEquals(listOf("b", "d"), infinityUnfinishedOperationIds(listOf("a", "b", "c", "d"), setOf("a", "c")))
+        assertEquals(listOf("a", "b"), infinityUnfinishedOperationIds(listOf("a", "b"), emptySet()))
+        assertEquals(emptyList<String>(), infinityUnfinishedOperationIds(listOf("a", "b"), setOf("a", "b")))
+    }

@@ -70,3 +70,7 @@ internal fun infinityRemainingDeleteIds(ids: List<String>, failedIds: Set<String
 /** Retains selected document IDs still present after a refresh. */
 internal fun infinityRetainedSelection(selectedIds: Set<String>, visibleIds: Set<String>): Set<String> =
     selectedIds.intersect(visibleIds)
+
+/** Returns the original-order items not confirmed completed after an interrupted batch. */
+internal fun infinityUnfinishedOperationIds(ids: List<String>, completedIds: Set<String>): List<String> =
+    ids.filter { it !in completedIds }
