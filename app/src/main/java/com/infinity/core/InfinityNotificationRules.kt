@@ -5,3 +5,6 @@ internal fun infinityNotificationTitle(value: String?): String =
 
 internal fun infinityNotificationMessage(value: String?): String =
     value.orEmpty().take(2_000)
+
+internal fun infinityNotificationAppName(value: String?): String =
+    value.orEmpty().take(200)
