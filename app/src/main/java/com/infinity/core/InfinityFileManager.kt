@@ -136,7 +136,7 @@ internal fun InfinityFileManager(
                 "Tipo" -> list.sortedWith(compareByDescending<InfinityFileEntry> { it.isFolder }.thenBy { it.mime.orEmpty() }.thenBy { it.name.lowercase(Locale.getDefault()) })
                 "Tamaño" -> list.sortedWith(
                     compareByDescending<InfinityFileEntry> { it.isFolder }
-                        .thenBy { if (it.size < 0L) 1 else 0 }
+                        .thenBy { infinityFileSizeSortRank(it.size) }
                         .thenByDescending { it.size }
                 )
                 "Fecha" -> list.sortedWith(compareByDescending<InfinityFileEntry> { it.isFolder }.thenByDescending { it.modified })
