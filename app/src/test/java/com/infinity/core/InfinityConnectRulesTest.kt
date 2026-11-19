@@ -23,6 +23,17 @@ class InfinityConnectRulesTest {
         assertFalse(isValidInfinityHost("office-.local"))
         assertFalse(isValidInfinityHost("2001:db8::1%wlan0%extra"))
         assertFalse(isValidInfinityHost("host:3389"))
+        assertFalse(isValidInfinityHost("127.0.0.1.2"))
+        assertFalse(isValidInfinityHost("01.2.3.4"))
+        assertFalse(isValidInfinityHost("256.1.1.1"))
+        assertFalse(isValidInfinityHost("host_name.local"))
+        assertFalse(isValidInfinityHost("host.local?query"))
+        assertFalse(isValidInfinityHost("host.local#fragment"))
+        assertFalse(isValidInfinityHost("host\\local"))
+        assertFalse(isValidInfinityHost("host.local."))
+        assertFalse(isValidInfinityHost("a".repeat(254)))
+        assertFalse(isValidInfinityHost("2001:db8::zz"))
+        assertFalse(isValidInfinityHost("fe80::1%invalid scope"))
     }
 
     @Test

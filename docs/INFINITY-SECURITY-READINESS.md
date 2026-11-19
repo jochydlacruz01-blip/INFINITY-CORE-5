@@ -27,3 +27,7 @@ Branch: `INFINITY-0.9`. This is a source-level review checklist, not a device ce
 - [ ] Install/upgrade validation with the existing signed APK lineage.
 - [ ] Complete RDP integration only after upstream dependency, license, native ABI, TLS and lifecycle review plus device tests.
 
+
+## CONNECT host input hardening review (source/test)
+- [x] Add negative regression cases for malformed IPv4, invalid IPv6, hostname syntax, URL fragments/query, trailing-dot and overlong hosts.
+- [ ] Validate behavior on supported Android devices and network configurations.
