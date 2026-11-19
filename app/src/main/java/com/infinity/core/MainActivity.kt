@@ -501,10 +501,14 @@ val iconOffsets = remember {
                         selectedFolder = selectedFolder,
                         onChooseFolder = { folderPicker.launch(null) },
                         onLaunchApp = ::launchApp,
-                        onClose = { windows.removeAll { item -> item.id == win.id } },
+                        onClose = {
+                            windows.removeAll { item -> item.id == win.id }
+                            if (focusedWindowId == win.id) focusedWindowId = null
+                        },
                         onMinimize = {
                             val index = windows.indexOfFirst { it.id == win.id }
                             if (index >= 0) windows[index] = windows[index].copy(minimized = true)
+                            if (focusedWindowId == win.id) focusedWindowId = null
                         },
                         onMaximize = {
                             val index = windows.indexOfFirst { it.id == win.id }
