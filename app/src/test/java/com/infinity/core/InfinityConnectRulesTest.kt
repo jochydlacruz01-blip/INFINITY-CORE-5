@@ -100,6 +100,15 @@ class InfinityConnectRulesTest {
     }
 
     @Test
+    fun detectsSameFolderPasteTargets() {
+        assertTrue(isSameInfinityFolder("folder-1", "folder-1"))
+        assertFalse(isSameInfinityFolder("folder-1", "folder-2"))
+        assertFalse(isSameInfinityFolder(null, "folder-1"))
+        assertFalse(isSameInfinityFolder("folder-1", null))
+        assertFalse(isSameInfinityFolder("", ""))
+    }
+
+    @Test
     fun mimeFallbackUsesLocaleIndependentUppercase() {
         val originalLocale = java.util.Locale.getDefault()
         try {
