@@ -21,6 +21,7 @@ This roadmap is a work plan; checkboxes indicate completion only after evidence 
 
 ## Core modules
 - [ ] File Manager: provider compatibility, refresh, navigation, selections, clipboard operations, viewers
+- [x] SAF enumeration tolerates providers omitting optional MIME/size columns; missing size is displayed as unavailable (CI pending).
 - [ ] ORBIT: verify metric labels, sampling lifecycle, thermal and battery reporting, layout on narrow screens
 - [ ] Notifications: permission UX, disconnect/reconnect, privacy display options, open/dismiss behavior
 - [x] Notification privacy redaction: hidden titles/messages are not retained in the in-memory feed; existing feed entries are sanitized when protection is enabled (unit tests and CI #212 verified). Android permission and physical-device behavior remain pending.

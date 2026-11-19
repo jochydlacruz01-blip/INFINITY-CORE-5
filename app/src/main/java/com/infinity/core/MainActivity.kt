@@ -1321,17 +1321,25 @@ private fun FileExplorer08(
                         "El proveedor de documentos no pudo consultar esta carpeta."
                     )
                     cursor.use {
-                        val idColumn = it.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_DOCUMENT_ID)
-                        val nameColumn = it.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_DISPLAY_NAME)
-                        val mimeColumn = it.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_MIME_TYPE)
-                        val sizeColumn = it.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_SIZE)
+                        val idColumn = it.getColumnIndex(DocumentsContract.Document.COLUMN_DOCUMENT_ID)
+                        val nameColumn = it.getColumnIndex(DocumentsContract.Document.COLUMN_DISPLAY_NAME)
+                        if (idColumn < 0 || nameColumn < 0) {
+                            throw IllegalStateException(
+                                "El proveedor no ofrece identificadores o nombres de archivos."
+                            )
+                        }
+                        // MIME type and size are optional across SAF providers.
+                        val mimeColumn = it.getColumnIndex(DocumentsContract.Document.COLUMN_MIME_TYPE)
+                        val sizeColumn = it.getColumnIndex(DocumentsContract.Document.COLUMN_SIZE)
                         while (it.moveToNext()) {
                             found.add(
                                 ExplorerEntry(
                                     it.getString(idColumn),
                                     it.getString(nameColumn) ?: "Sin nombre",
-                                    if (it.isNull(mimeColumn)) null else it.getString(mimeColumn),
-                                    if (it.isNull(sizeColumn)) 0L else it.getLong(sizeColumn)
+                                    if (mimeColumn < 0 || it.isNull(mimeColumn)) null
+                                        else it.getString(mimeColumn),
+                                    if (sizeColumn < 0 || it.isNull(sizeColumn)) -1L
+                                        else it.getLong(sizeColumn)
                                 )
                             )
                         }

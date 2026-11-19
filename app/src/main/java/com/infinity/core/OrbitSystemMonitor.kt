@@ -87,14 +87,15 @@ fun OrbitSystemMonitor(
                     Context.ACTIVITY_SERVICE
                 ) as? ActivityManager
 
-                if (activityManager != null) {
+                if (activityManager == null) {
+                    ramPercent = null
+                } else {
                     val memoryInfo = ActivityManager.MemoryInfo()
                     activityManager.getMemoryInfo(memoryInfo)
-
                     ramPercent = infinityRamUsagePercent(
                         memoryInfo.totalMem,
                         memoryInfo.availMem
-                    ) 
+                    )
                 }
 
                 val stat = StatFs(context.filesDir.absolutePath)
