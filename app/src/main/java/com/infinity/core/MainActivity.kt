@@ -45,6 +45,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
@@ -354,6 +355,7 @@ val iconOffsets = remember {
         ) {
             val maxW = maxWidth
             val maxH = maxHeight
+            val density = LocalDensity.current
 
             val currentWallpaperBitmap = wallpaperBitmap
             if (currentWallpaperBitmap != null) {
@@ -422,9 +424,11 @@ val iconOffsets = remember {
                             detectDragGestures { change, drag ->
                                 change.consume()
 
-                                val next = Offset(
-                                    (iconOffsets[item.id]?.x ?: 0f) + drag.x,
-                                    (iconOffsets[item.id]?.y ?: 0f) + drag.y
+                                val next = infinityBoundIconOffset(
+                                    iconOffsets[item.id] ?: Offset(22f, 90f),
+                                    Offset(drag.x, drag.y),
+                                    with(density) { maxW.toPx() },
+                                    with(density) { maxH.toPx() }
                                 )
 
                                 iconOffsets[item.id] = next
