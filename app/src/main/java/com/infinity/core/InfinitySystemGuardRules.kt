@@ -33,6 +33,11 @@ internal fun infinityGuardSafeLabel(
     fallback: String = "Elemento"
 ): String {
     val limit = maxLength.coerceIn(1, 128)
-    return value.filter { it.isLetterOrDigit() || it == ' ' || it == '-' || it == '_' }
-        .trim().take(limit).ifBlank { fallback.take(32).ifBlank { "Elemento" } }
+    return value.map { char ->
+        if (char.isLetterOrDigit() || char == ' ' || char == '-' || char == '_') char else ' '
+    }.joinToString("")
+        .trim()
+        .replace(Regex("\\s+"), " ")
+        .take(limit)
+        .ifBlank { fallback.take(32).ifBlank { "Elemento" } }
 }
