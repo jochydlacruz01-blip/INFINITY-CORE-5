@@ -27,3 +27,7 @@ internal fun infinityResolveFocusedWindow(currentId: String?, eligibleIds: List<
 /** Dock task list only includes windows belonging to the active workspace. */
 internal fun infinityDockWindowIds(windowIds: List<String>, minimizedById: Map<String, Boolean>): List<String> =
     windowIds.filter { it in minimizedById.keys }
+
+/** Dock tap toggles minimization only for the currently focused, visible task. */
+internal fun infinityDockTapMinimizes(taskId: String, currentFocusId: String?, minimized: Boolean): Boolean =
+    !minimized && taskId == currentFocusId
