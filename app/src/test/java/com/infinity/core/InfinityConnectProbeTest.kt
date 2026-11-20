@@ -71,4 +71,16 @@ class InfinityConnectProbeTest {
             infinityProbeFailureKind(IllegalArgumentException())
         )
     }
+    @Test
+    fun rejectsMalformedHostAndNegativeTimeoutWithoutSocketAttempt() = runBlocking {
+        assertEquals(InfinityProbeStatus.INVALID_ENDPOINT, probeInfinityTcpEndpoint("https://127.0.0.1", "3389"))
+        assertEquals(InfinityProbeStatus.INVALID_ENDPOINT, probeInfinityTcpEndpoint("127.0.0.1", "3389", timeoutMs = -1))
+        assertEquals(InfinityProbeStatus.INVALID_ENDPOINT, probeInfinityTcpEndpoint("127.0.0.1", "65536"))
+    }
+
+    @Test
+    fun classifiesUnknownGenericExceptionsAsNetworkErrors() {
+        assertEquals(InfinityProbeStatus.NETWORK_ERROR, infinityProbeFailureKind(RuntimeException("opaque")))
+    }
+
 }
