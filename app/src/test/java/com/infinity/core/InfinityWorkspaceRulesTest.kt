@@ -43,4 +43,11 @@ class InfinityWorkspaceRulesTest {
         assertEquals(false, infinityDockTapMinimizes("files_1", "notes_1", false))
         assertEquals(false, infinityDockTapMinimizes("files_1", "files_1", true))
     }
+
+    @Test fun dockLabelsNormalizeWhitespaceAndTruncateSafely() {
+        assertEquals("ARCHIVOS", infinityDockLabel(" Archivos "))
+        assertEquals("INFINIT…", infinityDockLabel("INFINITY CONNECT", 9))
+        assertEquals("A…", infinityDockLabel("Alphabet", 2))
+        assertEquals("", infinityDockLabel("   "))
+    }
 }
