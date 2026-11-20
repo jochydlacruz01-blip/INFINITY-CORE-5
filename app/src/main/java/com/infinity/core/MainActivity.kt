@@ -1372,8 +1372,8 @@ private fun openInfinityWindow(
                 id = windowId,
                 title = titles[id] ?: "INFINITY",
                 kind = id,
-                x = 90f + windows.size * 22f,
-                y = 75f + windows.size * 20f,
+                x = infinityInitialWindowPosition(windows.size, maxW.value, maxH.value).first,
+                y = infinityInitialWindowPosition(windows.size, maxW.value, maxH.value).second,
                 workspace = workspace
             )
         )
