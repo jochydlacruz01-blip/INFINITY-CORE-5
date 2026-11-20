@@ -1389,13 +1389,26 @@ private fun openInfinityWindow(
     if (existing >= 0) {
         windows[existing] = windows[existing].copy(minimized = false)
     } else {
+        val (windowWidth, windowHeight) = infinityInitialWindowSize(
+            viewportWidth,
+            viewportHeight
+        )
+        val (windowX, windowY) = infinityInitialWindowPosition(
+            windows.size,
+            viewportWidth,
+            viewportHeight,
+            windowWidth,
+            windowHeight
+        )
         windows.add(
             DeskWindow(
                 id = windowId,
                 title = titles[id] ?: "INFINITY",
                 kind = id,
-                x = infinityInitialWindowPosition(windows.size, viewportWidth, viewportHeight).first,
-                y = infinityInitialWindowPosition(windows.size, viewportWidth, viewportHeight).second,
+                x = windowX,
+                y = windowY,
+                width = windowWidth,
+                height = windowHeight,
                 workspace = workspace
             )
         )
