@@ -1492,21 +1492,31 @@ private fun DockAction(
     onClick: () -> Unit
 ) {
     Column(
-        Modifier.clip(RoundedCornerShape(13.dp))
+        Modifier
+            .widthIn(min = 52.dp)
+            .clip(RoundedCornerShape(15.dp))
+            .background(Color.White.copy(alpha = 0.035f), RoundedCornerShape(15.dp))
+            .border(1.dp, tint.copy(alpha = 0.12f), RoundedCornerShape(15.dp))
             .clickable(onClick = onClick)
-            .padding(horizontal = 4.dp, vertical = 2.dp),
+            .padding(horizontal = 5.dp, vertical = 5.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(2.dp)
+        verticalArrangement = Arrangement.spacedBy(3.dp)
     ) {
         Box(
-            Modifier.size(32.dp)
-                .background(tint.copy(alpha = .14f), RoundedCornerShape(11.dp))
-                .border(1.dp, tint.copy(alpha = .36f), RoundedCornerShape(11.dp)),
+            Modifier.size(36.dp)
+                .background(tint.copy(alpha = .17f), RoundedCornerShape(12.dp))
+                .border(1.dp, tint.copy(alpha = .42f), RoundedCornerShape(12.dp)),
             contentAlignment = Alignment.Center
         ) {
-            Text(glyph, color = tint, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            Text(glyph, color = tint, fontSize = 21.sp, fontWeight = FontWeight.Bold)
         }
-        Text(description, color = Color.White.copy(.84f), fontSize = 7.sp, maxLines = 1)
+        Text(
+            description,
+            color = Color.White.copy(.90f),
+            fontSize = 8.sp,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1
+        )
     }
 }
 
