@@ -907,13 +907,15 @@ DockAction("▤", "ADVANCED", accent) {
             if (orbitOpen) {
                 Card(
                  Modifier.align(Alignment.BottomCenter)
-    .padding(horizontal = 12.dp, vertical = 40.dp)
-    .widthIn(min = 300.dp, max = 410.dp)
-    .heightIn(max = maxH - 80.dp),  
-                    shape = RoundedCornerShape(28.dp),
+    .padding(horizontal = 12.dp, vertical = 42.dp)
+    .widthIn(min = 300.dp, max = 430.dp)
+    .heightIn(max = maxH - 86.dp)
+    .shadow(30.dp, RoundedCornerShape(30.dp)),
+                    shape = RoundedCornerShape(30.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = Color(0xF20D1B30)
-                    )
+                        containerColor = Color(0xF2101D30)
+                    ),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, accent.copy(alpha = .30f))
                 ) {
                     Column(
     Modifier
@@ -1394,10 +1396,12 @@ Row(
             if (controlOpen) {
                 Card(
                     Modifier.align(Alignment.BottomEnd)
-                        .padding(end = 14.dp, bottom = 78.dp)
-                        .widthIn(min = 270.dp, max = 320.dp),
-                    shape = RoundedCornerShape(22.dp),
-                    colors = CardDefaults.cardColors(containerColor = InfinityPanel)
+                        .padding(end = 14.dp, bottom = 84.dp)
+                        .widthIn(min = 270.dp, max = 350.dp)
+                        .shadow(24.dp, RoundedCornerShape(26.dp)),
+                    shape = RoundedCornerShape(26.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xF0142036)),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFFC27A).copy(alpha = .30f))
                 ) {
                     Column(Modifier.padding(16.dp)) {
                         Text("CONTROL CENTER", color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.Black)
