@@ -284,4 +284,13 @@ class InfinityConnectRulesTest {
         assertFalse(isValidInfinityProfileRecord("Office PC", "192.168.1.20", "3389", ""))
         assertFalse(isValidInfinityProfileRecord("Office PC", "192.168.1.20", "3389", "user\u0000name"))
     }
+    @Test
+    fun formatsIpv6EndpointsWithBracketsAndValidatesPorts() {
+        assertEquals("[2001:db8::1]:3389", formatInfinityEndpointAddress("2001:db8::1", "3389"))
+        assertEquals("[fe80::1%wlan0]:3389", formatInfinityEndpointAddress(" fe80::1%wlan0 ", "03389"))
+        assertEquals("office-pc.local:3389", formatInfinityEndpointAddress(" office-pc.local ", "3389"))
+        assertEquals("", formatInfinityEndpointAddress("office-pc.local", "70000"))
+        assertEquals("", formatInfinityEndpointAddress(" ", "3389"))
+    }
+
 }
