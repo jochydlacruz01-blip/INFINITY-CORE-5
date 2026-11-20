@@ -131,7 +131,6 @@ class InfinityNotificationListener : NotificationListenerService() {
             if (key.isBlank()) return
             cancelNotification(key)
         } catch (error: Exception) {
-            if (error is kotlinx.coroutines.CancellationException) throw error
             val report = infinityGuardReport("Descartar notificación", error)
             android.widget.Toast.makeText(
                 this,
