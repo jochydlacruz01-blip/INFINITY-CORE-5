@@ -38,6 +38,9 @@ class InfinityWorkspaceRulesTest {
         ))
         assertEquals(emptyList<String>(), infinityDockWindowIds(emptyList(), emptyMap()))
     }
+    @Test fun dockTapMinimizesFocusedTaskButRestoresOtherTasks() {
+        assertEquals(true, infinityDockTapMinimizes("files_1", "files_1", false))
+        assertEquals(false, infinityDockTapMinimizes("files_1", "notes_1", false))
+        assertEquals(false, infinityDockTapMinimizes("files_1", "files_1", true))
+    }
 }
-
-
