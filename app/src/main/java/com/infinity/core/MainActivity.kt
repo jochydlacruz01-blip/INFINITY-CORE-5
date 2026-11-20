@@ -480,6 +480,28 @@ val iconOffsets = remember {
                 }
             }
 
+            // Automatically displace overlapping saved icons while preserving valid placements.
+            LaunchedEffect(maxW, maxH, iconOffsets.keys.toList()) {
+                val viewportWidth = with(density) { maxW.toPx() }
+                val viewportHeight = with(density) { infinityDesktopHeightAboveDock(maxH.toPx(), 88f * density.density, 24f * density.density, 56f * density.density) }
+                val ordered = desktopItems.map { iconOffsets[it.id] ?: Offset.Zero }
+                val resolved = infinityResolveIconOverlaps(
+                    ordered, viewportWidth, viewportHeight,
+                    itemWidth = with(density) { 116.dp.toPx() },
+                    itemHeight = with(density) { 150.dp.toPx() },
+                    horizontalGap = with(density) { 12.dp.toPx() },
+                    verticalGap = with(density) { 14.dp.toPx() },
+                    topInset = with(density) { 118.dp.toPx() }
+                )
+                desktopItems.forEachIndexed { index, item ->
+                    val next = resolved[index]
+                    if (iconOffsets[item.id] != next) {
+                        iconOffsets[item.id] = next
+                        prefs.edit().putFloat("${item.id}_x", next.x).putFloat("${item.id}_y", next.y).apply()
+                    }
+                }
+            }
+
             // Normalize persisted windows after screen size, orientation, or density changes.
             LaunchedEffect(maxW, maxH) {
                 windows.indices.forEach { index ->
