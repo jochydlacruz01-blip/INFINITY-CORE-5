@@ -42,6 +42,12 @@ internal fun infinityNotificationMessage(value: String?): String =
 internal fun infinityNotificationAppName(value: String?): String =
     sanitizeInfinityNotificationText(value, 200)
 
+/** Uses a sanitized package identifier when Android cannot provide an app label. */
+internal fun infinityNotificationAppNameOrFallback(value: String?, fallback: String?): String =
+    infinityNotificationAppName(value).ifBlank {
+        infinityNotificationAppName(fallback).ifBlank { "Aplicación" }
+    }
+
 /**
  * Returns notification text suitable for the in-memory feed.
  * When privacy mode is enabled, the original text is never retained.
