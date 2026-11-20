@@ -779,13 +779,15 @@ DockAction("▤", "ADVANCED", accent) {
             if (startOpen) {
                 Card(
                     Modifier.align(Alignment.BottomStart)
-                        .padding(start = 14.dp, bottom = 78.dp)
-                        .widthIn(min = 290.dp, max = 390.dp)
-                        .heightIn(max = maxH - 110.dp),
-                    shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = InfinityPanel)
+                        .padding(start = 14.dp, bottom = 84.dp)
+                        .widthIn(min = 290.dp, max = 420.dp)
+                        .heightIn(max = maxH - 116.dp)
+                        .shadow(28.dp, RoundedCornerShape(28.dp)),
+                    shape = RoundedCornerShape(28.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xF0142036)),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, accent.copy(alpha = .28f))
                 ) {
-                    Column(Modifier.padding(16.dp)) {
+                    Column(Modifier.padding(18.dp)) {
                         Text("INFINITY START", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Black)
                         Text("Tus herramientas y aplicaciones", color = InfinityMuted, fontSize = 10.sp)
                         Spacer(Modifier.height(10.dp))
