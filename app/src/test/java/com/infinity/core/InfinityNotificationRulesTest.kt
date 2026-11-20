@@ -123,4 +123,39 @@ class InfinityNotificationRulesTest {
         assertEquals(existing.take(2), infinityNotificationFeedUpdate(existing, blank, 2))
         assertEquals(emptyList<InfinityNotification>(), infinityNotificationFeedUpdate(existing, blank, 0))
     }
+
+    @Test
+    fun outOfOrderCallbacksCannotMoveOlderNotificationAheadOfNewerActivity() {
+        val newest = InfinityNotification("new", "pkg", "App", "new", "", 300L, false, true, null)
+        val middle = InfinityNotification("middle", "pkg", "App", "middle", "", 200L, false, true, null)
+        val delayed = InfinityNotification("old", "pkg", "App", "old", "", 100L, false, true, null)
+
+        val result = infinityNotificationFeedUpdate(listOf(newest, middle), delayed)
+
+        assertEquals(listOf("new", "middle", "old"), result.map { it.key })
+    }
+
+    @Test
+    fun olderUpdateReplacesItsEntryWithoutChangingChronologicalOrder() {
+        val newer = InfinityNotification("a", "pkg", "App", "newer", "", 500L, false, true, null)
+        val older = InfinityNotification("b", "pkg", "App", "older", "", 300L, false, true, null)
+        val stale = older.copy(title = "stale", timestamp = 100L)
+
+        val result = infinityNotificationFeedUpdate(listOf(newer, older), stale)
+
+        assertEquals(listOf("a", "b"), result.map { it.key })
+        assertEquals("stale", result.last().title)
+    }
+
+    @Test
+    fun equalTimestampsKeepIncomingUpdateAtFrontAndRetentionIsBounded() {
+        val first = InfinityNotification("a", "pkg", "App", "old", "", 100L, false, true, null)
+        val second = InfinityNotification("b", "pkg", "App", "second", "", 100L, false, true, null)
+        val update = first.copy(title = "updated")
+
+        val result = infinityNotificationFeedUpdate(listOf(first, second), update, 1)
+
+        assertEquals(listOf("a"), result.map { it.key })
+        assertEquals("updated", result.first().title)
+    }
 }
