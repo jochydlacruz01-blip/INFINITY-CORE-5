@@ -167,7 +167,7 @@ private fun Infinity08App() {
         )
     }
 
-    var workspace by remember { mutableIntStateOf(1) }
+    var workspace by remember { mutableIntStateOf(infinityNormalizeWorkspace(prefs.getInt("active_workspace", 1))) }
     var dashboardOpen by remember { mutableStateOf(false) }
     var startOpen by remember { mutableStateOf(false) }
     var orbitOpen by remember { mutableStateOf(false) }
@@ -320,8 +320,12 @@ private fun Infinity08App() {
     var focusedWindowId by remember { mutableStateOf<String?>(null) }
 
     fun switchWorkspace(target: Int) {
-        workspace = infinityNormalizeWorkspace(target)
-        focusedWindowId = null
+        val normalizedTarget = infinityNormalizeWorkspace(target)
+        workspace = normalizedTarget
+        prefs.edit().putInt("active_workspace", normalizedTarget).apply()
+        focusedWindowId = windows.lastOrNull {
+            !it.minimized && it.workspace == normalizedTarget
+        }?.id
         startOpen = false
         orbitOpen = false
         controlOpen = false
