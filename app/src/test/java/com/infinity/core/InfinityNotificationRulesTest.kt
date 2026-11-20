@@ -46,6 +46,13 @@ class InfinityNotificationRulesTest {
     }
 
     @Test
+    fun malformedSurrogateCodeUnitsAreDiscarded() {
+        val malformed = "a" + '\uD83D' + "b" + '\uDE00' + "c"
+        assertEquals("abc", infinityNotificationMessage(malformed))
+        assertEquals("😀", infinityNotificationMessage("😀"))
+    }
+
+    @Test
     fun controlCharactersAreRemovedButLineBreaksAndTabsRemain() {
         assertEquals("ab", infinityNotificationTitle("a\u0000b"))
         assertEquals("a\nb\tc", infinityNotificationMessage("a\nb\tc"))

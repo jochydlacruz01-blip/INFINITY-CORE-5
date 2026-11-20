@@ -2,16 +2,35 @@ package com.infinity.core
 
 /** Limits and removes non-printable control characters from notification text. */
 private fun sanitizeInfinityNotificationText(value: String?, limit: Int): String {
-    val bounded = value.orEmpty()
-        .filter { it == '\n' || it == '\t' || !it.isISOControl() }
-        .take(limit)
+    if (limit <= 0 || value.isNullOrEmpty()) return ""
 
-    // Do not leave an unmatched high surrogate when a limit cuts an emoji pair.
-    return if (bounded.isNotEmpty() && Character.isHighSurrogate(bounded.last())) {
-        bounded.dropLast(1)
-    } else {
-        bounded
+    val result = StringBuilder(minOf(value.length, limit))
+    var index = 0
+    while (index < value.length && result.length < limit) {
+        val current = value[index]
+        when {
+            Character.isHighSurrogate(current) -> {
+                // Keep only complete UTF-16 surrogate pairs; discard malformed input.
+                if (index + 1 < value.length &&
+                    Character.isLowSurrogate(value[index + 1]) &&
+                    result.length + 2 <= limit
+                ) {
+                    result.append(current)
+                    result.append(value[index + 1])
+                    index += 2
+                } else {
+                    index++
+                }
+            }
+            Character.isLowSurrogate(current) -> index++
+            current == '\n' || current == '\t' || !current.isISOControl() -> {
+                result.append(current)
+                index++
+            }
+            else -> index++
+        }
     }
+    return result.toString()
 }
 
 internal fun infinityNotificationTitle(value: String?): String =
