@@ -83,3 +83,4 @@ class InfinityWorkspaceRulesTest {
         assertEquals("c", infinityResolveWorkspaceSwitchFocus("a", listOf("a", "b", "c"), mapOf("a" to 1, "b" to 2, "c" to 2), setOf("b"), 2))
         assertNull(infinityResolveWorkspaceSwitchFocus(null, listOf("a"), mapOf("a" to 2), setOf("a"), 2))
     }
+}
