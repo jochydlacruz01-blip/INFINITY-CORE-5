@@ -62,7 +62,10 @@ private fun readOrbitSystemSnapshot(context: Context): OrbitSystemSnapshot {
         batteryManager?.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
     ) ?: -1
 
-    // Battery broadcast access can fail on unusual OEM/framework states; keep other metrics alive.\n    val batteryIntent = runCatching {\n        context.registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))\n    }.getOrNull()
+    // Battery broadcast access can fail on unusual OEM/framework states; keep other metrics alive.
+    val batteryIntent = runCatching {
+        context.registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+    }.getOrNull()
 
     val temperatureTenths = batteryIntent?.getIntExtra(
         BatteryManager.EXTRA_TEMPERATURE, -1
