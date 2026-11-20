@@ -398,7 +398,30 @@ internal fun InfinityFileManager(
                         renameDialog = true
                     }) { Text("Renombrar") }
                 }
-                Text(folderPath.joinToString(" > "), color = Color(0xFFB7C7D9), fontSize = 10.sp, maxLines = 1)
+                Row(
+                    Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    folderPath.forEachIndexed { index, label ->
+                        if (index > 0) Text("›", color = Color(0xFF8FA6BF), fontSize = 11.sp)
+                        Text(
+                            label,
+                            color = if (index == folderPath.lastIndex) accent else Color(0xFFB7C7D9),
+                            fontSize = 10.sp,
+                            maxLines = 1,
+                            modifier = Modifier.clickable {
+                                val target = infinityFolderNavigationAt(folderIds, folderPath, index)
+                                if (target != null) {
+                                    folderIds = target.documentIds
+                                    folderPath = target.names
+                                    currentId = target.documentIds.lastOrNull()
+                                    selected = emptySet()
+                                    message = null
+                                }
+                            }
+                        )
+                    }
+                }
                 val allVisibleSelected = visibleEntries.isNotEmpty() && visibleEntries.all { it.id in selected }
                 OutlinedButton(onClick = {
                     selected = if (allVisibleSelected) {

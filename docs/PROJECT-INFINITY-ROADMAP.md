@@ -29,7 +29,7 @@ This roadmap is a work plan; checkboxes indicate completion only after evidence 
 ## Core modules
 - [x] Centralize File Manager filtering and sort order (folders-first, localized display-type ordering, known sizes before unknown, date/name tie-breakers, trimmed case-insensitive search); CI #270 passed Debug/Release build, lint, unit tests and Release APK signature validation.
 - [x] Expand centralized sorting edge-case regression coverage (unknown sort fallback and deterministic name tie-breakers); CI #271 passed all unit tests, lint, Debug/Release builds and signed APK validation.
-- [ ] File Manager: provider compatibility, refresh, navigation, selections, clipboard operations, viewers (SAF cycle prevention CI #237 and stale-query loading race CI #247 verified; provider/device acceptance still pending)
+- [ ] File Manager: provider compatibility, refresh, navigation, selections, clipboard operations, viewers (SAF cycle prevention CI #237, stale-query loading race CI #247, and clickable breadcrumb ancestor navigation with path-alignment regressions added in the next CI block; provider/device acceptance still pending)
 - [x] Reset transient File Manager selection and clipboard state whenever the user switches SAF tree grants (CI #236 verified).
 - [x] Partial copy retry retains only unconfirmed items in original order (implementation and regression tests; CI #230 passed).
 - [x] Interrupted copy retry now retains only unconfirmed items after cancellation (implementation and regression test; CI #244 passed).
@@ -43,6 +43,7 @@ This roadmap is a work plan; checkboxes indicate completion only after evidence 
 - [x] Notification privacy redaction: hidden titles/messages are not retained in the in-memory feed; existing feed entries are sanitized when protection is enabled (unit tests and CI #228 verified). Android permission and physical-device behavior remain pending.
 - [x] Harden persisted CONNECT profiles: skip malformed/invalid rows independently, normalize valid ports, ignore duplicate endpoints, and cap saved profiles at 100 (CI #239 verified). The load path now scans beyond invalid/duplicate legacy rows until it collects 100 valid profiles; pure helper regressions added in the next CI block.
 - [x] Add direct regression coverage for complete persisted CONNECT profile validation, including trimmed fields, canonical numeric ports and independently invalid name/host/port/username fields; corrected the NUL fixture and passed CI #278 (Debug/Release, lint, unit tests and signed APK verification).
+- [x] CONNECT valid-profile collection scans past malformed/duplicate rows until the 100-valid-profile cap; pure helper regressions passed CI #279.
 - [ ] CONNECT: profile management UX, security review, RDP native feasibility and device testing; duplicate detection canonicalizes equivalent IPv6 spellings and numeric port formatting; regression coverage passed consolidated CI #275.
 - [x] Extend CONNECT hostname/IP rejection regression coverage (CI #225 verified)
 - [x] Expand File Manager Unicode filename and control-character boundary tests (CI #230 verified).

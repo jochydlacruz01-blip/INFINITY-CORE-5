@@ -144,3 +144,23 @@ internal fun infinityDocumentIdOrNull(value: String?): String? =
 /** Provides a stable display fallback for providers returning null or blank names. */
 internal fun infinityDocumentDisplayName(value: String?): String =
     value?.takeIf { it.isNotBlank() } ?: "Sin nombre"
+
+/** A consistent SAF breadcrumb target, keeping document IDs and labels aligned. */
+internal data class InfinityFolderNavigationTarget(
+    val documentIds: List<String>,
+    val names: List<String>
+)
+
+/** Resolves a breadcrumb index while rejecting invalid or mismatched paths. */
+internal fun infinityFolderNavigationAt(
+    documentIds: List<String>,
+    names: List<String>,
+    index: Int
+): InfinityFolderNavigationTarget? {
+    if (documentIds.isEmpty() || documentIds.size != names.size) return null
+    if (index !in documentIds.indices) return null
+    return InfinityFolderNavigationTarget(
+        documentIds = documentIds.take(index + 1),
+        names = names.take(index + 1)
+    )
+}

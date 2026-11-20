@@ -212,4 +212,23 @@ class InfinityFileManagerRulesTest {
         assertEquals("reporte.pdf", infinityDocumentDisplayName("reporte.pdf"))
     }
 
+    @Test
+    fun breadcrumbNavigationReturnsMatchingRootAndAncestorPrefixes() {
+        val ids = listOf("root", "documents", "reports")
+        val names = listOf("Inicio", "Documentos", "Informes")
+        assertEquals(InfinityFolderNavigationTarget(listOf("root"), listOf("Inicio")), infinityFolderNavigationAt(ids, names, 0))
+        assertEquals(InfinityFolderNavigationTarget(listOf("root", "documents"), listOf("Inicio", "Documentos")), infinityFolderNavigationAt(ids, names, 1))
+        assertEquals(InfinityFolderNavigationTarget(ids, names), infinityFolderNavigationAt(ids, names, 2))
+    }
+
+    @Test
+    fun breadcrumbNavigationRejectsInvalidIndexesAndMismatchedPaths() {
+        val ids = listOf("root", "documents")
+        val names = listOf("Inicio", "Documentos")
+        assertEquals(null, infinityFolderNavigationAt(ids, names, -1))
+        assertEquals(null, infinityFolderNavigationAt(ids, names, 2))
+        assertEquals(null, infinityFolderNavigationAt(emptyList(), emptyList(), 0))
+        assertEquals(null, infinityFolderNavigationAt(ids, listOf("Inicio"), 0))
+    }
+
 }
