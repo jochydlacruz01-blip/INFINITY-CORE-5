@@ -241,4 +241,13 @@ class InfinityFileManagerRulesTest {
         assertEquals(null, infinityFolderNavigationAt(listOf("root", "docs"), listOf("Inicio", " "), 1))
     }
 
+    @Test fun fileSortPreferenceAcceptsSupportedModesAndFallsBackSafely() {
+        assertEquals("Nombre", infinityNormalizeFileSort(null))
+        assertEquals("Nombre", infinityNormalizeFileSort("desconocido"))
+        assertEquals("Nombre", infinityNormalizeFileSort(" "))
+        assertEquals("Tipo", infinityNormalizeFileSort("Tipo"))
+        assertEquals("Tamaño", infinityNormalizeFileSort("Tamaño"))
+        assertEquals("Fecha", infinityNormalizeFileSort("Fecha"))
+    }
+
 }
