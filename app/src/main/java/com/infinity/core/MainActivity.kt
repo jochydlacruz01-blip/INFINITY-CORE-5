@@ -1051,7 +1051,7 @@ DockAction("▤", "ADVANCED", accent) {
             if (orbitOpen) {
                 Card(
                  Modifier.align(Alignment.TopCenter)
-    .padding(horizontal = 12.dp, top = 72.dp, bottom = 184.dp)
+    .padding(start = 12.dp, end = 12.dp, top = 72.dp, bottom = 184.dp)
     .widthIn(min = 300.dp, max = 430.dp)
     .heightIn(max = maxH - 256.dp)
     .shadow(30.dp, RoundedCornerShape(30.dp)),
