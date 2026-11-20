@@ -229,6 +229,9 @@ class InfinityFileManagerRulesTest {
         assertEquals(null, infinityFolderNavigationAt(ids, names, 2))
         assertEquals(null, infinityFolderNavigationAt(emptyList(), emptyList(), 0))
         assertEquals(null, infinityFolderNavigationAt(ids, listOf("Inicio"), 0))
+        assertEquals(null, infinityFolderNavigationAt(listOf("root", "root"), listOf("Inicio", "Duplicado"), 1))
+        assertEquals(null, infinityFolderNavigationAt(listOf("root", " "), listOf("Inicio", "Carpeta"), 1))
+        assertEquals(null, infinityFolderNavigationAt(listOf("root", "docs"), listOf("Inicio", " "), 1))
     }
 
 }
