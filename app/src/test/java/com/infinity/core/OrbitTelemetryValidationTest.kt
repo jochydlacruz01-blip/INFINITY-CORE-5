@@ -15,6 +15,13 @@ class OrbitTelemetryValidationTest {
         assertFalse(infinityOrbitTelemetryFreshness(Long.MIN_VALUE, Long.MAX_VALUE))
     }
 
+    @Test fun freshnessAcceptsExactAgeBoundaryAndRejectsOverflowAge() {
+        assertTrue(infinityOrbitTelemetryFreshness(70_000, 100_000, 30_000))
+        assertFalse(infinityOrbitTelemetryFreshness(69_999, 100_000, 30_000))
+        assertFalse(infinityOrbitTelemetryFreshness(Long.MIN_VALUE, Long.MAX_VALUE, Long.MAX_VALUE))
+        assertFalse(infinityOrbitTelemetryFreshness(Long.MAX_VALUE, Long.MIN_VALUE, Long.MAX_VALUE))
+    }
+
     @Test fun freshPercentRejectsInvalidAndStaleData() {
         assertEquals(50, infinityOrbitFreshPercent(OrbitTelemetrySample(50, 10_000), 10_000))
         assertEquals(null, infinityOrbitFreshPercent(OrbitTelemetrySample(-1, 10_000), 10_000))
