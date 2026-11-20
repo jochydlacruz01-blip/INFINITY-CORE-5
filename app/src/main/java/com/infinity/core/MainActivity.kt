@@ -598,7 +598,7 @@ val iconOffsets = remember {
                         win.copy(
                             x = 8f,
                             y = if (maxW < 600.dp) 62f else 8f,
-                            width = (maxW.value - 16f).coerceAtLeast(240f),
+                            width = (maxW.value - 16f).coerceAtLeast(1f),
                             height = (maxH.value - if (maxW < 600.dp) 132f else 100f)
                                 .coerceAtLeast(180f)
                         )
@@ -1788,7 +1788,7 @@ private fun Infinity08Window(
     Column(
      
         Modifier.offset { IntOffset(win.x.roundToInt(), win.y.roundToInt()) }
-            .zIndex(if (isFocused) 1f else 0f)
+            .zIndex(if (isFocused) 10f else 0f)
             .graphicsLayer {
                 alpha = windowAlpha
                 scaleX = windowScale
