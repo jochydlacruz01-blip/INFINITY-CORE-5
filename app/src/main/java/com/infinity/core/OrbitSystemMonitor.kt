@@ -78,17 +78,27 @@ private fun readOrbitSystemSnapshot(context: Context): OrbitSystemSnapshot {
     val activityManager = context.getSystemService(
         Context.ACTIVITY_SERVICE
     ) as? ActivityManager
-    val ramPercent = activityManager?.let {
-        val memoryInfo = ActivityManager.MemoryInfo()
-        it.getMemoryInfo(memoryInfo)
-        infinityRamUsagePercent(memoryInfo.totalMem, memoryInfo.availMem)
-    }
+    // Keep RAM telemetry independent: an unavailable memory read must not
+    // prevent battery and storage metrics from being displayed.
+    val ramPercent = runCatching {
+        activityManager?.let {
+            val memoryInfo = ActivityManager.MemoryInfo()
+            it.getMemoryInfo(memoryInfo)
+            infinityRamUsagePercent(memoryInfo.totalMem, memoryInfo.availMem)
+        }
+    }.getOrNull()
 
-    val stat = StatFs(context.filesDir.absolutePath)
-    val totalBytes = stat.totalBytes
-    val availableBytes = stat.availableBytes
-    val storagePercent = infinityUsagePercent(totalBytes, availableBytes)
-    val storageDetail = infinityStorageSummary(totalBytes, availableBytes)
+    // Storage APIs may fail on restricted or transient filesystem states.
+    // Isolate that failure so ORBIT can continue reporting other metrics.
+    val storage = runCatching {
+        val stat = StatFs(context.filesDir.absolutePath)
+        val totalBytes = stat.totalBytes
+        val availableBytes = stat.availableBytes
+        infinityUsagePercent(totalBytes, availableBytes) to
+            infinityStorageSummary(totalBytes, availableBytes)
+    }.getOrNull()
+    val storagePercent = storage?.first
+    val storageDetail = storage?.second ?: "--"
 
     val thermalState = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
         val powerManager = context.getSystemService(
