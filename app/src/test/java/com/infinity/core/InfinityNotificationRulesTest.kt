@@ -68,16 +68,16 @@ class InfinityNotificationRulesTest {
 
     @Test
     fun sanitizationIsIdempotentForAcceptedUnicodeAndControls() {
-        val source = "á漢字😀\\u0000\tline\\nnext"
+        val source = "á漢字😀\u0000\tline\nnext"
         val sanitized = infinityNotificationMessage(source)
         assertEquals(sanitized, infinityNotificationMessage(sanitized))
         assertTrue(sanitized.contains("á漢字😀"))
-        assertFalse(sanitized.any { it.isISOControl() && it != '\\n' && it != '\\t' })
+        assertFalse(sanitized.any { it.isISOControl() && it != '\n' && it != '\t' })
     }
 
     @Test
     fun redactionDoesNotDependOnMalformedOrOversizedInput() {
-        val input = "\\uD83D" + "x".repeat(3_000) + "\\uDE00"
+        val input = "\uD83D" + "x".repeat(3_000) + "\uDE00"
         assertEquals("" to "", infinityNotificationContent(input, input, true))
         val visible = infinityNotificationContent(input, input, false)
         assertTrue(visible.first.length <= 300)
