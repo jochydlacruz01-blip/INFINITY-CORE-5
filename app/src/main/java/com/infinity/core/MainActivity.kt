@@ -461,19 +461,21 @@ val iconOffsets = remember {
                     (1..3).forEach { targetWorkspace ->
                         val selected = workspace == targetWorkspace
                         Box(
-                            Modifier.clip(RoundedCornerShape(9.dp))
+                            Modifier
+                                .widthIn(min = 38.dp)
+                                .clip(RoundedCornerShape(12.dp))
                                 .background(
-                                    if (selected) accent.copy(alpha = .22f)
-                                    else Color(0x66101D30)
+                                    if (selected) accent.copy(alpha = .20f)
+                                    else Color(0x55101D30)
                                 )
                                 .border(
                                     1.dp,
-                                    if (selected) accent.copy(alpha = .75f)
-                                    else Color.White.copy(alpha = .18f),
-                                    RoundedCornerShape(9.dp)
+                                    if (selected) accent.copy(alpha = .72f)
+                                    else Color.White.copy(alpha = .14f),
+                                    RoundedCornerShape(12.dp)
                                 )
                                 .clickable { switchWorkspace(targetWorkspace) }
-                                .padding(horizontal = 10.dp, vertical = 5.dp)
+                                .padding(horizontal = 11.dp, vertical = 7.dp)
                         ) {
                             Text(
                                 "0$targetWorkspace",
@@ -494,10 +496,10 @@ val iconOffsets = remember {
 
             Column(
                 Modifier.align(Alignment.TopEnd).padding(18.dp)
-                    .clip(RoundedCornerShape(18.dp))
-                    .background(InfinityPanel.copy(alpha = .84f))
-                    .border(1.dp, Color.White.copy(.12f), RoundedCornerShape(18.dp))
-                    .padding(13.dp),
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(Color(0xAA101D30))
+                    .border(1.dp, accent.copy(alpha = .24f), RoundedCornerShape(20.dp))
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
                 horizontalAlignment = Alignment.End
             ) {
                 Text(clockText, color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Light)
@@ -573,10 +575,10 @@ val iconOffsets = remember {
                         Text(
                             item.label,
                             modifier = Modifier
-                                .shadow(8.dp, RoundedCornerShape(10.dp))
-                                .background(Color(0xD9101D30), RoundedCornerShape(10.dp))
-                                .border(0.8.dp, accent.copy(alpha = 0.34f), RoundedCornerShape(10.dp))
-                                .padding(horizontal = 8.dp, vertical = 5.dp),
+                                .shadow(10.dp, RoundedCornerShape(12.dp))
+                                .background(Color(0xDD101D30), RoundedCornerShape(12.dp))
+                                .border(1.dp, accent.copy(alpha = 0.38f), RoundedCornerShape(12.dp))
+                                .padding(horizontal = 9.dp, vertical = 6.dp),
                             color = Color.White,
                             fontSize = 10.sp,
                             fontWeight = FontWeight.SemiBold,
