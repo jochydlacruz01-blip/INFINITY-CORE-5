@@ -380,9 +380,10 @@ private fun Infinity08App() {
         val normalizedTarget = infinityNormalizeWorkspace(target)
         workspace = normalizedTarget
         prefs.edit().putInt("active_workspace", normalizedTarget).apply()
-        focusedWindowId = infinityResolveFocusedWindow(
-            focusedWindowId,
-            windows.filter { !it.minimized && it.workspace == normalizedTarget }.map { it.id }
+        focusedWindowId = infinityResolveWorkspaceSwitchFocus(
+            focusedWindowId, windows.map { it.id },
+            windows.associate { it.id to it.workspace },
+            windows.filter { it.minimized }.map { it.id }.toSet(), normalizedTarget
         )
         startOpen = false
         orbitOpen = false
