@@ -31,5 +31,13 @@ class InfinityWorkspaceRulesTest {
         assertEquals("a", infinityResolveFocusedWindow(null, listOf("a")))
         assertNull(infinityResolveFocusedWindow("x", emptyList()))
     }
+    @Test fun dockWindowListFiltersUnknownIdsAndPreservesOrder() {
+        assertEquals(listOf("files_1", "notes_1"), infinityDockWindowIds(
+            listOf("files_1", "notes_1", "bad"),
+            mapOf("files_1" to false, "notes_1" to true)
+        ))
+        assertEquals(emptyList<String>(), infinityDockWindowIds(emptyList(), emptyMap()))
+    }
 }
+
 
