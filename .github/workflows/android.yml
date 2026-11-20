@@ -87,8 +87,8 @@ jobs:
           mkdir -p dist/PROJECT-INFINITY-0.10.0
           cp app/build/outputs/apk/debug/app-debug.apk dist/PROJECT-INFINITY-0.10.0/PROJECT-INFINITY-0.10.0-debug.apk
           cp app/build/outputs/apk/release/app-release.apk dist/PROJECT-INFINITY-0.10.0/PROJECT-INFINITY-0.10.0-release-signed.apk
-          VERSION_NAME="$(sed -n 's/^[[:space:]]*versionName[[:space:]]*=[[:space:]]*"\\([^"]*\\)".*/\\1/p' app/build.gradle.kts | head -n 1)"
-          VERSION_CODE="$(sed -n 's/^[[:space:]]*versionCode[[:space:]]*=[[:space:]]*\\([0-9]*\\).*/\\1/p' app/build.gradle.kts | head -n 1)"
+          VERSION_NAME="$(sed -n 's/^[[:space:]]*versionName[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' app/build.gradle.kts | head -n 1)"
+          VERSION_CODE="$(sed -n 's/^[[:space:]]*versionCode[[:space:]]*=[[:space:]]*\([0-9]*\).*/\1/p' app/build.gradle.kts | head -n 1)"
           test -n "$VERSION_NAME"
           test -n "$VERSION_CODE"
           {
