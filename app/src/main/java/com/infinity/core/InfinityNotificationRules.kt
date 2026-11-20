@@ -60,3 +60,12 @@ internal fun infinityNotificationContent(
     if (hideContent) return "" to ""
     return infinityNotificationTitle(title) to infinityNotificationMessage(message)
 }
+
+/** Updates the in-memory notification feed by key and caps retained items. */
+internal fun infinityNotificationFeedUpdate(current: List<InfinityNotification>, incoming: InfinityNotification, maximum: Int = 100): List<InfinityNotification> {
+    if (maximum <= 0) return emptyList()
+    val index = current.indexOfFirst { it.key == incoming.key }
+    val updated = current.toMutableList()
+    if (index >= 0) updated[index] = incoming else updated.add(0, incoming)
+    return updated.take(maximum)
+}

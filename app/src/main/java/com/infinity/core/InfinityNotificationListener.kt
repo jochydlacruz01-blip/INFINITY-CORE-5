@@ -76,20 +76,9 @@ object InfinityNotificationStore {
         }
 
         mainHandler.post {
-            val index = notifications.indexOfFirst {
-                it.key == safeNotification.key
-            }
-
-            if (index >= 0) {
-                notifications[index] = safeNotification
-            } else {
-                notifications.add(0, safeNotification)
-            }
-
-            // Keep the in-memory notification feed bounded.
-            while (notifications.size > MAX_NOTIFICATIONS) {
-                notifications.removeAt(notifications.lastIndex)
-            }
+            val bounded = infinityNotificationFeedUpdate(notifications.toList(), safeNotification, MAX_NOTIFICATIONS)
+            notifications.clear()
+            notifications.addAll(bounded)
         }
     }
 
