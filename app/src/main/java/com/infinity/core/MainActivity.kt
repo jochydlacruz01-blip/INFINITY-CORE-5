@@ -379,9 +379,10 @@ private fun Infinity08App() {
         val normalizedTarget = infinityNormalizeWorkspace(target)
         workspace = normalizedTarget
         prefs.edit().putInt("active_workspace", normalizedTarget).apply()
-        focusedWindowId = windows.lastOrNull {
-            !it.minimized && it.workspace == normalizedTarget
-        }?.id
+        focusedWindowId = infinityResolveFocusedWindow(
+            focusedWindowId,
+            windows.filter { !it.minimized && it.workspace == normalizedTarget }.map { it.id }
+        )
         startOpen = false
         orbitOpen = false
         controlOpen = false
@@ -723,18 +724,20 @@ val iconOffsets = remember {
                         onClose = {
                             windows.removeAll { item -> item.id == win.id }
                             if (focusedWindowId == win.id) {
-                                focusedWindowId = windows.lastOrNull {
-                                    !it.minimized && it.workspace == workspace
-                                }?.id
+                                focusedWindowId = infinityResolveFocusedWindow(
+                                    focusedWindowId,
+                                    windows.filter { !it.minimized && it.workspace == workspace }.map { it.id }
+                                )
                             }
                         },
                         onMinimize = {
                             val index = windows.indexOfFirst { it.id == win.id }
                             if (index >= 0) windows[index] = windows[index].copy(minimized = true)
                             if (focusedWindowId == win.id) {
-                                focusedWindowId = windows.lastOrNull {
-                                    !it.minimized && it.workspace == workspace && it.id != win.id
-                                }?.id
+                                focusedWindowId = infinityResolveFocusedWindow(
+                                    null,
+                                    windows.filter { !it.minimized && it.workspace == workspace && it.id != win.id }.map { it.id }
+                                )
                             }
                         },
                         onMaximize = {
