@@ -34,3 +34,18 @@ internal fun infinityInitialWindowSize(
     return preferredWidth.coerceAtMost(availableWidth) to
         preferredHeight.coerceAtMost(availableHeight)
 }
+
+
+/** Clamp a window's top-left position after movement to keep its full bounds visible. */
+internal fun infinityClampWindowPosition(
+    x: Float,
+    y: Float,
+    windowWidth: Float,
+    windowHeight: Float,
+    viewportWidth: Float,
+    viewportHeight: Float
+): Pair<Float, Float> {
+    val maxX = (viewportWidth - windowWidth).coerceAtLeast(0f)
+    val maxY = (viewportHeight - windowHeight).coerceAtLeast(0f)
+    return x.coerceIn(0f, maxX) to y.coerceIn(0f, maxY)
+}
