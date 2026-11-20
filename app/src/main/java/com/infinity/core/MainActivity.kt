@@ -1431,7 +1431,11 @@ Row(
                                     Modifier.size(48.dp)
                                         .selectable(
                                             selected = themeChoice == id,
-                                            role = Role.RadioButton
+                                            role = Role.RadioButton,
+                                            onClick = {
+                                                themeChoice = id
+                                                prefs.edit().putString("theme_choice", id).apply()
+                                            }
                                         )
                                         .semantics { contentDescription = "Tema $id" },
                                     contentAlignment = Alignment.Center
