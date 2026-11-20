@@ -27,4 +27,14 @@ class InfinityBatch14IconBoundsTest {
             infinityBoundIconOffset(Offset(120f, 160f), Offset.Zero, 500f, 600f)
         )
     }
+    @Test fun iconGridStartsInColumnsAndMovesDownByRows() {
+        assertEquals(Offset(12f, 24f), infinityDesktopIconGridOffset(0, 400f, 100f, 120f))
+        assertEquals(Offset(124f, 24f), infinityDesktopIconGridOffset(1, 400f, 100f, 120f))
+        assertEquals(Offset(236f, 24f), infinityDesktopIconGridOffset(2, 400f, 100f, 120f))
+        assertEquals(Offset(12f, 158f), infinityDesktopIconGridOffset(3, 400f, 100f, 120f))
+    }
+
+    @Test fun gridIconPlacementLimitsColumnOnNarrowScreen() {
+        assertEquals(Offset(0f, 24f), infinityDesktopIconGridOffset(1, 90f, 100f, 120f, horizontalGap = 12f))
+    }
 }
