@@ -293,7 +293,7 @@ private fun Infinity08App() {
     var focusedWindowId by remember { mutableStateOf<String?>(null) }
 
     fun switchWorkspace(target: Int) {
-        workspace = target.coerceIn(1, 3)
+        workspace = infinityNormalizeWorkspace(target)
         focusedWindowId = null
         startOpen = false
         orbitOpen = false
@@ -1363,7 +1363,7 @@ private fun openInfinityWindow(
         "about" to "Acerca de INFINITY"
     )
     val existing = windows.indexOfFirst { it.kind == id && it.workspace == workspace }
-    val windowId = "${id}_$workspace"
+    val windowId = infinityWindowIdentity(id, workspace)
     if (existing >= 0) {
         windows[existing] = windows[existing].copy(minimized = false)
     } else {
