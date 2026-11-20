@@ -19,3 +19,7 @@ internal fun infinityCanonicalWindowKind(kind: String?): String? {
 /** Builds a stable identity only from a usable canonical window kind. */
 internal fun infinitySafeWindowIdentity(kind: String?, workspace: Int): String? =
     infinityCanonicalWindowKind(kind)?.let { infinityWindowIdentity(it, workspace) }
+
+/** Keep current focus when valid; otherwise activate the most recently listed eligible window. */
+internal fun infinityResolveFocusedWindow(currentId: String?, eligibleIds: List<String>): String? =
+    currentId?.takeIf { it in eligibleIds } ?: eligibleIds.lastOrNull()
