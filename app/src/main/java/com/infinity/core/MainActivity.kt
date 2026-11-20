@@ -364,7 +364,16 @@ private fun Infinity08App() {
         prefs.edit().putString("saved_windows", array.toString()).apply()
     }
 
-    var focusedWindowId by remember { mutableStateOf<String?>(null) }
+    var focusedWindowId by remember {
+        mutableStateOf(prefs.getString("focused_window_id", null)?.takeIf { savedId ->
+            windows.any { it.id == savedId && !it.minimized && it.workspace == workspace }
+        })
+    }
+    LaunchedEffect(focusedWindowId) {
+        val id = focusedWindowId
+        if (id == null) prefs.edit().remove("focused_window_id").apply()
+        else prefs.edit().putString("focused_window_id", id).apply()
+    }
 
     fun switchWorkspace(target: Int) {
         val normalizedTarget = infinityNormalizeWorkspace(target)
