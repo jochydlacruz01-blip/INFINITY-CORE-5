@@ -413,7 +413,7 @@ private fun openAdvancedSettings(
             intent.putExtra(it.first, it.second)
         }
         context.startActivity(intent)
-    } catch (exception: Exception) {
+    } catch (_: Exception) {
         try {
             context.startActivity(Intent(Settings.ACTION_SETTINGS))
         } catch (fallbackException: Exception) {
