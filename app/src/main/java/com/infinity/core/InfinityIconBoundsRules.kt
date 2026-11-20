@@ -40,3 +40,12 @@ internal fun infinityDesktopIconGridOffset(
         topInset + row * (itemHeight + verticalGap)
     )
 }
+
+/** Computes a protected desktop height above the dock and its touch/navigation inset. */
+internal fun infinityDesktopHeightAboveDock(
+    viewportHeight: Float,
+    dockHeight: Float = 88f,
+    dockBottomInset: Float = 24f,
+    safetyGap: Float = 56f
+): Float = (viewportHeight - dockHeight.coerceAtLeast(0f) -
+    dockBottomInset.coerceAtLeast(0f) - safetyGap.coerceAtLeast(0f)).coerceAtLeast(0f)
