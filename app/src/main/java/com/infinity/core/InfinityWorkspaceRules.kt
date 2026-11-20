@@ -45,3 +45,16 @@ internal fun infinityWorkspaceWindowIds(windowIds: List<String>, workspaceById: 
     val target = infinityNormalizeWorkspace(activeWorkspace)
     return windowIds.filter { id -> workspaceById[id]?.let(::infinityNormalizeWorkspace) == target }
 }
+
+/** Selects focus only among non-minimized windows in the normalized target workspace. */
+internal fun infinityResolveWorkspaceFocus(
+    currentId: String?,
+    orderedIds: List<String>,
+    workspaceById: Map<String, Int>,
+    minimizedIds: Set<String>,
+    targetWorkspace: Int
+): String? {
+    val eligible = infinityWorkspaceWindowIds(orderedIds, workspaceById, targetWorkspace)
+        .filterNot { it in minimizedIds }
+    return infinityResolveFocusedWindow(currentId, eligible)
+}
