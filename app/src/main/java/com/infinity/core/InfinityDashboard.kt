@@ -142,8 +142,8 @@ private fun DashboardModule(
     onClick: () -> Unit
 ) {
     Card(
-        modifier,
         onClick = onClick,
+        modifier = modifier,
         shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = DashboardPanel)
     ) {
