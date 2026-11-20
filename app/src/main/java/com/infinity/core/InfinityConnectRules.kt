@@ -12,7 +12,7 @@ import java.net.InetAddress
 internal fun formatInfinityEndpointAddress(host: String, port: String): String {
     val normalizedPort = parseInfinityPort(port) ?: return ""
     val displayHost = host.trim()
-    if (displayHost.isEmpty()) return ""
+    if (!isValidInfinityHost(displayHost)) return ""
     val formattedHost = if (displayHost.contains(':')) "[$displayHost]" else displayHost
     return "$formattedHost:$normalizedPort"
 }
