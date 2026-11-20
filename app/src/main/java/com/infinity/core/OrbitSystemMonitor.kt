@@ -37,6 +37,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 
+private const val ORBIT_REFRESH_INTERVAL_MS = 15_000L
+
 private data class OrbitSystemSnapshot(
     val batteryPercent: Int,
     val ramPercent: Int?,
@@ -60,10 +62,7 @@ private fun readOrbitSystemSnapshot(context: Context): OrbitSystemSnapshot {
         batteryManager?.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
     ) ?: -1
 
-    val batteryIntent = context.registerReceiver(
-        null,
-        IntentFilter(Intent.ACTION_BATTERY_CHANGED)
-    )
+    // Battery broadcast access can fail on unusual OEM/framework states; keep other metrics alive.\n    val batteryIntent = runCatching {\n        context.registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))\n    }.getOrNull()
 
     val temperatureTenths = batteryIntent?.getIntExtra(
         BatteryManager.EXTRA_TEMPERATURE, -1
@@ -165,7 +164,7 @@ fun OrbitSystemMonitor(
                 thermalState = "NO DISPONIBLE"
             }
 
-            delay(15000)
+            // Polling interval is centralized for tuning and predictable resource use.\n            delay(ORBIT_REFRESH_INTERVAL_MS)
         }
     }
 
