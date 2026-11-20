@@ -407,8 +407,6 @@ val iconOffsets = remember {
             }
 
             InfinityRealDashboard(
-                clockText = clockText,
-                dateText = dateText,
                 workspace = workspace,
                 onOpenWindow = { id ->
                     focusedWindowId = openInfinityWindow(id, windows, workspace, maxW.value, maxH.value)
