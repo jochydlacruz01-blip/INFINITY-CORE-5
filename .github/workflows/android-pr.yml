@@ -40,12 +40,15 @@ jobs:
           test -f build.gradle.kts
           test -f app/build.gradle.kts
           test -f app/src/main/java/com/infinity/core/MainActivity.kt
+          test -f app/src/main/AndroidManifest.xml
+          grep -q 'android:allowBackup="false"' app/src/main/AndroidManifest.xml
+          grep -q 'android:usesCleartextTraffic="false"' app/src/main/AndroidManifest.xml
 
-      - name: Run unit tests
-        run: gradle testDebugUnitTest --stacktrace
+      - name: Run Debug and Release unit tests
+        run: gradle testDebugUnitTest testReleaseUnitTest --stacktrace
 
-      - name: Run Android lint
-        run: gradle lintDebug --stacktrace
+      - name: Run Android lint for Debug and Release
+        run: gradle lintDebug lintRelease --stacktrace
 
       - name: Build debug APK
         run: gradle assembleDebug --stacktrace
