@@ -2,7 +2,8 @@ package com.infinity.core
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -270,7 +271,7 @@ private fun AuroraWorkspaceSwitcher(current: Int, onSelect: (Int) -> Unit) {
                         Modifier.weight(1f)
                             .background(if (selected) DashboardCyan.copy(.13f) else DashboardInk.copy(.35f), RoundedCornerShape(14.dp))
                             .border(1.dp, if (selected) DashboardCyan.copy(.7f) else Color.White.copy(.1f), RoundedCornerShape(14.dp))
-                            .clickable { onSelect(target) }
+                            .selectable(selected = selected, role = Role.RadioButton) { onSelect(target) }
                             .padding(vertical = 11.dp, horizontal = 8.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(4.dp)
