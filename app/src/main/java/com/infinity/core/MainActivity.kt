@@ -52,6 +52,8 @@ import androidx.compose.animation.core.tween
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -1426,17 +1428,24 @@ Row(
                                 "sunset" to Color(0xFFFFA66B)
                             ).forEach { (id, color) ->
                                 Box(
-                                    Modifier.size(30.dp).background(color, CircleShape)
-                                        .border(
-                                            if (themeChoice == id) 3.dp else 1.dp,
-                                            Color.White,
-                                            CircleShape
+                                    Modifier.size(48.dp)
+                                        .selectable(
+                                            selected = themeChoice == id,
+                                            role = Role.RadioButton
                                         )
-                                        .clickable {
-                                            themeChoice = id
-                                            prefs.edit().putString("theme_choice", id).apply()
-                                        }
-                                )
+                                        .semantics { contentDescription = "Tema $id" },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Box(
+                                        Modifier.size(30.dp)
+                                            .background(color, CircleShape)
+                                            .border(
+                                                if (themeChoice == id) 3.dp else 1.dp,
+                                                Color.White,
+                                                CircleShape
+                                            )
+                                    )
+                                }
                             }
                         }
                         Text("APARIENCIA", color = accent, fontSize = 10.sp, fontWeight = FontWeight.Bold)
@@ -2016,7 +2025,15 @@ private fun Infinity08Window(
                         ).forEach { (id, label) ->
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
-                                modifier = Modifier.clickable { onThemeChange(id) }
+                                modifier = Modifier
+                                    .widthIn(min = 48.dp)
+                                    .heightIn(min = 48.dp)
+                                    .selectable(
+                                        selected = themeChoice == id,
+                                        role = Role.RadioButton,
+                                        onClick = { onThemeChange(id) }
+                                    )
+                                    .semantics { contentDescription = "Tema $label" }
                             ) {
                                 val color = when (id) {
                                     "ocean" -> Color(0xFF45B7FF)
