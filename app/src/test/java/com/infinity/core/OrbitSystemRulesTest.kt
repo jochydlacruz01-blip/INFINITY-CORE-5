@@ -1,6 +1,7 @@
 package com.infinity.core
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class OrbitSystemRulesTest {
@@ -123,7 +124,7 @@ class OrbitSystemRulesTest {
     @Test
     fun storageSummaryHandlesMaximumCapacityWithoutOverflow() {
         val summary = infinityStorageSummary(Long.MAX_VALUE, 0L)
-        assertEquals(true, summary.endsWith(" / 8589934592.0 GiB"))
+        assertTrue(summary.endsWith(" / 8589934592.0 GiB"))
         assertEquals("No disponible", infinityStorageSummary(Long.MAX_VALUE, Long.MIN_VALUE))
     }
 

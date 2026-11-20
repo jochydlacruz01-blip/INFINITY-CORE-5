@@ -111,6 +111,35 @@ class InfinityConnectRulesTest {
     }
 
     @Test
+    fun detectsDuplicateEquivalentIpv6Spellings() {
+        assertTrue(
+            hasDuplicateInfinityEndpoint(
+                host = "2001:db8::1",
+                port = "3389",
+                savedEndpoints = listOf("2001:0db8:0000:0000:0000:0000:0000:0001" to "3389")
+            )
+        )
+        assertFalse(
+            hasDuplicateInfinityEndpoint(
+                host = "2001:db8::1",
+                port = "3390",
+                savedEndpoints = listOf("2001:0db8:0:0:0:0:0:1" to "3389")
+            )
+        )
+    }
+
+    @Test
+    fun duplicateCheckNormalizesNumericPortFormatting() {
+        assertTrue(
+            hasDuplicateInfinityEndpoint(
+                host = "PC-OFICINA",
+                port = "3389",
+                savedEndpoints = listOf("pc-oficina" to "03389")
+            )
+        )
+    }
+
+    @Test
     fun invalidCandidatePortDoesNotMatchSavedEndpoint() {
         assertFalse(
             hasDuplicateInfinityEndpoint(

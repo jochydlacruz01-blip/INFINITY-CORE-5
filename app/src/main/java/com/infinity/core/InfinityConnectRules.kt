@@ -24,11 +24,28 @@ internal fun isValidInfinityUsername(value: String): Boolean {
     return username.isNotEmpty() && username.length <= 128 && username.none { it.isISOControl() }
 }
 
-private fun normalizeInfinityEndpointHost(host: String): String = try {
+private fun normalizeInfinityEndpointHost(host: String): String {
     val trimmed = host.trim()
-    if (trimmed.contains(':')) trimmed.lowercase(java.util.Locale.ROOT)
-    else IDN.toASCII(trimmed, IDN.USE_STD3_ASCII_RULES).lowercase(java.util.Locale.ROOT)
-} catch (_: IllegalArgumentException) { host.trim().lowercase(java.util.Locale.ROOT) }
+    if (trimmed.contains(':')) {
+        val parts = trimmed.split('%', limit = 2)
+        val address = parts[0]
+        val normalizedAddress = try {
+            (InetAddress.getByName(address) as? Inet6Address)
+                ?.hostAddress
+                ?.lowercase(java.util.Locale.ROOT)
+                ?: address.lowercase(java.util.Locale.ROOT)
+        } catch (_: Exception) {
+            address.lowercase(java.util.Locale.ROOT)
+        }
+        val scope = parts.getOrNull(1)
+        return if (scope == null) normalizedAddress else "$normalizedAddress%$scope"
+    }
+    return try {
+        IDN.toASCII(trimmed, IDN.USE_STD3_ASCII_RULES).lowercase(java.util.Locale.ROOT)
+    } catch (_: IllegalArgumentException) {
+        trimmed.lowercase(java.util.Locale.ROOT)
+    }
+}
 
 internal fun hasDuplicateInfinityEndpoint(
     host: String,

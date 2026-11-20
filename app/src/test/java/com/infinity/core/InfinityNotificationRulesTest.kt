@@ -34,6 +34,18 @@ class InfinityNotificationRulesTest {
     }
 
     @Test
+    fun textLimitsNeverSplitUnicodeSurrogatePairs() {
+        val emoji = "\uD83D\uDE00"
+
+        assertEquals("x".repeat(299), infinityNotificationTitle("x".repeat(299) + emoji))
+        assertEquals("x".repeat(298) + emoji, infinityNotificationTitle("x".repeat(298) + emoji))
+        assertEquals("m".repeat(1_999), infinityNotificationMessage("m".repeat(1_999) + emoji))
+        assertEquals("m".repeat(1_998) + emoji, infinityNotificationMessage("m".repeat(1_998) + emoji))
+        assertEquals("a".repeat(199), infinityNotificationAppName("a".repeat(199) + emoji))
+        assertEquals("a".repeat(198) + emoji, infinityNotificationAppName("a".repeat(198) + emoji))
+    }
+
+    @Test
     fun controlCharactersAreRemovedButLineBreaksAndTabsRemain() {
         assertEquals("ab", infinityNotificationTitle("a\u0000b"))
         assertEquals("a\nb\tc", infinityNotificationMessage("a\nb\tc"))
