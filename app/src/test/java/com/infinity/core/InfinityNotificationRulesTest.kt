@@ -58,4 +58,12 @@ class InfinityNotificationRulesTest {
         assertEquals("a\nb\tc", infinityNotificationMessage("a\nb\tc"))
         assertEquals("AppName", infinityNotificationAppName("App\u0007Name"))
     }
+    @Test
+    fun appNameFallbackIsSanitizedAndNeverBlank() {
+        assertEquals("com.example.app", infinityNotificationAppNameOrFallback("", "com.example.app"))
+        assertEquals("Aplicación", infinityNotificationAppNameOrFallback(null, "\u0000"))
+        assertEquals("Safe Label", infinityNotificationAppNameOrFallback("Safe Label", "ignored"))
+        assertEquals(200, infinityNotificationAppNameOrFallback(null, "x".repeat(250)).length)
+    }
+
 }
