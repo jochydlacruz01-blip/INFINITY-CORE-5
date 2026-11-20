@@ -88,7 +88,7 @@ jobs:
           cp app/build/outputs/apk/debug/app-debug.apk dist/PROJECT-INFINITY-0.10.0/PROJECT-INFINITY-0.10.0-debug.apk
           cp app/build/outputs/apk/release/app-release.apk dist/PROJECT-INFINITY-0.10.0/PROJECT-INFINITY-0.10.0-release-signed.apk
           VERSION_NAME="$(awk -F\" '/versionName/{print $2; exit}' app/build.gradle.kts | tr -d \"\")"
-          VERSION_CODE="$(awk -F= '/versionCode/ {gsub(/[[:space:]]/, \"\", $2); print $2; exit}' app/build.gradle.kts)"
+          VERSION_CODE="$(awk '/versionCode/ {print $NF; exit}' app/build.gradle.kts)"
           test -n "$VERSION_NAME"
           test -n "$VERSION_CODE"
           {
