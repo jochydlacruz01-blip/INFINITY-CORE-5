@@ -406,75 +406,37 @@ val iconOffsets = remember {
                 Text(dateText, color = InfinityMuted, fontSize = 10.sp)
             }
 
-            // INFINITY DESKTOP 0.11 — ICONOS MEJORADOS
-            desktopItems.forEach { item ->
-                val offset = iconOffsets[item.id] ?: Offset(22f, 90f)
-
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier
-                        .offset {
-                            IntOffset(
-                                offset.x.roundToInt(),
-                                offset.y.roundToInt()
-                            )
-                        }
-                        .width(94.dp)
-                        .pointerInput(item.id) {
-                            detectDragGestures { change, drag ->
-                                change.consume()
-
-                                val next = infinityBoundIconOffset(
-                                    iconOffsets[item.id] ?: Offset(22f, 90f),
-                                    Offset(drag.x, drag.y),
-                                    with(density) { maxW.toPx() },
-                                    with(density) { maxH.toPx() }
-                                )
-
-                                iconOffsets[item.id] = next
-
-                                prefs.edit()
-                                    .putFloat("${item.id}_x", next.x)
-                                    .putFloat("${item.id}_y", next.y)
-                                    .apply()
-                            }
-                        }
-                        .clickable {
-                            focusedWindowId = openInfinityWindow(item.id, windows, workspace, maxW.value, maxH.value)
-                        }
-                        .padding(6.dp)
-                ) {
-                    InfinityAppBadge(item, (iconSize + 8f).dp, accent)
-
-                    Spacer(Modifier.height(7.dp))
-
-                    Text(
-                        item.label,
-                        modifier = Modifier
-                            .background(
-                                Color(0xCC101827),
-                                RoundedCornerShape(8.dp)
-                            )
-                            .border(
-                                0.7.dp,
-                                Color.White.copy(alpha = 0.18f),
-                                RoundedCornerShape(8.dp)
-                            )
-                            .padding(
-                                horizontal = 7.dp,
-                                vertical = 4.dp
-                            ),
-                        color = Color.White,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 2,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                        overflow = TextOverflow.Ellipsis
-                    )
+            InfinityRealDashboard(
+                clockText = clockText,
+                dateText = dateText,
+                workspace = workspace,
+                onOpenWindow = { id ->
+                    focusedWindowId = openInfinityWindow(id, windows, workspace, maxW.value, maxH.value)
+                    startOpen = false
+                    orbitOpen = false
+                    controlOpen = false
+                    advancedOpen = false
+                },
+                onOpenOrbit = {
+                    orbitOpen = true
+                    startOpen = false
+                    controlOpen = false
+                    advancedOpen = false
+                },
+                onOpenAdvanced = {
+                    advancedOpen = true
+                    startOpen = false
+                    orbitOpen = false
+                    controlOpen = false
+                },
+                onOpenControl = {
+                    controlOpen = true
+                    startOpen = false
+                    orbitOpen = false
+                    advancedOpen = false
                 }
-            }
+            )
 
- 
             windows.filter { !it.minimized && it.workspace == workspace }.forEach { win ->
                 key(win.id) {
                     val shown = if (win.maximized || maxW < 600.dp) {
