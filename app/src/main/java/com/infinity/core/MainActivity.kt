@@ -1501,19 +1501,19 @@ private fun DockAction(
 ) {
     Column(
         Modifier
-            .widthIn(min = 52.dp)
-            .clip(RoundedCornerShape(15.dp))
+            .widthIn(min = 48.dp)
+            .clip(RoundedCornerShape(14.dp))
             .background(Color.White.copy(alpha = 0.035f), RoundedCornerShape(15.dp))
             .border(1.dp, tint.copy(alpha = 0.12f), RoundedCornerShape(15.dp))
             .clickable(onClick = onClick)
-            .padding(horizontal = 5.dp, vertical = 5.dp),
+            .padding(horizontal = 4.dp, vertical = 5.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(3.dp)
     ) {
         Box(
-            Modifier.size(36.dp)
-                .background(tint.copy(alpha = .17f), RoundedCornerShape(12.dp))
-                .border(1.dp, tint.copy(alpha = .42f), RoundedCornerShape(12.dp)),
+            Modifier.size(34.dp)
+                .background(tint.copy(alpha = .17f), RoundedCornerShape(11.dp))
+                .border(1.dp, tint.copy(alpha = .42f), RoundedCornerShape(11.dp)),
             contentAlignment = Alignment.Center
         ) {
             Text(glyph, color = tint, fontSize = 21.sp, fontWeight = FontWeight.Bold)
