@@ -413,11 +413,16 @@ private fun openAdvancedSettings(
             intent.putExtra(it.first, it.second)
         }
         context.startActivity(intent)
-    } catch (_: Exception) {
+    } catch (exception: Exception) {
         try {
             context.startActivity(Intent(Settings.ACTION_SETTINGS))
-        } catch (_: Exception) {
-            // El dispositivo no pudo abrir los ajustes.
+        } catch (fallbackException: Exception) {
+            val report = infinityGuardReport("Apertura de ajustes", fallbackException)
+            android.widget.Toast.makeText(
+                context,
+                report.userMessage,
+                android.widget.Toast.LENGTH_SHORT
+            ).show()
         }
     }
 }
