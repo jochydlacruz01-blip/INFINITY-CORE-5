@@ -1,5 +1,10 @@
 package com.infinity.core
 
+/** Removes directional formatting controls that can visually reorder or disguise notification text. */
+private fun isInfinityUnsafeBidiControl(value: Char): Boolean =
+    value == '\u061C' || value == '\u200E' || value == '\u200F' ||
+        value in '\u202A'..'\u202E' || value in '\u2066'..'\u2069'
+
 /** Limits and removes non-printable control characters from notification text. */
 private fun sanitizeInfinityNotificationText(value: String?, limit: Int): String {
     if (limit <= 0 || value.isNullOrEmpty()) return ""
@@ -23,7 +28,8 @@ private fun sanitizeInfinityNotificationText(value: String?, limit: Int): String
                 }
             }
             Character.isLowSurrogate(current) -> index++
-            current == '\n' || current == '\t' || !current.isISOControl() -> {
+            current == '\n' || current == '\t' ||
+                (!current.isISOControl() && !isInfinityUnsafeBidiControl(current)) -> {
                 result.append(current)
                 index++
             }

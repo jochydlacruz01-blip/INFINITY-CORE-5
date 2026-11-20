@@ -55,6 +55,14 @@ class InfinityNotificationRulesTest {
     }
 
     @Test
+    fun directionalFormattingControlsCannotSpoofNotificationText() {
+        val spoofed = "Transferir 100" + '\u202E' + "cod.exe" + '\u202C' + " ahora"
+        assertEquals("Transferir 100cod.exe ahora", infinityNotificationMessage(spoofed))
+        assertEquals("ab", infinityNotificationTitle("a" + '\u200F' + "b"))
+        assertEquals("xy", infinityNotificationAppName("x" + '\u2066' + "y" + '\u2069'))
+    }
+
+    @Test
     fun controlCharactersAreRemovedButLineBreaksAndTabsRemain() {
         assertEquals("ab", infinityNotificationTitle("a\u0000b"))
         assertEquals("a\nb\tc", infinityNotificationMessage("a\nb\tc"))
