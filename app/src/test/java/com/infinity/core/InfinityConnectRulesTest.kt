@@ -243,6 +243,28 @@ class InfinityConnectRulesTest {
         assertFalse(isValidInfinityDocumentName("x".repeat(256)))
     }
     @Test
+    fun invalidPersistedRowsDoNotConsumeValidProfileLimit() {
+        val source = listOf("bad-1", "bad-2", "valid-1", "duplicate", "valid-2", "valid-3")
+        val seen = mutableSetOf<String>()
+        val loaded = collectValidInfinityProfiles(source, maxProfiles = 2) { row ->
+            if (row.startsWith("bad") || row == "duplicate" || !seen.add(row)) {
+                null
+            } else {
+                row
+            }
+        }
+
+        assertEquals(listOf("valid-1", "valid-2"), loaded)
+    }
+
+    @Test
+    fun persistedProfileCollectorHandlesEmptyAndNonPositiveLimits() {
+        assertEquals(emptyList<String>(), collectValidInfinityProfiles(emptyList<String>(), 10) { it })
+        assertEquals(emptyList<String>(), collectValidInfinityProfiles(listOf("valid"), 0) { it })
+        assertEquals(emptyList<String>(), collectValidInfinityProfiles(listOf("valid"), -1) { it })
+    }
+
+    @Test
     fun validatesCompletePersistedConnectionProfiles() {
         assertTrue(isValidInfinityProfileRecord("Oficina", "office-pc.local", "3389", "DOMAIN\\\\user"))
         assertFalse(isValidInfinityProfileRecord("", "office-pc.local", "3389", "user"))

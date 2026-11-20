@@ -120,6 +120,26 @@ internal fun isValidInfinityHost(value: String): Boolean {
 }
 
 
+/**
+ * Collects valid persisted entries without letting malformed rows consume the valid-entry cap.
+ * The mapper may return null for invalid or duplicate records.
+ */
+internal fun <T, R : Any> collectValidInfinityProfiles(
+    records: Iterable<T>,
+    maxProfiles: Int,
+    mapValid: (T) -> R?
+): List<R> {
+    if (maxProfiles <= 0) return emptyList()
+
+    val result = mutableListOf<R>()
+    for (record in records) {
+        if (result.size >= maxProfiles) break
+        val mapped = mapValid(record) ?: continue
+        result.add(mapped)
+    }
+    return result
+}
+
 /** Validate a complete persisted profile before it is exposed to the CONNECT UI. */
 internal fun isValidInfinityProfileRecord(
     name: String,

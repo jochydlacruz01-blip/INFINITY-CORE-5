@@ -63,8 +63,10 @@ private fun loadInfinityProfiles(
         val validProfiles = mutableListOf<InfinityConnectionProfile>()
         val seenEndpoints = mutableListOf<Pair<String, String>>()
 
-        // A malformed provider/legacy row must not hide every other saved profile.
-        for (index in 0 until minOf(json.length(), INFINITY_CONNECT_MAX_PROFILES)) {
+        // Invalid and duplicate legacy rows do not consume the 100-profile allowance.
+        for (index in 0 until json.length()) {
+            if (validProfiles.size >= INFINITY_CONNECT_MAX_PROFILES) break
+
             val profile = try {
                 val item = json.optJSONObject(index) ?: continue
                 val name = item.optString("name", "").trim()
