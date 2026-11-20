@@ -480,21 +480,20 @@ val iconOffsets = remember {
                 }
             }
 
-            // Repara geometría persistida tras cambios de pantalla, orientación o tamaño.
+            // Normalize persisted windows after screen size, orientation, or density changes.
             LaunchedEffect(maxW, maxH) {
-                val widthLimit = (maxW.value - 16f).coerceAtLeast(240f)
-                val heightLimit = (maxH.value - 96f).coerceAtLeast(180f)
                 windows.indices.forEach { index ->
                     val current = windows[index]
-                    val safeWidth = current.width.coerceIn(240f, widthLimit)
-                    val safeHeight = current.height.coerceIn(180f, heightLimit)
-                    val safeX = current.x.coerceIn(0f, (maxW.value - safeWidth).coerceAtLeast(0f))
-                    val safeY = current.y.coerceIn(0f, (maxH.value - safeHeight).coerceAtLeast(0f))
-                    if (safeWidth != current.width || safeHeight != current.height ||
-                        safeX != current.x || safeY != current.y
+                    val bounds = infinityNormalizeWindowBounds(
+                        current.x, current.y, current.width, current.height,
+                        maxW.value, maxH.value
+                    )
+                    if (bounds.x != current.x || bounds.y != current.y ||
+                        bounds.width != current.width || bounds.height != current.height
                     ) {
                         windows[index] = current.copy(
-                            x = safeX, y = safeY, width = safeWidth, height = safeHeight
+                            x = bounds.x, y = bounds.y,
+                            width = bounds.width, height = bounds.height
                         )
                     }
                 }
