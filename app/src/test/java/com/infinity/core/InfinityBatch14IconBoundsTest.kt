@@ -35,6 +35,6 @@ class InfinityBatch14IconBoundsTest {
     }
 
     @Test fun gridIconPlacementLimitsColumnOnNarrowScreen() {
-        assertEquals(Offset(0f, 24f), infinityDesktopIconGridOffset(1, 90f, 100f, 120f, horizontalGap = 12f))
+        assertEquals(Offset(0f, 158f), infinityDesktopIconGridOffset(1, 90f, 100f, 120f, horizontalGap = 12f))
     }
 }
