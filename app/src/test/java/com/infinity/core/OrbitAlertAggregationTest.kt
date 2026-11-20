@@ -13,10 +13,11 @@ class OrbitAlertAggregationTest {
         assertEquals(OrbitMetricLevel.UNKNOWN, infinityOrbitBatteryLevel(101))
     }
 
-    @Test fun aggregatesAlertsAndKeepsDeterministicOrder() {
+    @Test fun aggregatesAlertsWithCriticalFirstAndStableOrder() {
         val alerts = infinityOrbitAlerts(9, 80, 95, 4)
-        assertEquals(listOf("BATERÍA", "RAM", "ALMACENAMIENTO", "TEMPERATURA"), alerts.map { it.metric })
+        assertEquals(listOf("BATERÍA", "ALMACENAMIENTO", "TEMPERATURA", "RAM"), alerts.map { it.metric })
         assertEquals(OrbitMetricLevel.CRITICAL, alerts.first().level)
+        assertEquals(OrbitMetricLevel.WARNING, alerts.last().level)
     }
 
     @Test fun unknownMetricsDoNotGenerateAlerts() {
