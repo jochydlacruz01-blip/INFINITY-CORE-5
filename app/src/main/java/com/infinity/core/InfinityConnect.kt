@@ -40,7 +40,7 @@ private data class InfinityConnectionProfile(
     val username: String
 ) {
     val address: String
-        get() = "$host:$port"
+        get() = formatInfinityEndpointAddress(host, port)
 }
 
 private const val INFINITY_CONNECT_PREFS = "infinity_connect_profiles"
