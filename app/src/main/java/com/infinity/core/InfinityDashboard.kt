@@ -54,6 +54,8 @@ internal fun InfinityRealDashboard(
         ),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        AuroraDashboardHeader(workspace)
+
         Text(
             "CENTRO DE CONTROL  •  ESPACIO DE TRABAJO $workspace",
             color = DashboardCyan,
@@ -107,6 +109,8 @@ internal fun InfinityRealDashboard(
                 }
             }
         }
+
+        AuroraFeatureStrip()
 
         Text("MÓDULOS PRINCIPALES", color = DashboardCyan, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(9.dp)) {
@@ -184,5 +188,60 @@ private fun DashboardStatusRow(label: String, value: String, tint: Color) {
         Box(Modifier.size(7.dp).background(tint, CircleShape))
         Text(label, color = Color.White, fontSize = 10.sp, modifier = Modifier.weight(1f).padding(start = 8.dp))
         Text(value, color = DashboardMuted, fontSize = 9.sp, modifier = Modifier.widthIn(max = 190.dp))
+    }
+}
+
+
+@Composable
+private fun AuroraDashboardHeader(workspace: Int) {
+    Card(
+        Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xCC10243B))
+    ) {
+        Row(
+            Modifier.fillMaxWidth().padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Box(
+                Modifier.size(54.dp)
+                    .background(Brush.linearGradient(listOf(DashboardCyan.copy(.32f), DashboardBlue.copy(.18f))), CircleShape)
+                    .border(1.dp, DashboardCyan.copy(.65f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) { Text("∞", color = DashboardCyan, fontSize = 32.sp, fontWeight = FontWeight.Black) }
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text("AURORA NEXT", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Black, letterSpacing = 1.4.sp)
+                Text("Workspace $workspace  •  MODO OPERATIVO", color = DashboardCyan, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                Text("Un escritorio. Tres espacios. Tu ecosistema.", color = DashboardMuted, fontSize = 10.sp)
+            }
+            Box(
+                Modifier.background(DashboardCyan.copy(.12f), RoundedCornerShape(12.dp))
+                    .border(1.dp, DashboardCyan.copy(.35f), RoundedCornerShape(12.dp))
+                    .padding(horizontal = 10.dp, vertical = 7.dp)
+            ) { Text("CORE", color = DashboardCyan, fontSize = 9.sp, fontWeight = FontWeight.Black) }
+        }
+    }
+}
+
+@Composable
+private fun AuroraFeatureStrip() {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        listOf(
+            Triple("DESKTOP", "Entorno", DashboardBlue),
+            Triple("ORBIT", "Monitor", DashboardViolet),
+            Triple("CONNECT", "Enlace", DashboardCyan)
+        ).forEach { (title, caption, tint) ->
+            Column(
+                Modifier.weight(1f).background(DashboardPanel, RoundedCornerShape(15.dp))
+                    .border(1.dp, tint.copy(.28f), RoundedCornerShape(15.dp))
+                    .padding(vertical = 11.dp, horizontal = 9.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Box(Modifier.size(6.dp).background(tint, CircleShape))
+                Text(title, color = tint, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = .7.sp)
+                Text(caption, color = DashboardMuted, fontSize = 9.sp)
+            }
+        }
     }
 }
