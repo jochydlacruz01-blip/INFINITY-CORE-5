@@ -158,7 +158,7 @@ internal fun InfinityFileManager(
             throw cancelled
         } catch (exception: Exception) {
             entries = emptyList()
-            error = exception.localizedMessage ?: "No se pudo leer esta ubicación."
+            error = infinityGuardReport("Lectura de carpeta", exception).userMessage
         } finally {
             // A cancelled older query must not clear the loading indicator
             // belonging to a newer folder/refresh request.
