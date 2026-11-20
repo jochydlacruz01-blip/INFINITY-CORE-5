@@ -44,6 +44,10 @@ jobs:
           test -f app/src/main/java/com/infinity/core/MainActivity.kt
           test -f app/src/main/java/com/infinity/core/InfinityConnect.kt
           test -f app/src/main/java/com/infinity/core/OrbitSystemMonitor.kt
+          test -f app/src/main/AndroidManifest.xml
+          grep -q 'android:allowBackup="false"' app/src/main/AndroidManifest.xml
+          grep -q 'android:usesCleartextTraffic="false"' app/src/main/AndroidManifest.xml
+          grep -q 'android.permission.BIND_NOTIFICATION_LISTENER_SERVICE' app/src/main/AndroidManifest.xml
 
       - name: Preparar firma
         env:
@@ -61,8 +65,8 @@ jobs:
           INFINITY_KEY_PASSWORD: ${{ secrets.INFINITY_KEY_PASSWORD }}
         run: gradle assembleDebug assembleRelease --stacktrace
 
-      - name: Análisis estático y pruebas unitarias
-        run: gradle lintDebug testDebugUnitTest --stacktrace
+      - name: Auditoría estática Debug y Release y pruebas unitarias
+        run: gradle lintDebug lintRelease testDebugUnitTest testReleaseUnitTest --stacktrace
 
       - name: Verificar firma del APK Release
         shell: bash
