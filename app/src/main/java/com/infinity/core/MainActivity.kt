@@ -436,7 +436,7 @@ val iconOffsets = remember {
                             }
                         }
                         .clickable {
-                            focusedWindowId = openInfinityWindow(item.id, windows, workspace)
+                            focusedWindowId = openInfinityWindow(item.id, windows, workspace, maxW.value, maxH.value)
                         }
                         .padding(6.dp)
                 ) {
@@ -688,7 +688,7 @@ DockAction("▤", "ADVANCED", accent) {
                                 Row(
                                     Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
                                         .clickable {
-                                            focusedWindowId = openInfinityWindow(item.id, windows, workspace)
+                                            focusedWindowId = openInfinityWindow(item.id, windows, workspace, maxW.value, maxH.value)
                                             startOpen = false
                                         }.padding(9.dp),
                                     verticalAlignment = Alignment.CenterVertically
@@ -1034,7 +1034,7 @@ Row(
                         ) {
                             Button(
                                 onClick = {
-                                    focusedWindowId = openInfinityWindow("connect", windows, workspace)
+                                    focusedWindowId = openInfinityWindow("connect", windows, workspace, maxW.value, maxH.value)
                                     orbitOpen = false
                                 },
                                 modifier = Modifier
@@ -1352,7 +1352,9 @@ private fun DockAction(
 private fun openInfinityWindow(
     id: String,
     windows: MutableList<DeskWindow>,
-    workspace: Int
+    workspace: Int,
+    viewportWidth: Float,
+    viewportHeight: Float
 ): String {
     val titles = mapOf(
         "files" to "Explorador de archivos",
@@ -1372,8 +1374,8 @@ private fun openInfinityWindow(
                 id = windowId,
                 title = titles[id] ?: "INFINITY",
                 kind = id,
-                x = 90f + windows.size * 22f,
-                y = 75f + windows.size * 20f,
+                x = infinityInitialWindowPosition(windows.size, viewportWidth, viewportHeight).first,
+                y = infinityInitialWindowPosition(windows.size, viewportWidth, viewportHeight).second,
                 workspace = workspace
             )
         )
