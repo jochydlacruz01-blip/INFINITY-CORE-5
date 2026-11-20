@@ -235,9 +235,11 @@ class InfinityNotificationListener : NotificationListenerService() {
             val appName = try {
                 packageManager.getApplicationLabel(
                     packageManager.getApplicationInfo(sbn.packageName, 0)
-                ).toString().let(::infinityNotificationAppName)
+                ).toString().let { label ->
+                    infinityNotificationAppNameOrFallback(label, sbn.packageName)
+                }
             } catch (_: Exception) {
-                sbn.packageName
+                infinityNotificationAppNameOrFallback(null, sbn.packageName)
             }
 
             InfinityNotificationStore.update(
