@@ -555,14 +555,8 @@ val iconOffsets = remember {
                                     (maxH.value - current.y).coerceAtLeast(1f)
 
                                 windows[index] = current.copy(
-                                    width = (current.width + dx).coerceIn(
-                                        minOf(280f, availableWidth),
-                                        availableWidth
-                                    ),
-                                    height = (current.height + dy).coerceIn(
-                                        minOf(190f, availableHeight),
-                                        availableHeight
-                                    )
+                                    width = infinityResizeDimension(current.width, dx, availableWidth, 280f),
+                                    height = infinityResizeDimension(current.height, dy, availableHeight, 190f)
                                 )
                             }
                         },
