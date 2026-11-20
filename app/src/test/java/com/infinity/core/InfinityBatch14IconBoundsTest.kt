@@ -44,5 +44,21 @@ class InfinityBatch14IconBoundsTest {
     @Test fun dockSafeZoneNeverReturnsNegativeHeight() {
         assertEquals(0f, infinityDesktopHeightAboveDock(80f, 100f, 30f, 50f), 0.001f)
     }
-}
+    @Test fun resolverMovesOverlappingIconsIntoSeparateSlots() {
+        val result = infinityResolveIconOverlaps(
+            listOf(Offset(10f, 10f), Offset(10f, 10f)),
+            500f, 600f
+        )
+        assertEquals(Offset(10f, 10f), result[0])
+        assertEquals(false, result[0] == result[1])
+    }
 
+    @Test fun resolverPreservesNonOverlappingPositions() {
+        val result = infinityResolveIconOverlaps(
+            listOf(Offset(10f, 10f), Offset(150f, 10f)),
+            500f, 600f
+        )
+        assertEquals(Offset(10f, 10f), result[0])
+        assertEquals(Offset(150f, 10f), result[1])
+    }
+}
