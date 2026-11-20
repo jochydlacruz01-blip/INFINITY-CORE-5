@@ -58,3 +58,7 @@ internal fun infinityResolveWorkspaceFocus(
         .filterNot { it in minimizedIds }
     return infinityResolveFocusedWindow(currentId, eligible)
 }
+
+/** Dock activation policy: restore minimized or unfocused tasks; minimize only the focused visible task. */
+internal fun infinityDockResolveActivation(taskId: String, currentFocusId: String?, minimized: Boolean): String? =
+    if (minimized || taskId != currentFocusId) taskId else null
