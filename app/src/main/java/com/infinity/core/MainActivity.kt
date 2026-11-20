@@ -858,7 +858,7 @@ DockAction("▤", "ADVANCED", accent) {
                         .background(Color.White.copy(alpha = 0.30f))
                 )
 
-                windows.filter { it.workspace == workspace }.let { workspaceWindows ->
+                infinityWorkspaceWindowIds(windows.map { it.id }, windows.associate { it.id to it.workspace }, workspace).mapNotNull { id -> windows.firstOrNull { it.id == id } }.let { workspaceWindows ->
                     infinityDockWindowIds(workspaceWindows.map { it.id }, workspaceWindows.associate { it.id to it.minimized }).forEach { taskId ->
                         val task = workspaceWindows.firstOrNull { it.id == taskId } ?: return@forEach
                         DockAction(if (task.minimized) "□" else "▣", infinityDockLabel(task.title), accent) {
