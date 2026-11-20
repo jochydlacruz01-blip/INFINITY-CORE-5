@@ -39,5 +39,9 @@ internal fun infinityOrbitAlerts(
     if (infinityOrbitNeedsAlert(thermal)) {
         alerts += OrbitHealthAlert("TEMPERATURA", thermal, "Estado térmico $thermalStatus: ${if (thermal == OrbitMetricLevel.CRITICAL) "crítico" else "elevado"}")
     }
-    return alerts.sortedBy { infinityOrbitAlertPriority(it.level) }
+    // Keep deterministic tie ordering explicit: candidate metric order is preserved within severity.
+    return alerts.withIndex()
+        .sortedWith(compareBy<IndexedValue<OrbitHealthAlert>> { infinityOrbitAlertPriority(it.value.level) }
+            .thenBy { it.index })
+        .map { it.value }
 }
