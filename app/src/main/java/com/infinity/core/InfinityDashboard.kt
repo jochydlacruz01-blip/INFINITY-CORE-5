@@ -44,8 +44,6 @@ private val DashboardGold = Color(0xFFFFC477)
 
 @Composable
 internal fun InfinityRealDashboard(
-    clockText: String,
-    dateText: String,
     workspace: Int,
     onOpenWindow: (String) -> Unit,
     onOpenOrbit: () -> Unit,
@@ -58,21 +56,13 @@ internal fun InfinityRealDashboard(
         ),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Row(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(Modifier.weight(1f)) {
-                Text("CENTRO DE CONTROL", color = DashboardCyan, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
-                Text("Bienvenido a INFINITY", color = Color.White, fontSize = 21.sp, fontWeight = FontWeight.Black, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text("AURORA NEXT  •  ESPACIO DE TRABAJO $workspace", color = DashboardMuted, fontSize = 9.sp)
-            }
-            Column(horizontalAlignment = Alignment.End) {
-                Text(clockText, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Light)
-                Text(dateText, color = DashboardMuted, fontSize = 9.sp)
-            }
-        }
+        Text(
+            "CENTRO DE CONTROL  •  ESPACIO DE TRABAJO $workspace",
+            color = DashboardCyan,
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 1.5.sp
+        )
 
         Card(
             Modifier.fillMaxWidth(),
@@ -98,7 +88,7 @@ internal fun InfinityRealDashboard(
 
         Text("MÓDULOS PRINCIPALES", color = DashboardCyan, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(9.dp)) {
-            DashboardModule("ESCRITORIO", "Ventanas y espacios", "▣", DashboardBlue, Modifier.weight(1f)) { onOpenWindow("about") }
+            DashboardModule("INFINITY", "Información del entorno", "∞", DashboardBlue, Modifier.weight(1f)) { onOpenWindow("about") }
             DashboardModule("ORBIT", "Estado del sistema", "◉", DashboardViolet, Modifier.weight(1f), onOpenOrbit)
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(9.dp)) {
