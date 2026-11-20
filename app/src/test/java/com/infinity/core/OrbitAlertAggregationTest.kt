@@ -20,7 +20,13 @@ class OrbitAlertAggregationTest {
         assertEquals(OrbitMetricLevel.WARNING, alerts.last().level)
     }
 
-    @Test fun equalSeverityAlertsPreserveMetricCandidateOrder() {\n        val alerts = infinityOrbitAlerts(10, 95, 90, 4)\n        assertEquals(listOf("BATERÍA", "RAM", "ALMACENAMIENTO", "TEMPERATURA"), alerts.map { it.metric })\n        assertEquals(listOf(OrbitMetricLevel.CRITICAL, OrbitMetricLevel.CRITICAL, OrbitMetricLevel.CRITICAL, OrbitMetricLevel.CRITICAL), alerts.map { it.level })\n    }\n\n    @Test fun unknownMetricsDoNotGenerateAlerts() {
+    @Test fun equalSeverityAlertsPreserveMetricCandidateOrder() {
+        val alerts = infinityOrbitAlerts(10, 95, 90, 4)
+        assertEquals(listOf("BATERÍA", "RAM", "ALMACENAMIENTO", "TEMPERATURA"), alerts.map { it.metric })
+        assertEquals(listOf(OrbitMetricLevel.CRITICAL, OrbitMetricLevel.CRITICAL, OrbitMetricLevel.CRITICAL, OrbitMetricLevel.CRITICAL), alerts.map { it.level })
+    }
+
+    @Test fun unknownMetricsDoNotGenerateAlerts() {
         assertTrue(infinityOrbitAlerts(null, null, -1, null).isEmpty())
     }
 
