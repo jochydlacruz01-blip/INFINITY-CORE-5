@@ -19,9 +19,9 @@ internal fun formatInfinityFileSize(bytes: Long): String {
 }
 
 internal fun formatInfinityMimeType(mime: String?): String {
-    if (mime.isNullOrBlank()) return "Tipo no disponible"
-    return when (mime.lowercase(Locale.ROOT)) {
-        null, "" -> "Tipo no disponible"
+    val normalizedMime = mime?.trim()?.lowercase(Locale.ROOT)
+        ?.takeIf { it.isNotEmpty() } ?: return "Tipo no disponible"
+    return when (normalizedMime) {
         "application/pdf" -> "Documento PDF"
         "text/plain" -> "Texto"
         "text/csv" -> "Hoja CSV"
@@ -40,8 +40,13 @@ internal fun formatInfinityMimeType(mime: String?): String {
         "audio/ogg" -> "Audio OGG"
         "video/mp4" -> "Vídeo MP4"
         "application/vnd.android.package-archive" -> "Instalador APK"
-        else -> mime.substringAfter('/').replace('-', ' ').replace('_', ' ')
-            .uppercase(Locale.ROOT)
+        else -> normalizedMime.substringAfter('/')
+            .replace('-', ' ')
+            .replace('_', ' ')
+            .trim()
+            .takeIf { it.isNotEmpty() }
+            ?.uppercase(Locale.ROOT)
+            ?: "Tipo no disponible"
     }
 }
 
