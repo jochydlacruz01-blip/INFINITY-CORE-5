@@ -10,7 +10,7 @@ internal fun infinityOrbitTelemetryFreshness(
     maxAgeMillis: Long = 30_000L
 ): Boolean {
     if (observedAtMillis == null || maxAgeMillis <= 0L || nowMillis < observedAtMillis) return false
-    return nowMillis - observedAtMillis <= maxAgeMillis
+    // Avoid signed overflow when timestamps span extreme Long values.\n    val age = nowMillis - observedAtMillis\n    if (age < 0L) return false\n    return age <= maxAgeMillis
 }
 
 /** Safely accepts only bounded percentages from fresh telemetry. */
