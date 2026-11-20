@@ -1,6 +1,6 @@
 # PROJECT INFINITY — Completion Roadmap
 
-Target branch: `INFINITY-0.9`
+Target branch: \`INFINITY-0.9\`
 Current app version remains 0.10.0 / versionCode 7 until a deliberate release milestone.
 This roadmap is a work plan; checkboxes indicate completion only after evidence and testing.
 
@@ -25,6 +25,7 @@ This roadmap is a work plan; checkboxes indicate completion only after evidence 
 
 
 - [x] Notification text sanitizer removes control characters while preserving readable line breaks and tabs (unit regression tests; CI validation status tracked in earlier runs).
+- [ ] SYSTEM GUARD: apply identical character filtering, whitespace normalization and a 32-character limit to custom fallback labels (implementation and regression tests added; CI verification pending).
 
 ## Core modules
 - [x] Centralize File Manager filtering and sort order (folders-first, localized display-type ordering, known sizes before unknown, date/name tie-breakers, trimmed case-insensitive search); CI #270 passed Debug/Release build, lint, unit tests and Release APK signature validation.

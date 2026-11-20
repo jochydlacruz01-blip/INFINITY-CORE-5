@@ -50,6 +50,15 @@ class InfinitySystemGuardRulesTest {
         assertEquals(32, infinityGuardSafeLabel("!!!", fallback = "F".repeat(40)).length)
     }
 
+    @Test fun customFallbackIsSanitizedAndWhitespaceNormalized() {
+        assertEquals(
+            "Fallback seguro",
+            infinityGuardSafeLabel("!!!", fallback = "Fallback   seguro/\u202E\u0000")
+        )
+        assertEquals("Elemento", infinityGuardSafeLabel("!!!", fallback = "  \u202E!!!  "))
+        assertEquals("F".repeat(32), infinityGuardSafeLabel("!!!", fallback = "F".repeat(40)))
+    }
+
     @Test fun operationLabelsAreBoundedAndBlankSafe() {
         assertEquals("Operación no pudo completarse. GENERAL", infinityGuardReport("", IllegalStateException()).userMessage)
         assertEquals("Operación no pudo completarse. GENERAL", infinityGuardReport(" ".repeat(80), IllegalStateException()).userMessage)
