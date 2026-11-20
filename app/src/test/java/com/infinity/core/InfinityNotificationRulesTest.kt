@@ -99,4 +99,28 @@ class InfinityNotificationRulesTest {
         assertEquals(listOf("n","1","2"),infinityNotificationFeedUpdate(items,InfinityNotification("n","pkg","App","","",6,false,true,null),3).map { it.key })
         assertEquals(emptyList<InfinityNotification>(),infinityNotificationFeedUpdate(items,items.first(),0))
     }
+
+    @Test
+    fun updatedNotificationMovesToNewestPositionAndRemovesDuplicateKeys() {
+        val newest = InfinityNotification("a", "pkg", "App", "old", "", 1L, false, true, null)
+        val middle = InfinityNotification("b", "pkg", "App", "middle", "", 2L, false, true, null)
+        val duplicate = newest.copy(title = "stale duplicate")
+        val updated = newest.copy(title = "updated", timestamp = 4L)
+
+        val result = infinityNotificationFeedUpdate(listOf(newest, middle, duplicate), updated, 10)
+
+        assertEquals(listOf("a", "b"), result.map { it.key })
+        assertEquals("updated", result.first().title)
+    }
+
+    @Test
+    fun blankNotificationKeyCannotEnterFeedAndRetentionRemainsBounded() {
+        val existing = (1..4).map {
+            InfinityNotification("$it", "pkg", "App", "", "", it.toLong(), false, true, null)
+        }
+        val blank = InfinityNotification("", "pkg", "App", "ignored", "", 9L, false, true, null)
+
+        assertEquals(existing.take(2), infinityNotificationFeedUpdate(existing, blank, 2))
+        assertEquals(emptyList<InfinityNotification>(), infinityNotificationFeedUpdate(existing, blank, 0))
+    }
 }
