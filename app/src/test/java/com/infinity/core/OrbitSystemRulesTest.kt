@@ -128,4 +128,11 @@ class OrbitSystemRulesTest {
         assertEquals("No disponible", infinityStorageSummary(Long.MAX_VALUE, Long.MIN_VALUE))
     }
 
+    @Test
+    fun batteryTemperatureRejectsPhysicallyInvalidHighReadings() {
+        assertEquals("100.0 °C", infinityBatteryTemperature(1_000))
+        assertEquals("--", infinityBatteryTemperature(1_001))
+        assertEquals("--", infinityBatteryTemperature(Int.MAX_VALUE))
+    }
+
 }
