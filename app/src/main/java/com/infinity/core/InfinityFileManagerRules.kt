@@ -171,3 +171,8 @@ internal fun infinityFolderNavigationAt(
         names = names.take(index + 1)
     )
 }
+
+
+/** Restores only supported File Manager sort modes from local preferences. */
+internal fun infinityNormalizeFileSort(value: String?): String =
+    value?.trim()?.takeIf { it in setOf("Nombre", "Tipo", "Tamaño", "Fecha") } ?: "Nombre"
