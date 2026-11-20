@@ -380,6 +380,25 @@ val iconOffsets = remember {
             val maxH = maxHeight
             val density = LocalDensity.current
 
+            // Reubica iconos guardados cuando cambia el tamaño/orientación del dispositivo.
+            LaunchedEffect(maxW, maxH) {
+                val viewportWidth = with(density) { maxW.toPx() }
+                val viewportHeight = with(density) { maxH.toPx() }
+                desktopItems.forEach { item ->
+                    val current = iconOffsets[item.id] ?: Offset(22f, 90f)
+                    val bounded = infinityBoundIconOffset(
+                        current, Offset.Zero, viewportWidth, viewportHeight
+                    )
+                    if (bounded != current) {
+                        iconOffsets[item.id] = bounded
+                        prefs.edit()
+                            .putFloat("${item.id}_x", bounded.x)
+                            .putFloat("${item.id}_y", bounded.y)
+                            .apply()
+                    }
+                }
+            }
+
             val currentWallpaperBitmap = wallpaperBitmap
             if (currentWallpaperBitmap != null) {
                 Image(
@@ -434,6 +453,43 @@ val iconOffsets = remember {
                     fontSize = 8.sp,
                     letterSpacing = 1.2.sp
                 )
+                Spacer(Modifier.height(9.dp))
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    (1..3).forEach { targetWorkspace ->
+                        val selected = workspace == targetWorkspace
+                        Box(
+                            Modifier.clip(RoundedCornerShape(9.dp))
+                                .background(
+                                    if (selected) accent.copy(alpha = .22f)
+                                    else Color(0x66101D30)
+                                )
+                                .border(
+                                    1.dp,
+                                    if (selected) accent.copy(alpha = .75f)
+                                    else Color.White.copy(alpha = .18f),
+                                    RoundedCornerShape(9.dp)
+                                )
+                                .clickable { switchWorkspace(targetWorkspace) }
+                                .padding(horizontal = 10.dp, vertical = 5.dp)
+                        ) {
+                            Text(
+                                "0$targetWorkspace",
+                                color = if (selected) accent else Color.White.copy(alpha = .76f),
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                    Text(
+                        "ESPACIOS",
+                        color = InfinityMuted,
+                        fontSize = 8.sp,
+                        letterSpacing = 1.sp
+                    )
+                }
             }
 
             Column(
