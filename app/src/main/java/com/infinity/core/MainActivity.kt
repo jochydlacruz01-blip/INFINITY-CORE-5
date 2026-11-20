@@ -155,13 +155,13 @@ private fun Infinity08App() {
         mutableStateOf(prefs.getString("wallpaper_uri", null)?.let(Uri::parse))
     }
     var iconSize by remember {
-        mutableFloatStateOf(prefs.getFloat("icon_size", 48f).coerceIn(40f, 72f))
+        mutableFloatStateOf(infinityNormalizeIconSize(prefs.getFloat("icon_size", 48f)))
     }
     var themeChoice by remember {
-        mutableStateOf(prefs.getString("theme_choice", "midnight") ?: "midnight")
+        mutableStateOf(infinityNormalizeThemeChoice(prefs.getString("theme_choice", "midnight")))
     }
     var appearance by remember {
-        mutableStateOf(prefs.getString("appearance", "dark") ?: "dark")
+        mutableStateOf(infinityNormalizeAppearance(prefs.getString("appearance", "dark")))
     }
     val lightMode = appearance == "light"
     val accent = when (themeChoice) {
