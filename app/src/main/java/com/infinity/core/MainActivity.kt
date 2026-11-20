@@ -91,6 +91,14 @@ private fun InfinityAppBadge(item: DeskItem, size: androidx.compose.ui.unit.Dp, 
         "settings" -> Color(0xFFFF8E78)
         else -> Color(0xFF56D6C9)
     }
+    val appIcon = when (item.id) {
+        "files" -> Icons.Filled.FolderOpen
+        "notes" -> Icons.Filled.EditNote
+        "apps" -> Icons.Filled.Apps
+        "connect" -> Icons.Filled.Computer
+        "settings" -> Icons.Filled.Palette
+        else -> Icons.Filled.Info
+    }
     Box(
         Modifier.size(size).shadow(14.dp, RoundedCornerShape(size * .25f))
             .background(Brush.linearGradient(listOf(identity.copy(.36f), Color(0xFF142A43), Color(0xFF101827))), RoundedCornerShape(size * .25f))
@@ -98,7 +106,12 @@ private fun InfinityAppBadge(item: DeskItem, size: androidx.compose.ui.unit.Dp, 
         contentAlignment = Alignment.Center
     ) {
         Box(Modifier.fillMaxSize().padding(size * .12f).border(1.dp, Color.White.copy(.08f), RoundedCornerShape(size * .2f)))
-        Text(item.glyph, color = identity, fontSize = (size.value * .53f).sp, fontWeight = FontWeight.Black)
+        Icon(
+            imageVector = appIcon,
+            contentDescription = item.label,
+            tint = identity,
+            modifier = Modifier.size(size * .53f)
+        )
         Box(Modifier.align(Alignment.BottomEnd).padding(size * .10f).size(size * .10f).background(accent, CircleShape))
     }
 }
