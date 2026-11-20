@@ -260,6 +260,6 @@ class InfinityConnectRulesTest {
         assertFalse(isValidInfinityProfileRecord("Office PC", "invalid host", "3389", "user"))
         assertFalse(isValidInfinityProfileRecord("Office PC", "192.168.1.20", "0", "user"))
         assertFalse(isValidInfinityProfileRecord("Office PC", "192.168.1.20", "3389", ""))
-        assertFalse(isValidInfinityProfileRecord("Office PC", "192.168.1.20", "3389", "user\\u0000name"))
+        assertFalse(isValidInfinityProfileRecord("Office PC", "192.168.1.20", "3389", "user\u0000name"))
     }
 }
