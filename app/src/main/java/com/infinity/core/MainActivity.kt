@@ -1,7 +1,9 @@
 package com.infinity.core
 
 import android.content.Intent
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Canvas
 import android.net.Uri
 import android.os.Bundle
 import android.provider.DocumentsContract
@@ -760,12 +762,36 @@ DockAction("▤", "ADVANCED", accent) {
                                     }.padding(vertical = 7.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
+                                    val appIcon = remember(app.packageName) {
+                                        runCatching {
+                                            val drawable = context.packageManager.getApplicationIcon(app.packageName)
+                                            val iconSize = 96
+                                            val bitmap = Bitmap.createBitmap(iconSize, iconSize, Bitmap.Config.ARGB_8888)
+                                            val canvas = Canvas(bitmap)
+                                            drawable.setBounds(0, 0, iconSize, iconSize)
+                                            drawable.draw(canvas)
+                                            bitmap.asImageBitmap()
+                                        }.getOrNull()
+                                    }
                                     Box(
-                                        Modifier.size(30.dp)
-                                            .background(accent.copy(.16f), RoundedCornerShape(9.dp)),
+                                        Modifier.size(34.dp)
+                                            .background(accent.copy(.12f), RoundedCornerShape(9.dp)),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        Text(app.label.take(1).uppercase(), color = accent, fontWeight = FontWeight.Bold)
+                                        if (appIcon != null) {
+                                            Image(
+                                                bitmap = appIcon,
+                                                contentDescription = "Icono de ${app.label}",
+                                                modifier = Modifier.fillMaxSize().padding(3.dp)
+                                            )
+                                        } else {
+                                            Icon(
+                                                imageVector = Icons.Filled.Apps,
+                                                contentDescription = "Aplicación Android",
+                                                tint = accent,
+                                                modifier = Modifier.size(21.dp)
+                                            )
+                                        }
                                     }
                                     Text(
                                         app.label,
