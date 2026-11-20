@@ -1503,28 +1503,33 @@ private fun DockAction(
         Modifier
             .widthIn(min = 48.dp)
             .clip(RoundedCornerShape(14.dp))
-            .background(Color.White.copy(alpha = 0.035f), RoundedCornerShape(15.dp))
-            .border(1.dp, tint.copy(alpha = 0.12f), RoundedCornerShape(15.dp))
+            .background(Color.White.copy(alpha = 0.045f), RoundedCornerShape(15.dp))
+            .border(1.dp, tint.copy(alpha = 0.22f), RoundedCornerShape(15.dp))
             .clickable(onClick = onClick)
-            .padding(horizontal = 4.dp, vertical = 5.dp),
+            .padding(horizontal = 5.dp, vertical = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(3.dp)
+        verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Box(
-            Modifier.size(34.dp)
-                .background(tint.copy(alpha = .17f), RoundedCornerShape(11.dp))
-                .border(1.dp, tint.copy(alpha = .42f), RoundedCornerShape(11.dp)),
+            Modifier.size(36.dp)
+                .background(
+                    Brush.linearGradient(listOf(tint.copy(alpha = .24f), tint.copy(alpha = .08f))),
+                    RoundedCornerShape(12.dp)
+                )
+                .border(1.dp, tint.copy(alpha = .58f), RoundedCornerShape(12.dp)),
             contentAlignment = Alignment.Center
         ) {
-            Text(glyph, color = tint, fontSize = 21.sp, fontWeight = FontWeight.Bold)
+            Text(glyph, color = tint, fontSize = 22.sp, fontWeight = FontWeight.Bold)
         }
         Text(
             description,
-            color = Color.White.copy(.90f),
+            color = Color.White.copy(.94f),
             fontSize = 8.sp,
-            fontWeight = FontWeight.SemiBold,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = .35.sp,
             maxLines = 1
         )
+        Box(Modifier.width(18.dp).height(2.dp).background(tint.copy(alpha = .65f), RoundedCornerShape(2.dp)))
     }
 }
 
