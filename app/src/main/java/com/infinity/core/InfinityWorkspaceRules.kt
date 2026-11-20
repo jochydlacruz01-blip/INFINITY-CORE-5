@@ -39,3 +39,9 @@ internal fun infinityDockLabel(title: String, maxLength: Int = 10): String {
     return if (clean.length <= limit) clean.uppercase(java.util.Locale.ROOT)
     else clean.take(limit - 1).trimEnd().uppercase(java.util.Locale.ROOT) + "…"
 }
+
+/** Filters desktop window IDs to the requested normalized workspace. */
+internal fun infinityWorkspaceWindowIds(windowIds: List<String>, workspaceById: Map<String, Int>, activeWorkspace: Int): List<String> {
+    val target = infinityNormalizeWorkspace(activeWorkspace)
+    return windowIds.filter { id -> workspaceById[id]?.let(::infinityNormalizeWorkspace) == target }
+}
