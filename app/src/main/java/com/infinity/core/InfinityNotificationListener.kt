@@ -45,6 +45,11 @@ object InfinityNotificationStore {
                         component.className == InfinityNotificationListener::class.java.name
                 } == true
         }
+        // Permission alone does not mean the listener is currently connected.
+        accessEnabled.value = infinityNotificationAccessEnabled(
+            granted = accessGranted.value,
+            connected = service != null
+        )
     }
 
     internal var service: InfinityNotificationListener? = null
