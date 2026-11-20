@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -272,6 +273,7 @@ private fun AuroraWorkspaceSwitcher(current: Int, onSelect: (Int) -> Unit) {
                             .background(if (selected) DashboardCyan.copy(.13f) else DashboardInk.copy(.35f), RoundedCornerShape(14.dp))
                             .border(1.dp, if (selected) DashboardCyan.copy(.7f) else Color.White.copy(.1f), RoundedCornerShape(14.dp))
                             .selectable(selected = selected, role = Role.RadioButton) { onSelect(target) }
+                            .heightIn(min = 48.dp)
                             .padding(vertical = 11.dp, horizontal = 8.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(4.dp)
