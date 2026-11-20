@@ -62,3 +62,8 @@ internal fun infinityResolveWorkspaceFocus(
 /** Dock activation policy: restore minimized or unfocused tasks; minimize only the focused visible task. */
 internal fun infinityDockResolveActivation(taskId: String, currentFocusId: String?, minimized: Boolean): String? =
     if (minimized || taskId != currentFocusId) taskId else null
+
+/** Focus fallback for workspace switching: retain focus only if eligible in the target space. */
+internal fun infinityResolveWorkspaceSwitchFocus(
+    currentId: String?, orderedIds: List<String>, workspaceById: Map<String, Int>, minimizedIds: Set<String>, targetWorkspace: Int
+): String? = infinityResolveWorkspaceFocus(currentId, orderedIds, workspaceById, minimizedIds, targetWorkspace)
