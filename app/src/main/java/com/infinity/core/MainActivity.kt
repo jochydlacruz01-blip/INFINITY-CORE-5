@@ -861,7 +861,7 @@ DockAction("▤", "ADVANCED", accent) {
                 windows.filter { it.workspace == workspace }.let { workspaceWindows ->
                     infinityDockWindowIds(workspaceWindows.map { it.id }, workspaceWindows.associate { it.id to it.minimized }).forEach { taskId ->
                         val task = workspaceWindows.firstOrNull { it.id == taskId } ?: return@forEach
-                        DockAction(if (task.minimized) "□" else "▣", task.title.take(8).uppercase(), accent) {
+                        DockAction(if (task.minimized) "□" else "▣", infinityDockLabel(task.title), accent) {
                             val idx = windows.indexOfFirst { it.id == task.id }
                             if (idx >= 0) {
                                 val tappedTask = windows[idx]
