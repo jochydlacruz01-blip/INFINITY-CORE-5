@@ -188,12 +188,12 @@ fun OrbitSystemMonitor(
                 // Dos columnas en teléfonos estrechos: evita comprimir seis
                 // indicadores en dos filas de tres tarjetas.
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OrbitMetric(Modifier.weight(1f), "BATERÍA", if (batteryPercent >= 0) "$batteryPercent%" else "--", accent = accent)
-                    OrbitMetric(Modifier.weight(1f), "RAM EN USO", ramPercent?.let { "$it%" } ?: "--", accent = accent)
+                    OrbitMetric(Modifier.weight(1f), "BATERÍA", infinityOrbitTelemetryLabel(batteryPercent, fresh = true), accent = accent)
+                    OrbitMetric(Modifier.weight(1f), "RAM EN USO", infinityOrbitTelemetryLabel(ramPercent, fresh = true), accent = accent)
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OrbitMetric(Modifier.weight(1f), "VENTANAS", "$activeWindows / $totalWindows", accent = accent)
-                    OrbitMetric(Modifier.weight(1f), "ALMAC. DATOS APP", storagePercent?.let { "$it%" } ?: "--", "Filesystem de datos · $storageDetail", accent)
+                    OrbitMetric(Modifier.weight(1f), "ALMAC. DATOS APP", infinityOrbitTelemetryLabel(storagePercent, fresh = true), "Filesystem de datos · $storageDetail", accent)
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OrbitMetric(Modifier.weight(1f), "TEMP. BATERÍA", batteryTemperature, chargingState, accent)
