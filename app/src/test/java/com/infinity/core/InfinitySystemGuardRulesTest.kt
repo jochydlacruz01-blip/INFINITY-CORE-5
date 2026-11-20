@@ -44,6 +44,12 @@ class InfinitySystemGuardRulesTest {
         )
     }
 
+    @Test fun labelBoundsAndFallbackLimitsAreEnforced() {
+        assertEquals("A", infinityGuardSafeLabel("ABC", maxLength = 0))
+        assertEquals("Fallback", infinityGuardSafeLabel("!!!", fallback = "Fallback"))
+        assertEquals(32, infinityGuardSafeLabel("!!!", fallback = "F".repeat(40)).length)
+    }
+
     @Test fun operationLabelsAreBoundedAndBlankSafe() {
         assertEquals("Operación no pudo completarse. GENERAL", infinityGuardReport("", IllegalStateException()).userMessage)
         assertEquals("Operación no pudo completarse. GENERAL", infinityGuardReport(" ".repeat(80), IllegalStateException()).userMessage)
