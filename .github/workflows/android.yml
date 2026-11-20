@@ -80,6 +80,34 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+      - name: Preparar paquete de distribución y checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist/PROJECT-INFINITY-0.10.0
+          cp app/build/outputs/apk/debug/app-debug.apk dist/PROJECT-INFINITY-0.10.0/PROJECT-INFINITY-0.10.0-debug.apk
+          cp app/build/outputs/apk/release/app-release.apk dist/PROJECT-INFINITY-0.10.0/PROJECT-INFINITY-0.10.0-release-signed.apk
+          {
+            echo "Project: PROJECT INFINITY"
+            echo "Version: 0.10.0"
+            echo "Version code: 7"
+            echo "Branch: ${GITHUB_REF_NAME}"
+            echo "Commit: ${GITHUB_SHA}"
+            echo "Workflow run: ${GITHUB_RUN_ID}"
+            echo "Release APK: signed and verified with apksigner"
+          } > dist/PROJECT-INFINITY-0.10.0/BUILD-INFO.txt
+          cd dist/PROJECT-INFINITY-0.10.0
+          sha256sum *.apk > SHA256SUMS.txt
+          test -s SHA256SUMS.txt
+
+      - name: Publicar paquete de distribución
+        uses: actions/upload-artifact@v4
+        with:
+          name: PROJECT-INFINITY-0.10.0-DISTRIBUTION-BUNDLE
+          path: dist/PROJECT-INFINITY-0.10.0/
+          if-no-files-found: error
+          retention-days: 30
+
       - name: Publicar APK Release firmado
         uses: actions/upload-artifact@v4
         with:
