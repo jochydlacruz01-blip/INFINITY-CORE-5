@@ -63,9 +63,15 @@ internal fun infinityNotificationContent(
 
 /** Updates the in-memory notification feed by key and caps retained items. */
 internal fun infinityNotificationFeedUpdate(current: List<InfinityNotification>, incoming: InfinityNotification, maximum: Int = 100): List<InfinityNotification> {
-    if (maximum <= 0) return emptyList()
-    val index = current.indexOfFirst { it.key == incoming.key }
-    val updated = current.toMutableList()
-    if (index >= 0) updated[index] = incoming else updated.add(0, incoming)
-    return updated.take(maximum)
+    if (maximum <= 0 || incoming.key.isBlank()) return current.distinctBy { it.key }.take(maximum.coerceAtLeast(0))
+    // A newly posted or updated notification is the most recent activity.
+    // Remove every stale duplicate before promoting the canonical entry.
+    return buildList(minOf(maximum, current.size + 1)) {
+        add(incoming)
+        current.asSequence()
+            .filterNot { it.key == incoming.key }
+            .distinctBy { it.key }
+            .take(maximum - 1)
+            .forEach(::add)
+    }
 }
