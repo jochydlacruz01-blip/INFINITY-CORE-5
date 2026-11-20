@@ -1,5 +1,6 @@
 package com.infinity.core
 
+import android.content.ComponentName
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -135,7 +136,7 @@ private data class DeskWindow(
     val workspace: Int = 1,
     val maximized: Boolean = false
 )
-private data class InstalledApp(val label: String, val packageName: String)
+private data class InstalledApp(val label: String, val packageName: String, val activityName: String)
 private data class ExplorerEntry(
     val documentId: String,
     val name: String,
@@ -342,8 +343,9 @@ val iconOffsets = remember {
         context.packageManager.queryIntentActivities(launcherIntent, 0)
             .map {
                 InstalledApp(
-                    it.loadLabel(context.packageManager).toString(),
-                    it.activityInfo.packageName
+                    label = it.loadLabel(context.packageManager).toString(),
+                    packageName = it.activityInfo.packageName,
+                    activityName = it.activityInfo.name
                 )
             }
             .distinctBy { it.packageName }
@@ -762,10 +764,15 @@ DockAction("▤", "ADVANCED", accent) {
                                     }.padding(vertical = 7.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    val appIcon = remember(app.packageName) {
+                                    val appIcon = remember(app.packageName, app.activityName) {
                                         runCatching {
-                                            val drawable = context.packageManager.getApplicationIcon(app.packageName)
-                                            val iconSize = 96
+                                            val component = ComponentName(app.packageName, app.activityName)
+                                            val drawable = runCatching {
+                                                context.packageManager.getActivityIcon(component)
+                                            }.getOrElse {
+                                                context.packageManager.getApplicationIcon(app.packageName)
+                                            }
+                                            val iconSize = 128
                                             val bitmap = Bitmap.createBitmap(iconSize, iconSize, Bitmap.Config.ARGB_8888)
                                             val canvas = Canvas(bitmap)
                                             drawable.setBounds(0, 0, iconSize, iconSize)
@@ -774,22 +781,24 @@ DockAction("▤", "ADVANCED", accent) {
                                         }.getOrNull()
                                     }
                                     Box(
-                                        Modifier.size(34.dp)
-                                            .background(accent.copy(.12f), RoundedCornerShape(9.dp)),
+                                        Modifier.size(42.dp)
+                                            .clip(RoundedCornerShape(11.dp))
+                                            .background(Color(0xFF22364F)),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         if (appIcon != null) {
                                             Image(
                                                 bitmap = appIcon,
                                                 contentDescription = "Icono de ${app.label}",
-                                                modifier = Modifier.fillMaxSize().padding(3.dp)
+                                                modifier = Modifier.fillMaxSize().padding(2.dp),
+                                                contentScale = ContentScale.Fit
                                             )
                                         } else {
                                             Icon(
                                                 imageVector = Icons.Filled.Apps,
-                                                contentDescription = "Aplicación Android",
+                                                contentDescription = "Icono genérico de aplicación",
                                                 tint = accent,
-                                                modifier = Modifier.size(21.dp)
+                                                modifier = Modifier.size(25.dp)
                                             )
                                         }
                                     }
