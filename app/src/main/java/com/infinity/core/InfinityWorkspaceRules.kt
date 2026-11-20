@@ -23,3 +23,7 @@ internal fun infinitySafeWindowIdentity(kind: String?, workspace: Int): String? 
 /** Keep current focus when valid; otherwise activate the most recently listed eligible window. */
 internal fun infinityResolveFocusedWindow(currentId: String?, eligibleIds: List<String>): String? =
     currentId?.takeIf { it in eligibleIds } ?: eligibleIds.lastOrNull()
+
+/** Dock task list only includes windows belonging to the active workspace. */
+internal fun infinityDockWindowIds(windowIds: List<String>, minimizedById: Map<String, Boolean>): List<String> =
+    windowIds.filter { it in minimizedById.keys }
