@@ -102,14 +102,14 @@ private fun readOrbitSystemSnapshot(context: Context): OrbitSystemSnapshot {
     val storagePercent = storage?.first
     val storageDetail = storage?.second ?: "--"
 
-    val thermalState = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-        val powerManager = context.getSystemService(
-            Context.POWER_SERVICE
-        ) as? PowerManager
-        infinityThermalState(powerManager?.currentThermalStatus)
-    } else {
-        "NO DISPONIBLE"
-    }
+    val thermalState = runCatching {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val powerManager = context.getSystemService(Context.POWER_SERVICE) as? PowerManager
+            infinityThermalState(powerManager?.currentThermalStatus)
+        } else {
+            "NO DISPONIBLE"
+        }
+    }.getOrDefault("NO DISPONIBLE")
 
     return OrbitSystemSnapshot(
         batteryPercent = batteryPercent,
