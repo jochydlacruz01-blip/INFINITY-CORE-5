@@ -97,7 +97,7 @@ class MainActivity : ComponentActivity() {
 private data class DeskItem(val id: String, val label: String, val glyph: String)
 
 @Composable
-private fun InfinityAppBadge(item: DeskItem, size: androidx.compose.ui.unit.Dp, accent: Color) {
+private fun InfinityAppBadge(item: DeskItem, size: androidx.compose.ui.unit.Dp, accent: Color, iconPack: String = "infinity") {
     val identity = when (item.id) {
         "files" -> Color(0xFF48B5FF)
         "notes" -> Color(0xFFFFC66D)
@@ -115,7 +115,7 @@ private fun InfinityAppBadge(item: DeskItem, size: androidx.compose.ui.unit.Dp, 
         else -> Icons.Filled.Info
     }
     Box(
-        Modifier.size(size).shadow(14.dp, RoundedCornerShape(size * .25f))
+        Modifier.size(size).shadow(14.dp, RoundedCornerShape(size * if (iconPack == "apple") .34f else .25f))
             .background(Brush.linearGradient(listOf(identity.copy(.36f), Color(0xFF142A43), Color(0xFF101827))), RoundedCornerShape(size * .25f))
             .border(1.4.dp, identity.copy(.82f), RoundedCornerShape(size * .25f)),
         contentAlignment = Alignment.Center
@@ -189,6 +189,8 @@ private fun Infinity08App() {
     var themeChoice by remember {
         mutableStateOf(infinityNormalizeThemeChoice(prefs.getString("theme_choice", "midnight")))
     }
+    var iconPack by remember { mutableStateOf(prefs.getString("icon_pack", "infinity") ?: "infinity") }
+    var backgroundPreset by remember { mutableStateOf(prefs.getString("background_preset", "nebula") ?: "nebula") }
     var appearance by remember {
         mutableStateOf(infinityNormalizeAppearance(prefs.getString("appearance", "dark")))
     }
@@ -449,9 +451,12 @@ val iconOffsets = remember {
                 .windowInsetsPadding(WindowInsets.safeDrawing)
                 .background(
                 Brush.linearGradient(
-                    if (lightMode) listOf(
-                        Color(0xFFEAF1FA), Color(0xFFD4E2F2), Color(0xFFB9CDE2)
-                    ) else listOf(Color(0xFF102238), Color(0xFF1C3B59), InfinityInk)
+                    when (backgroundPreset) {
+                        "punk" -> listOf(Color(0xFF24051F), Color(0xFF631B43), Color(0xFF102338))
+                        "interstellar" -> listOf(Color(0xFF030713), Color(0xFF17265D), Color(0xFF46246A))
+                        "aurora" -> listOf(Color(0xFF062E36), Color(0xFF174E60), Color(0xFF102238))
+                        else -> if (lightMode) listOf(Color(0xFFEAF1FA), Color(0xFFD4E2F2), Color(0xFFB9CDE2)) else listOf(Color(0xFF102238), Color(0xFF1C3B59), InfinityInk)
+                    }
                 )
             )
         ) {
@@ -698,7 +703,7 @@ val iconOffsets = remember {
                             }
                             .padding(6.dp)
                     ) {
-                        InfinityAppBadge(item, (iconSize + 14f).dp, accent)
+                        InfinityAppBadge(item, (iconSize + 14f).dp, accent, iconPack)
                         Spacer(Modifier.height(7.dp))
                         Text(
                             item.label,
@@ -1621,6 +1626,18 @@ Row(
                                             )
                                     )
                                 }
+                            }
+                        }
+                        Text("PACK DE ICONOS", color = accent, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            listOf("infinity" to "INFINITY", "windows11" to "W11", "apple" to "APPLE").forEach { (pack, label) ->
+                                FilterChip(selected = iconPack == pack, onClick = { iconPack = pack; prefs.edit().putString("icon_pack", pack).apply() }, label = { Text(label) })
+                            }
+                        }
+                        Text("FONDOS", color = accent, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            listOf("nebula" to "Nebula", "interstellar" to "Interestelar", "punk" to "Punk", "aurora" to "Aurora").forEach { (preset, label) ->
+                                FilterChip(selected = backgroundPreset == preset, onClick = { backgroundPreset = preset; prefs.edit().putString("background_preset", preset).apply(); wallpaperUri = null; prefs.edit().remove("wallpaper_uri").apply() }, label = { Text(label) })
                             }
                         }
                         Text("APARIENCIA", color = accent, fontSize = 10.sp, fontWeight = FontWeight.Bold)
