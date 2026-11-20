@@ -72,3 +72,9 @@ class InfinityWorkspaceRulesTest {
     }
 
 }
+
+    @Test fun dockActivationRestoresMinimizedAndActivatesUnfocusedTasks() {
+        assertEquals("files_1", infinityDockResolveActivation("files_1", "notes_1", true))
+        assertEquals("files_1", infinityDockResolveActivation("files_1", "notes_1", false))
+        assertNull(infinityDockResolveActivation("files_1", "files_1", false))
+    }
