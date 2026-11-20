@@ -42,6 +42,7 @@ private val DashboardGold = Color(0xFFFFC477)
 @Composable
 internal fun InfinityRealDashboard(
     workspace: Int,
+    onWorkspaceChange: (Int) -> Unit,
     onOpenWindow: (String) -> Unit,
     onOpenOrbit: () -> Unit,
     onOpenAdvanced: () -> Unit,
@@ -111,6 +112,8 @@ internal fun InfinityRealDashboard(
         }
 
         AuroraFeatureStrip()
+
+        AuroraWorkspaceSwitcher(workspace, onWorkspaceChange)
 
         Text("MÓDULOS PRINCIPALES", color = DashboardCyan, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(9.dp)) {
@@ -242,6 +245,41 @@ private fun AuroraFeatureStrip() {
                 Text(title, color = tint, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = .7.sp)
                 Text(caption, color = DashboardMuted, fontSize = 9.sp)
             }
+        }
+    }
+}
+
+
+@Composable
+private fun AuroraWorkspaceSwitcher(current: Int, onSelect: (Int) -> Unit) {
+    Card(
+        Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = DashboardPanel)
+    ) {
+        Column(Modifier.padding(13.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("WORKSPACES", color = DashboardCyan, fontSize = 10.sp, fontWeight = FontWeight.Black, letterSpacing = 1.3.sp, modifier = Modifier.weight(1f))
+                Text("3 ESPACIOS", color = DashboardMuted, fontSize = 8.sp)
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                (1..3).forEach { target ->
+                    val selected = current == target
+                    Column(
+                        Modifier.weight(1f)
+                            .background(if (selected) DashboardCyan.copy(.13f) else DashboardInk.copy(.35f), RoundedCornerShape(14.dp))
+                            .border(1.dp, if (selected) DashboardCyan.copy(.7f) else Color.White.copy(.1f), RoundedCornerShape(14.dp))
+                            .clickable { onSelect(target) }
+                            .padding(vertical = 11.dp, horizontal = 8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text("0$target", color = if (selected) DashboardCyan else Color.White, fontSize = 18.sp, fontWeight = FontWeight.Black)
+                        Text(if (selected) "ACTIVO" else "CAMBIAR", color = if (selected) DashboardCyan else DashboardMuted, fontSize = 8.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+            Text("Cambia de espacio sin salir del centro de control.", color = DashboardMuted, fontSize = 9.sp)
         }
     }
 }
