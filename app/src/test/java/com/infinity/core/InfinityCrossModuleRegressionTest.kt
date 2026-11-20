@@ -44,7 +44,7 @@ class InfinityCrossModuleRegressionTest {
         assertEquals(listOf("folder", "large", "unknown"), bySize.map { it.id })
         assertEquals(listOf("large"), sortInfinityFileEntries(entries, " LARGE ", "Nombre", Locale.ROOT).map { it.id })
         assertEquals(listOf("failed-b"), infinityRemainingOperationIds(
-            listOf("done-a", "failed-b", "done-c"), setOf("done-a", "done-c")
+            listOf("done-a", "failed-b", "done-c"), setOf("failed-b")
         ))
     }
 
