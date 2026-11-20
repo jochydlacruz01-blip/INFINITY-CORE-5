@@ -48,7 +48,8 @@ internal fun InfinityRealDashboard(
     onOpenWindow: (String) -> Unit,
     onOpenOrbit: () -> Unit,
     onOpenAdvanced: () -> Unit,
-    onOpenControl: () -> Unit
+    onOpenControl: () -> Unit,
+    onShowDesktop: () -> Unit
 ) {
     Column(
         Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(
@@ -79,7 +80,8 @@ internal fun InfinityRealDashboard(
                     Text("Tu espacio digital.\nTu centro de operaciones.", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold, lineHeight = 27.sp)
                     Text("Entorno Android nativo • Escritorio inteligente • Herramientas integradas", color = DashboardMuted, fontSize = 10.sp)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(onClick = { onOpenWindow("apps") }) { Text("Abrir aplicaciones", fontSize = 10.sp) }
+                        Button(onClick = onShowDesktop) { Text("Abrir escritorio", fontSize = 10.sp) }
+                        OutlinedButton(onClick = { onOpenWindow("apps") }) { Text("Aplicaciones", fontSize = 10.sp) }
                         OutlinedButton(onClick = onOpenOrbit) { Text("Ver ORBIT", fontSize = 10.sp) }
                     }
                 }
