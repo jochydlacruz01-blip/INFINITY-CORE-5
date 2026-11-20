@@ -16,6 +16,13 @@ class InfinityBatch13ResizeTest {
         assertEquals(0f, infinityResizeDimension(50f, -10f, -30f, 280f), 0f)
     }
 
+    @Test fun resizeSanitizesNonFiniteInputs() {
+        assertEquals(0f, infinityResizeDimension(Float.NaN, 20f, Float.NaN, 100f), 0f)
+        assertEquals(100f, infinityResizeDimension(Float.NaN, Float.NaN, 200f, 100f), 0f)
+        assertEquals(200f, infinityResizeDimension(Float.POSITIVE_INFINITY, 50f, 200f, 100f), 0f)
+        assertEquals(100f, infinityResizeDimension(150f, Float.NEGATIVE_INFINITY, 200f, 100f), 0f)
+    }
+
     @Test fun resizeAllowsMinimumToBeReducedForViewport() {
         assertEquals(150f, infinityResizeDimension(120f, -100f, 150f, 280f), 0f)
     }

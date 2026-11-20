@@ -27,7 +27,7 @@ This roadmap is a work plan; checkboxes indicate completion only after evidence 
 - [x] Notification text sanitizer removes control characters while preserving readable line breaks and tabs (unit regression tests; CI validation status tracked in earlier runs).
 - [ ] SYSTEM GUARD: apply identical character filtering, whitespace normalization and a 32-character limit to custom fallback labels (implementation and regression tests added; CI verification pending).
 
-## Core modules
+- [ ] Desktop geometry rules: sanitize non-finite resize, icon drag, and adaptive-window geometry inputs (implementation and regression tests added; CI verification pending).\n\n## Core modules
 - [x] Centralize File Manager filtering and sort order (folders-first, localized display-type ordering, known sizes before unknown, date/name tie-breakers, trimmed case-insensitive search); CI #270 passed Debug/Release build, lint, unit tests and Release APK signature validation.
 - [x] Expand centralized sorting edge-case regression coverage (unknown sort fallback and deterministic name tie-breakers); CI #271 passed all unit tests, lint, Debug/Release builds and signed APK validation.
 - [ ] File Manager: provider compatibility, refresh, navigation, selections, clipboard operations, viewers (SAF cycle prevention CI #237, stale-query loading race CI #247, and clickable breadcrumb ancestor navigation with path-alignment regression tests passed CI #280; provider/device acceptance still pending)

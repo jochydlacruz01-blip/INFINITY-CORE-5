@@ -21,6 +21,11 @@ class InfinityBatch14IconBoundsTest {
         )
     }
 
+    @Test fun iconBoundsSanitizeNonFiniteCoordinatesAndDimensions() {
+        assertEquals(Offset(0f, 0f), infinityBoundIconOffset(Offset(Float.NaN, Float.POSITIVE_INFINITY), Offset(Float.NaN, Float.NEGATIVE_INFINITY), 500f, 600f))
+        assertEquals(Offset(0f, 0f), infinityBoundIconOffset(Offset(20f, 20f), Offset.Zero, Float.NaN, Float.POSITIVE_INFINITY, Float.NaN, Float.POSITIVE_INFINITY))
+    }
+
     @Test fun restoredIconPositionIsPreservedWhenStillVisible() {
         assertEquals(
             Offset(120f, 160f),
