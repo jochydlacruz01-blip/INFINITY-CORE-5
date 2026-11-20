@@ -25,4 +25,11 @@ class InfinityWorkspaceRulesTest {
         assertEquals("orbit_1", infinitySafeWindowIdentity(" ORBIT ", 0))
         assertEquals("file_manager_3", infinitySafeWindowIdentity("File_Manager", 9))
     }
+    @Test fun focusResolverKeepsValidFocusOrFallsBackToMostRecent() {
+        assertEquals("b", infinityResolveFocusedWindow("b", listOf("a", "b")))
+        assertEquals("c", infinityResolveFocusedWindow("missing", listOf("a", "c")))
+        assertEquals("a", infinityResolveFocusedWindow(null, listOf("a")))
+        assertNull(infinityResolveFocusedWindow("x", emptyList()))
+    }
 }
+
