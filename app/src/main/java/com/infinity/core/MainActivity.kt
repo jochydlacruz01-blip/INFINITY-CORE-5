@@ -1848,6 +1848,7 @@ private fun Infinity08Window(
                         onMove(drag.x, drag.y)
                     }
                 }
+                .heightIn(min = 48.dp)
                 .padding(horizontal = 10.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -1893,7 +1894,7 @@ private fun Infinity08Window(
             IconButton(
                 onClick = onMinimize,
                 modifier = Modifier
-                    .size(36.dp)
+                    .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
                     .background(
                         Color(0xFF71849B).copy(alpha = 0.22f),
                         CircleShape
