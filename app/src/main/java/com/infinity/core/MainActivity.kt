@@ -397,8 +397,8 @@ val iconOffsets = remember {
             put(
                     item.id,
                     Offset(
-                        prefs.getFloat("${item.id}_x", 22f + (index % 2) * 112f),
-                        prefs.getFloat("${item.id}_y", 104f + (index / 2) * 112f)
+                        prefs.getFloat("${item.id}_x", 18f * context.resources.displayMetrics.density + (index % 2) * 132f * context.resources.displayMetrics.density),
+                        prefs.getFloat("${item.id}_y", 118f * context.resources.displayMetrics.density + (index / 2) * 164f * context.resources.displayMetrics.density)
                     )
                 )
             }
@@ -454,7 +454,9 @@ val iconOffsets = remember {
                 desktopItems.forEach { item ->
                     val current = iconOffsets[item.id] ?: Offset(22f, 90f)
                     val bounded = infinityBoundIconOffset(
-                        current, Offset.Zero, viewportWidth, viewportHeight
+                        current, Offset.Zero, viewportWidth, viewportHeight - with(density) { 168.dp.toPx() },
+                        itemWidth = with(density) { 116.dp.toPx() },
+                        itemHeight = with(density) { 150.dp.toPx() }
                     )
                     if (bounded != current) {
                         iconOffsets[item.id] = bounded
@@ -647,7 +649,9 @@ val iconOffsets = remember {
                                         iconOffsets[item.id] ?: Offset(22f, 90f),
                                         Offset(drag.x, drag.y),
                                         with(density) { maxW.toPx() },
-                                        with(density) { maxH.toPx() }
+                                        with(density) { maxH.toPx() - 168.dp.toPx() },
+                                        itemWidth = with(density) { 116.dp.toPx() },
+                                        itemHeight = with(density) { 150.dp.toPx() }
                                     )
                                     iconOffsets[item.id] = next
                                     prefs.edit()
@@ -1046,10 +1050,10 @@ DockAction("▤", "ADVANCED", accent) {
             // INFINITY ORBIT 0.9: centro de mando futurista.
             if (orbitOpen) {
                 Card(
-                 Modifier.align(Alignment.BottomCenter)
-    .padding(horizontal = 12.dp, vertical = 42.dp)
+                 Modifier.align(Alignment.TopCenter)
+    .padding(horizontal = 12.dp, top = 72.dp, bottom = 184.dp)
     .widthIn(min = 300.dp, max = 430.dp)
-    .heightIn(max = maxH - 86.dp)
+    .heightIn(max = maxH - 256.dp)
     .shadow(30.dp, RoundedCornerShape(30.dp)),
                     shape = RoundedCornerShape(30.dp),
                     colors = CardDefaults.cardColors(
