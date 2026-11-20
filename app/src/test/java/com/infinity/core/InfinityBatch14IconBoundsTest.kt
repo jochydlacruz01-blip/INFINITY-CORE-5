@@ -37,4 +37,12 @@ class InfinityBatch14IconBoundsTest {
     @Test fun gridIconPlacementLimitsColumnOnNarrowScreen() {
         assertEquals(Offset(0f, 158f), infinityDesktopIconGridOffset(1, 90f, 100f, 120f, horizontalGap = 12f))
     }
+    @Test fun dockSafeZoneSubtractsDockInsetsAndGap() {
+        assertEquals(432f, infinityDesktopHeightAboveDock(600f), 0.001f)
+    }
+
+    @Test fun dockSafeZoneNeverReturnsNegativeHeight() {
+        assertEquals(0f, infinityDesktopHeightAboveDock(80f, 100f, 30f, 50f), 0.001f)
+    }
 }
+
