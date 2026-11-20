@@ -158,6 +158,8 @@ internal fun infinityFolderNavigationAt(
     index: Int
 ): InfinityFolderNavigationTarget? {
     if (documentIds.isEmpty() || documentIds.size != names.size) return null
+    if (documentIds.any { it.isBlank() } || documentIds.distinct().size != documentIds.size) return null
+    if (names.any { it.isBlank() }) return null
     if (index !in documentIds.indices) return null
     return InfinityFolderNavigationTarget(
         documentIds = documentIds.take(index + 1),
