@@ -1063,9 +1063,11 @@ DockAction("▤", "ADVANCED", accent) {
             if (orbitOpen) {
                 Card(
                  Modifier.align(Alignment.TopCenter)
-    .padding(start = 12.dp, end = 12.dp, top = 72.dp, bottom = 184.dp)
+    .padding(start = 12.dp, end = 12.dp, top = 72.dp)
     .widthIn(min = 300.dp, max = 430.dp)
-    .heightIn(max = maxH - 256.dp)
+    // Reserve a fixed safe zone for the Dock; constrain the card itself,
+    // not only its padding, so the scrollable panel cannot extend over it.
+    .heightIn(max = (maxH - 260.dp).coerceAtLeast(160.dp))
     .shadow(30.dp, RoundedCornerShape(30.dp)),
                     shape = RoundedCornerShape(30.dp),
                     colors = CardDefaults.cardColors(
