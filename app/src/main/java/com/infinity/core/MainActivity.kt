@@ -509,6 +509,7 @@ val iconOffsets = remember {
             if (dashboardOpen) {
                 InfinityRealDashboard(
                     workspace = workspace,
+                    onWorkspaceChange = { target -> switchWorkspace(target); dashboardOpen = true },
                     onOpenWindow = { id ->
                         focusedWindowId = openInfinityWindow(id, windows, workspace, maxW.value, maxH.value)
                         dashboardOpen = false
