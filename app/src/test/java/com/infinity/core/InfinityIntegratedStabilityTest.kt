@@ -36,8 +36,8 @@ class InfinityIntegratedStabilityTest {
 
     @Test
     fun notificationFeedUpdatesKeysAndHonorsRetentionCap() {
-        val first = InfinityNotification("a", "App", "Title", "Message", 1L)
-        val second = InfinityNotification("b", "App", "Title", "Message", 2L)
+        val first = InfinityNotification("a", "com.example.app", "App", "Title", "Message", 1L, false, true, null)
+        val second = InfinityNotification("b", "com.example.app", "App", "Title", "Message", 2L, false, true, null)
         val updated = first.copy(title = "Updated", timestamp = 3L)
         assertEquals(listOf("b", "a"), infinityNotificationFeedUpdate(listOf(first), second, 2).map { it.key })
         assertEquals("Updated", infinityNotificationFeedUpdate(listOf(first, second), updated, 2).first { it.key == "a" }.title)
