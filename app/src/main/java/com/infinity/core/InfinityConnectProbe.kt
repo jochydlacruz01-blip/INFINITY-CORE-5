@@ -21,7 +21,7 @@ internal enum class InfinityProbeStatus(val message: String) {
     NETWORK_ERROR("No se pudo completar la comprobación por un error de red.")
 }
 
-internal fun infinityProbeFailureKind(error: Throwable): InfinityProbeStatus = when (error) {
+internal fun infinityProbeFailureKind(error: Exception): InfinityProbeStatus = when (error) {
     is UnknownHostException -> InfinityProbeStatus.HOST_NOT_FOUND
     is SocketTimeoutException -> InfinityProbeStatus.TIMEOUT
     is ConnectException -> InfinityProbeStatus.REFUSED
@@ -52,7 +52,7 @@ internal suspend fun probeInfinityTcpEndpoint(
         InfinityProbeStatus.CONNECTED
     } catch (cancelled: CancellationException) {
         throw cancelled
-    } catch (error: Throwable) {
+    } catch (error: Exception) {
         infinityProbeFailureKind(error)
     }
 }
