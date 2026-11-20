@@ -31,3 +31,11 @@ internal fun infinityDockWindowIds(windowIds: List<String>, minimizedById: Map<S
 /** Dock tap toggles minimization only for the currently focused, visible task. */
 internal fun infinityDockTapMinimizes(taskId: String, currentFocusId: String?, minimized: Boolean): Boolean =
     !minimized && taskId == currentFocusId
+
+/** Compact, readable Dock labels: normalize whitespace and add an ellipsis when needed. */
+internal fun infinityDockLabel(title: String, maxLength: Int = 10): String {
+    val clean = title.trim().replace(Regex("\\s+"), " ")
+    val limit = maxLength.coerceAtLeast(2)
+    return if (clean.length <= limit) clean.uppercase(java.util.Locale.ROOT)
+    else clean.take(limit - 1).trimEnd().uppercase(java.util.Locale.ROOT) + "…"
+}
