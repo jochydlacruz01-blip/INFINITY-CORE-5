@@ -51,6 +51,9 @@ internal fun InfinityFileManager(
     val context = LocalContext.current
     val screenWidth = LocalConfiguration.current.screenWidthDp
     val resolver = context.contentResolver
+    val viewPreferences = remember(context) {
+        context.getSharedPreferences("infinity_file_manager", android.content.Context.MODE_PRIVATE)
+    }
     val scope = rememberCoroutineScope()
     val rootDocumentId = remember(rootUri) { rootUri?.let { DocumentsContract.getTreeDocumentId(it) } }
     var currentId by remember(rootUri) { mutableStateOf(rootDocumentId) }
@@ -64,7 +67,7 @@ internal fun InfinityFileManager(
     var error by remember { mutableStateOf<String?>(null) }
     var refreshKey by remember { mutableIntStateOf(0) }
     var search by remember { mutableStateOf("") }
-    var sortBy by remember { mutableStateOf("Nombre") }
+    var sortBy by remember { mutableStateOf(infinityNormalizeFileSort(viewPreferences.getString("sort_by", "Nombre"))) }
     var selected by remember { mutableStateOf<Set<String>>(emptySet()) }
     var createDialog by remember { mutableStateOf(false) }
     var renameDialog by remember { mutableStateOf(false) }
@@ -76,7 +79,7 @@ internal fun InfinityFileManager(
     var clipboardIsMove by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
     var detailsEntry by remember { mutableStateOf<InfinityFileEntry?>(null) }
-    var gridView by remember { mutableStateOf(false) }
+    var gridView by remember { mutableStateOf(viewPreferences.getBoolean("grid_view", false)) }
 
     // A newly selected SAF tree is a different security and document scope.
     // Never carry IDs, selections, or clipboard state across tree grants.
@@ -354,7 +357,10 @@ internal fun InfinityFileManager(
                 horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                OutlinedButton(onClick = { gridView = !gridView }) {
+                OutlinedButton(onClick = {
+                    gridView = !gridView
+                    viewPreferences.edit().putBoolean("grid_view", gridView).apply()
+                }) {
                     Text(if (gridView) "Lista" else "Cuadrícula")
                 }
                 Box {
@@ -362,7 +368,8 @@ internal fun InfinityFileManager(
                     DropdownMenu(expanded = sortMenu, onDismissRequest = { sortMenu = false }) {
                         listOf("Nombre", "Tipo", "Tamaño", "Fecha").forEach { option ->
                             DropdownMenuItem(text = { Text(option) }, onClick = {
-                                sortBy = option
+                                sortBy = infinityNormalizeFileSort(option)
+                                viewPreferences.edit().putString("sort_by", sortBy).apply()
                                 sortMenu = false
                             })
                         }
