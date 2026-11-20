@@ -19,6 +19,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -50,6 +51,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -462,7 +464,8 @@ val iconOffsets = remember {
                         val selected = workspace == targetWorkspace
                         Box(
                             Modifier
-                                .widthIn(min = 38.dp)
+                                .widthIn(min = 48.dp)
+                                .heightIn(min = 48.dp)
                                 .clip(RoundedCornerShape(12.dp))
                                 .background(
                                     if (selected) accent.copy(alpha = .20f)
@@ -474,7 +477,9 @@ val iconOffsets = remember {
                                     else Color.White.copy(alpha = .14f),
                                     RoundedCornerShape(12.dp)
                                 )
-                                .clickable { switchWorkspace(targetWorkspace) }
+                                .selectable(selected = selected, role = Role.RadioButton) {
+                                    switchWorkspace(targetWorkspace)
+                                }
                                 .padding(horizontal = 11.dp, vertical = 7.dp)
                         ) {
                             Text(
