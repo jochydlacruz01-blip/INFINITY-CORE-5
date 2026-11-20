@@ -164,7 +164,7 @@ private fun Infinity08App() {
     }
 
     var workspace by remember { mutableIntStateOf(1) }
-    var dashboardOpen by remember { mutableStateOf(true) }
+    var dashboardOpen by remember { mutableStateOf(false) }
     var startOpen by remember { mutableStateOf(false) }
     var orbitOpen by remember { mutableStateOf(false) }
     var controlOpen by remember { mutableStateOf(false) }
@@ -330,8 +330,8 @@ val iconOffsets = remember {
             put(
                     item.id,
                     Offset(
-                        prefs.getFloat("${item.id}_x", 22f),
-                        prefs.getFloat("${item.id}_y", 92f + index * 88f)
+                        prefs.getFloat("${item.id}_x", 22f + (index % 2) * 112f),
+                        prefs.getFloat("${item.id}_y", 104f + (index / 2) * 112f)
                     )
                 )
             }
@@ -391,13 +391,26 @@ val iconOffsets = remember {
                 Box(Modifier.fillMaxSize().background(Color(0x66081729)))
             }
 
+            // INFINITY AURORA DESKTOP — profundidad ambiental y anillos orbitales.
             Box(
                 Modifier.offset(x = maxW * .57f, y = maxH * .12f)
-                    .size(260.dp)
+                    .size(280.dp)
                     .background(
-                        Brush.radialGradient(listOf(accent.copy(.22f), Color.Transparent)),
+                        Brush.radialGradient(listOf(accent.copy(.24f), Color(0x222B6B91), Color.Transparent)),
                         CircleShape
                     )
+            )
+            Box(
+                Modifier.align(Alignment.CenterEnd)
+                    .offset(x = 104.dp, y = (-34).dp)
+                    .size(260.dp)
+                    .border(1.dp, accent.copy(alpha = .13f), CircleShape)
+            )
+            Box(
+                Modifier.align(Alignment.CenterEnd)
+                    .offset(x = 70.dp, y = (-34).dp)
+                    .size(190.dp)
+                    .border(1.dp, Color.White.copy(alpha = .07f), CircleShape)
             )
 
             Column(Modifier.align(Alignment.TopStart).padding(start = 22.dp, top = 18.dp)) {
@@ -414,6 +427,12 @@ val iconOffsets = remember {
                     fontSize = 10.sp,
                     letterSpacing = 1.5.sp,
                     fontWeight = FontWeight.Bold
+                )
+                Text(
+                    "DESKTOP ENVIRONMENT  /  ANDROID",
+                    color = InfinityMuted.copy(alpha = .78f),
+                    fontSize = 8.sp,
+                    letterSpacing = 1.2.sp
                 )
             }
 
@@ -489,14 +508,15 @@ val iconOffsets = remember {
                             }
                             .padding(6.dp)
                     ) {
-                        InfinityAppBadge(item, (iconSize + 8f).dp, accent)
+                        InfinityAppBadge(item, (iconSize + 14f).dp, accent)
                         Spacer(Modifier.height(7.dp))
                         Text(
                             item.label,
                             modifier = Modifier
-                                .background(Color(0xCC101827), RoundedCornerShape(8.dp))
-                                .border(0.7.dp, Color.White.copy(alpha = 0.18f), RoundedCornerShape(8.dp))
-                                .padding(horizontal = 7.dp, vertical = 4.dp),
+                                .shadow(8.dp, RoundedCornerShape(10.dp))
+                                .background(Color(0xD9101D30), RoundedCornerShape(10.dp))
+                                .border(0.8.dp, accent.copy(alpha = 0.34f), RoundedCornerShape(10.dp))
+                                .padding(horizontal = 8.dp, vertical = 5.dp),
                             color = Color.White,
                             fontSize = 10.sp,
                             fontWeight = FontWeight.SemiBold,
@@ -1414,11 +1434,19 @@ private fun DockAction(
     Column(
         Modifier.clip(RoundedCornerShape(13.dp))
             .clickable(onClick = onClick)
-            .padding(horizontal = 7.dp, vertical = 3.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .padding(horizontal = 4.dp, vertical = 2.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(2.dp)
     ) {
-        Text(glyph, color = tint, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-        Text(description, color = Color.White.copy(.78f), fontSize = 8.sp, maxLines = 1)
+        Box(
+            Modifier.size(32.dp)
+                .background(tint.copy(alpha = .14f), RoundedCornerShape(11.dp))
+                .border(1.dp, tint.copy(alpha = .36f), RoundedCornerShape(11.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(glyph, color = tint, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        }
+        Text(description, color = Color.White.copy(.84f), fontSize = 7.sp, maxLines = 1)
     }
 }
 
