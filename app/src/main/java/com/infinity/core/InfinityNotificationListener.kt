@@ -128,9 +128,16 @@ class InfinityNotificationListener : NotificationListenerService() {
 
     internal fun dismissNotification(key: String) {
         try {
+            if (key.isBlank()) return
             cancelNotification(key)
-        } catch (_: Exception) {
-            // Android puede impedir retirar determinadas notificaciones del sistema.
+        } catch (error: Exception) {
+            if (error is kotlinx.coroutines.CancellationException) throw error
+            val report = infinityGuardReport("Descartar notificación", error)
+            android.widget.Toast.makeText(
+                this,
+                report.userMessage,
+                android.widget.Toast.LENGTH_SHORT
+            ).show()
         }
     }
 
@@ -160,8 +167,14 @@ class InfinityNotificationListener : NotificationListenerService() {
 
                 return
             }
-        } catch (_: Exception) {
-            // Continuar con el método alternativo.
+        } catch (error: Exception) {
+            if (error is kotlinx.coroutines.CancellationException) throw error
+            val report = infinityGuardReport("Abrir notificación", error)
+            android.widget.Toast.makeText(
+                this,
+                report.userMessage,
+                android.widget.Toast.LENGTH_SHORT
+            ).show()
         }
 
         try {
@@ -175,8 +188,14 @@ class InfinityNotificationListener : NotificationListenerService() {
                 )
                 startActivity(launchIntent)
             }
-        } catch (_: Exception) {
-            // La aplicación puede no permitir este inicio.
+        } catch (error: Exception) {
+            if (error is kotlinx.coroutines.CancellationException) throw error
+            val report = infinityGuardReport("Inicio de aplicación", error)
+            android.widget.Toast.makeText(
+                this,
+                report.userMessage,
+                android.widget.Toast.LENGTH_SHORT
+            ).show()
         }
     }
 
