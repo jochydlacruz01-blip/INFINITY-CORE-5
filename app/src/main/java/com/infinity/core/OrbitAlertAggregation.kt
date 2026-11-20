@@ -12,6 +12,13 @@ internal fun infinityOrbitBatteryLevel(percent: Int?): OrbitMetricLevel {
     }
 }
 
+/** Stable severity ordering: critical alerts first, preserving metric order within each level. */
+internal fun infinityOrbitAlertPriority(level: OrbitMetricLevel): Int = when (level) {
+    OrbitMetricLevel.CRITICAL -> 0
+    OrbitMetricLevel.WARNING -> 1
+    OrbitMetricLevel.NORMAL, OrbitMetricLevel.UNKNOWN -> 2
+}
+
 internal fun infinityOrbitAlerts(
     batteryPercent: Int?,
     ramPercent: Int?,
@@ -32,5 +39,5 @@ internal fun infinityOrbitAlerts(
     if (infinityOrbitNeedsAlert(thermal)) {
         alerts += OrbitHealthAlert("TEMPERATURA", thermal, "Estado térmico $thermalStatus: ${if (thermal == OrbitMetricLevel.CRITICAL) "crítico" else "elevado"}")
     }
-    return alerts
+    return alerts.sortedBy { infinityOrbitAlertPriority(it.level) }
 }
