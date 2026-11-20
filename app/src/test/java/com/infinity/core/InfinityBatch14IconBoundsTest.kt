@@ -13,4 +13,18 @@ class InfinityBatch14IconBoundsTest {
     @Test fun smallerViewportKeepsIconOriginWithinBounds() {
         assertEquals(Offset(0f, 0f), infinityBoundIconOffset(Offset(20f, 30f), Offset(5f, 5f), 80f, 100f))
     }
+
+    @Test fun restoredIconPositionIsClampedWhenViewportShrinks() {
+        assertEquals(
+            Offset(390f, 450f),
+            infinityBoundIconOffset(Offset(820f, 940f), Offset.Zero, 500f, 600f)
+        )
+    }
+
+    @Test fun restoredIconPositionIsPreservedWhenStillVisible() {
+        assertEquals(
+            Offset(120f, 160f),
+            infinityBoundIconOffset(Offset(120f, 160f), Offset.Zero, 500f, 600f)
+        )
+    }
 }
