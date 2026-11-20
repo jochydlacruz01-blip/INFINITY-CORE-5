@@ -123,6 +123,13 @@ class InfinityFileManagerRulesTest {
         assertEquals("Imagen PNG", formatInfinityMimeType("IMAGE/PNG"))
     }
 
+    @Test fun mimeMatchingTrimsWhitespaceAndRejectsMalformedSubtypes() {
+        assertEquals("Imagen PNG", formatInfinityMimeType("  IMAGE/PNG  "))
+        assertEquals("Tipo no disponible", formatInfinityMimeType("application/"))
+        assertEquals("Tipo no disponible", formatInfinityMimeType(" / "))
+        assertEquals("Tipo no disponible", formatInfinityMimeType("  "))
+    }
+
     @Test fun optionalMimeMetadataHandlesMissingColumnAndBlankValues() {
         assertEquals(null, infinityOptionalMimeType(false, "image/png"))
         assertEquals(null, infinityOptionalMimeType(true, null))
