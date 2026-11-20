@@ -75,3 +75,8 @@ internal fun infinityNotificationFeedUpdate(current: List<InfinityNotification>,
             .forEach(::add)
     }
 }
+
+
+/** Derives a truthful notification-listener state from Android permission and service connection. */
+internal fun infinityNotificationAccessEnabled(granted: Boolean, connected: Boolean): Boolean =
+    granted && connected

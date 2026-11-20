@@ -123,4 +123,19 @@ class InfinityNotificationRulesTest {
         assertEquals(existing.take(2), infinityNotificationFeedUpdate(existing, blank, 2))
         assertEquals(emptyList<InfinityNotification>(), infinityNotificationFeedUpdate(existing, blank, 0))
     }
+
+    @Test
+    fun listenerIsEnabledOnlyWhenPermissionIsGrantedAndServiceIsConnected() {
+        assertFalse(infinityNotificationAccessEnabled(false, false))
+        assertFalse(infinityNotificationAccessEnabled(false, true))
+        assertFalse(infinityNotificationAccessEnabled(true, false))
+        assertTrue(infinityNotificationAccessEnabled(true, true))
+    }
+
+    @Test
+    fun permissionRefreshCannotReportDisconnectedServiceAsEnabled() {
+        assertFalse(infinityNotificationAccessEnabled(true, false))
+        assertFalse(infinityNotificationAccessEnabled(false, true))
+        assertTrue(infinityNotificationAccessEnabled(true, true))
+    }
 }
