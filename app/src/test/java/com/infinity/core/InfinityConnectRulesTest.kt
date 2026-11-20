@@ -290,6 +290,9 @@ class InfinityConnectRulesTest {
         assertEquals("[fe80::1%wlan0]:3389", formatInfinityEndpointAddress(" fe80::1%wlan0 ", "03389"))
         assertEquals("office-pc.local:3389", formatInfinityEndpointAddress(" office-pc.local ", "3389"))
         assertEquals("", formatInfinityEndpointAddress("office-pc.local", "70000"))
+        assertEquals("", formatInfinityEndpointAddress("https://office-pc", "3389"))
+        assertEquals("", formatInfinityEndpointAddress("host/name", "3389"))
+        assertEquals("", formatInfinityEndpointAddress("999.999.1.1", "3389"))
         assertEquals("", formatInfinityEndpointAddress(" ", "3389"))
     }
 
