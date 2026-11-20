@@ -85,7 +85,6 @@ class InfinityNotificationRulesTest {
         assertTrue(visible.first.length <= 300)
         assertTrue(visible.second.length <= 2_000)
     }
-}
 
     @Test fun notificationFeedReplacesExistingKeyAndKeepsOrder() {
         val old = InfinityNotification("k","pkg","App","old","",2,false,true,null)
@@ -100,3 +99,4 @@ class InfinityNotificationRulesTest {
         assertEquals(listOf("n","1","2"),infinityNotificationFeedUpdate(items,InfinityNotification("n","pkg","App","","",6,false,true,null),3).map { it.key })
         assertEquals(emptyList<InfinityNotification>(),infinityNotificationFeedUpdate(items,items.first(),0))
     }
+}
