@@ -497,18 +497,21 @@ val iconOffsets = remember {
                         lightMode = lightMode,
                         themeChoice = themeChoice,
                         onThemeChange = {
-                            themeChoice = it
-                            prefs.edit().putString("theme_choice", it).apply()
+                            val normalized = infinityNormalizeThemeChoice(it)
+                            themeChoice = normalized
+                            prefs.edit().putString("theme_choice", normalized).apply()
                         },
                         appearance = appearance,
                         onAppearanceChange = {
-                            appearance = it
-                            prefs.edit().putString("appearance", it).apply()
+                            val normalized = infinityNormalizeAppearance(it)
+                            appearance = normalized
+                            prefs.edit().putString("appearance", normalized).apply()
                         },
                         iconSize = iconSize,
                         onIconSizeChange = {
-                            iconSize = it
-                            prefs.edit().putFloat("icon_size", it).apply()
+                            val normalized = infinityNormalizeIconSize(it)
+                            iconSize = normalized
+                            prefs.edit().putFloat("icon_size", normalized).apply()
                         },
                         onChooseWallpaper = { wallpaperPicker.launch(arrayOf("image/*")) },
                         selectedFolder = selectedFolder,
