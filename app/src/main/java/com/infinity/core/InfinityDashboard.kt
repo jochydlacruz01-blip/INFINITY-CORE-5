@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -51,7 +53,7 @@ internal fun InfinityRealDashboard(
     onOpenControl: () -> Unit
 ) {
     Column(
-        Modifier.fillMaxWidth().padding(
+        Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(
             start = 14.dp, end = 14.dp, top = 104.dp, bottom = 92.dp
         ),
         verticalArrangement = Arrangement.spacedBy(12.dp)
