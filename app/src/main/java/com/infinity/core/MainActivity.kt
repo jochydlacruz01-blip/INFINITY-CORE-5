@@ -542,7 +542,11 @@ val iconOffsets = remember {
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier
                             .offset { IntOffset(offset.x.roundToInt(), offset.y.roundToInt()) }
-                            .width(94.dp)
+                            .width(108.dp)
+                            .clip(RoundedCornerShape(18.dp))
+                            .background(Color(0x66101D30))
+                            .border(1.dp, accent.copy(alpha = 0.22f), RoundedCornerShape(18.dp))
+                            .padding(8.dp)
                             .pointerInput(item.id) {
                                 detectDragGestures { change, drag ->
                                     change.consume()
