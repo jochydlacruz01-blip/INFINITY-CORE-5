@@ -5,6 +5,7 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -284,40 +285,68 @@ fun InfinityConnectPanel() {
                         color = MaterialTheme.colorScheme.secondary
                     )
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        OutlinedButton(
-                            onClick = {
-                                editingIndex.value = profiles.indexOf(profile)
-                                editingName.value = profile.name
-                                editingHost.value = profile.host
-                                editingPort.value = profile.port
-                                editingUsername.value = profile.username
-                                showEditor.value = true
-                            },
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text("Editar")
-                        }
-
-                        OutlinedButton(
-                            onClick = { copyAddress(profile) },
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text("Copiar")
-                        }
-
-                        OutlinedButton(
-                            onClick = {
-                                profiles.remove(profile)
-                                saveInfinityProfiles(context, profiles)
-                                notifyUser("Perfil eliminado")
-                            },
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text("Eliminar")
+                    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                        val narrowLayout = maxWidth < 440.dp
+                        if (narrowLayout) {
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    OutlinedButton(
+                                        onClick = {
+                                            editingIndex.value = profiles.indexOf(profile)
+                                            editingName.value = profile.name
+                                            editingHost.value = profile.host
+                                            editingPort.value = profile.port
+                                            editingUsername.value = profile.username
+                                            showEditor.value = true
+                                        },
+                                        modifier = Modifier.weight(1f)
+                                    ) { Text("Editar") }
+                                    OutlinedButton(
+                                        onClick = { copyAddress(profile) },
+                                        modifier = Modifier.weight(1f)
+                                    ) { Text("Copiar dirección") }
+                                }
+                                OutlinedButton(
+                                    onClick = {
+                                        profiles.remove(profile)
+                                        saveInfinityProfiles(context, profiles)
+                                        notifyUser("Perfil eliminado")
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
+                                ) { Text("Eliminar computadora") }
+                            }
+                        } else {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                OutlinedButton(
+                                    onClick = {
+                                        editingIndex.value = profiles.indexOf(profile)
+                                        editingName.value = profile.name
+                                        editingHost.value = profile.host
+                                        editingPort.value = profile.port
+                                        editingUsername.value = profile.username
+                                        showEditor.value = true
+                                    },
+                                    modifier = Modifier.weight(1f)
+                                ) { Text("Editar") }
+                                OutlinedButton(
+                                    onClick = { copyAddress(profile) },
+                                    modifier = Modifier.weight(1f)
+                                ) { Text("Copiar") }
+                                OutlinedButton(
+                                    onClick = {
+                                        profiles.remove(profile)
+                                        saveInfinityProfiles(context, profiles)
+                                        notifyUser("Perfil eliminado")
+                                    },
+                                    modifier = Modifier.weight(1f)
+                                ) { Text("Eliminar") }
+                            }
                         }
                     }
 
