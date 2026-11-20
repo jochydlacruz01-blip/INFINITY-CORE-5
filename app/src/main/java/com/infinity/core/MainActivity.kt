@@ -9,6 +9,8 @@ import android.net.Uri
 import android.os.Bundle
 import android.provider.DocumentsContract
 import android.widget.Toast
+import org.json.JSONArray
+import org.json.JSONObject
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -315,7 +317,52 @@ private fun Infinity08App() {
         }
     }
 
-    val windows = remember { mutableStateListOf<DeskWindow>() }
+    val windows = remember {
+        mutableStateListOf<DeskWindow>().apply {
+            val saved = prefs.getString("saved_windows", null)
+            try {
+                val array = JSONArray(saved ?: "[]")
+                for (i in 0 until array.length()) {
+                    val item = array.optJSONObject(i) ?: continue
+                    val kind = item.optString("kind")
+                    if (kind !in setOf("files", "notes", "apps", "connect", "settings", "about")) continue
+                    add(
+                        DeskWindow(
+                            id = item.optString("id", infinityWindowIdentity(kind, 1)),
+                            title = item.optString("title", kind),
+                            kind = kind,
+                            x = item.optDouble("x", 24.0).toFloat(),
+                            y = item.optDouble("y", 100.0).toFloat(),
+                            width = item.optDouble("width", 370.0).toFloat().coerceIn(240f, 900f),
+                            height = item.optDouble("height", 330.0).toFloat().coerceIn(180f, 900f),
+                            minimized = item.optBoolean("minimized", false),
+                            workspace = infinityNormalizeWorkspace(item.optInt("workspace", 1)),
+                            maximized = item.optBoolean("maximized", false)
+                        )
+                    )
+                }
+            } catch (_: Exception) {
+                clear()
+                prefs.edit().remove("saved_windows").apply()
+            }
+        }
+    }
+
+    val windowSnapshot = windows.joinToString("|") {
+        "${it.id},${it.x},${it.y},${it.width},${it.height},${it.minimized},${it.workspace},${it.maximized}"
+    }
+    LaunchedEffect(windowSnapshot) {
+        val array = JSONArray()
+        windows.forEach { win ->
+            array.put(
+                JSONObject().put("id", win.id).put("title", win.title).put("kind", win.kind)
+                    .put("x", win.x).put("y", win.y).put("width", win.width).put("height", win.height)
+                    .put("minimized", win.minimized).put("workspace", win.workspace)
+                    .put("maximized", win.maximized)
+            )
+        }
+        prefs.edit().putString("saved_windows", array.toString()).apply()
+    }
 
     var focusedWindowId by remember { mutableStateOf<String?>(null) }
 
