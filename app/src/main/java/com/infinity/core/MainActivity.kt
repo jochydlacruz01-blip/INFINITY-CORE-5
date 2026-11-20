@@ -466,7 +466,7 @@ val iconOffsets = remember {
                 desktopItems.forEach { item ->
                     val current = iconOffsets[item.id] ?: Offset(22f, 90f)
                     val bounded = infinityBoundIconOffset(
-                        current, Offset.Zero, viewportWidth, viewportHeight - with(density) { 168.dp.toPx() },
+                        current, Offset.Zero, viewportWidth, infinityDesktopHeightAboveDock(viewportHeight, dockHeight = with(density) { 88.dp.toPx() }, dockBottomInset = with(density) { 24.dp.toPx() }, safetyGap = with(density) { 56.dp.toPx() }),
                         itemWidth = with(density) { 116.dp.toPx() },
                         itemHeight = with(density) { 150.dp.toPx() }
                     )
