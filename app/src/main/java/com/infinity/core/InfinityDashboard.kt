@@ -74,7 +74,7 @@ internal fun InfinityRealDashboard(
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("∞  PROJECT INFINITY", color = DashboardCyan, fontSize = 11.sp, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
-                    Text("Tu espacio digital.\\nTu centro de operaciones.", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold, lineHeight = 27.sp)
+                    Text("Tu espacio digital.\nTu centro de operaciones.", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold, lineHeight = 27.sp)
                     Text("Entorno Android nativo • Escritorio inteligente • Herramientas integradas", color = DashboardMuted, fontSize = 10.sp)
 
                     // En móviles estrechos, las acciones se apilan para evitar
