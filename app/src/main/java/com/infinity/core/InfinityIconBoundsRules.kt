@@ -50,32 +50,27 @@ internal fun infinityDesktopHeightAboveDock(
 ): Float = (viewportHeight - dockHeight.coerceAtLeast(0f) -
     dockBottomInset.coerceAtLeast(0f) - safetyGap.coerceAtLeast(0f)).coerceAtLeast(0f)
 
-/** Moves overlapping saved desktop icons into deterministic grid slots, preserving non-overlapping placements. */
+/** Resolve collisions using free grid cells; never clamp different rows onto the same edge. */
 internal fun infinityResolveIconOverlaps(
-    offsets: List<Offset>,
-    viewportWidth: Float,
-    viewportHeight: Float,
-    itemWidth: Float = 116f,
-    itemHeight: Float = 150f,
-    horizontalGap: Float = 12f,
-    verticalGap: Float = 14f,
-    topInset: Float = 118f
+    offsets: List<Offset>, viewportWidth: Float, viewportHeight: Float,
+    itemWidth: Float = 116f, itemHeight: Float = 150f,
+    horizontalGap: Float = 12f, verticalGap: Float = 14f, topInset: Float = 118f
 ): List<Offset> {
+    if (offsets.isEmpty()) return emptyList()
+    val width = itemWidth.coerceAtMost(viewportWidth.coerceAtLeast(1f))
+    val height = itemHeight.coerceAtMost((viewportHeight - topInset).coerceAtLeast(1f))
+    val gapX = horizontalGap.coerceAtLeast(0f); val gapY = verticalGap.coerceAtLeast(0f)
+    val columns = (((viewportWidth.coerceAtLeast(width) + gapX) / (width + gapX)).toInt()).coerceAtLeast(1)
+    val rows = (((viewportHeight - topInset).coerceAtLeast(height) + gapY) / (height + gapY)).toInt().coerceAtLeast(1)
+    val slots = (0 until columns * rows).map { slot ->
+        Offset((gapX + (slot % columns) * (width + gapX)).coerceAtMost((viewportWidth - width).coerceAtLeast(0f)),
+            (topInset + (slot / columns) * (height + gapY)).coerceAtMost((viewportHeight - height).coerceAtLeast(0f)))
+    }
+    fun overlaps(a: Offset, b: Offset) = a.x < b.x + width && a.x + width > b.x && a.y < b.y + height && a.y + height > b.y
     val resolved = mutableListOf<Offset>()
-    offsets.forEachIndexed { index, raw ->
-        var candidate = infinityBoundIconOffset(raw, Offset.Zero, viewportWidth, viewportHeight, itemWidth, itemHeight)
-        fun overlaps(a: Offset, b: Offset): Boolean =
-            a.x < b.x + itemWidth && a.x + itemWidth > b.x &&
-            a.y < b.y + itemHeight && a.y + itemHeight > b.y
-        if (resolved.any { overlaps(candidate, it) }) {
-            var slot = index
-            do {
-                candidate = infinityDesktopIconGridOffset(slot, viewportWidth, itemWidth, itemHeight, horizontalGap, verticalGap, topInset)
-                candidate = infinityBoundIconOffset(candidate, Offset.Zero, viewportWidth, viewportHeight, itemWidth, itemHeight)
-                slot++
-            } while (resolved.any { overlaps(candidate, it) } && slot < index + offsets.size + 64)
-        }
-        resolved.add(candidate)
+    offsets.forEach { raw ->
+        val bounded = infinityBoundIconOffset(raw, Offset.Zero, viewportWidth, viewportHeight, width, height)
+        resolved += if (resolved.none { overlaps(bounded, it) }) bounded else slots.firstOrNull { s -> resolved.none { overlaps(s, it) } } ?: bounded
     }
     return resolved
 }
