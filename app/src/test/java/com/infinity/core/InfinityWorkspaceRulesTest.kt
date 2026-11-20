@@ -50,4 +50,10 @@ class InfinityWorkspaceRulesTest {
         assertEquals("A…", infinityDockLabel("Alphabet", 2))
         assertEquals("", infinityDockLabel("   "))
     }
+
+    @Test fun workspaceWindowFilterNormalizesWorkspaceAndPreservesOrder() {
+        assertEquals(listOf("b", "d"), infinityWorkspaceWindowIds(listOf("a", "b", "c", "d"), mapOf("a" to 1, "b" to 2, "c" to 3, "d" to 2), 2))
+        assertEquals(listOf("a"), infinityWorkspaceWindowIds(listOf("a", "b"), mapOf("a" to 0, "b" to 3), 1))
+        assertEquals(emptyList<String>(), infinityWorkspaceWindowIds(listOf("x"), emptyMap(), 3))
+    }
 }
