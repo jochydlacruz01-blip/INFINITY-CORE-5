@@ -754,15 +754,17 @@ val iconOffsets = remember {
                             val index = windows.indexOfFirst { it.id == win.id }
                             if (index >= 0) {
                                 val current = windows[index]
+                                val boundedPosition = infinityClampWindowPosition(
+                                    current.x + dx,
+                                    current.y + dy,
+                                    current.width,
+                                    current.height,
+                                    maxW.value,
+                                    maxH.value
+                                )
                                 windows[index] = current.copy(
-                                    x = (current.x + dx).coerceIn(
-                                        0f,
-                                        (maxW.value - current.width).coerceAtLeast(0f)
-                                    ),
-                                    y = (current.y + dy).coerceIn(
-                                        0f,
-                                        (maxH.value - current.height).coerceAtLeast(0f)
-                                    )
+                                    x = boundedPosition.first,
+                                    y = boundedPosition.second
                                 )
                             }
                         },
