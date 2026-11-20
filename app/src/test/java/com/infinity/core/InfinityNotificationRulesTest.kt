@@ -86,3 +86,17 @@ class InfinityNotificationRulesTest {
         assertTrue(visible.second.length <= 2_000)
     }
 }
+
+    @Test fun notificationFeedReplacesExistingKeyAndKeepsOrder() {
+        val old = InfinityNotification("k","pkg","App","old","",2,false,true,null)
+        val newer = InfinityNotification("k","pkg","App","new","",3,false,true,null)
+        val other = InfinityNotification("x","pkg","App","","",1,false,true,null)
+        val result = infinityNotificationFeedUpdate(listOf(old,other),newer)
+        assertEquals(listOf("k","x"),result.map { it.key })
+        assertEquals("new",result.first().title)
+    }
+    @Test fun notificationFeedCapsInsertionsAndHandlesZeroLimit() {
+        val items=(1..5).map { InfinityNotification("$it","pkg","App","","",it.toLong(),false,true,null) }
+        assertEquals(listOf("n","1","2"),infinityNotificationFeedUpdate(items,InfinityNotification("n","pkg","App","","",6,false,true,null),3).map { it.key })
+        assertEquals(emptyList<InfinityNotification>(),infinityNotificationFeedUpdate(items,items.first(),0))
+    }
