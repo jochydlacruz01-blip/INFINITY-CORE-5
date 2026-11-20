@@ -32,6 +32,11 @@ class InfinitySystemGuardRulesTest {
         assertEquals("abcd", infinityGuardSafeLabel("abcdef", 4))
     }
 
+    @Test fun operationLabelsStripControlAndDirectionalFormattingCharacters() {
+        val malicious = "Lectura" + '\u202E' + "/ruta" + '\u0000'
+        assertEquals("Lectura ruta", infinityGuardReport(malicious, IllegalStateException()).userMessage.substringBefore(" no pudo"))
+    }
+
     @Test fun operationLabelsAreBoundedAndBlankSafe() {
         assertEquals("Operación no pudo completarse. GENERAL", infinityGuardReport("", IllegalStateException()).userMessage)
         assertEquals("Operación no pudo completarse. GENERAL", infinityGuardReport(" ".repeat(80), IllegalStateException()).userMessage)
