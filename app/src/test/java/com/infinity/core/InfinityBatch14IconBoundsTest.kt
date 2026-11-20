@@ -61,4 +61,13 @@ class InfinityBatch14IconBoundsTest {
         assertEquals(Offset(10f, 10f), result[0])
         assertEquals(Offset(150f, 10f), result[1])
     }
+
+    @Test fun resolverSeparatesDenseIconsAcrossAvailableGridCells() {
+        val result = infinityResolveIconOverlaps(List(6) { Offset(10f, 10f) }, 280f, 650f, 110f, 120f, topInset = 20f)
+        assertEquals(6, result.distinct().size)
+        for (i in result.indices) for (j in i + 1 until result.size) {
+            val a = result[i]; val b = result[j]
+            assertEquals(false, a.x < b.x + 110f && a.x + 110f > b.x && a.y < b.y + 120f && a.y + 120f > b.y)
+        }
+    }
 }
