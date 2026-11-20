@@ -22,7 +22,8 @@ internal fun infinityStorageSummary(totalBytes: Long, availableBytes: Long): Str
 
 /** Android reports battery temperature in tenths of a degree Celsius. */
 internal fun infinityBatteryTemperature(tenthsCelsius: Int): String {
-    if (tenthsCelsius < 0) return "--"
+    // Values outside the physical reporting range are treated as invalid telemetry.
+    if (tenthsCelsius !in 0..1_000) return "--"
     return String.format(Locale.ROOT, "%.1f °C", tenthsCelsius / 10.0)
 }
 
@@ -41,7 +42,6 @@ internal fun infinityThermalState(status: Int?): String = when (status) {
     6 -> "APAGADO"
     else -> "NO DISPONIBLE"
 }
-
 
 /** Converts Android's battery capacity reading into a display-safe percentage. */
 internal fun infinityBatteryPercent(value: Int?): Int? =
