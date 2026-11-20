@@ -4,24 +4,21 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -77,12 +74,35 @@ internal fun InfinityRealDashboard(
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("∞  PROJECT INFINITY", color = DashboardCyan, fontSize = 11.sp, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
-                    Text("Tu espacio digital.\nTu centro de operaciones.", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold, lineHeight = 27.sp)
+                    Text("Tu espacio digital.\\nTu centro de operaciones.", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold, lineHeight = 27.sp)
                     Text("Entorno Android nativo • Escritorio inteligente • Herramientas integradas", color = DashboardMuted, fontSize = 10.sp)
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(onClick = onShowDesktop) { Text("Abrir escritorio", fontSize = 10.sp) }
-                        OutlinedButton(onClick = { onOpenWindow("apps") }) { Text("Aplicaciones", fontSize = 10.sp) }
-                        OutlinedButton(onClick = onOpenOrbit) { Text("Ver ORBIT", fontSize = 10.sp) }
+
+                    // En móviles estrechos, las acciones se apilan para evitar
+                    // botones comprimidos o desbordados horizontalmente.
+                    BoxWithConstraints(Modifier.fillMaxWidth()) {
+                        if (maxWidth < 440.dp) {
+                            Column(
+                                Modifier.fillMaxWidth(),
+                                verticalArrangement = Arrangement.spacedBy(7.dp)
+                            ) {
+                                Button(onClick = onShowDesktop, modifier = Modifier.fillMaxWidth()) {
+                                    Text("Abrir escritorio", fontSize = 10.sp)
+                                }
+                                OutlinedButton(
+                                    onClick = { onOpenWindow("apps") },
+                                    modifier = Modifier.fillMaxWidth()
+                                ) { Text("Aplicaciones", fontSize = 10.sp) }
+                                OutlinedButton(onClick = onOpenOrbit, modifier = Modifier.fillMaxWidth()) {
+                                    Text("Ver ORBIT", fontSize = 10.sp)
+                                }
+                            }
+                        } else {
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Button(onClick = onShowDesktop) { Text("Abrir escritorio", fontSize = 10.sp) }
+                                OutlinedButton(onClick = { onOpenWindow("apps") }) { Text("Aplicaciones", fontSize = 10.sp) }
+                                OutlinedButton(onClick = onOpenOrbit) { Text("Ver ORBIT", fontSize = 10.sp) }
+                            }
+                        }
                     }
                 }
             }
