@@ -8,6 +8,15 @@ import java.net.InetAddress
  * Pure validation rules for INFINITY CONNECT profiles.
  * Kept independent from Android/Compose so GitHub Actions can test them locally.
  */
+/** Formats host/port pairs unambiguously, including IPv6 literals. */
+internal fun formatInfinityEndpointAddress(host: String, port: String): String {
+    val normalizedPort = parseInfinityPort(port) ?: return ""
+    val displayHost = host.trim()
+    if (displayHost.isEmpty()) return ""
+    val formattedHost = if (displayHost.contains(':')) "[$displayHost]" else displayHost
+    return "$formattedHost:$normalizedPort"
+}
+
 internal fun parseInfinityPort(value: String): Int? {
     return value.trim().toIntOrNull()?.takeIf { it in 1..65535 }
 }
