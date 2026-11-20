@@ -1999,9 +1999,13 @@ private fun Infinity08Window(
                         LazyColumn(Modifier.fillMaxSize().padding(top = 6.dp)) {
                             items(filteredApps, key = { it.packageName }) { app ->
                                 Row(
-                                    Modifier.fillMaxWidth().clickable {
-                                        onLaunchApp(app.packageName)
-                                    }.padding(vertical = 8.dp),
+                                    Modifier.fillMaxWidth()
+                                        .heightIn(min = 48.dp)
+                                        .clickable(role = Role.Button) {
+                                            onLaunchApp(app.packageName)
+                                        }
+                                        .semantics { contentDescription = "Abrir aplicación ${app.label}" }
+                                        .padding(vertical = 8.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text("◈", color = accent, fontSize = 19.sp)
