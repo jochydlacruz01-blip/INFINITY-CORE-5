@@ -873,17 +873,18 @@ DockAction("▤", "ADVANCED", accent) {
                             val idx = windows.indexOfFirst { it.id == task.id }
                             if (idx >= 0) {
                                 val tappedTask = windows[idx]
-                                val minimizeTask = infinityDockTapMinimizes(
+                                val activation = infinityDockResolveActivation(
                                     tappedTask.id, focusedWindowId, tappedTask.minimized
                                 )
+                                val minimizeTask = activation == null
                                 windows[idx] = tappedTask.copy(minimized = minimizeTask)
                                 focusedWindowId = if (minimizeTask) {
-                                    infinityResolveFocusedWindow(
-                                        focusedWindowId,
-                                        windows.filter { !it.minimized && it.workspace == workspace }
-                                            .map { it.id }
+                                    infinityResolveWorkspaceFocus(
+                                        null, windows.map { it.id },
+                                        windows.associate { it.id to it.workspace },
+                                        windows.filter { it.minimized }.map { it.id }.toSet(), workspace
                                     )
-                                } else task.id
+                                } else activation
                             }
                             dashboardOpen = false
                             startOpen = false
