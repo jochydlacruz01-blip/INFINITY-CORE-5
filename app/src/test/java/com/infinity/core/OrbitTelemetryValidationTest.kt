@@ -11,7 +11,7 @@ class OrbitTelemetryValidationTest {
         assertFalse(infinityOrbitTelemetryFreshness(11_000, 10_000))
         assertFalse(infinityOrbitTelemetryFreshness(0, 31_001))
         assertTrue(infinityOrbitTelemetryFreshness(1_000, 31_000))
-        assertFalse(infinityOrbitTelemetryFreshness(1_000, 1_000, 0))
+        assertFalse(infinityOrbitTelemetryFreshness(1_000, 1_000, 0))\n        assertFalse(infinityOrbitTelemetryFreshness(Long.MIN_VALUE, Long.MAX_VALUE))
     }
 
     @Test fun freshPercentRejectsInvalidAndStaleData() {
