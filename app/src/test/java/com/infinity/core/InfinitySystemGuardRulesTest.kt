@@ -37,6 +37,13 @@ class InfinitySystemGuardRulesTest {
         assertEquals("Lectura ruta", infinityGuardReport(malicious, IllegalStateException()).userMessage.substringBefore(" no pudo"))
     }
 
+    @Test fun operationLabelUsesSafeCustomFallback() {
+        assertEquals(
+            "Acción",
+            infinityGuardSafeLabel("!!!", maxLength = 48, fallback = "Acción")
+        )
+    }
+
     @Test fun operationLabelsAreBoundedAndBlankSafe() {
         assertEquals("Operación no pudo completarse. GENERAL", infinityGuardReport("", IllegalStateException()).userMessage)
         assertEquals("Operación no pudo completarse. GENERAL", infinityGuardReport(" ".repeat(80), IllegalStateException()).userMessage)
