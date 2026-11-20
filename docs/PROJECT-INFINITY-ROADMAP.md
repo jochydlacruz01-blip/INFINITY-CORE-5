@@ -42,6 +42,7 @@ This roadmap is a work plan; checkboxes indicate completion only after evidence 
 - [x] Add direct system-settings shortcut when notification-listener permission is not granted (validated by successful CI #220; device UX still pending)
 - [x] Notification privacy redaction: hidden titles/messages are not retained in the in-memory feed; existing feed entries are sanitized when protection is enabled (unit tests and CI #228 verified). Android permission and physical-device behavior remain pending.
 - [x] Harden persisted CONNECT profiles: skip malformed/invalid rows independently, normalize valid ports, ignore duplicate endpoints, and cap saved profiles at 100 (CI #239 verified).
+- [x] Add direct regression coverage for complete persisted CONNECT profile validation, including trimmed fields, canonical numeric ports and independently invalid name/host/port/username fields (CI #277 pending).
 - [ ] CONNECT: profile management UX, security review, RDP native feasibility and device testing; duplicate detection canonicalizes equivalent IPv6 spellings and numeric port formatting; regression coverage passed consolidated CI #275.
 - [x] Extend CONNECT hostname/IP rejection regression coverage (CI #225 verified)
 - [x] Expand File Manager Unicode filename and control-character boundary tests (CI #230 verified).
