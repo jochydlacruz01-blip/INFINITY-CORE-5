@@ -397,8 +397,20 @@ val iconOffsets = remember {
             put(
                     item.id,
                     Offset(
-                        prefs.getFloat("${item.id}_x", 18f * context.resources.displayMetrics.density + (index % 2) * 132f * context.resources.displayMetrics.density),
-                        prefs.getFloat("${item.id}_y", 118f * context.resources.displayMetrics.density + (index / 2) * 164f * context.resources.displayMetrics.density)
+                        prefs.getFloat("${item.id}_x", infinityDesktopIconGridOffset(
+                            index, context.resources.displayMetrics.widthPixels.toFloat(),
+                            116f * context.resources.displayMetrics.density, 150f * context.resources.displayMetrics.density,
+                            horizontalGap = 12f * context.resources.displayMetrics.density,
+                            verticalGap = 14f * context.resources.displayMetrics.density,
+                            topInset = 118f * context.resources.displayMetrics.density
+                        ).x),
+                        prefs.getFloat("${item.id}_y", infinityDesktopIconGridOffset(
+                            index, context.resources.displayMetrics.widthPixels.toFloat(),
+                            116f * context.resources.displayMetrics.density, 150f * context.resources.displayMetrics.density,
+                            horizontalGap = 12f * context.resources.displayMetrics.density,
+                            verticalGap = 14f * context.resources.displayMetrics.density,
+                            topInset = 118f * context.resources.displayMetrics.density
+                        ).y)
                     )
                 )
             }
