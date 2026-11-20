@@ -78,3 +78,9 @@ class InfinityWorkspaceRulesTest {
         assertEquals("files_1", infinityDockResolveActivation("files_1", "notes_1", false))
         assertNull(infinityDockResolveActivation("files_1", "files_1", false))
     }
+
+    @Test fun workspaceSwitchFocusRetainsOnlyEligibleTargetWorkspaceWindow() {
+        assertEquals("b", infinityResolveWorkspaceSwitchFocus("b", listOf("a", "b", "c"), mapOf("a" to 1, "b" to 2, "c" to 2), emptySet(), 2))
+        assertEquals("c", infinityResolveWorkspaceSwitchFocus("a", listOf("a", "b", "c"), mapOf("a" to 1, "b" to 2, "c" to 2), setOf("b"), 2))
+        assertNull(infinityResolveWorkspaceSwitchFocus(null, listOf("a"), mapOf("a" to 2), setOf("a"), 2))
+    }
