@@ -15,7 +15,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.horizontalScroll\nimport androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -863,8 +864,18 @@ DockAction("▤", "ADVANCED", accent) {
                         DockAction(if (task.minimized) "□" else "▣", task.title.take(8).uppercase(), accent) {
                             val idx = windows.indexOfFirst { it.id == task.id }
                             if (idx >= 0) {
-                                windows[idx] = windows[idx].copy(minimized = false)
-                                focusedWindowId = task.id
+                                val tappedTask = windows[idx]
+                                val minimizeTask = infinityDockTapMinimizes(
+                                    tappedTask.id, focusedWindowId, tappedTask.minimized
+                                )
+                                windows[idx] = tappedTask.copy(minimized = minimizeTask)
+                                focusedWindowId = if (minimizeTask) {
+                                    infinityResolveFocusedWindow(
+                                        focusedWindowId,
+                                        windows.filter { !it.minimized && it.workspace == workspace }
+                                            .map { it.id }
+                                    )
+                                } else task.id
                             }
                             dashboardOpen = false
                             startOpen = false
