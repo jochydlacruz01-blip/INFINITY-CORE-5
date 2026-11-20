@@ -67,19 +67,28 @@ internal fun infinityNotificationContent(
     return infinityNotificationTitle(title) to infinityNotificationMessage(message)
 }
 
-/** Updates the in-memory notification feed by key and caps retained items. */
-internal fun infinityNotificationFeedUpdate(current: List<InfinityNotification>, incoming: InfinityNotification, maximum: Int = 100): List<InfinityNotification> {
-    if (maximum <= 0 || incoming.key.isBlank()) return current.distinctBy { it.key }.take(maximum.coerceAtLeast(0))
-    // A newly posted or updated notification is the most recent activity.
-    // Remove every stale duplicate before promoting the canonical entry.
-    return buildList(minOf(maximum, current.size + 1)) {
-        add(incoming)
+/**
+ * Upserts by Android notification key and orders the feed by actual post time.
+ * Stable sorting keeps the incoming update first when timestamps are equal.
+ */
+internal fun infinityNotificationFeedUpdate(
+    current: List<InfinityNotification>,
+    incoming: InfinityNotification,
+    maximum: Int = 100
+): List<InfinityNotification> {
+    if (maximum <= 0) return emptyList()
+
+    val candidates = buildList(current.size + 1) {
+        if (incoming.key.isNotBlank()) add(incoming)
         current.asSequence()
-            .filterNot { it.key == incoming.key }
+            .filter { it.key.isNotBlank() && it.key != incoming.key }
             .distinctBy { it.key }
-            .take(maximum - 1)
             .forEach(::add)
     }
+
+    return candidates
+        .sortedByDescending { it.timestamp }
+        .take(maximum)
 }
 
 
