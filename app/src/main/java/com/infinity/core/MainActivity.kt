@@ -15,7 +15,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.horizontalScroll\nimport androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -856,6 +856,24 @@ DockAction("▤", "ADVANCED", accent) {
                         .height(38.dp)
                         .background(Color.White.copy(alpha = 0.30f))
                 )
+
+                windows.filter { it.workspace == workspace }.let { workspaceWindows ->
+                    infinityDockWindowIds(workspaceWindows.map { it.id }, workspaceWindows.associate { it.id to it.minimized }).forEach { taskId ->
+                        val task = workspaceWindows.firstOrNull { it.id == taskId } ?: return@forEach
+                        DockAction(if (task.minimized) "□" else "▣", task.title.take(8).uppercase(), accent) {
+                            val idx = windows.indexOfFirst { it.id == task.id }
+                            if (idx >= 0) {
+                                windows[idx] = windows[idx].copy(minimized = false)
+                                focusedWindowId = task.id
+                            }
+                            dashboardOpen = false
+                            startOpen = false
+                            orbitOpen = false
+                            controlOpen = false
+                            advancedOpen = false
+                        }
+                    }
+                }
 
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally
