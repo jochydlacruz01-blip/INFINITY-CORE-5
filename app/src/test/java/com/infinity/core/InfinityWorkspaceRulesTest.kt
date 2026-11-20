@@ -46,7 +46,7 @@ class InfinityWorkspaceRulesTest {
 
     @Test fun dockLabelsNormalizeWhitespaceAndTruncateSafely() {
         assertEquals("ARCHIVOS", infinityDockLabel(" Archivos "))
-        assertEquals("INFINIT…", infinityDockLabel("INFINITY CONNECT", 9))
+        assertEquals("INFINITY…", infinityDockLabel("INFINITY CONNECT", 9))
         assertEquals("A…", infinityDockLabel("Alphabet", 2))
         assertEquals("", infinityDockLabel("   "))
     }
