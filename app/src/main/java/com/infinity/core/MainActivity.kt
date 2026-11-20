@@ -1887,7 +1887,7 @@ private fun Infinity08Window(
             IconButton(
                 onClick = onMaximize,
                 modifier = Modifier
-                    .size(38.dp)
+                    .size(36.dp)
                     .background(
                         accent.copy(alpha = 0.20f),
                         CircleShape
@@ -1903,12 +1903,12 @@ private fun Infinity08Window(
                 )
             }
 
-            Spacer(Modifier.width(5.dp))
+            Spacer(Modifier.width(3.dp))
 
             IconButton(
                 onClick = onClose,
                 modifier = Modifier
-                    .size(38.dp)
+                    .size(36.dp)
                     .background(
                         Color(0xFFFF6262).copy(alpha = 0.20f),
                         CircleShape
@@ -2062,7 +2062,7 @@ private fun Infinity08Window(
             Modifier
                 .align(Alignment.End)
                 .padding(end = 8.dp, bottom = 8.dp)
-                .size(44.dp)
+                .size(38.dp)
                 .background(
                     accent.copy(alpha = 0.18f),
                     RoundedCornerShape(14.dp)
