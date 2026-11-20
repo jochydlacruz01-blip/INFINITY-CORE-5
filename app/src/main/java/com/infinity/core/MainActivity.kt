@@ -725,9 +725,12 @@ val iconOffsets = remember {
                         onClose = {
                             windows.removeAll { item -> item.id == win.id }
                             if (focusedWindowId == win.id) {
-                                focusedWindowId = infinityResolveFocusedWindow(
+                                focusedWindowId = infinityResolveWorkspaceFocus(
                                     focusedWindowId,
-                                    windows.filter { !it.minimized && it.workspace == workspace }.map { it.id }
+                                    windows.map { it.id },
+                                    windows.associate { it.id to it.workspace },
+                                    windows.filter { it.minimized }.map { it.id }.toSet(),
+                                    workspace
                                 )
                             }
                         },
@@ -735,9 +738,12 @@ val iconOffsets = remember {
                             val index = windows.indexOfFirst { it.id == win.id }
                             if (index >= 0) windows[index] = windows[index].copy(minimized = true)
                             if (focusedWindowId == win.id) {
-                                focusedWindowId = infinityResolveFocusedWindow(
+                                focusedWindowId = infinityResolveWorkspaceFocus(
                                     null,
-                                    windows.filter { !it.minimized && it.workspace == workspace && it.id != win.id }.map { it.id }
+                                    windows.map { it.id }.filterNot { it == win.id },
+                                    windows.filterNot { it.id == win.id }.associate { it.id to it.workspace },
+                                    windows.filter { it.minimized || it.id == win.id }.map { it.id }.toSet(),
+                                    workspace
                                 )
                             }
                         },
