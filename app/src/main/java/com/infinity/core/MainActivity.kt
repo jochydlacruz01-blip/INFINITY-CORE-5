@@ -642,17 +642,27 @@ val iconOffsets = remember {
                         onLaunchApp = ::launchApp,
                         onClose = {
                             windows.removeAll { item -> item.id == win.id }
-                            if (focusedWindowId == win.id) focusedWindowId = null
+                            if (focusedWindowId == win.id) {
+                                focusedWindowId = windows.lastOrNull {
+                                    !it.minimized && it.workspace == workspace
+                                }?.id
+                            }
                         },
                         onMinimize = {
                             val index = windows.indexOfFirst { it.id == win.id }
                             if (index >= 0) windows[index] = windows[index].copy(minimized = true)
-                            if (focusedWindowId == win.id) focusedWindowId = null
+                            if (focusedWindowId == win.id) {
+                                focusedWindowId = windows.lastOrNull {
+                                    !it.minimized && it.workspace == workspace && it.id != win.id
+                                }?.id
+                            }
                         },
                         onMaximize = {
                             val index = windows.indexOfFirst { it.id == win.id }
-                            if (index >= 0) windows[index] =
-                                windows[index].copy(maximized = !windows[index].maximized)
+                            if (index >= 0) {
+                                windows[index] = windows[index].copy(maximized = !windows[index].maximized)
+                                focusedWindowId = win.id
+                            }
                         },
                         
                         // INFINITY 0.11 — MOVIMIENTO CON LÍMITES
