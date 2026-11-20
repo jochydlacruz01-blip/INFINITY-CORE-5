@@ -1,7 +1,10 @@
 package com.infinity.core
 
+import android.content.ComponentName
 import android.content.Intent
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Canvas
 import android.net.Uri
 import android.os.Bundle
 import android.provider.DocumentsContract
@@ -24,6 +27,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.EditNote
+import androidx.compose.material.icons.filled.Apps
+import androidx.compose.material.icons.filled.Computer
+import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.FullscreenExit
@@ -91,6 +99,14 @@ private fun InfinityAppBadge(item: DeskItem, size: androidx.compose.ui.unit.Dp, 
         "settings" -> Color(0xFFFF8E78)
         else -> Color(0xFF56D6C9)
     }
+    val appIcon = when (item.id) {
+        "files" -> Icons.Filled.FolderOpen
+        "notes" -> Icons.Filled.EditNote
+        "apps" -> Icons.Filled.Apps
+        "connect" -> Icons.Filled.Computer
+        "settings" -> Icons.Filled.Palette
+        else -> Icons.Filled.Info
+    }
     Box(
         Modifier.size(size).shadow(14.dp, RoundedCornerShape(size * .25f))
             .background(Brush.linearGradient(listOf(identity.copy(.36f), Color(0xFF142A43), Color(0xFF101827))), RoundedCornerShape(size * .25f))
@@ -98,7 +114,12 @@ private fun InfinityAppBadge(item: DeskItem, size: androidx.compose.ui.unit.Dp, 
         contentAlignment = Alignment.Center
     ) {
         Box(Modifier.fillMaxSize().padding(size * .12f).border(1.dp, Color.White.copy(.08f), RoundedCornerShape(size * .2f)))
-        Text(item.glyph, color = identity, fontSize = (size.value * .53f).sp, fontWeight = FontWeight.Black)
+        Icon(
+            imageVector = appIcon,
+            contentDescription = item.label,
+            tint = identity,
+            modifier = Modifier.size(size * .53f)
+        )
         Box(Modifier.align(Alignment.BottomEnd).padding(size * .10f).size(size * .10f).background(accent, CircleShape))
     }
 }
@@ -115,7 +136,7 @@ private data class DeskWindow(
     val workspace: Int = 1,
     val maximized: Boolean = false
 )
-private data class InstalledApp(val label: String, val packageName: String)
+private data class InstalledApp(val label: String, val packageName: String, val activityName: String)
 private data class ExplorerEntry(
     val documentId: String,
     val name: String,
@@ -322,8 +343,9 @@ val iconOffsets = remember {
         context.packageManager.queryIntentActivities(launcherIntent, 0)
             .map {
                 InstalledApp(
-                    it.loadLabel(context.packageManager).toString(),
-                    it.activityInfo.packageName
+                    label = it.loadLabel(context.packageManager).toString(),
+                    packageName = it.activityInfo.packageName,
+                    activityName = it.activityInfo.name
                 )
             }
             .distinctBy { it.packageName }
@@ -742,12 +764,43 @@ DockAction("▤", "ADVANCED", accent) {
                                     }.padding(vertical = 7.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
+                                    val appIcon = remember(app.packageName, app.activityName) {
+                                        runCatching {
+                                            val component = ComponentName(app.packageName, app.activityName)
+                                            val drawable = runCatching {
+                                                context.packageManager.getActivityIcon(component)
+                                            }.getOrElse {
+                                                context.packageManager.getApplicationIcon(app.packageName)
+                                            }
+                                            val iconSize = 128
+                                            val bitmap = Bitmap.createBitmap(iconSize, iconSize, Bitmap.Config.ARGB_8888)
+                                            val canvas = Canvas(bitmap)
+                                            drawable.setBounds(0, 0, iconSize, iconSize)
+                                            drawable.draw(canvas)
+                                            bitmap.asImageBitmap()
+                                        }.getOrNull()
+                                    }
                                     Box(
-                                        Modifier.size(30.dp)
-                                            .background(accent.copy(.16f), RoundedCornerShape(9.dp)),
+                                        Modifier.size(42.dp)
+                                            .clip(RoundedCornerShape(11.dp))
+                                            .background(Color(0xFF22364F)),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        Text(app.label.take(1).uppercase(), color = accent, fontWeight = FontWeight.Bold)
+                                        if (appIcon != null) {
+                                            Image(
+                                                bitmap = appIcon,
+                                                contentDescription = "Icono de ${app.label}",
+                                                modifier = Modifier.fillMaxSize().padding(2.dp),
+                                                contentScale = ContentScale.Fit
+                                            )
+                                        } else {
+                                            Icon(
+                                                imageVector = Icons.Filled.Apps,
+                                                contentDescription = "Icono genérico de aplicación",
+                                                tint = accent,
+                                                modifier = Modifier.size(25.dp)
+                                            )
+                                        }
                                     }
                                     Text(
                                         app.label,
