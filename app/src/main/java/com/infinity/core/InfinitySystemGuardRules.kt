@@ -10,7 +10,7 @@ internal data class InfinityGuardReport(
 
 /** Convert failures into bounded, privacy-safe diagnostic messages. */
 internal fun infinityGuardReport(operation: String, error: Exception): InfinityGuardReport {
-    val op = operation.trim().take(48).ifBlank { "Operación" }
+    val op = infinityGuardSafeLabel(operation, maxLength = 48, fallback = "Operación")
     val severity = when (error) {
         is java.io.IOException -> InfinityGuardSeverity.WARNING
         is SecurityException -> InfinityGuardSeverity.WARNING
@@ -27,8 +27,12 @@ internal fun infinityGuardReport(operation: String, error: Exception): InfinityG
     return InfinityGuardReport(category, severity, "$op no pudo completarse. $category")
 }
 
-internal fun infinityGuardSafeLabel(value: String, maxLength: Int = 64): String {
+internal fun infinityGuardSafeLabel(
+    value: String,
+    maxLength: Int = 64,
+    fallback: String = "Elemento"
+): String {
     val limit = maxLength.coerceIn(1, 128)
     return value.filter { it.isLetterOrDigit() || it == ' ' || it == '-' || it == '_' }
-        .trim().take(limit).ifBlank { "Elemento" }
+        .trim().take(limit).ifBlank { fallback.take(32).ifBlank { "Elemento" } }
 }
