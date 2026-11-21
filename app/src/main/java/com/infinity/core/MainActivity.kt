@@ -1966,6 +1966,10 @@ private fun DockAction(
     Column(
         Modifier
             .widthIn(min = if (compact) 40.dp else 48.dp)
+            .semantics(mergeDescendants = true) {
+                contentDescription = description
+                role = Role.Button
+            }
             .clip(RoundedCornerShape(actionRadius))
             .background(actionSurface, RoundedCornerShape(actionRadius))
             .border(1.dp, tint.copy(alpha = .22f), RoundedCornerShape(actionRadius))
