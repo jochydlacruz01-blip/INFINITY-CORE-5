@@ -4,6 +4,9 @@ on:
   pull_request:
     branches:
       - INFINITY-0.9
+  push:
+    branches:
+      - INFINITY-AURORA-NEXT-INTEGRATED
 
 permissions:
   contents: read
@@ -57,7 +60,7 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: INFINITY-PR-APKS-${{ github.event.pull_request.number }}
+          name: INFINITY-APKS-${{ github.run_number }}
           path: |
             app/build/outputs/apk/debug/app-debug.apk
             app/build/outputs/apk/release/app-release-unsigned.apk
