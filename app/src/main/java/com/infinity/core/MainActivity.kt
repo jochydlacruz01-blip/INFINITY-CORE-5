@@ -574,23 +574,58 @@ val iconOffsets = remember {
                     .border(1.dp, Color.White.copy(alpha = .07f), CircleShape)
             )
 
-            Column(Modifier.align(Alignment.TopStart).padding(start = 22.dp, top = 18.dp)) {
+            if (iconPack == "apple") {
+                Row(
+                    Modifier.fillMaxWidth()
+                        .align(Alignment.TopCenter)
+                        .height(34.dp)
+                        .background(Color(0xCC101722))
+                        .padding(horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Text("●", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black)
+                    Text("Finder", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    listOf("Archivo", "Edición", "Visualización", "Ventana", "Ayuda").forEach {
+                        Text(it, color = Color.White.copy(alpha = .88f), fontSize = 9.sp)
+                    }
+                    Spacer(Modifier.weight(1f))
+                    Text("$clockText", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Medium)
+                }
+            }
+
+            Column(Modifier.align(Alignment.TopStart).padding(
+                start = 22.dp,
+                top = if (iconPack == "apple") 54.dp else 18.dp
+            )) {
                 Text(
-                    "INFINITY",
+                    when (iconPack) {
+                        "windows11" -> "Windows 11"
+                        "apple" -> "Macintosh"
+                        else -> "INFINITY"
+                    },
                     color = foreground.copy(alpha = .94f),
                     fontSize = 30.sp,
                     fontWeight = FontWeight.Black,
                     letterSpacing = 5.sp
                 )
                 Text(
-                    "A U R O R A  NEXT  •  WORKSPACE $workspace",
+                    when (iconPack) {
+                        "windows11" -> "DESKTOP  •  ESPACIO $workspace"
+                        "apple" -> "macOS STYLE  •  DESKTOP $workspace"
+                        else -> "A U R O R A  NEXT  •  WORKSPACE $workspace"
+                    },
                     color = accent,
                     fontSize = 10.sp,
                     letterSpacing = 1.5.sp,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    "DESKTOP ENVIRONMENT  /  ANDROID",
+                    when (iconPack) {
+                        "windows11" -> "PERSONAL COMPUTER ENVIRONMENT"
+                        "apple" -> "DESIGNED FOR PRODUCTIVITY"
+                        else -> "DESKTOP ENVIRONMENT  /  ANDROID"
+                    },
                     color = InfinityMuted.copy(alpha = .78f),
                     fontSize = 8.sp,
                     letterSpacing = 1.2.sp
