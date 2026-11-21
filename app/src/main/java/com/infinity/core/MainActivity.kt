@@ -1645,7 +1645,7 @@ Row(
                     shape = RoundedCornerShape(26.dp),
                     colors = CardDefaults.cardColors(containerColor = when (iconPack) {
                         "windows11" -> Color(0xF0273D58)
-                        "apple" -> Color(0xF0DCE3ED)
+                        "apple" -> Color(0xF02B3442)
                         else -> Color(0xF0142036)
                     }),
                     border = androidx.compose.foundation.BorderStroke(1.dp, when (iconPack) {
