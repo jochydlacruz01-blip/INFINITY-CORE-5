@@ -35,17 +35,3 @@ internal fun InfinityDesktopContextMenu(
     }
 }
 
-internal fun infinityDesktopContextActionLabel(action: InfinityDesktopContextAction): String =
-    when (action) {
-        InfinityDesktopContextAction.SORT_NAME -> "Ordenar por nombre"
-        InfinityDesktopContextAction.SORT_TYPE -> "Ordenar por tipo"
-        InfinityDesktopContextAction.SORT_MANUAL -> "Orden manual"
-        InfinityDesktopContextAction.ALIGN_GRID -> "Alinear a la cuadrícula"
-        InfinityDesktopContextAction.SHOW_ICONS -> "Mostrar iconos"
-        InfinityDesktopContextAction.HIDE_ICONS -> "Ocultar iconos"
-        InfinityDesktopContextAction.REFRESH_LAYOUT -> "Actualizar escritorio"
-        InfinityDesktopContextAction.DESKTOP_APPEARANCE -> "Personalizar escritorio"
-        InfinityDesktopContextAction.WALLPAPER -> "Cambiar fondo"
-        InfinityDesktopContextAction.ICON_SIZE -> "Tamaño de iconos"
-        InfinityDesktopContextAction.WORKSPACE -> "Espacios de trabajo"
-    }
