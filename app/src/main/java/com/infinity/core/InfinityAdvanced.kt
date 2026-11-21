@@ -55,6 +55,31 @@ fun InfinityAdvancedPanel(
         "apple" -> Color(0xFFD0D5DE)
         else -> Color(0xFFB7C7D9)
     }
+    val sectionSurface = when (desktopTheme) {
+        "windows11" -> Color(0xFF203F5D)
+        "apple" -> Color(0xFF39424F)
+        else -> Color(0xFF1B304A)
+    }
+    val notificationSurface = when (desktopTheme) {
+        "windows11" -> Color(0xFF294D6D)
+        "apple" -> Color(0xFF485361)
+        else -> Color(0xFF263D57)
+    }
+    val panelShape = when (desktopTheme) {
+        "windows11" -> 18.dp
+        "apple" -> 30.dp
+        else -> 26.dp
+    }
+    val sectionShape = when (desktopTheme) {
+        "windows11" -> 12.dp
+        "apple" -> 22.dp
+        else -> 17.dp
+    }
+    val notificationShape = when (desktopTheme) {
+        "windows11" -> 9.dp
+        "apple" -> 17.dp
+        else -> 13.dp
+    }
     val privacyPrefs = remember {
         context.getSharedPreferences("infinity_privacy", Context.MODE_PRIVATE)
     }
@@ -69,7 +94,7 @@ fun InfinityAdvancedPanel(
         modifier = Modifier
             .fillMaxWidth()
             .padding(12.dp),
-        shape = RoundedCornerShape(26.dp),
+        shape = RoundedCornerShape(panelShape),
         colors = CardDefaults.cardColors(
             containerColor = AdvancedBackground
         )
@@ -195,9 +220,9 @@ fun InfinityAdvancedPanel(
 
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(17.dp),
+                shape = RoundedCornerShape(sectionShape),
                 colors = CardDefaults.cardColors(
-                    containerColor = Color(0xFF1B304A)
+                    containerColor = sectionSurface
                 )
             ) {
                 Column(
@@ -308,9 +333,9 @@ fun InfinityAdvancedPanel(
                             InfinityNotificationStore.notifications.take(30).forEach { notification ->
                                 Card(
                                     modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(13.dp),
+                                    shape = RoundedCornerShape(notificationShape),
                                     colors = CardDefaults.cardColors(
-                                        containerColor = Color(0xFF263D57)
+                                        containerColor = notificationSurface
                                     )
                                 ) {
                                     Column(
