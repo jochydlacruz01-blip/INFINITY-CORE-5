@@ -233,6 +233,28 @@ private fun Infinity08App() {
     }
     val controlRadius = if (desktopTheme == "windows11") 8.dp else if (desktopTheme == "apple") 18.dp else 14.dp
 
+    val windowRadius = when (desktopTheme) {
+        "windows11" -> 12.dp
+        "apple" -> 24.dp
+        else -> 20.dp
+    }
+    val windowSurface = when (desktopTheme) {
+        "windows11" -> if (lightMode) Color(0xF2F3F8FC) else Color(0xF21A3652)
+        "apple" -> if (lightMode) Color(0xF2F4F5F7) else Color(0xF22A303A)
+        else -> if (lightMode) Color(0xF2F5F8FC) else Color(0xF21B2B40)
+    }
+    val titleBarSurface = when (desktopTheme) {
+        "windows11" -> if (lightMode) Color(0xFFE2EDF8) else Color(0xFF24496B)
+        "apple" -> if (lightMode) Color(0xFFE7E9ED) else Color(0xFF3A424E)
+        else -> if (lightMode) Color(0xFFE0EAF5) else Color(0xFF263D57)
+    }
+    val windowBorder = when (desktopTheme) {
+        "windows11" -> Color(0xFF8BCBFA).copy(.58f)
+        "apple" -> Color(0xFFD5DCE6).copy(.48f)
+        else -> accent.copy(.38f)
+    }
+    val controlRadius = if (desktopTheme == "windows11") 8.dp else if (desktopTheme == "apple") 18.dp else 14.dp
+
     var clockText by remember { mutableStateOf("--:--") }
     var dateText by remember { mutableStateOf("") }
     LaunchedEffect(Unit) {
