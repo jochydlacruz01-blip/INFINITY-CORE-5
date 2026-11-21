@@ -5,7 +5,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.padding
@@ -32,9 +31,9 @@ import androidx.compose.ui.unit.sp
 internal fun InfinityDesktopMasthead(modifier: Modifier = Modifier) {
     BoxWithConstraints(modifier = modifier) {
         val compact = maxWidth < 760.dp
-        val logoWidth = (maxWidth * 0.52f).coerceIn(300.dp, 560.dp)
-        val logoHeight = if (compact) 142.dp else 174.dp
-        val titleSize = if (compact) 46.sp else 62.sp
+        val logoWidth = (maxWidth * 0.56f).coerceIn(320.dp, 620.dp)
+        val logoHeight = logoWidth * 0.39f
+        val titleSize = if (compact) 44.sp else 60.sp
         val ringWidth = logoWidth * 0.94f
 
         Box(

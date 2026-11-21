@@ -563,8 +563,8 @@ val iconOffsets = remember {
             // Cabecera de marca para tablet; no sustituye los accesos ni el fondo elegido.
             if (maxW >= 600.dp && !dashboardOpen && futuristicDesktop) {
                 InfinityDesktopMasthead(
-                    modifier = Modifier.align(Alignment.BottomCenter)
-                        .padding(bottom = 150.dp)
+                    modifier = Modifier.align(Alignment.Center)
+                        .offset(y = maxH * 0.035f)
                 )
             }
 
