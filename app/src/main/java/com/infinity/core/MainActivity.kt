@@ -659,14 +659,31 @@ val iconOffsets = remember {
 
             Column(
                 Modifier.align(Alignment.TopEnd).padding(18.dp)
-                    .clip(RoundedCornerShape(20.dp))
+                    .clip(RoundedCornerShape(if (maxW >= 600.dp) 24.dp else 20.dp))
                     .background(if (iconPack == "windows11") Color(0xCC173653) else Color(0xAA101D30))
-                    .border(1.dp, if (iconPack == "windows11") Color(0xFF8BCBFA).copy(.55f) else accent.copy(alpha = .24f), RoundedCornerShape(20.dp))
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                    .border(1.dp, if (iconPack == "windows11") Color(0xFF8BCBFA).copy(.55f) else accent.copy(alpha = .24f), RoundedCornerShape(if (maxW >= 600.dp) 24.dp else 20.dp))
+                    .padding(horizontal = if (maxW >= 600.dp) 22.dp else 16.dp, vertical = if (maxW >= 600.dp) 16.dp else 12.dp),
                 horizontalAlignment = Alignment.End
             ) {
-                Text(clockText, color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Light)
-                Text(dateText, color = InfinityMuted, fontSize = 10.sp)
+                Text(
+                    clockText,
+                    color = Color.White,
+                    fontSize = if (maxW >= 600.dp) 42.sp else 24.sp,
+                    fontWeight = FontWeight.Light
+                )
+                Text(
+                    dateText,
+                    color = InfinityMuted,
+                    fontSize = if (maxW >= 600.dp) 14.sp else 10.sp
+                )
+            }
+
+            // Marca del escritorio en tablet, situada sobre el Dock y sin tapar accesos.
+            if (maxW >= 600.dp) {
+                InfinityDesktopBrandBadge(
+                    modifier = Modifier.align(Alignment.BottomEnd)
+                        .padding(end = 20.dp, bottom = 104.dp)
+                )
             }
 
             Box(Modifier.align(Alignment.TopStart).padding(start = 18.dp, top = 18.dp)) {
