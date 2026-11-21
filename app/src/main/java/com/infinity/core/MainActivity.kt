@@ -705,19 +705,44 @@ val iconOffsets = remember {
                             .pointerInput(item.id) {
                                 detectDragGestures { change, drag ->
                                     change.consume()
-                                    val next = infinityBoundIconOffset(
+                                    val viewportWidth = with(density) { maxW.toPx() }
+                                    val safeDesktopHeight = with(density) {
+                                        infinityDesktopHeightAboveDock(
+                                            maxH.toPx(),
+                                            dockHeight = 88.dp.toPx(),
+                                            dockBottomInset = 24.dp.toPx(),
+                                            safetyGap = 56.dp.toPx()
+                                        )
+                                    }
+                                    val dragged = infinityBoundIconOffset(
                                         iconOffsets[item.id] ?: Offset(22f, 90f),
                                         Offset(drag.x, drag.y),
-                                        with(density) { maxW.toPx() },
-                                        with(density) { maxH.toPx() - 168.dp.toPx() },
+                                        viewportWidth,
+                                        safeDesktopHeight,
                                         itemWidth = with(density) { 116.dp.toPx() },
                                         itemHeight = with(density) { 150.dp.toPx() }
                                     )
-                                    iconOffsets[item.id] = next
-                                    prefs.edit()
-                                        .putFloat("${item.id}_x", next.x)
-                                        .putFloat("${item.id}_y", next.y)
-                                        .apply()
+                                    iconOffsets[item.id] = dragged
+                                    // Resolve collisions immediately after a drop, not only on screen rotation.
+                                    val orderedOffsets = desktopItems.map { iconOffsets[it.id] ?: Offset.Zero }
+                                    val resolvedOffsets = infinityResolveIconOverlaps(
+                                        orderedOffsets,
+                                        viewportWidth,
+                                        safeDesktopHeight,
+                                        itemWidth = with(density) { 116.dp.toPx() },
+                                        itemHeight = with(density) { 150.dp.toPx() },
+                                        horizontalGap = with(density) { 12.dp.toPx() },
+                                        verticalGap = with(density) { 14.dp.toPx() },
+                                        topInset = with(density) { 118.dp.toPx() }
+                                    )
+                                    desktopItems.forEachIndexed { index, desktopItem ->
+                                        val position = resolvedOffsets[index]
+                                        iconOffsets[desktopItem.id] = position
+                                        prefs.edit()
+                                            .putFloat("${desktopItem.id}_x", position.x)
+                                            .putFloat("${desktopItem.id}_y", position.y)
+                                            .apply()
+                                    }
                                 }
                             }
                             .clickable {
