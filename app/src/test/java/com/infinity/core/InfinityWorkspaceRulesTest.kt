@@ -102,7 +102,7 @@ class InfinityWorkspaceRulesTest {
     @Test fun closingFocusedWindowMovesFocusToMostRecentVisibleWindowInSameWorkspace() {
         assertEquals(
             "notes_1",
-            infinityResolveFocusAfterWindowRemoval(
+            infinityResolveFocusAfterWindowDeactivation(
                 "files_1", "files_1",
                 listOf("files_1", "notes_1", "apps_2"),
                 mapOf("files_1" to 1, "notes_1" to 1, "apps_2" to 2),
@@ -111,10 +111,31 @@ class InfinityWorkspaceRulesTest {
         )
     }
 
+    @Test fun minimizingFocusedWindowMovesFocusAndMinimizingAnotherPreservesFocus() {
+        assertEquals(
+            "notes_1",
+            infinityResolveFocusAfterWindowDeactivation(
+                "files_1", "files_1",
+                listOf("files_1", "notes_1"),
+                mapOf("files_1" to 1, "notes_1" to 1),
+                setOf("files_1"), 1
+            )
+        )
+        assertEquals(
+            "files_1",
+            infinityResolveFocusAfterWindowDeactivation(
+                "notes_1", "files_1",
+                listOf("files_1", "notes_1"),
+                mapOf("files_1" to 1, "notes_1" to 1),
+                setOf("notes_1"), 1
+            )
+        )
+    }
+
     @Test fun closingWindowPreservesOtherValidFocusAndNeverFocusesMinimizedTasks() {
         assertEquals(
             "files_1",
-            infinityResolveFocusAfterWindowRemoval(
+            infinityResolveFocusAfterWindowDeactivation(
                 "notes_1", "files_1",
                 listOf("files_1", "notes_1"),
                 mapOf("files_1" to 1, "notes_1" to 1),
@@ -122,7 +143,7 @@ class InfinityWorkspaceRulesTest {
             )
         )
         assertNull(
-            infinityResolveFocusAfterWindowRemoval(
+            infinityResolveFocusAfterWindowDeactivation(
                 "files_1", "files_1", listOf("files_1"),
                 mapOf("files_1" to 1), setOf("files_1"), 1
             )
