@@ -1939,7 +1939,6 @@ Row(
                         .widthIn(max = 430.dp)
                         .fillMaxWidth()
                         .heightIn(max = (maxH - 200.dp).coerceAtLeast(220.dp))
-                        .verticalScroll(rememberScrollState())
                 ) {
                     InfinityAdvancedPanel(
                         onClose = { advancedOpen = false },
