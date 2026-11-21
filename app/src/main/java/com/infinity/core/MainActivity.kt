@@ -460,12 +460,16 @@ val iconOffsets = remember {
                 .background(
                 Brush.linearGradient(
                     when {
-                        iconPack == "windows11" -> listOf(Color(0xFF071D3B), Color(0xFF1266A8), Color(0xFF09172D))
-                        iconPack == "apple" -> listOf(Color(0xFF202532), Color(0xFF68758B), Color(0xFF171C27))
+                        iconPack == "windows11" -> if (lightMode)
+                            listOf(Color(0xFFEAF4FF), Color(0xFFB7D8F7), Color(0xFF6FA9DE))
+                            else listOf(Color(0xFF020B1A), Color(0xFF073A70), Color(0xFF06152B))
+                        iconPack == "apple" -> if (lightMode)
+                            listOf(Color(0xFFF7F8FC), Color(0xFFC8D0DF), Color(0xFF8796B0))
+                            else listOf(Color(0xFF05070D), Color(0xFF303B54), Color(0xFF111827))
                         backgroundPreset == "punk" -> listOf(Color(0xFF24051F), Color(0xFF631B43), Color(0xFF102338))
                         backgroundPreset == "interstellar" -> listOf(Color(0xFF030713), Color(0xFF17265D), Color(0xFF46246A))
                         backgroundPreset == "aurora" -> listOf(Color(0xFF062E36), Color(0xFF174E60), Color(0xFF102238))
-                        else -> if (lightMode) listOf(Color(0xFFEAF1FA), Color(0xFFD4E2F2), Color(0xFFB9CDE2)) else listOf(Color(0xFF102238), Color(0xFF1C3B59), InfinityInk)
+                        else -> if (lightMode) listOf(Color(0xFFEAF1FA), Color(0xFFD4E2F2), Color(0xFFB9CDE2)) else listOf(Color(0xFF030A17), Color(0xFF102A49), Color(0xFF08111F))
                     }
                 )
             )
@@ -885,31 +889,36 @@ val iconOffsets = remember {
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .zIndex(20f)
-                    .padding(horizontal = 12.dp, vertical = 12.dp)
-                    .shadow(26.dp, RoundedCornerShape(24.dp))
+                    .then(if (iconPack == "windows11") Modifier.fillMaxWidth() else Modifier)
+                    .padding(
+                        horizontal = if (iconPack == "windows11") 0.dp else 12.dp,
+                        vertical = if (iconPack == "windows11") 0.dp else 12.dp
+                    )
+                    .shadow(if (iconPack == "windows11") 0.dp else 30.dp,
+                        RoundedCornerShape(when (iconPack) { "windows11" -> 0.dp; "apple" -> 30.dp; else -> 24.dp }))
                     .background(
                         when (iconPack) {
-                            "windows11" -> Color(0xE8243854)
-                            "apple" -> Color(0xE8DCE3ED)
+                            "windows11" -> Color(0xF20B1829)
+                            "apple" -> Color(0xDDE8EDF5)
                             else -> Color(0xF016263D)
                         },
-                        RoundedCornerShape(if (iconPack == "apple") 30.dp else 24.dp)
+                        RoundedCornerShape(when (iconPack) { "windows11" -> 0.dp; "apple" -> 30.dp; else -> 24.dp })
                     )
                     .border(
-                        1.dp,
+                        if (iconPack == "windows11") 0.dp else 1.dp,
                         when (iconPack) {
-                            "windows11" -> Color(0xFF8BCBFA)
-                            "apple" -> Color(0xFFF7FAFF)
+                            "windows11" -> Color.Transparent
+                            "apple" -> Color.White.copy(alpha = .9f)
                             else -> Color(0xFF6686B5)
                         },
-                        RoundedCornerShape(if (iconPack == "apple") 30.dp else 24.dp)
+                        RoundedCornerShape(when (iconPack) { "windows11" -> 0.dp; "apple" -> 30.dp; else -> 24.dp })
                     )
                     .padding(
-                        horizontal = if (maxW < 600.dp) 6.dp else 18.dp,
-                        vertical = 10.dp
+                        horizontal = if (iconPack == "windows11") 12.dp else if (maxW < 600.dp) 6.dp else 18.dp,
+                        vertical = if (iconPack == "windows11") 7.dp else 10.dp
                     ),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(
+                horizontalArrangement = if (iconPack == "windows11") Arrangement.Center else Arrangement.spacedBy(
                     when {
                         maxW < 380.dp -> 5.dp
                         maxW < 600.dp -> 8.dp
