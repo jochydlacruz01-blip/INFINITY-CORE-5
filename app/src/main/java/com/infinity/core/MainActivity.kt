@@ -1014,31 +1014,32 @@ val iconOffsets = remember {
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .zIndex(20f)
-                    .then(if (iconPack == "windows11") Modifier.fillMaxWidth() else Modifier)
+                    .then(if (iconPack == "windows11" || (maxW >= 600.dp && futuristicDesktop)) Modifier.fillMaxWidth() else Modifier)
                     .padding(
-                        horizontal = if (iconPack == "windows11") 0.dp else 12.dp,
-                        vertical = if (iconPack == "windows11") 0.dp else 12.dp
+                        horizontal = if (iconPack == "windows11" || (maxW >= 600.dp && futuristicDesktop)) 0.dp else 12.dp,
+                        vertical = if (iconPack == "windows11" || (maxW >= 600.dp && futuristicDesktop)) 0.dp else 12.dp
                     )
-                    .shadow(if (iconPack == "windows11") 0.dp else 30.dp,
-                        RoundedCornerShape(if (iconPack == "windows11") 0.dp else 24.dp))
+                    .shadow(
+                        if (iconPack == "windows11") 0.dp else 26.dp,
+                        RoundedCornerShape(if (iconPack == "windows11") 0.dp else 20.dp)
+                    )
                     .background(
-                        when (iconPack) {
-                            "windows11" -> Color(0xF20B1829)
+                        when {
+                            maxW >= 600.dp && futuristicDesktop -> Color(0xF208142A)
+                            iconPack == "windows11" -> Color(0xF20B1829)
                             else -> Color(0xF016263D)
                         },
-                        RoundedCornerShape(if (iconPack == "windows11") 0.dp else 24.dp)
+                        RoundedCornerShape(if (maxW >= 600.dp && futuristicDesktop) topStart = 18.dp, topEnd = 18.dp else 20.dp)
                     )
                     .border(
-                        if (iconPack == "windows11") 0.dp else 1.dp,
-                        when (iconPack) {
-                            "windows11" -> Color.Transparent
-                            else -> Color(0xFF6686B5)
-                        },
-                        RoundedCornerShape(if (iconPack == "windows11") 0.dp else 24.dp)
+                        if (maxW >= 600.dp && futuristicDesktop) 1.dp else if (iconPack == "windows11") 0.dp else 1.dp,
+                        if (maxW >= 600.dp && futuristicDesktop) Color(0xAA29CFFF)
+                        else if (iconPack == "windows11") Color.Transparent else Color(0xFF6686B5),
+                        RoundedCornerShape(if (maxW >= 600.dp && futuristicDesktop) topStart = 18.dp, topEnd = 18.dp else 20.dp)
                     )
                     .padding(
                         horizontal = if (iconPack == "windows11") 12.dp else if (maxW < 600.dp) 6.dp else 18.dp,
-                        vertical = if (iconPack == "windows11") 7.dp else 10.dp
+                        vertical = if (maxW >= 600.dp && futuristicDesktop) 8.dp else if (iconPack == "windows11") 7.dp else 10.dp
                     ),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = if (iconPack == "windows11") Arrangement.Center else Arrangement.spacedBy(
@@ -1049,7 +1050,7 @@ val iconOffsets = remember {
                     }
                 )
             ) {
-                DockAction("⌂", "HOME", accent, iconPack, compact = maxW < 390.dp) {
+                DockAction(if (futuristicDesktop && maxW >= 600.dp) "▦" else "⌂", "HOME", accent, iconPack, compact = maxW < 390.dp, referenceStyle = futuristicDesktop && maxW >= 600.dp) {
                     dashboardOpen = true
                     startOpen = false
                     orbitOpen = false
@@ -1057,27 +1058,27 @@ val iconOffsets = remember {
                     advancedOpen = false
                 }
 
-                DockAction("✦", "START", accent, iconPack, compact = maxW < 390.dp) {
+                DockAction(if (futuristicDesktop && maxW >= 600.dp) "⌕" else "✦", "START", accent, iconPack, compact = maxW < 390.dp, referenceStyle = futuristicDesktop && maxW >= 600.dp) {
                     startOpen = !startOpen
                     orbitOpen = false
                     controlOpen = false
                     advancedOpen = false
                 }
 
-                DockAction("◎", "ORBIT", Color(0xFFB69CFF), iconPack, compact = maxW < 390.dp) {
+                DockAction(if (futuristicDesktop && maxW >= 600.dp) "∞" else "◎", "ORBIT", Color(0xFFB69CFF), iconPack, compact = maxW < 390.dp, referenceStyle = futuristicDesktop && maxW >= 600.dp) {
                     orbitOpen = !orbitOpen
                     startOpen = false
                     controlOpen = false
                     advancedOpen = false
                 }
 
-                DockAction("☷", "CONTROL", Color(0xFFFFC27A), iconPack, compact = maxW < 390.dp) {
+                DockAction(if (futuristicDesktop && maxW >= 600.dp) "⬡" else "☷", "CONTROL", Color(0xFFFFC27A), iconPack, compact = maxW < 390.dp, referenceStyle = futuristicDesktop && maxW >= 600.dp) {
                     controlOpen = !controlOpen
                     startOpen = false
                     orbitOpen = false
                     advancedOpen = false
                 }
-DockAction("▤", "ADVANCED", accent, iconPack, compact = maxW < 390.dp) {
+DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED", accent, iconPack, compact = maxW < 390.dp, referenceStyle = futuristicDesktop && maxW >= 600.dp) {
     advancedOpen = !advancedOpen
     startOpen = false
     orbitOpen = false
@@ -1939,26 +1940,27 @@ private fun DockAction(
     tint: Color,
     desktopTheme: String = "infinity",
     compact: Boolean = false,
+    referenceStyle: Boolean = false,
     onClick: () -> Unit
 ) {
     val actionRadius = if (desktopTheme == "windows11") 9.dp else 14.dp
-    val actionSurface = if (desktopTheme == "windows11") Color(0xFF345574).copy(alpha = .48f) else Color.White.copy(alpha = .045f)
+    val actionSurface = if (referenceStyle) Color.Transparent else if (desktopTheme == "windows11") Color(0xFF345574).copy(alpha = .48f) else Color.White.copy(alpha = .045f)
     Column(
         Modifier
-            .widthIn(min = if (compact) 40.dp else 48.dp)
+            .widthIn(min = if (referenceStyle) 42.dp else if (compact) 40.dp else 48.dp)
             .semantics(mergeDescendants = true) {
                 contentDescription = description
             }
             .clip(RoundedCornerShape(actionRadius))
             .background(actionSurface, RoundedCornerShape(actionRadius))
-            .border(1.dp, tint.copy(alpha = .22f), RoundedCornerShape(actionRadius))
+            .then(if (referenceStyle) Modifier else Modifier.border(1.dp, tint.copy(alpha = .22f), RoundedCornerShape(actionRadius)))
             .clickable(role = Role.Button, onClick = onClick)
-            .padding(horizontal = if (compact) 2.dp else 5.dp, vertical = if (compact) 4.dp else 6.dp),
+            .padding(horizontal = if (referenceStyle) 2.dp else if (compact) 2.dp else 5.dp, vertical = if (referenceStyle) 2.dp else if (compact) 4.dp else 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Box(
-            Modifier.size(if (compact) 30.dp else 36.dp)
+            Modifier.size(if (referenceStyle) 38.dp else if (compact) 30.dp else 36.dp)
                 .background(
                     Brush.linearGradient(listOf(tint.copy(alpha = .24f), tint.copy(alpha = .08f))),
                     RoundedCornerShape(if (desktopTheme == "windows11") 8.dp else 12.dp)
@@ -1966,9 +1968,9 @@ private fun DockAction(
                 .border(1.dp, tint.copy(alpha = .58f), RoundedCornerShape(if (desktopTheme == "windows11") 8.dp else 12.dp)),
             contentAlignment = Alignment.Center
         ) {
-            Text(glyph, color = tint, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            Text(glyph, color = tint, fontSize = if (referenceStyle) 29.sp else 22.sp, fontWeight = FontWeight.Bold)
         }
-        if (!compact) {
+        if (!compact && !referenceStyle) {
             Text(
                 description,
                 color = Color.White.copy(.94f),
@@ -1978,7 +1980,7 @@ private fun DockAction(
                 maxLines = 1
             )
         }
-        Box(Modifier.width(if (compact) 12.dp else 18.dp).height(2.dp).background(tint.copy(alpha = .65f), RoundedCornerShape(2.dp)))
+        if (!referenceStyle) Box(Modifier.width(if (compact) 12.dp else 18.dp).height(2.dp).background(tint.copy(alpha = .65f), RoundedCornerShape(2.dp)))
     }
 }
 
