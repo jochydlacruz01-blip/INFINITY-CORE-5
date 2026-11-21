@@ -802,7 +802,7 @@ val iconOffsets = remember {
                             .width(108.dp)
                             .clip(RoundedCornerShape(if (iconPack == "windows11") 12.dp else 18.dp))
                             .background(
-                                if (maxW >= 600.dp && futuristicDesktop) Color.Transparent
+                                if (maxW >= 600.dp && futuristicDesktop) Brush.verticalGradient(listOf(Color.Transparent, Color.Transparent))
                                 else if (iconPack == "windows11") Brush.verticalGradient(
                                     listOf(Color(0x552D5A82), Color(0x552D5A82))
                                 ) else Brush.verticalGradient(
@@ -811,7 +811,7 @@ val iconOffsets = remember {
                             )
                             .border(
                                 if (maxW >= 600.dp && futuristicDesktop) 0.dp else 1.dp,
-                                if (maxW >= 600.dp && futuristicDesktop) Color.Transparent
+                                if (maxW >= 600.dp && futuristicDesktop) Brush.linearGradient(listOf(Color.Transparent, Color.Transparent))
                                 else if (iconPack == "windows11") Brush.linearGradient(
                                     listOf(Color(0x668BCBFA), Color(0x668BCBFA))
                                 ) else Brush.linearGradient(
