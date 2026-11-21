@@ -130,3 +130,14 @@ internal fun infinityResolveFocusAfterWindowDeactivation(
         preferred, orderedIds, workspaceById, minimizedIds, activeWorkspace
     )
 }
+
+/** Restores the last focused task only when it is visible in the active workspace. */
+internal fun infinityResolveRestoredWindowFocus(
+    savedFocusId: String?,
+    orderedIds: List<String>,
+    workspaceById: Map<String, Int>,
+    minimizedIds: Set<String>,
+    activeWorkspace: Int
+): String? = infinityResolveWorkspaceFocus(
+    savedFocusId, orderedIds, workspaceById, minimizedIds, activeWorkspace
+)

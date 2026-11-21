@@ -348,9 +348,11 @@ private fun Infinity08App() {
                     val item = array.optJSONObject(i) ?: continue
                     val kind = item.optString("kind")
                     if (kind !in setOf("files", "notes", "apps", "connect", "settings", "about")) continue
-                    val savedId = item.optString("id", infinityWindowIdentity(kind, 1))
-                        .trim().takeIf { it.isNotEmpty() }
-                        ?: infinityWindowIdentity(kind, infinityNormalizeWorkspace(item.optInt("workspace", 1)))
+                    val restoredWorkspace = infinityNormalizeWorkspace(item.optInt("workspace", 1))
+                    val savedId = item.optString("id")
+                        .trim()
+                        .takeIf { it.isNotBlank() && it != "null" && it.length <= 96 }
+                        ?: infinityWindowIdentity(kind, restoredWorkspace)
                     // Ignore duplicate persisted identities instead of restoring overlapping task records.
                     if (any { it.id == savedId }) continue
                     add(
@@ -363,7 +365,7 @@ private fun Infinity08App() {
                             width = infinityNormalizeWindowDimension(item.optDouble("width", 370.0).toFloat(), 370f, 240f, 900f),
                             height = infinityNormalizeWindowDimension(item.optDouble("height", 330.0).toFloat(), 330f, 180f, 900f),
                             minimized = item.optBoolean("minimized", false),
-                            workspace = infinityNormalizeWorkspace(item.optInt("workspace", 1)),
+                            workspace = restoredWorkspace,
                             maximized = item.optBoolean("maximized", false)
                         )
                     )
@@ -392,9 +394,15 @@ private fun Infinity08App() {
     }
 
     var focusedWindowId by remember {
-        mutableStateOf(prefs.getString("focused_window_id", null)?.takeIf { savedId ->
-            windows.any { it.id == savedId && !it.minimized && it.workspace == workspace }
-        })
+        mutableStateOf(
+            infinityResolveRestoredWindowFocus(
+                prefs.getString("focused_window_id", null),
+                windows.map { it.id },
+                windows.associate { it.id to it.workspace },
+                windows.filter { it.minimized }.map { it.id }.toSet(),
+                workspace
+            )
+        )
     }
     LaunchedEffect(focusedWindowId) {
         val id = focusedWindowId

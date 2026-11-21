@@ -149,4 +149,24 @@ class InfinityWorkspaceRulesTest {
             )
         )
     }
+    @Test fun restoredFocusUsesSavedVisibleTaskOrFallsBackWithinActiveWorkspace() {
+        val order = listOf("files_1", "notes_1", "apps_2")
+        val workspaces = mapOf("files_1" to 1, "notes_1" to 1, "apps_2" to 2)
+        assertEquals("files_1", infinityResolveRestoredWindowFocus(
+            "files_1", order, workspaces, emptySet(), 1
+        ))
+        assertEquals("notes_1", infinityResolveRestoredWindowFocus(
+            "stale_window", order, workspaces, emptySet(), 1
+        ))
+        assertEquals("notes_1", infinityResolveRestoredWindowFocus(
+            "files_1", order, workspaces, setOf("files_1"), 1
+        ))
+        assertEquals("apps_2", infinityResolveRestoredWindowFocus(
+            null, order, workspaces, emptySet(), 2
+        ))
+        assertNull(infinityResolveRestoredWindowFocus(
+            null, order, workspaces, setOf("apps_2"), 2
+        ))
+    }
+
 }
