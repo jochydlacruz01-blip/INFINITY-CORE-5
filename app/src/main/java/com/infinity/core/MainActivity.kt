@@ -348,15 +348,20 @@ private fun Infinity08App() {
                     val item = array.optJSONObject(i) ?: continue
                     val kind = item.optString("kind")
                     if (kind !in setOf("files", "notes", "apps", "connect", "settings", "about")) continue
+                    val savedId = item.optString("id", infinityWindowIdentity(kind, 1))
+                        .trim().takeIf { it.isNotEmpty() }
+                        ?: infinityWindowIdentity(kind, infinityNormalizeWorkspace(item.optInt("workspace", 1)))
+                    // Ignore duplicate persisted identities instead of restoring overlapping task records.
+                    if (any { it.id == savedId }) continue
                     add(
                         DeskWindow(
-                            id = item.optString("id", infinityWindowIdentity(kind, 1)),
-                            title = item.optString("title", kind),
+                            id = savedId,
+                            title = item.optString("title", kind).trim().take(80).ifBlank { kind },
                             kind = kind,
-                            x = item.optDouble("x", 24.0).toFloat(),
-                            y = item.optDouble("y", 100.0).toFloat(),
-                            width = item.optDouble("width", 370.0).toFloat().coerceIn(240f, 900f),
-                            height = item.optDouble("height", 330.0).toFloat().coerceIn(180f, 900f),
+                            x = infinityNormalizeWindowCoordinate(item.optDouble("x", 24.0).toFloat(), 24f),
+                            y = infinityNormalizeWindowCoordinate(item.optDouble("y", 100.0).toFloat(), 100f),
+                            width = infinityNormalizeWindowDimension(item.optDouble("width", 370.0).toFloat(), 370f, 240f, 900f),
+                            height = infinityNormalizeWindowDimension(item.optDouble("height", 330.0).toFloat(), 330f, 180f, 900f),
                             minimized = item.optBoolean("minimized", false),
                             workspace = infinityNormalizeWorkspace(item.optInt("workspace", 1)),
                             maximized = item.optBoolean("maximized", false)
