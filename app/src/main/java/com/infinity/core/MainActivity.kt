@@ -1046,7 +1046,7 @@ val iconOffsets = remember {
                     when {
                         maxW < 380.dp -> 5.dp
                         maxW < 600.dp -> 8.dp
-                        else -> 22.dp
+                        else -> 10.dp
                     }
                 )
             ) {
@@ -1092,7 +1092,8 @@ DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED"
                 )
 
                 infinityWorkspaceWindowIds(windows.map { it.id }, windows.associate { it.id to it.workspace }, workspace).mapNotNull { id -> windows.firstOrNull { it.id == id } }.let { workspaceWindows ->
-                    infinityDockWindowIds(workspaceWindows.map { it.id }, workspaceWindows.associate { it.id to it.minimized }).takeLast(if (maxW < 390.dp) 1 else 8).forEach { taskId ->
+                    infinityDockWindowIds(workspaceWindows.map { it.id }, workspaceWindows.associate { it.id to it.minimized })
+                        .takeLast(infinityDockVisibleTaskLimit(maxW.value)).forEach { taskId ->
                         val task = workspaceWindows.firstOrNull { it.id == taskId } ?: return@forEach
                         DockAction(if (task.minimized) "□" else "▣", infinityDockLabel(task.title), accent, iconPack, compact = maxW < 390.dp) {
                             val idx = windows.indexOfFirst { it.id == task.id }
