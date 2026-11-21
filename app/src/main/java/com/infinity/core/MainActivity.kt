@@ -1831,7 +1831,11 @@ Row(
                     colors = CardDefaults.cardColors(containerColor = controlSurface),
                     border = androidx.compose.foundation.BorderStroke(1.dp, controlBorder)
                 ) {
-                    Column(Modifier.padding(16.dp)) {
+                    Column(
+                        Modifier.fillMaxWidth()
+                            .verticalScroll(rememberScrollState())
+                            .padding(16.dp)
+                    ) {
                         Text("CONTROL CENTER", color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.Black)
                         Text("Personaliza tu espacio", color = InfinityMuted, fontSize = 10.sp)
                         Spacer(Modifier.height(12.dp))
