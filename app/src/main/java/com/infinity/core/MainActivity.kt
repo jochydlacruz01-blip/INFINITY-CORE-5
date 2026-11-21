@@ -208,6 +208,8 @@ private fun Infinity08App() {
     }
     var iconPack by remember { mutableStateOf(infinityNormalizeDesktopTheme(prefs.getString("icon_pack", "infinity"))) }
     var backgroundPreset by remember { mutableStateOf(prefs.getString("background_preset", "nebula") ?: "nebula") }
+    var desktopPreset by remember { mutableStateOf(infinityNormalizeWallpaperPreset(prefs.getString("desktop_wallpaper_preset", "futuristic"))) }
+    val futuristicDesktop = desktopPreset == InfinityDesktopWallpaperPreset.FUTURISTIC
     var appearance by remember {
         mutableStateOf(infinityNormalizeAppearance(prefs.getString("appearance", "dark")))
     }
@@ -559,7 +561,7 @@ val iconOffsets = remember {
             }
 
             // Cabecera de marca para tablet; no sustituye los accesos ni el fondo elegido.
-            if (maxW >= 600.dp && !dashboardOpen) {
+            if (maxW >= 600.dp && !dashboardOpen && futuristicDesktop) {
                 InfinityDesktopMasthead(
                     modifier = Modifier.align(Alignment.TopCenter)
                         .padding(top = 20.dp)
@@ -699,7 +701,7 @@ val iconOffsets = remember {
             }
 
             // Marca del escritorio en tablet, situada sobre el Dock y sin tapar accesos.
-            if (maxW >= 600.dp) {
+            if (maxW >= 600.dp && futuristicDesktop) {
                 InfinityDesktopBrandBadge(
                     modifier = Modifier.align(Alignment.BottomEnd)
                         .padding(end = 20.dp, bottom = 104.dp)
@@ -1863,6 +1865,22 @@ Row(
                         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             listOf("infinity" to "INFINITY", "windows11" to "WINDOWS 11").forEach { (pack, label) ->
                                 FilterChip(selected = iconPack == pack, onClick = { val normalizedPack = infinityNormalizeDesktopTheme(pack); iconPack = normalizedPack; prefs.edit().putString("icon_pack", normalizedPack).apply() }, label = { Text(label) })
+                            }
+                        }
+                        Text("ESTILO DEL ESCRITORIO", color = accent, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            listOf(
+                                InfinityDesktopWallpaperPreset.LEGACY,
+                                InfinityDesktopWallpaperPreset.FUTURISTIC
+                            ).forEach { preset ->
+                                FilterChip(
+                                    selected = desktopPreset == preset,
+                                    onClick = {
+                                        desktopPreset = preset
+                                        prefs.edit().putString("desktop_wallpaper_preset", preset.id).apply()
+                                    },
+                                    label = { Text(if (preset == InfinityDesktopWallpaperPreset.FUTURISTIC) "INFINITY Futurista" else "INFINITY clásico") }
+                                )
                             }
                         }
                         Text("FONDOS", color = accent, fontSize = 10.sp, fontWeight = FontWeight.Bold)
