@@ -1029,7 +1029,7 @@ val iconOffsets = remember {
                             iconPack == "windows11" -> Color(0xF20B1829)
                             else -> Color(0xF016263D)
                         },
-                        RoundedCornerShape(if (maxW >= 600.dp && futuristicDesktop) topStart = 18.dp, topEnd = 18.dp else 20.dp)
+                        if (maxW >= 600.dp && futuristicDesktop) RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp) else RoundedCornerShape(20.dp)
                     )
                     .border(
                         if (maxW >= 600.dp && futuristicDesktop) 1.dp else if (iconPack == "windows11") 0.dp else 1.dp,
