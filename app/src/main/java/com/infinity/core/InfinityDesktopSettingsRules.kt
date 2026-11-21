@@ -13,3 +13,9 @@ internal fun infinityNormalizeAppearance(value: String?): String =
     value?.trim()?.lowercase(java.util.Locale.ROOT)
         ?.takeIf { it == "dark" || it == "light" }
         ?: "dark"
+
+/** Restricts desktop identities to the supported INFINITY and Windows 11 shells. */
+internal fun infinityNormalizeDesktopTheme(value: String?): String =
+    value?.trim()?.lowercase(java.util.Locale.ROOT)
+        ?.takeIf { it == "windows11" }
+        ?: "infinity"
