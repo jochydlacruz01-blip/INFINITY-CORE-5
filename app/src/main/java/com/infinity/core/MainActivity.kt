@@ -667,36 +667,23 @@ val iconOffsets = remember {
                 }
             }
 
-            Column(
-                Modifier.align(Alignment.TopEnd).padding(18.dp)
-                    .clip(RoundedCornerShape(if (maxW >= 600.dp) 24.dp else 20.dp))
-                    .background(if (iconPack == "windows11") Color(0xCC173653) else Color(0xAA101D30))
-                    .border(1.dp, if (iconPack == "windows11") Color(0xFF8BCBFA).copy(.55f) else accent.copy(alpha = .24f), RoundedCornerShape(if (maxW >= 600.dp) 24.dp else 20.dp))
-                    .padding(horizontal = if (maxW >= 600.dp) 22.dp else 16.dp, vertical = if (maxW >= 600.dp) 16.dp else 12.dp),
-                horizontalAlignment = Alignment.End
-            ) {
-                Text(
-                    clockText,
-                    color = Color.White,
-                    fontSize = if (maxW >= 600.dp) 42.sp else 24.sp,
-                    fontWeight = FontWeight.Light
+            if (maxW >= 600.dp && !dashboardOpen && futuristicDesktop) {
+                InfinityReferenceClockPanel(
+                    clock = clockText,
+                    date = dateText,
+                    modifier = Modifier.align(Alignment.TopEnd).padding(top = 18.dp, end = 28.dp)
                 )
-                Text(
-                    dateText,
-                    color = InfinityMuted,
-                    fontSize = if (maxW >= 600.dp) 14.sp else 10.sp
-                )
-                if (maxW >= 600.dp && !dashboardOpen) {
-                    Spacer(Modifier.height(10.dp))
-                    Text(
-                        "INNOVACIÓN • TECNOLOGÍA\\nPRODUCTIVIDAD",
-                        color = Color(0xFFD7E9FF),
-                        fontSize = 9.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        letterSpacing = 1.1.sp,
-                        lineHeight = 15.sp,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.End
-                    )
+            } else {
+                Column(
+                    Modifier.align(Alignment.TopEnd).padding(18.dp)
+                        .clip(RoundedCornerShape(if (maxW >= 600.dp) 24.dp else 20.dp))
+                        .background(if (iconPack == "windows11") Color(0xCC173653) else Color(0xAA101D30))
+                        .border(1.dp, if (iconPack == "windows11") Color(0xFF8BCBFA).copy(.55f) else accent.copy(alpha = .24f), RoundedCornerShape(if (maxW >= 600.dp) 24.dp else 20.dp))
+                        .padding(horizontal = if (maxW >= 600.dp) 22.dp else 16.dp, vertical = if (maxW >= 600.dp) 16.dp else 12.dp),
+                    horizontalAlignment = Alignment.End
+                ) {
+                    Text(clockText, color = Color.White, fontSize = if (maxW >= 600.dp) 42.sp else 24.sp, fontWeight = FontWeight.Light)
+                    Text(dateText, color = InfinityMuted, fontSize = if (maxW >= 600.dp) 14.sp else 10.sp)
                 }
             }
 
