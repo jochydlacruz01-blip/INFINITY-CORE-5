@@ -40,6 +40,10 @@ internal fun infinityDockVisibleTaskLimit(availableWidthDp: Float): Int = when {
 internal fun infinityDockHiddenTaskCount(totalTasks: Int, visibleTasks: Int): Int =
     (totalTasks.coerceAtLeast(0) - visibleTasks.coerceAtLeast(0)).coerceAtLeast(0)
 
+/** Window geometry controls are available only when a desktop/tablet viewport can use them. */
+internal fun infinityWindowGeometryControlsVisible(availableWidthDp: Float): Boolean =
+    availableWidthDp.isFinite() && availableWidthDp >= 600f
+
 /** Maximized and phone-adapted windows must not mutate their saved desktop geometry. */
 internal fun infinityWindowCanManipulateGeometry(isMaximized: Boolean, availableWidthDp: Float): Boolean =
     !isMaximized && availableWidthDp.isFinite() && availableWidthDp >= 600f
