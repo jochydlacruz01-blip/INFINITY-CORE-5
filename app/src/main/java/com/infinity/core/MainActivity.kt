@@ -115,9 +115,17 @@ private fun InfinityAppBadge(item: DeskItem, size: androidx.compose.ui.unit.Dp, 
         else -> Icons.Filled.Info
     }
     Box(
-        Modifier.size(size).shadow(14.dp, RoundedCornerShape(size * if (iconPack == "apple") .34f else .25f))
-            .background(Brush.linearGradient(listOf(identity.copy(.36f), Color(0xFF142A43), Color(0xFF101827))), RoundedCornerShape(size * .25f))
-            .border(1.4.dp, identity.copy(.82f), RoundedCornerShape(size * .25f)),
+        Modifier.size(size).shadow(14.dp, RoundedCornerShape(size * when (iconPack) { "apple" -> .30f; "windows11" -> .22f; else -> .25f }))
+            .background(
+                Brush.linearGradient(
+                    when (iconPack) {
+                        "windows11" -> listOf(Color(0xFFB9E4FF), Color(0xFF1687D9), Color(0xFF07549B))
+                        "apple" -> listOf(Color(0xFFF4F6FA), Color(0xFF9AA8BC), Color(0xFF46566F))
+                        else -> listOf(identity.copy(.36f), Color(0xFF142A43), Color(0xFF101827))
+                    }
+                ), RoundedCornerShape(size * when (iconPack) { "apple" -> .30f; "windows11" -> .22f; else -> .25f })
+            )
+            .border(1.4.dp, if (iconPack == "windows11") Color(0xFFBDEBFF) else if (iconPack == "apple") Color.White.copy(.9f) else identity.copy(.82f), RoundedCornerShape(size * .25f)),
         contentAlignment = Alignment.Center
     ) {
         Box(Modifier.fillMaxSize().padding(size * .12f).border(1.dp, Color.White.copy(.08f), RoundedCornerShape(size * .2f)))
@@ -451,10 +459,12 @@ val iconOffsets = remember {
                 .windowInsetsPadding(WindowInsets.safeDrawing)
                 .background(
                 Brush.linearGradient(
-                    when (backgroundPreset) {
-                        "punk" -> listOf(Color(0xFF24051F), Color(0xFF631B43), Color(0xFF102338))
-                        "interstellar" -> listOf(Color(0xFF030713), Color(0xFF17265D), Color(0xFF46246A))
-                        "aurora" -> listOf(Color(0xFF062E36), Color(0xFF174E60), Color(0xFF102238))
+                    when {
+                        iconPack == "windows11" -> listOf(Color(0xFF071D3B), Color(0xFF1266A8), Color(0xFF09172D))
+                        iconPack == "apple" -> listOf(Color(0xFF202532), Color(0xFF68758B), Color(0xFF171C27))
+                        backgroundPreset == "punk" -> listOf(Color(0xFF24051F), Color(0xFF631B43), Color(0xFF102338))
+                        backgroundPreset == "interstellar" -> listOf(Color(0xFF030713), Color(0xFF17265D), Color(0xFF46246A))
+                        backgroundPreset == "aurora" -> listOf(Color(0xFF062E36), Color(0xFF174E60), Color(0xFF102238))
                         else -> if (lightMode) listOf(Color(0xFFEAF1FA), Color(0xFFD4E2F2), Color(0xFFB9CDE2)) else listOf(Color(0xFF102238), Color(0xFF1C3B59), InfinityInk)
                     }
                 )
@@ -1579,9 +1589,11 @@ Row(
             // CONTROL CENTER: personalización, sin accesos de lanzamiento repetidos.
             if (controlOpen) {
                 Card(
-                    Modifier.align(Alignment.BottomEnd)
-                        .padding(end = 14.dp, bottom = 84.dp)
+                    Modifier.align(Alignment.TopEnd)
+                        .padding(end = 14.dp, top = 76.dp, bottom = 112.dp)
                         .widthIn(min = 270.dp, max = 350.dp)
+                        .heightIn(max = (maxH - 200.dp).coerceAtLeast(220.dp))
+                        .verticalScroll(rememberScrollState())
                         .shadow(24.dp, RoundedCornerShape(26.dp)),
                     shape = RoundedCornerShape(26.dp),
                     colors = CardDefaults.cardColors(containerColor = Color(0xF0142036)),
@@ -1685,10 +1697,12 @@ Row(
             if (advancedOpen) {
                 Box(
                     Modifier
-                        .align(Alignment.TopCenter)
-                        .padding(top = 76.dp)
+                        .align(Alignment.TopEnd)
+                        .padding(top = 76.dp, end = 14.dp, bottom = 112.dp)
                         .widthIn(min = 300.dp, max = 430.dp)
                         .fillMaxWidth()
+                        .heightIn(max = (maxH - 200.dp).coerceAtLeast(220.dp))
+                        .verticalScroll(rememberScrollState())
                 ) {
                     InfinityAdvancedPanel(
                         onClose = { advancedOpen = false }
