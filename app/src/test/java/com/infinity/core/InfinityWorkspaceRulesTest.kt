@@ -83,4 +83,19 @@ class InfinityWorkspaceRulesTest {
         assertEquals("c", infinityResolveWorkspaceSwitchFocus("a", listOf("a", "b", "c"), mapOf("a" to 1, "b" to 2, "c" to 2), setOf("b"), 2))
         assertNull(infinityResolveWorkspaceSwitchFocus(null, listOf("a"), mapOf("a" to 2), setOf("a"), 2))
     }
+
+    @Test fun persistedWindowCoordinatesRecoverFromInvalidAndExtremeValues() {
+        assertEquals(24f, infinityNormalizeWindowCoordinate(Float.NaN, 24f), 0f)
+        assertEquals(100f, infinityNormalizeWindowCoordinate(Float.POSITIVE_INFINITY, 100f), 0f)
+        assertEquals(-500f, infinityNormalizeWindowCoordinate(-9000f, 24f), 0f)
+        assertEquals(5000f, infinityNormalizeWindowCoordinate(9000f, 24f), 0f)
+        assertEquals(0f, infinityNormalizeWindowCoordinate(Float.NEGATIVE_INFINITY, Float.NaN), 0f)
+    }
+
+    @Test fun persistedWindowDimensionsStayWithinSupportedBounds() {
+        assertEquals(370f, infinityNormalizeWindowDimension(Float.NaN, 370f, 240f, 900f), 0f)
+        assertEquals(240f, infinityNormalizeWindowDimension(10f, 370f, 240f, 900f), 0f)
+        assertEquals(900f, infinityNormalizeWindowDimension(1200f, 370f, 240f, 900f), 0f)
+        assertEquals(330f, infinityNormalizeWindowDimension(Float.POSITIVE_INFINITY, 330f, 180f, 900f), 0f)
+    }
 }
