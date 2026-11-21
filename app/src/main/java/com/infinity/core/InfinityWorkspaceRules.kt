@@ -87,3 +87,30 @@ internal fun infinityDockResolveActivation(taskId: String, currentFocusId: Strin
 internal fun infinityResolveWorkspaceSwitchFocus(
     currentId: String?, orderedIds: List<String>, workspaceById: Map<String, Int>, minimizedIds: Set<String>, targetWorkspace: Int
 ): String? = infinityResolveWorkspaceFocus(currentId, orderedIds, workspaceById, minimizedIds, targetWorkspace)
+
+
+/** Recovers persisted window coordinates from corrupt, non-finite or extreme values. */
+internal fun infinityNormalizeWindowCoordinate(
+    value: Float,
+    fallback: Float,
+    minimum: Float = -500f,
+    maximum: Float = 5000f
+): Float {
+    val safeFallback = fallback.takeIf { it.isFinite() } ?: 0f
+    val lower = minimum.takeIf { it.isFinite() } ?: -500f
+    val upper = maximum.takeIf { it.isFinite() && it >= lower } ?: lower
+    return (value.takeIf { it.isFinite() } ?: safeFallback).coerceIn(lower, upper)
+}
+
+/** Restores valid persisted window dimensions while enforcing the supported size range. */
+internal fun infinityNormalizeWindowDimension(
+    value: Float,
+    fallback: Float,
+    minimum: Float,
+    maximum: Float
+): Float {
+    val lower = minimum.takeIf { it.isFinite() && it > 0f } ?: 1f
+    val upper = maximum.takeIf { it.isFinite() && it >= lower } ?: lower
+    val safeFallback = fallback.takeIf { it.isFinite() } ?: lower
+    return (value.takeIf { it.isFinite() } ?: safeFallback).coerceIn(lower, upper)
+}
