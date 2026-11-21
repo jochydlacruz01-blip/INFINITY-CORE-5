@@ -802,28 +802,20 @@ val iconOffsets = remember {
                             .width(108.dp)
                             .clip(RoundedCornerShape(if (iconPack == "windows11") 12.dp else 18.dp))
                             .background(
-                                if (iconPack == "windows11") Brush.verticalGradient(
+                                if (maxW >= 600.dp && futuristicDesktop) Color.Transparent
+                                else if (iconPack == "windows11") Brush.verticalGradient(
                                     listOf(Color(0x552D5A82), Color(0x552D5A82))
-                                )
-                                else Brush.verticalGradient(
-                                    listOf(
-                                        Color(0x88366A91),
-                                        Color(0x66304770),
-                                        Color(0x88202A49)
-                                    )
+                                ) else Brush.verticalGradient(
+                                    listOf(Color(0x88366A91), Color(0x66304770), Color(0x88202A49))
                                 )
                             )
                             .border(
-                                1.dp,
-                                if (iconPack == "windows11") Brush.linearGradient(
+                                if (maxW >= 600.dp && futuristicDesktop) 0.dp else 1.dp,
+                                if (maxW >= 600.dp && futuristicDesktop) Color.Transparent
+                                else if (iconPack == "windows11") Brush.linearGradient(
                                     listOf(Color(0x668BCBFA), Color(0x668BCBFA))
-                                )
-                                else Brush.linearGradient(
-                                    listOf(
-                                        Color(0xAA78D9FF),
-                                        accent.copy(alpha = 0.42f),
-                                        Color(0x667D78FF)
-                                    )
+                                ) else Brush.linearGradient(
+                                    listOf(Color(0xAA78D9FF), accent.copy(alpha = 0.42f), Color(0x667D78FF))
                                 ),
                                 RoundedCornerShape(if (iconPack == "windows11") 12.dp else 18.dp)
                             )
