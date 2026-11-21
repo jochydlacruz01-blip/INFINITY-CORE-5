@@ -132,7 +132,7 @@ private fun InfinityAppBadge(item: DeskItem, size: androidx.compose.ui.unit.Dp, 
         Icon(
             imageVector = appIcon,
             contentDescription = item.label,
-            tint = identity,
+            tint = when (iconPack) { "windows11" -> Color(0xFFF4FAFF); "apple" -> Color(0xFFFFFFFF); else -> identity },
             modifier = Modifier.size(size * .53f)
         )
         Box(Modifier.align(Alignment.BottomEnd).padding(size * .10f).size(size * .10f).background(accent, CircleShape))
@@ -536,6 +536,18 @@ val iconOffsets = remember {
                 }
             }
 
+            // Full desktop identity: distinct visual language for INFINITY, Windows 11 and macOS.
+            Box(
+                Modifier.fillMaxSize().background(
+                    Brush.linearGradient(
+                        when (iconPack) {
+                            "windows11" -> listOf(Color(0xFF071B36), Color(0xFF164D79), Color(0xFF071426))
+                            "apple" -> listOf(Color(0xFF303B4C), Color(0xFF111923), Color(0xFF05080E))
+                            else -> listOf(Color(0xFF081729), Color(0xFF102E48), Color(0xFF080F1D))
+                        }
+                    )
+                )
+            )
             val currentWallpaperBitmap = wallpaperBitmap
             if (currentWallpaperBitmap != null) {
                 Image(
@@ -637,12 +649,12 @@ val iconOffsets = remember {
             Column(
                 Modifier.align(Alignment.TopEnd).padding(18.dp)
                     .clip(RoundedCornerShape(20.dp))
-                    .background(Color(0xAA101D30))
-                    .border(1.dp, accent.copy(alpha = .24f), RoundedCornerShape(20.dp))
+                    .background(when (iconPack) { "windows11" -> Color(0xCC173653); "apple" -> Color(0xCC202A38); else -> Color(0xAA101D30) })
+                    .border(1.dp, when (iconPack) { "windows11" -> Color(0xFF8BCBFA).copy(.55f); "apple" -> Color.White.copy(.42f); else -> accent.copy(alpha = .24f) }, RoundedCornerShape(20.dp))
                     .padding(horizontal = 16.dp, vertical = 12.dp),
                 horizontalAlignment = Alignment.End
             ) {
-                Text(clockText, color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Light)
+                Text(clockText, color = if (iconPack == "apple") Color(0xFFF5F7FB) else Color.White, fontSize = 24.sp, fontWeight = FontWeight.Light)
                 Text(dateText, color = InfinityMuted, fontSize = 10.sp)
             }
 
