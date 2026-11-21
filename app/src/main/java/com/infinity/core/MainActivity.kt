@@ -1092,8 +1092,13 @@ DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED"
                 )
 
                 infinityWorkspaceWindowIds(windows.map { it.id }, windows.associate { it.id to it.workspace }, workspace).mapNotNull { id -> windows.firstOrNull { it.id == id } }.let { workspaceWindows ->
-                    infinityDockWindowIds(workspaceWindows.map { it.id }, workspaceWindows.associate { it.id to it.minimized })
-                        .takeLast(infinityDockVisibleTaskLimit(maxW.value)).forEach { taskId ->
+                    val allTaskIds = infinityDockWindowIds(
+                        workspaceWindows.map { it.id },
+                        workspaceWindows.associate { it.id to it.minimized }
+                    )
+                    val visibleTaskLimit = infinityDockVisibleTaskLimit(maxW.value)
+                    val visibleTaskIds = allTaskIds.takeLast(visibleTaskLimit)
+                    visibleTaskIds.forEach { taskId ->
                         val task = workspaceWindows.firstOrNull { it.id == taskId } ?: return@forEach
                         DockAction(if (task.minimized) "□" else "▣", infinityDockLabel(task.title), accent, iconPack, compact = maxW < 390.dp) {
                             val idx = windows.indexOfFirst { it.id == task.id }
@@ -1115,6 +1120,16 @@ DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED"
                             dashboardOpen = false
                             startOpen = false
                             orbitOpen = false
+                            controlOpen = false
+                            advancedOpen = false
+                        }
+                    }
+                    val hiddenTaskCount = infinityDockHiddenTaskCount(allTaskIds.size, visibleTaskIds.size)
+                    if (hiddenTaskCount > 0) {
+                        DockAction("⋯", "MÁS VENTANAS: $hiddenTaskCount", accent, iconPack, compact = maxW < 390.dp, referenceStyle = futuristicDesktop && maxW >= 600.dp) {
+                            orbitOpen = true
+                            dashboardOpen = false
+                            startOpen = false
                             controlOpen = false
                             advancedOpen = false
                         }
