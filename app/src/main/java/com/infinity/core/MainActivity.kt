@@ -1145,6 +1145,22 @@ DockAction("▤", "ADVANCED", accent, iconPack) {
            
             // INFINITY ORBIT 0.9: centro de mando futurista.
             if (orbitOpen) {
+                val orbitRadius = when (iconPack) { "windows11" -> 16.dp; "apple" -> 30.dp; else -> 24.dp }
+                val orbitSurface = when (iconPack) {
+                    "windows11" -> Color(0xF0273D58)
+                    "apple" -> Color(0xF02B3442)
+                    else -> Color(0xF2101D30)
+                }
+                val orbitBorder = when (iconPack) {
+                    "windows11" -> Color(0xFF8BCBFA).copy(alpha = .62f)
+                    "apple" -> Color.White.copy(alpha = .62f)
+                    else -> accent.copy(alpha = .30f)
+                }
+                val orbitTile = when (iconPack) {
+                    "windows11" -> Color(0xFF345574)
+                    "apple" -> Color(0xFF46515F)
+                    else -> Color(0xFF192D47)
+                }
                 Card(
                  Modifier.align(Alignment.TopCenter)
     .padding(start = 12.dp, end = 12.dp, top = 72.dp)
@@ -1152,12 +1168,12 @@ DockAction("▤", "ADVANCED", accent, iconPack) {
     // Reserve a fixed safe zone for the Dock; constrain the card itself,
     // not only its padding, so the scrollable panel cannot extend over it.
     .heightIn(max = (maxH - 260.dp).coerceAtLeast(160.dp))
-    .shadow(30.dp, RoundedCornerShape(30.dp)),
-                    shape = RoundedCornerShape(30.dp),
+    .shadow(30.dp, RoundedCornerShape(orbitRadius)),
+                    shape = RoundedCornerShape(orbitRadius),
                     colors = CardDefaults.cardColors(
-                        containerColor = Color(0xF2101D30)
+                        containerColor = orbitSurface
                     ),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, accent.copy(alpha = .30f))
+                    border = androidx.compose.foundation.BorderStroke(1.dp, orbitBorder)
                 ) {
                     Column(
     Modifier
@@ -1504,8 +1520,8 @@ Row(
                         if (orbitWindows.isEmpty()) {
                             Column(
                                 Modifier.fillMaxWidth()
-                                    .clip(RoundedCornerShape(14.dp))
-                                    .background(Color(0xFF192D47))
+                                    .clip(RoundedCornerShape(if (iconPack == "apple") 20.dp else if (iconPack == "windows11") 9.dp else 14.dp))
+                                    .background(orbitTile)
                                     .padding(16.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
@@ -1532,12 +1548,12 @@ Row(
                                 orbitWindows.forEach { win ->
                                     Row(
                                         Modifier.fillMaxWidth()
-                                            .clip(RoundedCornerShape(12.dp))
-                                            .background(Color(0xFF192D47))
+                                            .clip(RoundedCornerShape(if (iconPack == "apple") 18.dp else if (iconPack == "windows11") 8.dp else 12.dp))
+                                            .background(orbitTile)
                                             .border(
                                                 1.dp,
                                                 accent.copy(alpha = 0.20f),
-                                                RoundedCornerShape(12.dp)
+                                                RoundedCornerShape(if (iconPack == "apple") 18.dp else if (iconPack == "windows11") 8.dp else 12.dp)
                                             )
                                             .padding(
                                                 horizontal = 9.dp,
@@ -1636,6 +1652,17 @@ Row(
 
             // CONTROL CENTER: personalización, sin accesos de lanzamiento repetidos.
             if (controlOpen) {
+                val controlRadius = when (iconPack) { "windows11" -> 16.dp; "apple" -> 30.dp; else -> 24.dp }
+                val controlSurface = when (iconPack) {
+                    "windows11" -> Color(0xF0273D58)
+                    "apple" -> Color(0xF02B3442)
+                    else -> Color(0xF0142036)
+                }
+                val controlBorder = when (iconPack) {
+                    "windows11" -> Color(0xFF8BCBFA).copy(alpha = .65f)
+                    "apple" -> Color.White.copy(alpha = .8f)
+                    else -> Color(0xFFFFC27A).copy(alpha = .30f)
+                }
                 Card(
                     Modifier.align(Alignment.TopEnd)
                         .zIndex(10f)
@@ -1643,18 +1670,10 @@ Row(
                         .widthIn(min = 270.dp, max = 350.dp)
                         .heightIn(max = (maxH - 200.dp).coerceAtLeast(220.dp))
                         .verticalScroll(rememberScrollState())
-                        .shadow(24.dp, RoundedCornerShape(26.dp)),
-                    shape = RoundedCornerShape(26.dp),
-                    colors = CardDefaults.cardColors(containerColor = when (iconPack) {
-                        "windows11" -> Color(0xF0273D58)
-                        "apple" -> Color(0xF02B3442)
-                        else -> Color(0xF0142036)
-                    }),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, when (iconPack) {
-                        "windows11" -> Color(0xFF8BCBFA).copy(alpha = .65f)
-                        "apple" -> Color(0xFFFFFFFF).copy(alpha = .8f)
-                        else -> Color(0xFFFFC27A).copy(alpha = .30f)
-                    })
+                        .shadow(24.dp, RoundedCornerShape(controlRadius)),
+                    shape = RoundedCornerShape(controlRadius),
+                    colors = CardDefaults.cardColors(containerColor = controlSurface),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, controlBorder)
                 ) {
                     Column(Modifier.padding(16.dp)) {
                         Text("CONTROL CENTER", color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.Black)
