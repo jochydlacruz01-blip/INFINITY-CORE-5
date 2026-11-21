@@ -21,9 +21,9 @@ class InfinityDesktopGridLayoutPackTest {
 
     @Test fun invalidViewportAndGapsAreSafelyNormalized() {
         val offsets = infinityDesktopGridOffsets(2, Float.NaN, 80f, 90f, horizontalGap = Float.NaN, verticalGap = -5f)
-        assertEquals(0f, offsets[0].x, 0f)
+        assertEquals(16f, offsets[0].x, 0f)
         assertEquals(118f, offsets[0].y, 0f)
-        assertEquals(0f, offsets[1].x, 0f)
+        assertEquals(16f, offsets[1].x, 0f)
         assertTrue(offsets[1].y > offsets[0].y)
     }
 
