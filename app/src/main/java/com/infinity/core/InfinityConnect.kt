@@ -510,6 +510,11 @@ fun InfinityConnectPanel() {
                                 username = editingUsername.value.trim()
                             )
 
+                            // Remove the old encrypted credential when an edited profile changes endpoint.
+                            val previousProfile = profiles.getOrNull(editingIndex.value)
+                            if (previousProfile != null && previousProfile.address != profile.address) {
+                                credentialVault.delete(previousProfile.address)
+                            }
                             if (editingIndex.value in profiles.indices) {
                                 profiles[editingIndex.value] = profile
                             } else {
