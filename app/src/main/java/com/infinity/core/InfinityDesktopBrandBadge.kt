@@ -38,7 +38,7 @@ internal fun InfinityDesktopBrandBadge(modifier: Modifier = Modifier) {
     ) {
         Box(
             modifier = Modifier
-                .size(42.dp)
+                .size(48.dp)
                 .clip(CircleShape)
                 .background(
                     Brush.linearGradient(
@@ -51,7 +51,7 @@ internal fun InfinityDesktopBrandBadge(modifier: Modifier = Modifier) {
             Text(
                 "∞",
                 color = Color.White,
-                fontSize = 31.sp,
+                fontSize = 35.sp,
                 fontWeight = FontWeight.Bold
             )
         }
@@ -60,13 +60,13 @@ internal fun InfinityDesktopBrandBadge(modifier: Modifier = Modifier) {
             Text(
                 "PROJECT INFINITY",
                 color = Color.White,
-                fontSize = 12.sp,
+                fontSize = 14.sp,
                 fontWeight = FontWeight.Bold
             )
             Text(
                 "Sistema Operativo Inteligente",
                 color = Color(0xFFB9D6FF),
-                fontSize = 9.sp
+                fontSize = 10.sp
             )
         }
     }
