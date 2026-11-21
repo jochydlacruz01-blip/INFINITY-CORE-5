@@ -117,7 +117,7 @@ internal fun infinityNormalizeWindowDimension(
 
 
 /** Keeps focus valid after closing a window, choosing the most recent visible task in the active workspace. */
-internal fun infinityResolveFocusAfterWindowRemoval(
+internal fun infinityResolveFocusAfterWindowDeactivation(
     removedId: String,
     currentId: String?,
     orderedIds: List<String>,
