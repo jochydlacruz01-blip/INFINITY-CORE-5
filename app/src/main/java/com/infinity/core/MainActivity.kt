@@ -1059,7 +1059,7 @@ DockAction("▤", "ADVANCED", accent, iconPack) {
                                         }.padding(9.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    InfinityAppBadge(item, 34.dp, accent)
+                                    InfinityAppBadge(item, 34.dp, accent, iconPack)
                                     Text(item.label, color = Color.White, modifier = Modifier.padding(start = 12.dp))
                                 }
                             }
