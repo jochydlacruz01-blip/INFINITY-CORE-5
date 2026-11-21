@@ -1814,7 +1814,6 @@ Row(
                         .padding(end = 14.dp, top = 76.dp, bottom = 112.dp)
                         .widthIn(max = 350.dp)
                         .heightIn(max = (maxH - 200.dp).coerceAtLeast(220.dp))
-                        .verticalScroll(rememberScrollState())
                         .shadow(24.dp, RoundedCornerShape(controlRadius)),
                     shape = RoundedCornerShape(controlRadius),
                     colors = CardDefaults.cardColors(containerColor = controlSurface),
