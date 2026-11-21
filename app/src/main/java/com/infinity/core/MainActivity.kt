@@ -1001,9 +1001,8 @@ val iconOffsets = remember {
                                 )
                             }
                         },
-                     onFocus = { focusedWindowId = win.id
-                            
-                        }
+                     onFocus = { focusedWindowId = win.id },
+                        showGeometryControls = infinityWindowGeometryControlsVisible(maxW.value)
                     )
                 }
             }
@@ -2248,7 +2247,8 @@ private fun Infinity08Window(
     onMaximize: () -> Unit,
     onMove: (Float, Float) -> Unit,
     onResize: (Float, Float) -> Unit,
-    onFocus: () -> Unit
+    onFocus: () -> Unit,
+    showGeometryControls: Boolean
 ) {
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences("infinity_desktop", 0) }
@@ -2360,7 +2360,7 @@ private fun Infinity08Window(
 
             Spacer(Modifier.width(3.dp))
 
-            IconButton(
+            if (showGeometryControls) IconButton(
                 onClick = onMaximize,
                 modifier = Modifier
                     .size(36.dp)
@@ -2545,7 +2545,9 @@ private fun Infinity08Window(
             }
         }
 
-         // INFINITY DESKTOP 0.11 — CONTROL DE REDIMENSIONAMIENTO
+         // En teléfono se usa ventana adaptada a pantalla completa; se ocultan controles inoperantes.
+        if (showGeometryControls) {
+        // INFINITY DESKTOP 0.11 — CONTROL DE REDIMENSIONAMIENTO
         Box(
             Modifier
                 .align(Alignment.End)
@@ -2574,6 +2576,7 @@ private fun Infinity08Window(
                 fontSize = 25.sp,
                 fontWeight = FontWeight.Bold
             )
-        }      
+        }
+        }
     }
 }
