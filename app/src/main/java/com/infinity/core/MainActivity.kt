@@ -1035,7 +1035,7 @@ val iconOffsets = remember {
                         if (maxW >= 600.dp && futuristicDesktop) 1.dp else if (iconPack == "windows11") 0.dp else 1.dp,
                         if (maxW >= 600.dp && futuristicDesktop) Color(0xAA29CFFF)
                         else if (iconPack == "windows11") Color.Transparent else Color(0xFF6686B5),
-                        RoundedCornerShape(if (maxW >= 600.dp && futuristicDesktop) topStart = 18.dp, topEnd = 18.dp else 20.dp)
+                        if (maxW >= 600.dp && futuristicDesktop) RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp) else RoundedCornerShape(20.dp)
                     )
                     .padding(
                         horizontal = if (iconPack == "windows11") 12.dp else if (maxW < 600.dp) 6.dp else 18.dp,
