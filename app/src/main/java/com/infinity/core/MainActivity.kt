@@ -810,7 +810,9 @@ val iconOffsets = remember {
                             .width(108.dp)
                             .clip(RoundedCornerShape(if (iconPack == "windows11") 12.dp else 18.dp))
                             .background(
-                                if (iconPack == "windows11") Color(0x552D5A82)
+                                if (iconPack == "windows11") Brush.verticalGradient(
+                                    listOf(Color(0x552D5A82), Color(0x552D5A82))
+                                )
                                 else Brush.verticalGradient(
                                     listOf(
                                         Color(0x88366A91),
@@ -821,7 +823,9 @@ val iconOffsets = remember {
                             )
                             .border(
                                 1.dp,
-                                if (iconPack == "windows11") Color(0x668BCBFA)
+                                if (iconPack == "windows11") Brush.linearGradient(
+                                    listOf(Color(0x668BCBFA), Color(0x668BCBFA))
+                                )
                                 else Brush.linearGradient(
                                     listOf(
                                         Color(0xAA78D9FF),
