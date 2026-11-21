@@ -684,6 +684,18 @@ val iconOffsets = remember {
                     color = InfinityMuted,
                     fontSize = if (maxW >= 600.dp) 14.sp else 10.sp
                 )
+                if (maxW >= 600.dp && !dashboardOpen) {
+                    Spacer(Modifier.height(10.dp))
+                    Text(
+                        "INNOVACIÓN • TECNOLOGÍA\\nPRODUCTIVIDAD",
+                        color = Color(0xFFD7E9FF),
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = 1.1.sp,
+                        lineHeight = 15.sp,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.End
+                    )
+                }
             }
 
             // Marca del escritorio en tablet, situada sobre el Dock y sin tapar accesos.
