@@ -40,6 +40,10 @@ internal fun infinityDockVisibleTaskLimit(availableWidthDp: Float): Int = when {
 internal fun infinityDockHiddenTaskCount(totalTasks: Int, visibleTasks: Int): Int =
     (totalTasks.coerceAtLeast(0) - visibleTasks.coerceAtLeast(0)).coerceAtLeast(0)
 
+/** Maximized and phone-adapted windows must not mutate their saved desktop geometry. */
+internal fun infinityWindowCanManipulateGeometry(isMaximized: Boolean, availableWidthDp: Float): Boolean =
+    !isMaximized && availableWidthDp.isFinite() && availableWidthDp >= 600f
+
 /** Dock tap toggles minimization only for the currently focused, visible task. */
 internal fun infinityDockTapMinimizes(taskId: String, currentFocusId: String?, minimized: Boolean): Boolean =
     !minimized && taskId == currentFocusId
