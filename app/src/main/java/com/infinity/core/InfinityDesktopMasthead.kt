@@ -31,10 +31,10 @@ import androidx.compose.ui.unit.sp
 internal fun InfinityDesktopMasthead(modifier: Modifier = Modifier) {
     BoxWithConstraints(modifier = modifier) {
         val compact = maxWidth < 760.dp
-        val logoWidth = (maxWidth * 0.56f).coerceIn(320.dp, 620.dp)
-        val logoHeight = logoWidth * 0.39f
-        val titleSize = if (compact) 44.sp else 60.sp
-        val ringWidth = logoWidth * 0.94f
+        val logoWidth = (maxWidth * 0.68f).coerceIn(280.dp, 700.dp)
+        val logoHeight = logoWidth * 0.44f
+        val titleSize = if (compact) 50.sp else 72.sp
+        val ringWidth = logoWidth * 1.04f
 
         Box(
             modifier = Modifier
