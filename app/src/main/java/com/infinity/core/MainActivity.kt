@@ -180,6 +180,19 @@ private fun Infinity08App() {
     var orbitOpen by remember { mutableStateOf(false) }
     var controlOpen by remember { mutableStateOf(false) }
     var advancedOpen by remember { mutableStateOf(false) }
+    var contextMenuExpanded by remember { mutableStateOf(false) }
+    var desktopIconsVisible by remember { mutableStateOf(prefs.getBoolean("desktop_icons_visible", true)) }
+    var desktopContextState by remember {
+        mutableStateOf(
+            InfinityDesktopContextState(
+                arrangement = runCatching {
+                    InfinityIconArrangement.valueOf(prefs.getString("desktop_icon_arrangement", "MANUAL") ?: "MANUAL")
+                }.getOrDefault(InfinityIconArrangement.MANUAL),
+                iconsVisible = prefs.getBoolean("desktop_icons_visible", true),
+                iconSizePx = prefs.getFloat("icon_size", 48f)
+            )
+        )
+    }
     var search by remember { mutableStateOf("") }
     var selectedFolder by remember {
         mutableStateOf(prefs.getString("selected_folder_uri", null)?.let(Uri::parse))
@@ -656,6 +669,68 @@ val iconOffsets = remember {
                 Text(dateText, color = InfinityMuted, fontSize = 10.sp)
             }
 
+            Box(Modifier.align(Alignment.TopStart).padding(start = 18.dp, top = 18.dp)) {
+                Box(
+                    Modifier
+                        .size(44.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(Color(0xCC173653))
+                        .border(1.dp, accent.copy(alpha = .55f), RoundedCornerShape(14.dp))
+                        .clickable { contextMenuExpanded = true }
+                        .padding(8.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("⋮", color = Color.White, fontSize = 25.sp, fontWeight = FontWeight.Bold)
+                }
+                InfinityDesktopContextMenu(
+                    expanded = contextMenuExpanded,
+                    iconsVisible = desktopIconsVisible,
+                    onDismiss = { contextMenuExpanded = false },
+                    onAction = { action ->
+                        val densityValue = density.density
+                        val records = desktopItems.mapIndexed { index, item ->
+                            InfinityDesktopIconRecord(
+                                id = item.id,
+                                label = item.label,
+                                type = when (item.id) {
+                                    "files" -> "folder"
+                                    "apps", "connect" -> "app"
+                                    else -> "system"
+                                },
+                                order = index
+                            )
+                        }
+                        val plan = infinityPlanDesktopContextCommand(
+                            state = desktopContextState,
+                            action = action,
+                            icons = records,
+                            viewportWidth = with(density) { maxW.toPx() },
+                            itemWidth = 116f * densityValue,
+                            itemHeight = 150f * densityValue,
+                            leftInset = 16f * densityValue,
+                            topInset = 118f * densityValue
+                        )
+                        desktopContextState = plan.nextState
+                        prefs.edit()
+                            .putString("desktop_icon_arrangement", plan.nextState.arrangement.name)
+                            .putBoolean("desktop_icons_visible", plan.nextState.iconsVisible)
+                            .putFloat("icon_size", plan.nextState.iconSizePx)
+                            .apply()
+                        desktopIconsVisible = plan.nextState.iconsVisible
+                        iconSize = infinityNormalizeIconSize(plan.nextState.iconSizePx)
+                        plan.placements?.forEach { (id, position) ->
+                            iconOffsets[id] = position
+                            prefs.edit().putFloat("${id}_x", position.x).putFloat("${id}_y", position.y).apply()
+                        }
+                        if (plan.requestWallpaperPicker) wallpaperPicker.launch(arrayOf("image/*"))
+                        if (plan.requestAppearancePanel) {
+                            focusedWindowId = openInfinityWindow("settings", windows, workspace, maxW.value, maxH.value)
+                        }
+                        if (plan.requestWorkspacePanel) dashboardOpen = true
+                    }
+                )
+            }
+
             if (dashboardOpen) {
                 InfinityRealDashboard(
                     workspace = workspace,
@@ -688,7 +763,7 @@ val iconOffsets = remember {
                     },
                     onShowDesktop = { dashboardOpen = false }
                 )
-            } else {
+            } else if (desktopIconsVisible) {
                 desktopItems.forEach { item ->
                     val offset = iconOffsets[item.id] ?: Offset(22f, 90f)
                     Column(
