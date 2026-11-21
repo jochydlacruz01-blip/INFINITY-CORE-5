@@ -33,6 +33,18 @@ class InfinityDesktopContextStateReducerTest {
         assertEquals(28f, small.iconSizePx)
     }
 
+    @Test fun invalidPersistedValuesAreSanitizedBeforeCommands() {
+        val initial = InfinityDesktopContextState(iconSizePx = Float.NaN, refreshToken = -4L)
+        val result = infinityReduceDesktopContextState(initial, InfinityDesktopContextAction.ICON_SIZE)
+        assertEquals(52f, result.iconSizePx)
+        assertEquals(0L, result.refreshToken)
+    }
+
+    @Test fun refreshTokenSaturatesInsteadOfOverflowing() {
+        val result = infinityReduceDesktopContextState(InfinityDesktopContextState(refreshToken = Long.MAX_VALUE), InfinityDesktopContextAction.REFRESH_LAYOUT)
+        assertEquals(Long.MAX_VALUE, result.refreshToken)
+    }
+
     @Test fun appearanceAndWallpaperActionsDoNotMutateReducerState() {
         val initial = InfinityDesktopContextState()
         assertEquals(initial, infinityReduceDesktopContextState(initial, InfinityDesktopContextAction.WALLPAPER))
