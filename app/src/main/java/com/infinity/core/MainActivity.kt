@@ -590,6 +590,8 @@ val iconOffsets = remember {
                     .border(1.dp, Color.White.copy(alpha = .07f), CircleShape)
             )
 
+            // Compact workspace branding is suppressed on the reference desktop to preserve its clean composition.
+            if (!(maxW >= 600.dp && futuristicDesktop && !dashboardOpen)) {
             Column(Modifier.align(Alignment.TopStart).padding(
                 start = 22.dp,
                 top = 18.dp
@@ -667,6 +669,7 @@ val iconOffsets = remember {
                 }
             }
 
+            }
             if (maxW >= 600.dp && !dashboardOpen && futuristicDesktop) {
                 InfinityReferenceClockPanel(
                     clock = clockText,
