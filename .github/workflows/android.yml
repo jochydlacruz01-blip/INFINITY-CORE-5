@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - INFINITY-0.9
+      - main
 
   workflow_dispatch:
 
