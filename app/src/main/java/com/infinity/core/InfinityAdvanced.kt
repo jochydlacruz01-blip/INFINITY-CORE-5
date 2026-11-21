@@ -385,7 +385,7 @@ fun InfinityAdvancedPanel(
 
             Text(
                 "INFINITY ADVANCED · MÓDULO 1",
-                color = muted,
+                color = AdvancedMuted,
                 fontSize = 9.sp
             )
         }
@@ -434,7 +434,7 @@ private fun AdvancedActionTile(
             )
             Text(
                 subtitle,
-                color = AdvancedMuted,
+                color = muted,
                 fontSize = 9.sp
             )
         }
