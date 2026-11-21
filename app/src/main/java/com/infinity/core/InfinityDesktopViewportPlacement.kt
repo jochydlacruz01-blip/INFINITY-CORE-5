@@ -52,10 +52,12 @@ internal fun infinityDesktopViewportPlacement(
         .coerceAtMost(uniqueIds.size.toLong()).toInt()
     val visibleIds = uniqueIds.take(capacity)
     val positions = visibleIds.mapIndexed { index, id ->
-        id to Offset(
-            left + (index % columns) * (cellWidth + gapX),
-            top + (index / columns) * (cellHeight + gapY)
-        )
+        val rawX = left + (index % columns) * (cellWidth + gapX)
+        val rawY = top + (index / columns) * (cellHeight + gapY)
+        // Keep the final geometry finite even when caller-supplied metrics are extreme.
+        val x = rawX.takeIf { it.isFinite() } ?: left
+        val y = rawY.takeIf { it.isFinite() } ?: top
+        id to Offset(x, y)
     }.toMap()
     return InfinityDesktopViewportPlacement(positions, uniqueIds.drop(capacity))
 }
