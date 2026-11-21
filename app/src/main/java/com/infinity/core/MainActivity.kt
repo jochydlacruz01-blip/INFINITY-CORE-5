@@ -197,7 +197,7 @@ private fun Infinity08App() {
     var themeChoice by remember {
         mutableStateOf(infinityNormalizeThemeChoice(prefs.getString("theme_choice", "midnight")))
     }
-    var iconPack by remember { mutableStateOf(prefs.getString("icon_pack", "infinity") ?: "infinity") }
+    var iconPack by remember { mutableStateOf(if (prefs.getString("icon_pack", "infinity") == "windows11") "windows11" else "infinity") }
     var backgroundPreset by remember { mutableStateOf(prefs.getString("background_preset", "nebula") ?: "nebula") }
     var appearance by remember {
         mutableStateOf(infinityNormalizeAppearance(prefs.getString("appearance", "dark")))
@@ -574,29 +574,9 @@ val iconOffsets = remember {
                     .border(1.dp, Color.White.copy(alpha = .07f), CircleShape)
             )
 
-            if (iconPack == "apple") {
-                Row(
-                    Modifier.fillMaxWidth()
-                        .align(Alignment.TopCenter)
-                        .height(34.dp)
-                        .background(Color(0xCC101722))
-                        .padding(horizontal = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    Text("●", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black)
-                    Text("Finder", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                    listOf("Archivo", "Edición", "Visualización", "Ventana", "Ayuda").forEach {
-                        Text(it, color = Color.White.copy(alpha = .88f), fontSize = 9.sp)
-                    }
-                    Spacer(Modifier.weight(1f))
-                    Text("$clockText", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Medium)
-                }
-            }
-
             Column(Modifier.align(Alignment.TopStart).padding(
                 start = 22.dp,
-                top = if (iconPack == "apple") 54.dp else 18.dp
+                top = 18.dp
             )) {
                 Text(
                     when (iconPack) {
@@ -1762,7 +1742,7 @@ Row(
                         }
                         Text("ESTILO DE ESCRITORIO", color = accent, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            listOf("infinity" to "INFINITY", "windows11" to "WINDOWS 11", "apple" to "macOS").forEach { (pack, label) ->
+                            listOf("infinity" to "INFINITY", "windows11" to "WINDOWS 11").forEach { (pack, label) ->
                                 FilterChip(selected = iconPack == pack, onClick = { iconPack = pack; prefs.edit().putString("icon_pack", pack).apply() }, label = { Text(label) })
                             }
                         }
