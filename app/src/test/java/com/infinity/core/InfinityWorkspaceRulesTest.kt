@@ -98,4 +98,34 @@ class InfinityWorkspaceRulesTest {
         assertEquals(900f, infinityNormalizeWindowDimension(1200f, 370f, 240f, 900f), 0f)
         assertEquals(330f, infinityNormalizeWindowDimension(Float.POSITIVE_INFINITY, 330f, 180f, 900f), 0f)
     }
+
+    @Test fun closingFocusedWindowMovesFocusToMostRecentVisibleWindowInSameWorkspace() {
+        assertEquals(
+            "notes_1",
+            infinityResolveFocusAfterWindowRemoval(
+                "files_1", "files_1",
+                listOf("files_1", "notes_1", "apps_2"),
+                mapOf("files_1" to 1, "notes_1" to 1, "apps_2" to 2),
+                emptySet(), 1
+            )
+        )
+    }
+
+    @Test fun closingWindowPreservesOtherValidFocusAndNeverFocusesMinimizedTasks() {
+        assertEquals(
+            "files_1",
+            infinityResolveFocusAfterWindowRemoval(
+                "notes_1", "files_1",
+                listOf("files_1", "notes_1"),
+                mapOf("files_1" to 1, "notes_1" to 1),
+                emptySet(), 1
+            )
+        )
+        assertNull(
+            infinityResolveFocusAfterWindowRemoval(
+                "files_1", "files_1", listOf("files_1"),
+                mapOf("files_1" to 1), setOf("files_1"), 1
+            )
+        )
+    }
 }

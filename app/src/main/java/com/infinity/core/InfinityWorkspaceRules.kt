@@ -114,3 +114,19 @@ internal fun infinityNormalizeWindowDimension(
     val safeFallback = fallback.takeIf { it.isFinite() } ?: lower
     return (value.takeIf { it.isFinite() } ?: safeFallback).coerceIn(lower, upper)
 }
+
+
+/** Keeps focus valid after closing a window, choosing the most recent visible task in the active workspace. */
+internal fun infinityResolveFocusAfterWindowRemoval(
+    removedId: String,
+    currentId: String?,
+    orderedIds: List<String>,
+    workspaceById: Map<String, Int>,
+    minimizedIds: Set<String>,
+    activeWorkspace: Int
+): String? {
+    val preferred = currentId?.takeIf { it != removedId }
+    return infinityResolveWorkspaceFocus(
+        preferred, orderedIds, workspaceById, minimizedIds, activeWorkspace
+    )
+}

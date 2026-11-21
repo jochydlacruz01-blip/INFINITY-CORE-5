@@ -1789,6 +1789,14 @@ Row(
                                                 windows.removeAll {
                                                     it.id == win.id
                                                 }
+                                                focusedWindowId = infinityResolveFocusAfterWindowRemoval(
+                                                    win.id,
+                                                    focusedWindowId,
+                                                    windows.map { it.id },
+                                                    windows.associate { it.id to it.workspace },
+                                                    windows.filter { it.minimized }.map { it.id }.toSet(),
+                                                    workspace
+                                                )
                                             }
                                         ) {
                                             Text(
