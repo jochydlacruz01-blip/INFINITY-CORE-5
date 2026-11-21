@@ -1805,16 +1805,24 @@ private fun DockAction(
             Modifier.size(36.dp)
                 .background(
                     Brush.linearGradient(listOf(tint.copy(alpha = .24f), tint.copy(alpha = .08f))),
-                    RoundedCornerShape(12.dp)
+                    RoundedCornerShape(when (desktopTheme) {
+                        "windows11" -> 8.dp
+                        "apple" -> 16.dp
+                        else -> 12.dp
+                    })
                 )
-                .border(1.dp, tint.copy(alpha = .58f), RoundedCornerShape(12.dp)),
+                .border(1.dp, tint.copy(alpha = .58f), RoundedCornerShape(when (desktopTheme) {
+                    "windows11" -> 8.dp
+                    "apple" -> 16.dp
+                    else -> 12.dp
+                })),
             contentAlignment = Alignment.Center
         ) {
             Text(glyph, color = tint, fontSize = 22.sp, fontWeight = FontWeight.Bold)
         }
         Text(
             description,
-            color = Color.White.copy(.94f),
+            color = if (desktopTheme == "apple") Color(0xFFF7F9FC) else Color.White.copy(.94f),
             fontSize = 8.sp,
             fontWeight = FontWeight.Bold,
             letterSpacing = .35.sp,
