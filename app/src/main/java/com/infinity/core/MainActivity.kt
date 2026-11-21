@@ -929,7 +929,7 @@ val iconOffsets = remember {
                     }
                 )
             ) {
-                DockAction("⌂", "HOME", accent, iconPack) {
+                DockAction("⌂", "HOME", accent, iconPack, compact = maxW < 390.dp) {
                     dashboardOpen = true
                     startOpen = false
                     orbitOpen = false
@@ -937,24 +937,27 @@ val iconOffsets = remember {
                     advancedOpen = false
                 }
 
-                DockAction("✦", "START", accent, iconPack) {
+                DockAction("✦", "START", accent, iconPack, compact = maxW < 390.dp) {
                     startOpen = !startOpen
                     orbitOpen = false
                     controlOpen = false
+                    advancedOpen = false
                 }
 
-                DockAction("◎", "ORBIT", Color(0xFFB69CFF), iconPack) {
+                DockAction("◎", "ORBIT", Color(0xFFB69CFF), iconPack, compact = maxW < 390.dp) {
                     orbitOpen = !orbitOpen
                     startOpen = false
                     controlOpen = false
+                    advancedOpen = false
                 }
 
-                DockAction("☷", "CONTROL", Color(0xFFFFC27A), iconPack) {
+                DockAction("☷", "CONTROL", Color(0xFFFFC27A), iconPack, compact = maxW < 390.dp) {
                     controlOpen = !controlOpen
                     startOpen = false
                     orbitOpen = false
+                    advancedOpen = false
                 }
-DockAction("▤", "ADVANCED", accent, iconPack) {
+DockAction("▤", "ADVANCED", accent, iconPack, compact = maxW < 390.dp) {
     advancedOpen = !advancedOpen
     startOpen = false
     orbitOpen = false
@@ -968,9 +971,9 @@ DockAction("▤", "ADVANCED", accent, iconPack) {
                 )
 
                 infinityWorkspaceWindowIds(windows.map { it.id }, windows.associate { it.id to it.workspace }, workspace).mapNotNull { id -> windows.firstOrNull { it.id == id } }.let { workspaceWindows ->
-                    infinityDockWindowIds(workspaceWindows.map { it.id }, workspaceWindows.associate { it.id to it.minimized }).forEach { taskId ->
+                    infinityDockWindowIds(workspaceWindows.map { it.id }, workspaceWindows.associate { it.id to it.minimized }).takeLast(if (maxW < 390.dp) 1 else 8).forEach { taskId ->
                         val task = workspaceWindows.firstOrNull { it.id == taskId } ?: return@forEach
-                        DockAction(if (task.minimized) "□" else "▣", infinityDockLabel(task.title), accent, iconPack) {
+                        DockAction(if (task.minimized) "□" else "▣", infinityDockLabel(task.title), accent, iconPack, compact = maxW < 390.dp) {
                             val idx = windows.indexOfFirst { it.id == task.id }
                             if (idx >= 0) {
                                 val tappedTask = windows[idx]
@@ -1019,6 +1022,7 @@ DockAction("▤", "ADVANCED", accent, iconPack) {
             if (startOpen) {
                 Card(
                     Modifier.then(if (iconPack == "windows11") Modifier.align(Alignment.BottomCenter) else Modifier.align(Alignment.BottomStart))
+                        .zIndex(15f)
                         .fillMaxWidth(0.94f)
                         .widthIn(max = 420.dp)
                         .padding(bottom = 84.dp)
@@ -1167,6 +1171,7 @@ DockAction("▤", "ADVANCED", accent, iconPack) {
                 }
                 Card(
                  Modifier.align(Alignment.TopCenter)
+    .zIndex(15f)
     .padding(start = 12.dp, end = 12.dp, top = 72.dp)
     .widthIn(max = 430.dp)
     // Reserve a fixed safe zone for the Dock; constrain the card itself,
@@ -1667,7 +1672,7 @@ Row(
                 }
                 Card(
                     Modifier.align(Alignment.TopEnd)
-                        .zIndex(10f)
+                        .zIndex(15f)
                         .padding(end = 14.dp, top = 76.dp, bottom = 112.dp)
                         .widthIn(max = 350.dp)
                         .heightIn(max = (maxH - 200.dp).coerceAtLeast(220.dp))
@@ -1776,9 +1781,9 @@ Row(
                 Box(
                     Modifier
                         .align(Alignment.TopEnd)
-                        .zIndex(10f)
-                        .padding(top = 76.dp, end = 14.dp, bottom = 112.dp)
-                        .widthIn(min = 300.dp, max = 430.dp)
+                        .zIndex(15f)
+                        .padding(top = 68.dp, end = 10.dp, bottom = 104.dp)
+                        .widthIn(max = 430.dp)
                         .fillMaxWidth()
                         .heightIn(max = (maxH - 200.dp).coerceAtLeast(220.dp))
                         .verticalScroll(rememberScrollState())
@@ -1799,23 +1804,24 @@ private fun DockAction(
     description: String,
     tint: Color,
     desktopTheme: String = "infinity",
+    compact: Boolean = false,
     onClick: () -> Unit
 ) {
     val actionRadius = if (desktopTheme == "windows11") 9.dp else 14.dp
     val actionSurface = if (desktopTheme == "windows11") Color(0xFF345574).copy(alpha = .48f) else Color.White.copy(alpha = .045f)
     Column(
         Modifier
-            .widthIn(min = 48.dp)
+            .widthIn(min = if (compact) 40.dp else 48.dp)
             .clip(RoundedCornerShape(actionRadius))
             .background(actionSurface, RoundedCornerShape(actionRadius))
             .border(1.dp, tint.copy(alpha = .22f), RoundedCornerShape(actionRadius))
             .clickable(onClick = onClick)
-            .padding(horizontal = 5.dp, vertical = 6.dp),
+            .padding(horizontal = if (compact) 2.dp else 5.dp, vertical = if (compact) 4.dp else 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Box(
-            Modifier.size(36.dp)
+            Modifier.size(if (compact) 30.dp else 36.dp)
                 .background(
                     Brush.linearGradient(listOf(tint.copy(alpha = .24f), tint.copy(alpha = .08f))),
                     RoundedCornerShape(if (desktopTheme == "windows11") 8.dp else 12.dp)
@@ -1825,15 +1831,17 @@ private fun DockAction(
         ) {
             Text(glyph, color = tint, fontSize = 22.sp, fontWeight = FontWeight.Bold)
         }
-        Text(
-            description,
-            color = Color.White.copy(.94f),
-            fontSize = 8.sp,
-            fontWeight = FontWeight.Bold,
-            letterSpacing = .35.sp,
-            maxLines = 1
-        )
-        Box(Modifier.width(18.dp).height(2.dp).background(tint.copy(alpha = .65f), RoundedCornerShape(2.dp)))
+        if (!compact) {
+            Text(
+                description,
+                color = Color.White.copy(.94f),
+                fontSize = 8.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = .35.sp,
+                maxLines = 1
+            )
+        }
+        Box(Modifier.width(if (compact) 12.dp else 18.dp).height(2.dp).background(tint.copy(alpha = .65f), RoundedCornerShape(2.dp)))
     }
 }
 
