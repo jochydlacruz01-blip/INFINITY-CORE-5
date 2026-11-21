@@ -860,13 +860,21 @@ val iconOffsets = remember {
                     .padding(horizontal = 12.dp, vertical = 12.dp)
                     .shadow(26.dp, RoundedCornerShape(24.dp))
                     .background(
-                        Color(0xF016263D),
-                        RoundedCornerShape(24.dp)
+                        when (iconPack) {
+                            "windows11" -> Color(0xE8243854)
+                            "apple" -> Color(0xE8DCE3ED)
+                            else -> Color(0xF016263D)
+                        },
+                        RoundedCornerShape(if (iconPack == "apple") 30.dp else 24.dp)
                     )
                     .border(
                         1.dp,
-                        Color(0xFF6686B5),
-                        RoundedCornerShape(24.dp)
+                        when (iconPack) {
+                            "windows11" -> Color(0xFF8BCBFA)
+                            "apple" -> Color(0xFFF7FAFF)
+                            else -> Color(0xFF6686B5)
+                        },
+                        RoundedCornerShape(if (iconPack == "apple") 30.dp else 24.dp)
                     )
                     .padding(
                         horizontal = if (maxW < 600.dp) 6.dp else 18.dp,
@@ -1596,8 +1604,16 @@ Row(
                         .verticalScroll(rememberScrollState())
                         .shadow(24.dp, RoundedCornerShape(26.dp)),
                     shape = RoundedCornerShape(26.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xF0142036)),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFFC27A).copy(alpha = .30f))
+                    colors = CardDefaults.cardColors(containerColor = when (iconPack) {
+                        "windows11" -> Color(0xF0273D58)
+                        "apple" -> Color(0xF0DCE3ED)
+                        else -> Color(0xF0142036)
+                    }),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, when (iconPack) {
+                        "windows11" -> Color(0xFF8BCBFA).copy(alpha = .65f)
+                        "apple" -> Color(0xFFFFFFFF).copy(alpha = .8f)
+                        else -> Color(0xFFFFC27A).copy(alpha = .30f)
+                    })
                 ) {
                     Column(Modifier.padding(16.dp)) {
                         Text("CONTROL CENTER", color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.Black)
