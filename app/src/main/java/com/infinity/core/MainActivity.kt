@@ -857,6 +857,7 @@ val iconOffsets = remember {
             Row(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
+                    .zIndex(20f)
                     .padding(horizontal = 12.dp, vertical = 12.dp)
                     .shadow(26.dp, RoundedCornerShape(24.dp))
                     .background(
@@ -1598,6 +1599,7 @@ Row(
             if (controlOpen) {
                 Card(
                     Modifier.align(Alignment.TopEnd)
+                        .zIndex(10f)
                         .padding(end = 14.dp, top = 76.dp, bottom = 112.dp)
                         .widthIn(min = 270.dp, max = 350.dp)
                         .heightIn(max = (maxH - 200.dp).coerceAtLeast(220.dp))
@@ -1656,9 +1658,9 @@ Row(
                                 }
                             }
                         }
-                        Text("PACK DE ICONOS", color = accent, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        Text("ESTILO DE ESCRITORIO", color = accent, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            listOf("infinity" to "INFINITY", "windows11" to "W11", "apple" to "APPLE").forEach { (pack, label) ->
+                            listOf("infinity" to "INFINITY", "windows11" to "WINDOWS 11", "apple" to "macOS").forEach { (pack, label) ->
                                 FilterChip(selected = iconPack == pack, onClick = { iconPack = pack; prefs.edit().putString("icon_pack", pack).apply() }, label = { Text(label) })
                             }
                         }
@@ -1714,6 +1716,7 @@ Row(
                 Box(
                     Modifier
                         .align(Alignment.TopEnd)
+                        .zIndex(10f)
                         .padding(top = 76.dp, end = 14.dp, bottom = 112.dp)
                         .widthIn(min = 300.dp, max = 430.dp)
                         .fillMaxWidth()
