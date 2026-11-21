@@ -20,6 +20,14 @@ class InfinityBatch11WorkspaceTest {
         assertEquals(1, infinityDockVisibleTaskLimit(-1f))
     }
 
+    @Test fun dockOverflowCountIsNeverNegative() {
+        assertEquals(0, infinityDockHiddenTaskCount(0, 0))
+        assertEquals(0, infinityDockHiddenTaskCount(3, 5))
+        assertEquals(2, infinityDockHiddenTaskCount(7, 5))
+        assertEquals(4, infinityDockHiddenTaskCount(4, 0))
+        assertEquals(0, infinityDockHiddenTaskCount(-3, 2))
+    }
+
     @Test fun workspaceSelectionIsBounded() {
         assertEquals(1, infinityNormalizeWorkspace(Int.MIN_VALUE))
         assertEquals(1, infinityNormalizeWorkspace(0))
