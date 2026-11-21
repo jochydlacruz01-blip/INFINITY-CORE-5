@@ -119,7 +119,7 @@ private fun InfinityAppBadge(item: DeskItem, size: androidx.compose.ui.unit.Dp, 
                         "windows11" -> listOf(Color(0xFFB9E4FF), Color(0xFF1687D9), Color(0xFF07549B))
                         else -> listOf(identity.copy(.36f), Color(0xFF142A43), Color(0xFF101827))
                     }
-                ), RoundedCornerShape(size * when (iconPack) { "infinity" -> .30f; "windows11" -> .22f; else -> .25f })
+                ), RoundedCornerShape(size * if (iconPack == "windows11") .22f else .25f)
             )
             .border(1.4.dp, if (iconPack == "windows11") Color(0xFFBDEBFF) else identity.copy(.82f), RoundedCornerShape(size * .25f)),
         contentAlignment = Alignment.Center
@@ -128,7 +128,7 @@ private fun InfinityAppBadge(item: DeskItem, size: androidx.compose.ui.unit.Dp, 
         Icon(
             imageVector = appIcon,
             contentDescription = item.label,
-            tint = when (iconPack) { "windows11" -> Color(0xFFF4FAFF); "infinity" -> Color(0xFFFFFFFF); else -> identity },
+            tint = if (iconPack == "windows11") Color(0xFFF4FAFF) else identity,
             modifier = Modifier.size(size * .53f)
         )
         Box(Modifier.align(Alignment.BottomEnd).padding(size * .10f).size(size * .10f).background(accent, CircleShape))
@@ -193,7 +193,7 @@ private fun Infinity08App() {
     var themeChoice by remember {
         mutableStateOf(infinityNormalizeThemeChoice(prefs.getString("theme_choice", "midnight")))
     }
-    var iconPack by remember { mutableStateOf(if (prefs.getString("icon_pack", "infinity") == "windows11") "windows11" else "infinity") }
+    var iconPack by remember { mutableStateOf(infinityNormalizeDesktopTheme(prefs.getString("icon_pack", "infinity"))) }
     var backgroundPreset by remember { mutableStateOf(prefs.getString("background_preset", "nebula") ?: "nebula") }
     var appearance by remember {
         mutableStateOf(infinityNormalizeAppearance(prefs.getString("appearance", "dark")))
@@ -647,8 +647,8 @@ val iconOffsets = remember {
             Column(
                 Modifier.align(Alignment.TopEnd).padding(18.dp)
                     .clip(RoundedCornerShape(20.dp))
-                    .background(when (iconPack) { "windows11" -> Color(0xCC173653); "infinity" -> Color(0xCC202A38); else -> Color(0xAA101D30) })
-                    .border(1.dp, when (iconPack) { "windows11" -> Color(0xFF8BCBFA).copy(.55f); "infinity" -> Color.White.copy(.42f); else -> accent.copy(alpha = .24f) }, RoundedCornerShape(20.dp))
+                    .background(if (iconPack == "windows11") Color(0xCC173653) else Color(0xAA101D30))
+                    .border(1.dp, if (iconPack == "windows11") Color(0xFF8BCBFA).copy(.55f) else accent.copy(alpha = .24f), RoundedCornerShape(20.dp))
                     .padding(horizontal = 16.dp, vertical = 12.dp),
                 horizontalAlignment = Alignment.End
             ) {
@@ -754,8 +754,8 @@ val iconOffsets = remember {
                             item.label,
                             modifier = Modifier
                                 .shadow(10.dp, RoundedCornerShape(12.dp))
-                                .background(Color(0xDD101D30), RoundedCornerShape(12.dp))
-                                .border(1.dp, accent.copy(alpha = 0.38f), RoundedCornerShape(12.dp))
+                                .background(if (iconPack == "windows11") Color(0xCC173653) else Color(0xDD101D30), RoundedCornerShape(if (iconPack == "windows11") 8.dp else 12.dp))
+                                .border(1.dp, if (iconPack == "windows11") Color(0xFF8BCBFA).copy(alpha = 0.38f) else accent.copy(alpha = 0.38f), RoundedCornerShape(if (iconPack == "windows11") 8.dp else 12.dp))
                                 .padding(horizontal = 9.dp, vertical = 6.dp),
                             color = Color.White,
                             fontSize = 10.sp,
@@ -906,7 +906,7 @@ val iconOffsets = remember {
                             "windows11" -> Color(0xF20B1829)
                             else -> Color(0xF016263D)
                         },
-                        RoundedCornerShape(when (iconPack) { "windows11" -> 0.dp; "infinity" -> 30.dp; else -> 24.dp })
+                        RoundedCornerShape(if (iconPack == "windows11") 0.dp else 24.dp)
                     )
                     .border(
                         if (iconPack == "windows11") 0.dp else 1.dp,
@@ -914,7 +914,7 @@ val iconOffsets = remember {
                             "windows11" -> Color.Transparent
                             else -> Color(0xFF6686B5)
                         },
-                        RoundedCornerShape(when (iconPack) { "windows11" -> 0.dp; "infinity" -> 30.dp; else -> 24.dp })
+                        RoundedCornerShape(if (iconPack == "windows11") 0.dp else 24.dp)
                     )
                     .padding(
                         horizontal = if (iconPack == "windows11") 12.dp else if (maxW < 600.dp) 6.dp else 18.dp,
@@ -1022,7 +1022,6 @@ DockAction("▤", "ADVANCED", accent, iconPack) {
                         .fillMaxWidth(0.94f)
                         .widthIn(max = 420.dp)
                         .padding(bottom = 84.dp)
-                        .widthIn(max = 420.dp)
                         .heightIn(max = (maxH - 116.dp).coerceAtLeast(220.dp))
                         .shadow(28.dp, RoundedCornerShape(28.dp)),
                     shape = RoundedCornerShape(if (iconPack == "windows11") 16.dp else 28.dp),
@@ -1153,7 +1152,7 @@ DockAction("▤", "ADVANCED", accent, iconPack) {
            
             // INFINITY ORBIT 0.9: centro de mando futurista.
             if (orbitOpen) {
-                val orbitRadius = when (iconPack) { "windows11" -> 16.dp; "infinity" -> 30.dp; else -> 24.dp }
+                val orbitRadius = if (iconPack == "windows11") 16.dp else 24.dp
                 val orbitSurface = when (iconPack) {
                     "windows11" -> Color(0xF0273D58)
                     else -> Color(0xF2101D30)
@@ -1657,7 +1656,7 @@ Row(
 
             // CONTROL CENTER: personalización, sin accesos de lanzamiento repetidos.
             if (controlOpen) {
-                val controlRadius = when (iconPack) { "windows11" -> 16.dp; "infinity" -> 30.dp; else -> 24.dp }
+                val controlRadius = if (iconPack == "windows11") 16.dp else 24.dp
                 val controlSurface = when (iconPack) {
                     "windows11" -> Color(0xF0273D58)
                     else -> Color(0xF0142036)
@@ -1722,7 +1721,7 @@ Row(
                         Text("ESTILO DE ESCRITORIO", color = accent, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             listOf("infinity" to "INFINITY", "windows11" to "WINDOWS 11").forEach { (pack, label) ->
-                                FilterChip(selected = iconPack == pack, onClick = { iconPack = pack; prefs.edit().putString("icon_pack", pack).apply() }, label = { Text(label) })
+                                FilterChip(selected = iconPack == pack, onClick = { val normalizedPack = infinityNormalizeDesktopTheme(pack); iconPack = normalizedPack; prefs.edit().putString("icon_pack", normalizedPack).apply() }, label = { Text(label) })
                             }
                         }
                         Text("FONDOS", color = accent, fontSize = 10.sp, fontWeight = FontWeight.Bold)
