@@ -1968,12 +1968,11 @@ private fun DockAction(
             .widthIn(min = if (compact) 40.dp else 48.dp)
             .semantics(mergeDescendants = true) {
                 contentDescription = description
-                role = Role.Button
             }
             .clip(RoundedCornerShape(actionRadius))
             .background(actionSurface, RoundedCornerShape(actionRadius))
             .border(1.dp, tint.copy(alpha = .22f), RoundedCornerShape(actionRadius))
-            .clickable(onClick = onClick)
+            .clickable(role = Role.Button, onClick = onClick)
             .padding(horizontal = if (compact) 2.dp else 5.dp, vertical = if (compact) 4.dp else 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp)
