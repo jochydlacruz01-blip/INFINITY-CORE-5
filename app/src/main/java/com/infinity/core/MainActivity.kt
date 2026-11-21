@@ -558,6 +558,14 @@ val iconOffsets = remember {
                 Box(Modifier.fillMaxSize().background(Color(0x66081729)))
             }
 
+            // Cabecera de marca para tablet; no sustituye los accesos ni el fondo elegido.
+            if (maxW >= 600.dp && !dashboardOpen) {
+                InfinityDesktopMasthead(
+                    modifier = Modifier.align(Alignment.TopCenter)
+                        .padding(top = 20.dp)
+                )
+            }
+
             // INFINITY AURORA DESKTOP — profundidad ambiental y anillos orbitales.
             Box(
                 Modifier.offset(x = maxW * .57f, y = maxH * .12f)
