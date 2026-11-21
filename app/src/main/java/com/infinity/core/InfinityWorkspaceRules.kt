@@ -36,6 +36,10 @@ internal fun infinityDockVisibleTaskLimit(availableWidthDp: Float): Int = when {
     else -> 5
 }
 
+/** Counts hidden task shortcuts without allowing invalid or negative counts. */
+internal fun infinityDockHiddenTaskCount(totalTasks: Int, visibleTasks: Int): Int =
+    (totalTasks.coerceAtLeast(0) - visibleTasks.coerceAtLeast(0)).coerceAtLeast(0)
+
 /** Dock tap toggles minimization only for the currently focused, visible task. */
 internal fun infinityDockTapMinimizes(taskId: String, currentFocusId: String?, minimized: Boolean): Boolean =
     !minimized && taskId == currentFocusId
