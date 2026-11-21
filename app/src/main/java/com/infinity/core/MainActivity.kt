@@ -192,9 +192,9 @@ private fun InfinityApp() {
             Box(Modifier.offset(x = maxW * .58f, y = maxH * .12f).size(240.dp)
                 .background(accentColor.copy(alpha = .08f), CircleShape))
             Column(Modifier.align(Alignment.TopStart).padding(start = 18.dp, top = 14.dp)) {
-                Text("INFINITY", color = Color.White.copy(alpha = .20f), fontSize = 34.sp,
+                Text("INFINITY", color = Color.White.copy(alpha = .78f), fontSize = 34.sp,
                     fontWeight = FontWeight.Black, letterSpacing = 5.sp)
-                Text("CORE 0.5  •  WORKSPACE $workspace", color = Muted.copy(alpha = .65f),
+                Text("PORTABLE PC  •  WORKSPACE $workspace", color = Muted.copy(alpha = .88f),
                     fontSize = 10.sp, letterSpacing = 2.sp)
             }
 
@@ -299,8 +299,8 @@ private fun InfinityApp() {
                     Icon(Icons.Default.GridView, contentDescription = "Inicio", tint = accentColor)
                 }
                 Column(Modifier.weight(1f)) {
-                    Text("INFINITY", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                    Text("Sistema de escritorio", color = Muted, fontSize = 10.sp)
+                    Text("PROJECT INFINITY", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    Text("PORTABLE PC", color = accentColor, fontSize = 10.sp, letterSpacing = 1.sp)
                 }
                 windows.filter { it.workspace == workspace }.forEach { win ->
                     TextButton(onClick = {
