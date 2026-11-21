@@ -9,7 +9,12 @@ class InfinityConnectTextInputRulesTest {
         val text = "Hola 🌎🚀"
         val chunks = InfinityConnectTextInputRules.chunk(text, 2)
         assertEquals(text, chunks.joinToString("") { it.text })
-        assertTrue(chunks.all { it.text.none { c -> c.isHighSurrogate() && (it.text.indexOf(c)+1 >= it.text.length || !it.text[it.text.indexOf(c)+1].isLowSurrogate()) } })
+        chunks.forEach { chunk ->
+            for (i in chunk.text.indices) {
+                if (chunk.text[i].isHighSurrogate()) assertTrue(i + 1 < chunk.text.length && chunk.text[i + 1].isLowSurrogate())
+                if (chunk.text[i].isLowSurrogate()) assertTrue(i > 0 && chunk.text[i - 1].isHighSurrogate())
+            }
+        }
     }
     @Test fun chunksRespectCodePointLimit() {
         val chunks = InfinityConnectTextInputRules.chunk("a😀b🚀c", 2)
