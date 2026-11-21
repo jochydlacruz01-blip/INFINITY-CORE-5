@@ -1121,6 +1121,18 @@ DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED"
                 }
 
                 Column(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(10.dp))
+                        .clickable(role = Role.Button) {
+                            controlOpen = !controlOpen
+                            startOpen = false
+                            orbitOpen = false
+                            advancedOpen = false
+                        }
+                        .padding(horizontal = 10.dp, vertical = 5.dp)
+                        .semantics(mergeDescendants = true) {
+                            contentDescription = "Hora y fecha. Abrir centro de control"
+                        },
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
@@ -1130,10 +1142,11 @@ DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED"
                         fontWeight = FontWeight.SemiBold
                     )
                     Text(
-                        "INFINITY",
-                        color = Color(0xFF9DB9E8),
+                        dateText,
+                        color = Color(0xFFB7CBE7),
                         fontSize = 8.sp,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 1
                     )
                 }
             }
