@@ -116,7 +116,9 @@ fun InfinityAdvancedPanel(
                     modifier = Modifier.weight(1f),
                     glyph = "◉",
                     title = "Wi-Fi",
-                    subtitle = "Redes e Internet"
+                    subtitle = "Redes e Internet",
+                    accent = AdvancedAccent,
+                    muted = AdvancedMuted
                 ) {
                     openAdvancedSettings(context, Settings.ACTION_WIFI_SETTINGS)
                 }
@@ -125,7 +127,9 @@ fun InfinityAdvancedPanel(
                     modifier = Modifier.weight(1f),
                     glyph = "ᛒ",
                     title = "Bluetooth",
-                    subtitle = "Dispositivos"
+                    subtitle = "Dispositivos",
+                    accent = AdvancedAccent,
+                    muted = AdvancedMuted
                 ) {
                     openAdvancedSettings(context, Settings.ACTION_BLUETOOTH_SETTINGS)
                 }
@@ -139,7 +143,9 @@ fun InfinityAdvancedPanel(
                     modifier = Modifier.weight(1f),
                     glyph = "☼",
                     title = "Pantalla",
-                    subtitle = "Brillo y visualización"
+                    subtitle = "Brillo y visualización",
+                    accent = AdvancedAccent,
+                    muted = AdvancedMuted
                 ) {
                     openAdvancedSettings(context, Settings.ACTION_DISPLAY_SETTINGS)
                 }
@@ -148,7 +154,9 @@ fun InfinityAdvancedPanel(
                     modifier = Modifier.weight(1f),
                     glyph = "♫",
                     title = "Sonido",
-                    subtitle = "Volumen y audio"
+                    subtitle = "Volumen y audio",
+                    accent = AdvancedAccent,
+                    muted = AdvancedMuted
                 ) {
                     openAdvancedSettings(context, Settings.ACTION_SOUND_SETTINGS)
                 }
@@ -366,6 +374,8 @@ private fun AdvancedActionTile(
     glyph: String,
     title: String,
     subtitle: String,
+    accent: Color,
+    muted: Color,
     onClick: () -> Unit
 ) {
     Card(
