@@ -347,6 +347,7 @@ fun InfinityConnectPanel() {
                                 OutlinedButton(
                                     onClick = {
                                         profiles.remove(profile)
+                                        credentialVault.delete(profile.address)
                                         saveInfinityProfiles(context, profiles)
                                         notifyUser("Perfil eliminado")
                                     },
