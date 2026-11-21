@@ -938,15 +938,14 @@ val iconOffsets = remember {
                         onLaunchApp = ::launchApp,
                         onClose = {
                             windows.removeAll { item -> item.id == win.id }
-                            if (focusedWindowId == win.id) {
-                                focusedWindowId = infinityResolveWorkspaceFocus(
-                                    focusedWindowId,
-                                    windows.map { it.id },
-                                    windows.associate { it.id to it.workspace },
-                                    windows.filter { it.minimized }.map { it.id }.toSet(),
-                                    workspace
-                                )
-                            }
+                            focusedWindowId = infinityResolveFocusAfterWindowRemoval(
+                                win.id,
+                                focusedWindowId,
+                                windows.map { it.id },
+                                windows.associate { it.id to it.workspace },
+                                windows.filter { it.minimized }.map { it.id }.toSet(),
+                                workspace
+                            )
                         },
                         onMinimize = {
                             val index = windows.indexOfFirst { it.id == win.id }
