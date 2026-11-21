@@ -1947,7 +1947,8 @@ private fun DockAction(
     val actionSurface = if (referenceStyle) Color.Transparent else if (desktopTheme == "windows11") Color(0xFF345574).copy(alpha = .48f) else Color.White.copy(alpha = .045f)
     Column(
         Modifier
-            .widthIn(min = if (referenceStyle) 42.dp else if (compact) 40.dp else 48.dp)
+            // Tablet reference dock keeps every primary action comfortably touchable.
+            .widthIn(min = if (referenceStyle) 48.dp else if (compact) 40.dp else 48.dp)
             .semantics(mergeDescendants = true) {
                 contentDescription = description
             }
@@ -1955,12 +1956,12 @@ private fun DockAction(
             .background(actionSurface, RoundedCornerShape(actionRadius))
             .then(if (referenceStyle) Modifier else Modifier.border(1.dp, tint.copy(alpha = .22f), RoundedCornerShape(actionRadius)))
             .clickable(role = Role.Button, onClick = onClick)
-            .padding(horizontal = if (referenceStyle) 2.dp else if (compact) 2.dp else 5.dp, vertical = if (referenceStyle) 2.dp else if (compact) 4.dp else 6.dp),
+            .padding(horizontal = if (referenceStyle) 4.dp else if (compact) 2.dp else 5.dp, vertical = if (referenceStyle) 4.dp else if (compact) 4.dp else 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Box(
-            Modifier.size(if (referenceStyle) 38.dp else if (compact) 30.dp else 36.dp)
+            Modifier.size(if (referenceStyle) 40.dp else if (compact) 30.dp else 36.dp)
                 .background(
                     Brush.linearGradient(listOf(tint.copy(alpha = .24f), tint.copy(alpha = .08f))),
                     RoundedCornerShape(if (desktopTheme == "windows11") 8.dp else 12.dp)
