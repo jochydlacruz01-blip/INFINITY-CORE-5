@@ -118,7 +118,13 @@ fun InfinityAdvancedPanel(
                     title = "Wi-Fi",
                     subtitle = "Redes e Internet",
                     accent = AdvancedAccent,
-                    muted = AdvancedMuted
+                    muted = AdvancedMuted,
+                    tileSurface = when (desktopTheme) {
+                        "windows11" -> Color(0xFF24496B)
+                        "apple" -> Color(0xFF414B5B)
+                        else -> Color(0xFF203A57)
+                    },
+                    desktopTheme = desktopTheme
                 ) {
                     openAdvancedSettings(context, Settings.ACTION_WIFI_SETTINGS)
                 }
@@ -361,7 +367,7 @@ fun InfinityAdvancedPanel(
 
             Text(
                 "INFINITY ADVANCED · MÓDULO 1",
-                color = AdvancedMuted,
+                color = muted,
                 fontSize = 9.sp
             )
         }
@@ -376,14 +382,20 @@ private fun AdvancedActionTile(
     subtitle: String,
     accent: Color,
     muted: Color,
+    tileSurface: Color,
+    desktopTheme: String,
     onClick: () -> Unit
 ) {
     Card(
         onClick = onClick,
         modifier = modifier,
-        shape = RoundedCornerShape(17.dp),
+        shape = RoundedCornerShape(when (desktopTheme) {
+            "windows11" -> 12.dp
+            "apple" -> 22.dp
+            else -> 17.dp
+        }),
         colors = CardDefaults.cardColors(
-            containerColor = Color(0xFF203A57)
+            containerColor = tileSurface
         )
     ) {
         Column(
@@ -392,7 +404,7 @@ private fun AdvancedActionTile(
         ) {
             Text(
                 glyph,
-                color = AdvancedAccent,
+                color = accent,
                 fontSize = 23.sp,
                 fontWeight = FontWeight.Bold
             )
