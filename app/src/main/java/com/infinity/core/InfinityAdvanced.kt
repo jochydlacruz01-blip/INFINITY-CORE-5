@@ -135,7 +135,13 @@ fun InfinityAdvancedPanel(
                     title = "Bluetooth",
                     subtitle = "Dispositivos",
                     accent = AdvancedAccent,
-                    muted = AdvancedMuted
+                    muted = AdvancedMuted,
+                    tileSurface = when (desktopTheme) {
+                        "windows11" -> Color(0xFF24496B)
+                        "apple" -> Color(0xFF414B5B)
+                        else -> Color(0xFF203A57)
+                    },
+                    desktopTheme = desktopTheme
                 ) {
                     openAdvancedSettings(context, Settings.ACTION_BLUETOOTH_SETTINGS)
                 }
@@ -151,7 +157,13 @@ fun InfinityAdvancedPanel(
                     title = "Pantalla",
                     subtitle = "Brillo y visualización",
                     accent = AdvancedAccent,
-                    muted = AdvancedMuted
+                    muted = AdvancedMuted,
+                    tileSurface = when (desktopTheme) {
+                        "windows11" -> Color(0xFF24496B)
+                        "apple" -> Color(0xFF414B5B)
+                        else -> Color(0xFF203A57)
+                    },
+                    desktopTheme = desktopTheme
                 ) {
                     openAdvancedSettings(context, Settings.ACTION_DISPLAY_SETTINGS)
                 }
@@ -162,7 +174,13 @@ fun InfinityAdvancedPanel(
                     title = "Sonido",
                     subtitle = "Volumen y audio",
                     accent = AdvancedAccent,
-                    muted = AdvancedMuted
+                    muted = AdvancedMuted,
+                    tileSurface = when (desktopTheme) {
+                        "windows11" -> Color(0xFF24496B)
+                        "apple" -> Color(0xFF414B5B)
+                        else -> Color(0xFF203A57)
+                    },
+                    desktopTheme = desktopTheme
                 ) {
                     openAdvancedSettings(context, Settings.ACTION_SOUND_SETTINGS)
                 }
