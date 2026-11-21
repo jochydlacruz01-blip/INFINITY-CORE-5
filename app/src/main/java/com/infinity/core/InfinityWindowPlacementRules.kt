@@ -18,3 +18,37 @@ internal fun infinityInitialWindowSize(viewportWidth: Float, viewportHeight: Flo
     val height = safe(preferredHeight).let { if (it.isFinite()) it.coerceAtLeast(1f) else 1f }.coerceAtMost(availableHeight)
     return width to height
 }
+
+
+/** Clamp a window's top-left position after movement to keep its full bounds visible. */
+internal fun infinityClampWindowPosition(
+    x: Float,
+    y: Float,
+    windowWidth: Float,
+    windowHeight: Float,
+    viewportWidth: Float,
+    viewportHeight: Float
+): Pair<Float, Float> {
+    val maxX = (viewportWidth - windowWidth).coerceAtLeast(0f)
+    val maxY = (viewportHeight - windowHeight).coerceAtLeast(0f)
+    return x.coerceIn(0f, maxX) to y.coerceIn(0f, maxY)
+}
+
+/** Normalized geometry for a restored window, ensuring it remains reachable on a changed viewport. */
+internal data class InfinityWindowBounds(val x: Float, val y: Float, val width: Float, val height: Float)
+
+internal fun infinityNormalizeWindowBounds(
+    x: Float, y: Float, width: Float, height: Float,
+    viewportWidth: Float, viewportHeight: Float,
+    minWidth: Float = 240f, minHeight: Float = 180f,
+    margin: Float = 16f
+): InfinityWindowBounds {
+    val availableWidth = (viewportWidth - margin).coerceAtLeast(1f)
+    val availableHeight = (viewportHeight - margin).coerceAtLeast(1f)
+    val safeWidth = width.coerceIn(minWidth.coerceAtMost(availableWidth), availableWidth)
+    val safeHeight = height.coerceIn(minHeight.coerceAtMost(availableHeight), availableHeight)
+    val (safeX, safeY) = infinityClampWindowPosition(
+        x, y, safeWidth, safeHeight, viewportWidth, viewportHeight
+    )
+    return InfinityWindowBounds(safeX, safeY, safeWidth, safeHeight)
+}

@@ -19,3 +19,51 @@ internal fun infinityCanonicalWindowKind(kind: String?): String? {
 /** Builds a stable identity only from a usable canonical window kind. */
 internal fun infinitySafeWindowIdentity(kind: String?, workspace: Int): String? =
     infinityCanonicalWindowKind(kind)?.let { infinityWindowIdentity(it, workspace) }
+
+/** Keep current focus when valid; otherwise activate the most recently listed eligible window. */
+internal fun infinityResolveFocusedWindow(currentId: String?, eligibleIds: List<String>): String? =
+    currentId?.takeIf { it in eligibleIds } ?: eligibleIds.lastOrNull()
+
+/** Dock task list only includes windows belonging to the active workspace. */
+internal fun infinityDockWindowIds(windowIds: List<String>, minimizedById: Map<String, Boolean>): List<String> =
+    windowIds.filter { it in minimizedById.keys }
+
+/** Dock tap toggles minimization only for the currently focused, visible task. */
+internal fun infinityDockTapMinimizes(taskId: String, currentFocusId: String?, minimized: Boolean): Boolean =
+    !minimized && taskId == currentFocusId
+
+/** Compact, readable Dock labels: normalize whitespace and add an ellipsis when needed. */
+internal fun infinityDockLabel(title: String, maxLength: Int = 10): String {
+    val clean = title.trim().replace(Regex("\\s+"), " ")
+    val limit = maxLength.coerceAtLeast(2)
+    return if (clean.length <= limit) clean.uppercase(java.util.Locale.ROOT)
+    else clean.take(limit - 1).trimEnd().uppercase(java.util.Locale.ROOT) + "…"
+}
+
+/** Filters desktop window IDs to the requested normalized workspace. */
+internal fun infinityWorkspaceWindowIds(windowIds: List<String>, workspaceById: Map<String, Int>, activeWorkspace: Int): List<String> {
+    val target = infinityNormalizeWorkspace(activeWorkspace)
+    return windowIds.filter { id -> workspaceById[id]?.let(::infinityNormalizeWorkspace) == target }
+}
+
+/** Selects focus only among non-minimized windows in the normalized target workspace. */
+internal fun infinityResolveWorkspaceFocus(
+    currentId: String?,
+    orderedIds: List<String>,
+    workspaceById: Map<String, Int>,
+    minimizedIds: Set<String>,
+    targetWorkspace: Int
+): String? {
+    val eligible = infinityWorkspaceWindowIds(orderedIds, workspaceById, targetWorkspace)
+        .filterNot { it in minimizedIds }
+    return infinityResolveFocusedWindow(currentId, eligible)
+}
+
+/** Dock activation policy: restore minimized or unfocused tasks; minimize only the focused visible task. */
+internal fun infinityDockResolveActivation(taskId: String, currentFocusId: String?, minimized: Boolean): String? =
+    if (minimized || taskId != currentFocusId) taskId else null
+
+/** Focus fallback for workspace switching: retain focus only if eligible in the target space. */
+internal fun infinityResolveWorkspaceSwitchFocus(
+    currentId: String?, orderedIds: List<String>, workspaceById: Map<String, Int>, minimizedIds: Set<String>, targetWorkspace: Int
+): String? = infinityResolveWorkspaceFocus(currentId, orderedIds, workspaceById, minimizedIds, targetWorkspace)

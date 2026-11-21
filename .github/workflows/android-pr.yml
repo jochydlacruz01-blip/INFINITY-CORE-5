@@ -4,13 +4,16 @@ on:
   pull_request:
     branches:
       - INFINITY-0.9
+  push:
+    branches:
+      - INFINITY-AURORA-NEXT-INTEGRATED
 
 permissions:
   contents: read
 
 concurrency:
   group: infinity-pr-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   verify:
@@ -50,14 +53,16 @@ jobs:
       - name: Run Android lint for Debug and Release
         run: gradle lintDebug lintRelease --stacktrace
 
-      - name: Build debug APK
-        run: gradle assembleDebug --stacktrace
+      - name: Build Debug and Release APKs
+        run: gradle assembleDebug assembleRelease --stacktrace
 
-      - name: Upload pull request debug APK
+      - name: Upload pull request APKs
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: INFINITY-PR-DEBUG-APK-${{ github.event.pull_request.number }}
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: INFINITY-APKS-${{ github.run_number }}
+          path: |
+            app/build/outputs/apk/debug/app-debug.apk
+            app/build/outputs/apk/release/app-release-unsigned.apk
           if-no-files-found: error
           retention-days: 5

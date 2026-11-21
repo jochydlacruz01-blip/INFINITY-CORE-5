@@ -9,16 +9,20 @@ import android.net.Uri
 import android.os.Bundle
 import android.provider.DocumentsContract
 import android.widget.Toast
+import org.json.JSONArray
+import org.json.JSONObject
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -46,10 +50,10 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -90,7 +94,7 @@ class MainActivity : ComponentActivity() {
 private data class DeskItem(val id: String, val label: String, val glyph: String)
 
 @Composable
-private fun InfinityAppBadge(item: DeskItem, size: androidx.compose.ui.unit.Dp, accent: Color) {
+private fun InfinityAppBadge(item: DeskItem, size: androidx.compose.ui.unit.Dp, accent: Color, iconPack: String = "infinity") {
     val identity = when (item.id) {
         "files" -> Color(0xFF48B5FF)
         "notes" -> Color(0xFFFFC66D)
@@ -108,16 +112,23 @@ private fun InfinityAppBadge(item: DeskItem, size: androidx.compose.ui.unit.Dp, 
         else -> Icons.Filled.Info
     }
     Box(
-        Modifier.size(size).shadow(14.dp, RoundedCornerShape(size * .25f))
-            .background(Brush.linearGradient(listOf(identity.copy(.36f), Color(0xFF142A43), Color(0xFF101827))), RoundedCornerShape(size * .25f))
-            .border(1.4.dp, identity.copy(.82f), RoundedCornerShape(size * .25f)),
+        Modifier.size(size).shadow(14.dp, RoundedCornerShape(size * if (iconPack == "windows11") .22f else .25f))
+            .background(
+                Brush.linearGradient(
+                    when (iconPack) {
+                        "windows11" -> listOf(Color(0xFFB9E4FF), Color(0xFF1687D9), Color(0xFF07549B))
+                        else -> listOf(identity.copy(.36f), Color(0xFF142A43), Color(0xFF101827))
+                    }
+                ), RoundedCornerShape(size * if (iconPack == "windows11") .22f else .25f)
+            )
+            .border(1.4.dp, if (iconPack == "windows11") Color(0xFFBDEBFF) else identity.copy(.82f), RoundedCornerShape(size * .25f)),
         contentAlignment = Alignment.Center
     ) {
         Box(Modifier.fillMaxSize().padding(size * .12f).border(1.dp, Color.White.copy(.08f), RoundedCornerShape(size * .2f)))
         Icon(
             imageVector = appIcon,
             contentDescription = item.label,
-            tint = identity,
+            tint = if (iconPack == "windows11") Color(0xFFF4FAFF) else identity,
             modifier = Modifier.size(size * .53f)
         )
         Box(Modifier.align(Alignment.BottomEnd).padding(size * .10f).size(size * .10f).background(accent, CircleShape))
@@ -163,12 +174,25 @@ private fun Infinity08App() {
         )
     }
 
-    var workspace by remember { mutableIntStateOf(1) }
+    var workspace by remember { mutableIntStateOf(infinityNormalizeWorkspace(prefs.getInt("active_workspace", 1))) }
     var dashboardOpen by remember { mutableStateOf(false) }
     var startOpen by remember { mutableStateOf(false) }
     var orbitOpen by remember { mutableStateOf(false) }
     var controlOpen by remember { mutableStateOf(false) }
     var advancedOpen by remember { mutableStateOf(false) }
+    var contextMenuExpanded by remember { mutableStateOf(false) }
+    var desktopIconsVisible by remember { mutableStateOf(prefs.getBoolean("desktop_icons_visible", true)) }
+    var desktopContextState by remember {
+        mutableStateOf(
+            InfinityDesktopContextState(
+                arrangement = runCatching {
+                    InfinityIconArrangement.valueOf(prefs.getString("desktop_icon_arrangement", "MANUAL") ?: "MANUAL")
+                }.getOrDefault(InfinityIconArrangement.MANUAL),
+                iconsVisible = prefs.getBoolean("desktop_icons_visible", true),
+                iconSizePx = prefs.getFloat("icon_size", 48f)
+            )
+        )
+    }
     var search by remember { mutableStateOf("") }
     var selectedFolder by remember {
         mutableStateOf(prefs.getString("selected_folder_uri", null)?.let(Uri::parse))
@@ -182,6 +206,10 @@ private fun Infinity08App() {
     var themeChoice by remember {
         mutableStateOf(infinityNormalizeThemeChoice(prefs.getString("theme_choice", "midnight")))
     }
+    var iconPack by remember { mutableStateOf(infinityNormalizeDesktopTheme(prefs.getString("icon_pack", "infinity"))) }
+    var backgroundPreset by remember { mutableStateOf(prefs.getString("background_preset", "nebula") ?: "nebula") }
+    var desktopPreset by remember { mutableStateOf(infinityNormalizeWallpaperPreset(prefs.getString("desktop_wallpaper_preset", "futuristic"))) }
+    val futuristicDesktop = desktopPreset == InfinityDesktopWallpaperPreset.FUTURISTIC
     var appearance by remember {
         mutableStateOf(infinityNormalizeAppearance(prefs.getString("appearance", "dark")))
     }
@@ -311,13 +339,73 @@ private fun Infinity08App() {
         }
     }
 
-    val windows = remember { mutableStateListOf<DeskWindow>() }
+    val windows = remember {
+        mutableStateListOf<DeskWindow>().apply {
+            val saved = prefs.getString("saved_windows", null)
+            try {
+                val array = JSONArray(saved ?: "[]")
+                for (i in 0 until array.length()) {
+                    val item = array.optJSONObject(i) ?: continue
+                    val kind = item.optString("kind")
+                    if (kind !in setOf("files", "notes", "apps", "connect", "settings", "about")) continue
+                    add(
+                        DeskWindow(
+                            id = item.optString("id", infinityWindowIdentity(kind, 1)),
+                            title = item.optString("title", kind),
+                            kind = kind,
+                            x = item.optDouble("x", 24.0).toFloat(),
+                            y = item.optDouble("y", 100.0).toFloat(),
+                            width = item.optDouble("width", 370.0).toFloat().coerceIn(240f, 900f),
+                            height = item.optDouble("height", 330.0).toFloat().coerceIn(180f, 900f),
+                            minimized = item.optBoolean("minimized", false),
+                            workspace = infinityNormalizeWorkspace(item.optInt("workspace", 1)),
+                            maximized = item.optBoolean("maximized", false)
+                        )
+                    )
+                }
+            } catch (_: Exception) {
+                clear()
+                prefs.edit().remove("saved_windows").apply()
+            }
+        }
+    }
 
-    var focusedWindowId by remember { mutableStateOf<String?>(null) }
+    val windowSnapshot = windows.joinToString("|") {
+        "${it.id},${it.x},${it.y},${it.width},${it.height},${it.minimized},${it.workspace},${it.maximized}"
+    }
+    LaunchedEffect(windowSnapshot) {
+        val array = JSONArray()
+        windows.forEach { win ->
+            array.put(
+                JSONObject().put("id", win.id).put("title", win.title).put("kind", win.kind)
+                    .put("x", win.x).put("y", win.y).put("width", win.width).put("height", win.height)
+                    .put("minimized", win.minimized).put("workspace", win.workspace)
+                    .put("maximized", win.maximized)
+            )
+        }
+        prefs.edit().putString("saved_windows", array.toString()).apply()
+    }
+
+    var focusedWindowId by remember {
+        mutableStateOf(prefs.getString("focused_window_id", null)?.takeIf { savedId ->
+            windows.any { it.id == savedId && !it.minimized && it.workspace == workspace }
+        })
+    }
+    LaunchedEffect(focusedWindowId) {
+        val id = focusedWindowId
+        if (id == null) prefs.edit().remove("focused_window_id").apply()
+        else prefs.edit().putString("focused_window_id", id).apply()
+    }
 
     fun switchWorkspace(target: Int) {
-        workspace = infinityNormalizeWorkspace(target)
-        focusedWindowId = null
+        val normalizedTarget = infinityNormalizeWorkspace(target)
+        workspace = normalizedTarget
+        prefs.edit().putInt("active_workspace", normalizedTarget).apply()
+        focusedWindowId = infinityResolveWorkspaceSwitchFocus(
+            focusedWindowId, windows.map { it.id },
+            windows.associate { it.id to it.workspace },
+            windows.filter { it.minimized }.map { it.id }.toSet(), normalizedTarget
+        )
         startOpen = false
         orbitOpen = false
         controlOpen = false
@@ -330,8 +418,20 @@ val iconOffsets = remember {
             put(
                     item.id,
                     Offset(
-                        prefs.getFloat("${item.id}_x", 22f + (index % 2) * 112f),
-                        prefs.getFloat("${item.id}_y", 104f + (index / 2) * 112f)
+                        prefs.getFloat("${item.id}_x", infinityDesktopIconGridOffset(
+                            index, context.resources.displayMetrics.widthPixels.toFloat(),
+                            116f * context.resources.displayMetrics.density, 150f * context.resources.displayMetrics.density,
+                            horizontalGap = 12f * context.resources.displayMetrics.density,
+                            verticalGap = 14f * context.resources.displayMetrics.density,
+                            topInset = 118f * context.resources.displayMetrics.density
+                        ).x),
+                        prefs.getFloat("${item.id}_y", infinityDesktopIconGridOffset(
+                            index, context.resources.displayMetrics.widthPixels.toFloat(),
+                            116f * context.resources.displayMetrics.density, 150f * context.resources.displayMetrics.density,
+                            horizontalGap = 12f * context.resources.displayMetrics.density,
+                            verticalGap = 14f * context.resources.displayMetrics.density,
+                            topInset = 118f * context.resources.displayMetrics.density
+                        ).y)
                     )
                 )
             }
@@ -370,9 +470,15 @@ val iconOffsets = remember {
                 .windowInsetsPadding(WindowInsets.safeDrawing)
                 .background(
                 Brush.linearGradient(
-                    if (lightMode) listOf(
-                        Color(0xFFEAF1FA), Color(0xFFD4E2F2), Color(0xFFB9CDE2)
-                    ) else listOf(Color(0xFF102238), Color(0xFF1C3B59), InfinityInk)
+                    when {
+                        iconPack == "windows11" -> if (lightMode)
+                            listOf(Color(0xFFEAF4FF), Color(0xFFB7D8F7), Color(0xFF6FA9DE))
+                            else listOf(Color(0xFF020B1A), Color(0xFF073A70), Color(0xFF06152B))
+                        backgroundPreset == "punk" -> listOf(Color(0xFF24051F), Color(0xFF631B43), Color(0xFF102338))
+                        backgroundPreset == "interstellar" -> listOf(Color(0xFF030713), Color(0xFF17265D), Color(0xFF46246A))
+                        backgroundPreset == "aurora" -> listOf(Color(0xFF062E36), Color(0xFF174E60), Color(0xFF102238))
+                        else -> if (lightMode) listOf(Color(0xFFEAF1FA), Color(0xFFD4E2F2), Color(0xFFB9CDE2)) else listOf(Color(0xFF030A17), Color(0xFF102A49), Color(0xFF08111F))
+                    }
                 )
             )
         ) {
@@ -387,7 +493,9 @@ val iconOffsets = remember {
                 desktopItems.forEach { item ->
                     val current = iconOffsets[item.id] ?: Offset(22f, 90f)
                     val bounded = infinityBoundIconOffset(
-                        current, Offset.Zero, viewportWidth, viewportHeight
+                        current, Offset.Zero, viewportWidth, infinityDesktopHeightAboveDock(viewportHeight, dockHeight = with(density) { 88.dp.toPx() }, dockBottomInset = with(density) { 24.dp.toPx() }, safetyGap = with(density) { 56.dp.toPx() }),
+                        itemWidth = with(density) { 116.dp.toPx() },
+                        itemHeight = with(density) { 150.dp.toPx() }
                     )
                     if (bounded != current) {
                         iconOffsets[item.id] = bounded
@@ -399,6 +507,48 @@ val iconOffsets = remember {
                 }
             }
 
+            // Automatically displace overlapping saved icons while preserving valid placements.
+            LaunchedEffect(maxW, maxH, iconOffsets.keys.toList()) {
+                val viewportWidth = with(density) { maxW.toPx() }
+                val viewportHeight = with(density) { infinityDesktopHeightAboveDock(maxH.toPx(), 88f * density.density, 24f * density.density, 56f * density.density) }
+                val ordered = desktopItems.map { iconOffsets[it.id] ?: Offset.Zero }
+                val resolved = infinityResolveIconOverlaps(
+                    ordered, viewportWidth, viewportHeight,
+                    itemWidth = with(density) { 116.dp.toPx() },
+                    itemHeight = with(density) { 150.dp.toPx() },
+                    horizontalGap = with(density) { 12.dp.toPx() },
+                    verticalGap = with(density) { 14.dp.toPx() },
+                    topInset = with(density) { 118.dp.toPx() }
+                )
+                desktopItems.forEachIndexed { index, item ->
+                    val next = resolved[index]
+                    if (iconOffsets[item.id] != next) {
+                        iconOffsets[item.id] = next
+                        prefs.edit().putFloat("${item.id}_x", next.x).putFloat("${item.id}_y", next.y).apply()
+                    }
+                }
+            }
+
+            // Normalize persisted windows after screen size, orientation, or density changes.
+            LaunchedEffect(maxW, maxH) {
+                windows.indices.forEach { index ->
+                    val current = windows[index]
+                    val bounds = infinityNormalizeWindowBounds(
+                        current.x, current.y, current.width, current.height,
+                        maxW.value, maxH.value
+                    )
+                    if (bounds.x != current.x || bounds.y != current.y ||
+                        bounds.width != current.width || bounds.height != current.height
+                    ) {
+                        windows[index] = current.copy(
+                            x = bounds.x, y = bounds.y,
+                            width = bounds.width, height = bounds.height
+                        )
+                    }
+                }
+            }
+
+            // The selected desktop theme is rendered by the root background above.
             val currentWallpaperBitmap = wallpaperBitmap
             if (currentWallpaperBitmap != null) {
                 Image(
@@ -408,6 +558,14 @@ val iconOffsets = remember {
                     contentScale = ContentScale.Crop
                 )
                 Box(Modifier.fillMaxSize().background(Color(0x66081729)))
+            }
+
+            // Cabecera de marca para tablet; no sustituye los accesos ni el fondo elegido.
+            if (maxW >= 600.dp && !dashboardOpen && futuristicDesktop) {
+                InfinityDesktopMasthead(
+                    modifier = Modifier.align(Alignment.TopCenter)
+                        .padding(top = 20.dp)
+                )
             }
 
             // INFINITY AURORA DESKTOP — profundidad ambiental y anillos orbitales.
@@ -432,23 +590,35 @@ val iconOffsets = remember {
                     .border(1.dp, Color.White.copy(alpha = .07f), CircleShape)
             )
 
-            Column(Modifier.align(Alignment.TopStart).padding(start = 22.dp, top = 18.dp)) {
+            Column(Modifier.align(Alignment.TopStart).padding(
+                start = 22.dp,
+                top = 18.dp
+            )) {
                 Text(
-                    "INFINITY",
+                    when (iconPack) {
+                        "windows11" -> "Windows 11"
+                        else -> "INFINITY"
+                    },
                     color = foreground.copy(alpha = .94f),
                     fontSize = 30.sp,
                     fontWeight = FontWeight.Black,
                     letterSpacing = 5.sp
                 )
                 Text(
-                    "A U R O R A  NEXT  •  WORKSPACE $workspace",
+                    when (iconPack) {
+                        "windows11" -> "DESKTOP  •  ESPACIO $workspace"
+                        else -> "A U R O R A  NEXT  •  WORKSPACE $workspace"
+                    },
                     color = accent,
                     fontSize = 10.sp,
                     letterSpacing = 1.5.sp,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    "DESKTOP ENVIRONMENT  /  ANDROID",
+                    when (iconPack) {
+                        "windows11" -> "PERSONAL COMPUTER ENVIRONMENT"
+                        else -> "DESKTOP ENVIRONMENT  /  ANDROID"
+                    },
                     color = InfinityMuted.copy(alpha = .78f),
                     fontSize = 8.sp,
                     letterSpacing = 1.2.sp
@@ -462,7 +632,8 @@ val iconOffsets = remember {
                         val selected = workspace == targetWorkspace
                         Box(
                             Modifier
-                                .widthIn(min = 38.dp)
+                                .widthIn(min = 48.dp)
+                                .heightIn(min = 48.dp)
                                 .clip(RoundedCornerShape(12.dp))
                                 .background(
                                     if (selected) accent.copy(alpha = .20f)
@@ -474,7 +645,9 @@ val iconOffsets = remember {
                                     else Color.White.copy(alpha = .14f),
                                     RoundedCornerShape(12.dp)
                                 )
-                                .clickable { switchWorkspace(targetWorkspace) }
+                                .selectable(selected = selected, role = Role.RadioButton) {
+                                    switchWorkspace(targetWorkspace)
+                                }
                                 .padding(horizontal = 11.dp, vertical = 7.dp)
                         ) {
                             Text(
@@ -496,19 +669,111 @@ val iconOffsets = remember {
 
             Column(
                 Modifier.align(Alignment.TopEnd).padding(18.dp)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(Color(0xAA101D30))
-                    .border(1.dp, accent.copy(alpha = .24f), RoundedCornerShape(20.dp))
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                    .clip(RoundedCornerShape(if (maxW >= 600.dp) 24.dp else 20.dp))
+                    .background(if (iconPack == "windows11") Color(0xCC173653) else Color(0xAA101D30))
+                    .border(1.dp, if (iconPack == "windows11") Color(0xFF8BCBFA).copy(.55f) else accent.copy(alpha = .24f), RoundedCornerShape(if (maxW >= 600.dp) 24.dp else 20.dp))
+                    .padding(horizontal = if (maxW >= 600.dp) 22.dp else 16.dp, vertical = if (maxW >= 600.dp) 16.dp else 12.dp),
                 horizontalAlignment = Alignment.End
             ) {
-                Text(clockText, color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Light)
-                Text(dateText, color = InfinityMuted, fontSize = 10.sp)
+                Text(
+                    clockText,
+                    color = Color.White,
+                    fontSize = if (maxW >= 600.dp) 42.sp else 24.sp,
+                    fontWeight = FontWeight.Light
+                )
+                Text(
+                    dateText,
+                    color = InfinityMuted,
+                    fontSize = if (maxW >= 600.dp) 14.sp else 10.sp
+                )
+                if (maxW >= 600.dp && !dashboardOpen) {
+                    Spacer(Modifier.height(10.dp))
+                    Text(
+                        "INNOVACIÓN • TECNOLOGÍA\\nPRODUCTIVIDAD",
+                        color = Color(0xFFD7E9FF),
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = 1.1.sp,
+                        lineHeight = 15.sp,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.End
+                    )
+                }
+            }
+
+            // Marca del escritorio en tablet, situada sobre el Dock y sin tapar accesos.
+            if (maxW >= 600.dp && futuristicDesktop) {
+                InfinityDesktopBrandBadge(
+                    modifier = Modifier.align(Alignment.BottomEnd)
+                        .padding(end = 20.dp, bottom = 104.dp)
+                )
+            }
+
+            Box(Modifier.align(Alignment.TopStart).padding(start = 18.dp, top = 18.dp)) {
+                Box(
+                    Modifier
+                        .size(44.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(Color(0xCC173653))
+                        .border(1.dp, accent.copy(alpha = .55f), RoundedCornerShape(14.dp))
+                        .clickable { contextMenuExpanded = true }
+                        .padding(8.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("⋮", color = Color.White, fontSize = 25.sp, fontWeight = FontWeight.Bold)
+                }
+                InfinityDesktopContextMenu(
+                    expanded = contextMenuExpanded,
+                    iconsVisible = desktopIconsVisible,
+                    onDismiss = { contextMenuExpanded = false },
+                    onAction = { action ->
+                        val densityValue = density.density
+                        val records = desktopItems.mapIndexed { index, item ->
+                            InfinityDesktopIconRecord(
+                                id = item.id,
+                                label = item.label,
+                                type = when (item.id) {
+                                    "files" -> "folder"
+                                    "apps", "connect" -> "app"
+                                    else -> "system"
+                                },
+                                order = index
+                            )
+                        }
+                        val plan = infinityPlanDesktopContextCommand(
+                            state = desktopContextState,
+                            action = action,
+                            icons = records,
+                            viewportWidth = with(density) { maxW.toPx() },
+                            itemWidth = 116f * densityValue,
+                            itemHeight = 150f * densityValue,
+                            leftInset = 16f * densityValue,
+                            topInset = 118f * densityValue
+                        )
+                        desktopContextState = plan.nextState
+                        prefs.edit()
+                            .putString("desktop_icon_arrangement", plan.nextState.arrangement.name)
+                            .putBoolean("desktop_icons_visible", plan.nextState.iconsVisible)
+                            .putFloat("icon_size", plan.nextState.iconSizePx)
+                            .apply()
+                        desktopIconsVisible = plan.nextState.iconsVisible
+                        iconSize = infinityNormalizeIconSize(plan.nextState.iconSizePx)
+                        plan.placements?.forEach { (id, position) ->
+                            iconOffsets[id] = position
+                            prefs.edit().putFloat("${id}_x", position.x).putFloat("${id}_y", position.y).apply()
+                        }
+                        if (plan.requestWallpaperPicker) wallpaperPicker.launch(arrayOf("image/*"))
+                        if (plan.requestAppearancePanel) {
+                            focusedWindowId = openInfinityWindow("settings", windows, workspace, maxW.value, maxH.value)
+                        }
+                        if (plan.requestWorkspacePanel) dashboardOpen = true
+                    }
+                )
             }
 
             if (dashboardOpen) {
                 InfinityRealDashboard(
                     workspace = workspace,
+                    onWorkspaceChange = { target -> switchWorkspace(target); dashboardOpen = true },
                     onOpenWindow = { id ->
                         focusedWindowId = openInfinityWindow(id, windows, workspace, maxW.value, maxH.value)
                         dashboardOpen = false
@@ -537,7 +802,7 @@ val iconOffsets = remember {
                     },
                     onShowDesktop = { dashboardOpen = false }
                 )
-            } else {
+            } else if (desktopIconsVisible) {
                 desktopItems.forEach { item ->
                     val offset = iconOffsets[item.id] ?: Offset(22f, 90f)
                     Column(
@@ -545,24 +810,75 @@ val iconOffsets = remember {
                         modifier = Modifier
                             .offset { IntOffset(offset.x.roundToInt(), offset.y.roundToInt()) }
                             .width(108.dp)
-                            .clip(RoundedCornerShape(18.dp))
-                            .background(Color(0x66101D30))
-                            .border(1.dp, accent.copy(alpha = 0.22f), RoundedCornerShape(18.dp))
+                            .clip(RoundedCornerShape(if (iconPack == "windows11") 12.dp else 18.dp))
+                            .background(
+                                if (iconPack == "windows11") Brush.verticalGradient(
+                                    listOf(Color(0x552D5A82), Color(0x552D5A82))
+                                )
+                                else Brush.verticalGradient(
+                                    listOf(
+                                        Color(0x88366A91),
+                                        Color(0x66304770),
+                                        Color(0x88202A49)
+                                    )
+                                )
+                            )
+                            .border(
+                                1.dp,
+                                if (iconPack == "windows11") Brush.linearGradient(
+                                    listOf(Color(0x668BCBFA), Color(0x668BCBFA))
+                                )
+                                else Brush.linearGradient(
+                                    listOf(
+                                        Color(0xAA78D9FF),
+                                        accent.copy(alpha = 0.42f),
+                                        Color(0x667D78FF)
+                                    )
+                                ),
+                                RoundedCornerShape(if (iconPack == "windows11") 12.dp else 18.dp)
+                            )
                             .padding(8.dp)
                             .pointerInput(item.id) {
                                 detectDragGestures { change, drag ->
                                     change.consume()
-                                    val next = infinityBoundIconOffset(
+                                    val viewportWidth = with(density) { maxW.toPx() }
+                                    val safeDesktopHeight = with(density) {
+                                        infinityDesktopHeightAboveDock(
+                                            maxH.toPx(),
+                                            dockHeight = 88.dp.toPx(),
+                                            dockBottomInset = 24.dp.toPx(),
+                                            safetyGap = 56.dp.toPx()
+                                        )
+                                    }
+                                    val dragged = infinityBoundIconOffset(
                                         iconOffsets[item.id] ?: Offset(22f, 90f),
                                         Offset(drag.x, drag.y),
-                                        with(density) { maxW.toPx() },
-                                        with(density) { maxH.toPx() }
+                                        viewportWidth,
+                                        safeDesktopHeight,
+                                        itemWidth = with(density) { 116.dp.toPx() },
+                                        itemHeight = with(density) { 150.dp.toPx() }
                                     )
-                                    iconOffsets[item.id] = next
-                                    prefs.edit()
-                                        .putFloat("${item.id}_x", next.x)
-                                        .putFloat("${item.id}_y", next.y)
-                                        .apply()
+                                    iconOffsets[item.id] = dragged
+                                    // Resolve collisions immediately after a drop, not only on screen rotation.
+                                    val orderedOffsets = desktopItems.map { iconOffsets[it.id] ?: Offset.Zero }
+                                    val resolvedOffsets = infinityResolveIconOverlaps(
+                                        orderedOffsets,
+                                        viewportWidth,
+                                        safeDesktopHeight,
+                                        itemWidth = with(density) { 116.dp.toPx() },
+                                        itemHeight = with(density) { 150.dp.toPx() },
+                                        horizontalGap = with(density) { 12.dp.toPx() },
+                                        verticalGap = with(density) { 14.dp.toPx() },
+                                        topInset = with(density) { 118.dp.toPx() }
+                                    )
+                                    desktopItems.forEachIndexed { index, desktopItem ->
+                                        val position = resolvedOffsets[index]
+                                        iconOffsets[desktopItem.id] = position
+                                        prefs.edit()
+                                            .putFloat("${desktopItem.id}_x", position.x)
+                                            .putFloat("${desktopItem.id}_y", position.y)
+                                            .apply()
+                                    }
                                 }
                             }
                             .clickable {
@@ -570,14 +886,14 @@ val iconOffsets = remember {
                             }
                             .padding(6.dp)
                     ) {
-                        InfinityAppBadge(item, (iconSize + 14f).dp, accent)
+                        InfinityAppBadge(item, (iconSize + 14f).dp, accent, iconPack)
                         Spacer(Modifier.height(7.dp))
                         Text(
                             item.label,
                             modifier = Modifier
                                 .shadow(10.dp, RoundedCornerShape(12.dp))
-                                .background(Color(0xDD101D30), RoundedCornerShape(12.dp))
-                                .border(1.dp, accent.copy(alpha = 0.38f), RoundedCornerShape(12.dp))
+                                .background(if (iconPack == "windows11") Color(0xCC173653) else Color(0xDD101D30), RoundedCornerShape(if (iconPack == "windows11") 8.dp else 12.dp))
+                                .border(1.dp, if (iconPack == "windows11") Color(0xFF8BCBFA).copy(alpha = 0.38f) else accent.copy(alpha = 0.38f), RoundedCornerShape(if (iconPack == "windows11") 8.dp else 12.dp))
                                 .padding(horizontal = 9.dp, vertical = 6.dp),
                             color = Color.White,
                             fontSize = 10.sp,
@@ -610,6 +926,7 @@ val iconOffsets = remember {
                         installedApps = installedApps,
                         accent = accent,
                         lightMode = lightMode,
+                        desktopTheme = iconPack,
                         themeChoice = themeChoice,
                         onThemeChange = {
                             val normalized = infinityNormalizeThemeChoice(it)
@@ -634,17 +951,35 @@ val iconOffsets = remember {
                         onLaunchApp = ::launchApp,
                         onClose = {
                             windows.removeAll { item -> item.id == win.id }
-                            if (focusedWindowId == win.id) focusedWindowId = null
+                            if (focusedWindowId == win.id) {
+                                focusedWindowId = infinityResolveWorkspaceFocus(
+                                    focusedWindowId,
+                                    windows.map { it.id },
+                                    windows.associate { it.id to it.workspace },
+                                    windows.filter { it.minimized }.map { it.id }.toSet(),
+                                    workspace
+                                )
+                            }
                         },
                         onMinimize = {
                             val index = windows.indexOfFirst { it.id == win.id }
                             if (index >= 0) windows[index] = windows[index].copy(minimized = true)
-                            if (focusedWindowId == win.id) focusedWindowId = null
+                            if (focusedWindowId == win.id) {
+                                focusedWindowId = infinityResolveWorkspaceFocus(
+                                    null,
+                                    windows.map { it.id }.filterNot { it == win.id },
+                                    windows.filterNot { it.id == win.id }.associate { it.id to it.workspace },
+                                    windows.filter { it.minimized || it.id == win.id }.map { it.id }.toSet(),
+                                    workspace
+                                )
+                            }
                         },
                         onMaximize = {
                             val index = windows.indexOfFirst { it.id == win.id }
-                            if (index >= 0) windows[index] =
-                                windows[index].copy(maximized = !windows[index].maximized)
+                            if (index >= 0) {
+                                windows[index] = windows[index].copy(maximized = !windows[index].maximized)
+                                focusedWindowId = win.id
+                            }
                         },
                         
                         // INFINITY 0.11 — MOVIMIENTO CON LÍMITES
@@ -652,15 +987,17 @@ val iconOffsets = remember {
                             val index = windows.indexOfFirst { it.id == win.id }
                             if (index >= 0) {
                                 val current = windows[index]
+                                val boundedPosition = infinityClampWindowPosition(
+                                    current.x + dx,
+                                    current.y + dy,
+                                    current.width,
+                                    current.height,
+                                    maxW.value,
+                                    maxH.value
+                                )
                                 windows[index] = current.copy(
-                                    x = (current.x + dx).coerceIn(
-                                        0f,
-                                        (maxW.value - current.width).coerceAtLeast(0f)
-                                    ),
-                                    y = (current.y + dy).coerceIn(
-                                        0f,
-                                        (maxH.value - current.height).coerceAtLeast(0f)
-                                    )
+                                    x = boundedPosition.first,
+                                    y = boundedPosition.second
                                 )
                             }
                         },
@@ -694,23 +1031,35 @@ val iconOffsets = remember {
             Row(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(horizontal = 12.dp, vertical = 12.dp)
-                    .shadow(26.dp, RoundedCornerShape(24.dp))
+                    .zIndex(20f)
+                    .then(if (iconPack == "windows11") Modifier.fillMaxWidth() else Modifier)
+                    .padding(
+                        horizontal = if (iconPack == "windows11") 0.dp else 12.dp,
+                        vertical = if (iconPack == "windows11") 0.dp else 12.dp
+                    )
+                    .shadow(if (iconPack == "windows11") 0.dp else 30.dp,
+                        RoundedCornerShape(if (iconPack == "windows11") 0.dp else 24.dp))
                     .background(
-                        Color(0xF016263D),
-                        RoundedCornerShape(24.dp)
+                        when (iconPack) {
+                            "windows11" -> Color(0xF20B1829)
+                            else -> Color(0xF016263D)
+                        },
+                        RoundedCornerShape(if (iconPack == "windows11") 0.dp else 24.dp)
                     )
                     .border(
-                        1.dp,
-                        Color(0xFF6686B5),
-                        RoundedCornerShape(24.dp)
+                        if (iconPack == "windows11") 0.dp else 1.dp,
+                        when (iconPack) {
+                            "windows11" -> Color.Transparent
+                            else -> Color(0xFF6686B5)
+                        },
+                        RoundedCornerShape(if (iconPack == "windows11") 0.dp else 24.dp)
                     )
                     .padding(
-                        horizontal = if (maxW < 600.dp) 6.dp else 18.dp,
-                        vertical = 10.dp
+                        horizontal = if (iconPack == "windows11") 12.dp else if (maxW < 600.dp) 6.dp else 18.dp,
+                        vertical = if (iconPack == "windows11") 7.dp else 10.dp
                     ),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(
+                horizontalArrangement = if (iconPack == "windows11") Arrangement.Center else Arrangement.spacedBy(
                     when {
                         maxW < 380.dp -> 5.dp
                         maxW < 600.dp -> 8.dp
@@ -718,7 +1067,7 @@ val iconOffsets = remember {
                     }
                 )
             ) {
-                DockAction("⌂", "HOME", accent) {
+                DockAction("⌂", "HOME", accent, iconPack, compact = maxW < 390.dp) {
                     dashboardOpen = true
                     startOpen = false
                     orbitOpen = false
@@ -726,24 +1075,27 @@ val iconOffsets = remember {
                     advancedOpen = false
                 }
 
-                DockAction("✦", "START", accent) {
+                DockAction("✦", "START", accent, iconPack, compact = maxW < 390.dp) {
                     startOpen = !startOpen
                     orbitOpen = false
                     controlOpen = false
+                    advancedOpen = false
                 }
 
-                DockAction("◎", "ORBIT", Color(0xFFB69CFF)) {
+                DockAction("◎", "ORBIT", Color(0xFFB69CFF), iconPack, compact = maxW < 390.dp) {
                     orbitOpen = !orbitOpen
                     startOpen = false
                     controlOpen = false
+                    advancedOpen = false
                 }
 
-                DockAction("☷", "CONTROL", Color(0xFFFFC27A)) {
+                DockAction("☷", "CONTROL", Color(0xFFFFC27A), iconPack, compact = maxW < 390.dp) {
                     controlOpen = !controlOpen
                     startOpen = false
                     orbitOpen = false
+                    advancedOpen = false
                 }
-DockAction("▤", "ADVANCED", accent) {
+DockAction("▤", "ADVANCED", accent, iconPack, compact = maxW < 390.dp) {
     advancedOpen = !advancedOpen
     startOpen = false
     orbitOpen = false
@@ -755,6 +1107,35 @@ DockAction("▤", "ADVANCED", accent) {
                         .height(38.dp)
                         .background(Color.White.copy(alpha = 0.30f))
                 )
+
+                infinityWorkspaceWindowIds(windows.map { it.id }, windows.associate { it.id to it.workspace }, workspace).mapNotNull { id -> windows.firstOrNull { it.id == id } }.let { workspaceWindows ->
+                    infinityDockWindowIds(workspaceWindows.map { it.id }, workspaceWindows.associate { it.id to it.minimized }).takeLast(if (maxW < 390.dp) 1 else 8).forEach { taskId ->
+                        val task = workspaceWindows.firstOrNull { it.id == taskId } ?: return@forEach
+                        DockAction(if (task.minimized) "□" else "▣", infinityDockLabel(task.title), accent, iconPack, compact = maxW < 390.dp) {
+                            val idx = windows.indexOfFirst { it.id == task.id }
+                            if (idx >= 0) {
+                                val tappedTask = windows[idx]
+                                val activation = infinityDockResolveActivation(
+                                    tappedTask.id, focusedWindowId, tappedTask.minimized
+                                )
+                                val minimizeTask = activation == null
+                                windows[idx] = tappedTask.copy(minimized = minimizeTask)
+                                focusedWindowId = if (minimizeTask) {
+                                    infinityResolveWorkspaceFocus(
+                                        null, windows.map { it.id },
+                                        windows.associate { it.id to it.workspace },
+                                        windows.filter { it.minimized }.map { it.id }.toSet(), workspace
+                                    )
+                                } else activation
+                            }
+                            dashboardOpen = false
+                            startOpen = false
+                            orbitOpen = false
+                            controlOpen = false
+                            advancedOpen = false
+                        }
+                    }
+                }
 
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally
@@ -778,18 +1159,26 @@ DockAction("▤", "ADVANCED", accent) {
             // INFINITY START: búsqueda y catálogo de aplicaciones.
             if (startOpen) {
                 Card(
-                    Modifier.align(Alignment.BottomStart)
-                        .padding(start = 14.dp, bottom = 84.dp)
-                        .widthIn(min = 290.dp, max = 420.dp)
-                        .heightIn(max = maxH - 116.dp)
+                    Modifier.then(if (iconPack == "windows11") Modifier.align(Alignment.BottomCenter) else Modifier.align(Alignment.BottomStart))
+                        .zIndex(15f)
+                        .fillMaxWidth(0.94f)
+                        .widthIn(max = 420.dp)
+                        .padding(bottom = 84.dp)
+                        .heightIn(max = (maxH - 116.dp).coerceAtLeast(220.dp))
                         .shadow(28.dp, RoundedCornerShape(28.dp)),
-                    shape = RoundedCornerShape(28.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xF0142036)),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, accent.copy(alpha = .28f))
+                    shape = RoundedCornerShape(if (iconPack == "windows11") 16.dp else 28.dp),
+                    colors = CardDefaults.cardColors(containerColor = when (iconPack) {
+                        "windows11" -> Color(0xF0254563)
+                        else -> Color(0xF0142036)
+                    }),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, when (iconPack) {
+                        "windows11" -> Color(0xFF8BCBFA).copy(alpha = .58f)
+                        else -> accent.copy(alpha = .28f)
+                    })
                 ) {
                     Column(Modifier.padding(18.dp)) {
-                        Text("INFINITY START", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Black)
-                        Text("Tus herramientas y aplicaciones", color = InfinityMuted, fontSize = 10.sp)
+                        Text(if (iconPack == "windows11") "INICIO" else "INFINITY START", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Black)
+                        Text(if (iconPack == "windows11") "Aplicaciones ancladas y recomendadas" else "Tus herramientas y aplicaciones", color = InfinityMuted, fontSize = 10.sp)
                         Spacer(Modifier.height(10.dp))
                         OutlinedTextField(
                             value = search,
@@ -819,7 +1208,7 @@ DockAction("▤", "ADVANCED", accent) {
                                         }.padding(9.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    InfinityAppBadge(item, 34.dp, accent)
+                                    InfinityAppBadge(item, 34.dp, accent, iconPack)
                                     Text(item.label, color = Color.White, modifier = Modifier.padding(start = 12.dp))
                                 }
                             }
@@ -905,17 +1294,33 @@ DockAction("▤", "ADVANCED", accent) {
            
             // INFINITY ORBIT 0.9: centro de mando futurista.
             if (orbitOpen) {
+                val orbitRadius = if (iconPack == "windows11") 16.dp else 24.dp
+                val orbitSurface = when (iconPack) {
+                    "windows11" -> Color(0xF0273D58)
+                    else -> Color(0xF2101D30)
+                }
+                val orbitBorder = when (iconPack) {
+                    "windows11" -> Color(0xFF8BCBFA).copy(alpha = .62f)
+                    else -> accent.copy(alpha = .30f)
+                }
+                val orbitTile = when (iconPack) {
+                    "windows11" -> Color(0xFF345574)
+                    else -> Color(0xFF192D47)
+                }
                 Card(
-                 Modifier.align(Alignment.BottomCenter)
-    .padding(horizontal = 12.dp, vertical = 42.dp)
-    .widthIn(min = 300.dp, max = 430.dp)
-    .heightIn(max = maxH - 86.dp)
-    .shadow(30.dp, RoundedCornerShape(30.dp)),
-                    shape = RoundedCornerShape(30.dp),
+                 Modifier.align(Alignment.TopCenter)
+    .zIndex(15f)
+    .padding(start = 12.dp, end = 12.dp, top = 72.dp)
+    .widthIn(max = 430.dp)
+    // Reserve a fixed safe zone for the Dock; constrain the card itself,
+    // not only its padding, so the scrollable panel cannot extend over it.
+    .heightIn(max = (maxH - 260.dp).coerceAtLeast(160.dp))
+    .shadow(30.dp, RoundedCornerShape(orbitRadius)),
+                    shape = RoundedCornerShape(orbitRadius),
                     colors = CardDefaults.cardColors(
-                        containerColor = Color(0xF2101D30)
+                        containerColor = orbitSurface
                     ),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, accent.copy(alpha = .30f))
+                    border = androidx.compose.foundation.BorderStroke(1.dp, orbitBorder)
                 ) {
                     Column(
     Modifier
@@ -1262,8 +1667,8 @@ Row(
                         if (orbitWindows.isEmpty()) {
                             Column(
                                 Modifier.fillMaxWidth()
-                                    .clip(RoundedCornerShape(14.dp))
-                                    .background(Color(0xFF192D47))
+                                    .clip(RoundedCornerShape(if (iconPack == "windows11") 9.dp else 14.dp))
+                                    .background(orbitTile)
                                     .padding(16.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
@@ -1290,12 +1695,12 @@ Row(
                                 orbitWindows.forEach { win ->
                                     Row(
                                         Modifier.fillMaxWidth()
-                                            .clip(RoundedCornerShape(12.dp))
-                                            .background(Color(0xFF192D47))
+                                            .clip(RoundedCornerShape(if (iconPack == "windows11") 8.dp else 12.dp))
+                                            .background(orbitTile)
                                             .border(
                                                 1.dp,
                                                 accent.copy(alpha = 0.20f),
-                                                RoundedCornerShape(12.dp)
+                                                RoundedCornerShape(if (iconPack == "infinity") 18.dp else if (iconPack == "windows11") 8.dp else 12.dp)
                                             )
                                             .padding(
                                                 horizontal = 9.dp,
@@ -1394,14 +1799,26 @@ Row(
 
             // CONTROL CENTER: personalización, sin accesos de lanzamiento repetidos.
             if (controlOpen) {
+                val controlRadius = if (iconPack == "windows11") 16.dp else 24.dp
+                val controlSurface = when (iconPack) {
+                    "windows11" -> Color(0xF0273D58)
+                    else -> Color(0xF0142036)
+                }
+                val controlBorder = when (iconPack) {
+                    "windows11" -> Color(0xFF8BCBFA).copy(alpha = .65f)
+                    else -> Color(0xFFFFC27A).copy(alpha = .30f)
+                }
                 Card(
-                    Modifier.align(Alignment.BottomEnd)
-                        .padding(end = 14.dp, bottom = 84.dp)
-                        .widthIn(min = 270.dp, max = 350.dp)
-                        .shadow(24.dp, RoundedCornerShape(26.dp)),
-                    shape = RoundedCornerShape(26.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xF0142036)),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFFC27A).copy(alpha = .30f))
+                    Modifier.align(Alignment.TopEnd)
+                        .zIndex(15f)
+                        .padding(end = 14.dp, top = 76.dp, bottom = 112.dp)
+                        .widthIn(max = 350.dp)
+                        .heightIn(max = (maxH - 200.dp).coerceAtLeast(220.dp))
+                        .verticalScroll(rememberScrollState())
+                        .shadow(24.dp, RoundedCornerShape(controlRadius)),
+                    shape = RoundedCornerShape(controlRadius),
+                    colors = CardDefaults.cardColors(containerColor = controlSurface),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, controlBorder)
                 ) {
                     Column(Modifier.padding(16.dp)) {
                         Text("CONTROL CENTER", color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.Black)
@@ -1420,17 +1837,56 @@ Row(
                                 "sunset" to Color(0xFFFFA66B)
                             ).forEach { (id, color) ->
                                 Box(
-                                    Modifier.size(30.dp).background(color, CircleShape)
-                                        .border(
-                                            if (themeChoice == id) 3.dp else 1.dp,
-                                            Color.White,
-                                            CircleShape
+                                    Modifier.size(48.dp)
+                                        .selectable(
+                                            selected = themeChoice == id,
+                                            role = Role.RadioButton,
+                                            onClick = {
+                                                themeChoice = id
+                                                prefs.edit().putString("theme_choice", id).apply()
+                                            }
                                         )
-                                        .clickable {
-                                            themeChoice = id
-                                            prefs.edit().putString("theme_choice", id).apply()
-                                        }
+                                        .semantics { contentDescription = "Tema $id" },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Box(
+                                        Modifier.size(30.dp)
+                                            .background(color, CircleShape)
+                                            .border(
+                                                if (themeChoice == id) 3.dp else 1.dp,
+                                                Color.White,
+                                                CircleShape
+                                            )
+                                    )
+                                }
+                            }
+                        }
+                        Text("ESTILO DE ESCRITORIO", color = accent, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            listOf("infinity" to "INFINITY", "windows11" to "WINDOWS 11").forEach { (pack, label) ->
+                                FilterChip(selected = iconPack == pack, onClick = { val normalizedPack = infinityNormalizeDesktopTheme(pack); iconPack = normalizedPack; prefs.edit().putString("icon_pack", normalizedPack).apply() }, label = { Text(label) })
+                            }
+                        }
+                        Text("ESTILO DEL ESCRITORIO", color = accent, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            listOf(
+                                InfinityDesktopWallpaperPreset.LEGACY,
+                                InfinityDesktopWallpaperPreset.FUTURISTIC
+                            ).forEach { preset ->
+                                FilterChip(
+                                    selected = desktopPreset == preset,
+                                    onClick = {
+                                        desktopPreset = preset
+                                        prefs.edit().putString("desktop_wallpaper_preset", preset.id).apply()
+                                    },
+                                    label = { Text(if (preset == InfinityDesktopWallpaperPreset.FUTURISTIC) "INFINITY Futurista" else "INFINITY clásico") }
                                 )
+                            }
+                        }
+                        Text("FONDOS", color = accent, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            listOf("nebula" to "Nebula", "interstellar" to "Interestelar", "punk" to "Punk", "aurora" to "Aurora").forEach { (preset, label) ->
+                                FilterChip(selected = backgroundPreset == preset, onClick = { backgroundPreset = preset; prefs.edit().putString("background_preset", preset).apply(); wallpaperUri = null; prefs.edit().remove("wallpaper_uri").apply() }, label = { Text(label) })
                             }
                         }
                         Text("APARIENCIA", color = accent, fontSize = 10.sp, fontWeight = FontWeight.Bold)
@@ -1478,13 +1934,17 @@ Row(
             if (advancedOpen) {
                 Box(
                     Modifier
-                        .align(Alignment.TopCenter)
-                        .padding(top = 76.dp)
-                        .widthIn(min = 300.dp, max = 430.dp)
+                        .align(Alignment.TopEnd)
+                        .zIndex(15f)
+                        .padding(top = 68.dp, end = 10.dp, bottom = 104.dp)
+                        .widthIn(max = 430.dp)
                         .fillMaxWidth()
+                        .heightIn(max = (maxH - 200.dp).coerceAtLeast(220.dp))
+                        .verticalScroll(rememberScrollState())
                 ) {
                     InfinityAdvancedPanel(
-                        onClose = { advancedOpen = false }
+                        onClose = { advancedOpen = false },
+                        desktopTheme = iconPack
                     )
                 }
             }
@@ -1497,34 +1957,48 @@ private fun DockAction(
     glyph: String,
     description: String,
     tint: Color,
+    desktopTheme: String = "infinity",
+    compact: Boolean = false,
     onClick: () -> Unit
 ) {
+    val actionRadius = if (desktopTheme == "windows11") 9.dp else 14.dp
+    val actionSurface = if (desktopTheme == "windows11") Color(0xFF345574).copy(alpha = .48f) else Color.White.copy(alpha = .045f)
     Column(
         Modifier
-            .widthIn(min = 48.dp)
-            .clip(RoundedCornerShape(14.dp))
-            .background(Color.White.copy(alpha = 0.035f), RoundedCornerShape(15.dp))
-            .border(1.dp, tint.copy(alpha = 0.12f), RoundedCornerShape(15.dp))
-            .clickable(onClick = onClick)
-            .padding(horizontal = 4.dp, vertical = 5.dp),
+            .widthIn(min = if (compact) 40.dp else 48.dp)
+            .semantics(mergeDescendants = true) {
+                contentDescription = description
+            }
+            .clip(RoundedCornerShape(actionRadius))
+            .background(actionSurface, RoundedCornerShape(actionRadius))
+            .border(1.dp, tint.copy(alpha = .22f), RoundedCornerShape(actionRadius))
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = if (compact) 2.dp else 5.dp, vertical = if (compact) 4.dp else 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(3.dp)
+        verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Box(
-            Modifier.size(34.dp)
-                .background(tint.copy(alpha = .17f), RoundedCornerShape(11.dp))
-                .border(1.dp, tint.copy(alpha = .42f), RoundedCornerShape(11.dp)),
+            Modifier.size(if (compact) 30.dp else 36.dp)
+                .background(
+                    Brush.linearGradient(listOf(tint.copy(alpha = .24f), tint.copy(alpha = .08f))),
+                    RoundedCornerShape(if (desktopTheme == "windows11") 8.dp else 12.dp)
+                )
+                .border(1.dp, tint.copy(alpha = .58f), RoundedCornerShape(if (desktopTheme == "windows11") 8.dp else 12.dp)),
             contentAlignment = Alignment.Center
         ) {
-            Text(glyph, color = tint, fontSize = 21.sp, fontWeight = FontWeight.Bold)
+            Text(glyph, color = tint, fontSize = 22.sp, fontWeight = FontWeight.Bold)
         }
-        Text(
-            description,
-            color = Color.White.copy(.90f),
-            fontSize = 8.sp,
-            fontWeight = FontWeight.SemiBold,
-            maxLines = 1
-        )
+        if (!compact) {
+            Text(
+                description,
+                color = Color.White.copy(.94f),
+                fontSize = 8.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = .35.sp,
+                maxLines = 1
+            )
+        }
+        Box(Modifier.width(if (compact) 12.dp else 18.dp).height(2.dp).background(tint.copy(alpha = .65f), RoundedCornerShape(2.dp)))
     }
 }
 
@@ -1742,6 +2216,7 @@ private fun Infinity08Window(
     installedApps: List<InstalledApp>,
     accent: Color,
     lightMode: Boolean,
+    desktopTheme: String,
     themeChoice: String,
     onThemeChange: (String) -> Unit,
     appearance: String,
@@ -1765,43 +2240,27 @@ private fun Infinity08Window(
         mutableStateOf(prefs.getString("note_${win.id}", "") ?: "")
     }
     val foreground = if (lightMode) Color(0xFF203149) else Color.White
+
+    val windowRadius = if (desktopTheme == "windows11") 12.dp else 20.dp
+    val windowSurface = if (desktopTheme == "windows11") {
+        if (lightMode) Color(0xF2F3F8FC) else Color(0xF21A3652)
+    } else if (lightMode) Color(0xF2F5F8FC) else Color(0xF21B2B40)
+    val titleBarSurface = if (desktopTheme == "windows11") {
+        if (lightMode) Color(0xFFE2EDF8) else Color(0xFF24496B)
+    } else if (lightMode) Color(0xFFE0EAF5) else Color(0xFF263D57)
+    val windowBorder = if (desktopTheme == "windows11") Color(0xFF8BCBFA).copy(.58f) else accent.copy(.38f)
+    val controlRadius = if (desktopTheme == "windows11") 8.dp else 14.dp
+
  
-    var windowVisible by remember(win.id) {
-        mutableStateOf(false)
-    }
-
-    LaunchedEffect(win.id) {
-        windowVisible = true
-    }
-
-    val windowAlpha by animateFloatAsState(
-        targetValue = if (windowVisible) 1f else 0f,
-        animationSpec = tween(durationMillis = 280),
-        label = "windowAlpha"
-    )
-
-    val windowScale by animateFloatAsState(
-        targetValue = if (windowVisible) 1f else 0.92f,
-        animationSpec = tween(durationMillis = 280),
-        label = "windowScale"
-    )
     Column(
      
         Modifier.offset { IntOffset(win.x.roundToInt(), win.y.roundToInt()) }
             .zIndex(if (isFocused) 10f else 0f)
-            .graphicsLayer {
-                alpha = windowAlpha
-                scaleX = windowScale
-                scaleY = windowScale
-            }
             .width(win.width.dp)
             .height(win.height.dp)
-            .shadow(26.dp, RoundedCornerShape(20.dp))
-            .background(
-                if (lightMode) Color(0xF2F5F8FC) else Color(0xF21B2B40),
-                RoundedCornerShape(20.dp)
-            )
-            .border(1.dp, accent.copy(.38f), RoundedCornerShape(20.dp)) 
+             .shadow(26.dp, RoundedCornerShape(windowRadius))
+            .background(windowSurface, RoundedCornerShape(windowRadius))
+            .border(1.dp, windowBorder, RoundedCornerShape(windowRadius)) 
             .clickable { onFocus() }
     ) {
         
@@ -1810,11 +2269,10 @@ private fun Infinity08Window(
             Modifier
                 .fillMaxWidth()
                 .background(
-                    if (lightMode) Color(0xFFE0EAF5)
-                    else Color(0xFF263D57),
+                    titleBarSurface,
                     RoundedCornerShape(
-                        topStart = 20.dp,
-                        topEnd = 20.dp
+                        topStart = windowRadius,
+                        topEnd = windowRadius
                     )
                 ) 
                 .clickable { onFocus() }
@@ -1824,6 +2282,7 @@ private fun Infinity08Window(
                         onMove(drag.x, drag.y)
                     }
                 }
+                .heightIn(min = 48.dp)
                 .padding(horizontal = 10.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -1842,7 +2301,8 @@ private fun Infinity08Window(
                     }
                 ),
                 34.dp,
-                accent
+                accent,
+                desktopTheme
             )
 
             Column(
@@ -1869,10 +2329,10 @@ private fun Infinity08Window(
             IconButton(
                 onClick = onMinimize,
                 modifier = Modifier
-                    .size(36.dp)
+                    .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
                     .background(
                         Color(0xFF71849B).copy(alpha = 0.22f),
-                        CircleShape
+                        RoundedCornerShape(controlRadius)
                     )
             ) {
                 Icon(
@@ -1890,7 +2350,7 @@ private fun Infinity08Window(
                     .size(36.dp)
                     .background(
                         accent.copy(alpha = 0.20f),
-                        CircleShape
+                        RoundedCornerShape(controlRadius)
                     )
             ) {
                 Icon(
@@ -1911,7 +2371,7 @@ private fun Infinity08Window(
                     .size(36.dp)
                     .background(
                         Color(0xFFFF6262).copy(alpha = 0.20f),
-                        CircleShape
+                        RoundedCornerShape(controlRadius)
                     )
             ) {
                 Icon(
@@ -1975,9 +2435,13 @@ private fun Infinity08Window(
                         LazyColumn(Modifier.fillMaxSize().padding(top = 6.dp)) {
                             items(filteredApps, key = { it.packageName }) { app ->
                                 Row(
-                                    Modifier.fillMaxWidth().clickable {
-                                        onLaunchApp(app.packageName)
-                                    }.padding(vertical = 8.dp),
+                                    Modifier.fillMaxWidth()
+                                        .heightIn(min = 48.dp)
+                                        .clickable(role = Role.Button) {
+                                            onLaunchApp(app.packageName)
+                                        }
+                                        .semantics { contentDescription = "Abrir aplicación ${app.label}" }
+                                        .padding(vertical = 8.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text("◈", color = accent, fontSize = 19.sp)
@@ -2005,7 +2469,15 @@ private fun Infinity08Window(
                         ).forEach { (id, label) ->
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
-                                modifier = Modifier.clickable { onThemeChange(id) }
+                                modifier = Modifier
+                                    .widthIn(min = 48.dp)
+                                    .heightIn(min = 48.dp)
+                                    .selectable(
+                                        selected = themeChoice == id,
+                                        role = Role.RadioButton,
+                                        onClick = { onThemeChange(id) }
+                                    )
+                                    .semantics { contentDescription = "Tema $label" }
                             ) {
                                 val color = when (id) {
                                     "ocean" -> Color(0xFF45B7FF)

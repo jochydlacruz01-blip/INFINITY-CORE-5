@@ -17,20 +17,28 @@ android {
         versionName = "0.10.0"
     }
 
-    signingConfigs {
-        create("release") {
-            storeFile = System.getenv("INFINITY_KEYSTORE_FILE")?.let { file(it) }
-            storePassword = System.getenv("INFINITY_KEYSTORE_PASSWORD")
-            keyAlias = System.getenv("INFINITY_KEY_ALIAS")
-            keyPassword = System.getenv("INFINITY_KEY_PASSWORD")
+    buildTypes {
+        release {
+            isMinifyEnabled = false
         }
     }
 
-    buildTypes {
-        release {
-            signingConfig = signingConfigs.getByName("release")
-            isMinifyEnabled = false
+    val releaseSigningValues = listOf(
+        System.getenv("INFINITY_KEYSTORE_FILE"),
+        System.getenv("INFINITY_KEYSTORE_PASSWORD"),
+        System.getenv("INFINITY_KEY_ALIAS"),
+        System.getenv("INFINITY_KEY_PASSWORD")
+    )
+    if (releaseSigningValues.all { !it.isNullOrBlank() }) {
+        signingConfigs {
+            create("release") {
+                storeFile = file(System.getenv("INFINITY_KEYSTORE_FILE")!!)
+                storePassword = System.getenv("INFINITY_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("INFINITY_KEY_ALIAS")
+                keyPassword = System.getenv("INFINITY_KEY_PASSWORD")
+            }
         }
+        buildTypes.getByName("release").signingConfig = signingConfigs.getByName("release")
     }
 
     buildFeatures {

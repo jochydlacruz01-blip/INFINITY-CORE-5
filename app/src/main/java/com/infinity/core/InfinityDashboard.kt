@@ -2,12 +2,15 @@ package com.infinity.core
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -42,6 +45,7 @@ private val DashboardGold = Color(0xFFFFC477)
 @Composable
 internal fun InfinityRealDashboard(
     workspace: Int,
+    onWorkspaceChange: (Int) -> Unit,
     onOpenWindow: (String) -> Unit,
     onOpenOrbit: () -> Unit,
     onOpenAdvanced: () -> Unit,
@@ -54,6 +58,8 @@ internal fun InfinityRealDashboard(
         ),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        AuroraDashboardHeader(workspace)
+
         Text(
             "CENTRO DE CONTROL  •  ESPACIO DE TRABAJO $workspace",
             color = DashboardCyan,
@@ -107,6 +113,10 @@ internal fun InfinityRealDashboard(
                 }
             }
         }
+
+        AuroraFeatureStrip()
+
+        AuroraWorkspaceSwitcher(workspace, onWorkspaceChange)
 
         Text("MÓDULOS PRINCIPALES", color = DashboardCyan, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(9.dp)) {
@@ -184,5 +194,96 @@ private fun DashboardStatusRow(label: String, value: String, tint: Color) {
         Box(Modifier.size(7.dp).background(tint, CircleShape))
         Text(label, color = Color.White, fontSize = 10.sp, modifier = Modifier.weight(1f).padding(start = 8.dp))
         Text(value, color = DashboardMuted, fontSize = 9.sp, modifier = Modifier.widthIn(max = 190.dp))
+    }
+}
+
+
+@Composable
+private fun AuroraDashboardHeader(workspace: Int) {
+    Card(
+        Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xCC10243B))
+    ) {
+        Row(
+            Modifier.fillMaxWidth().padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Box(
+                Modifier.size(54.dp)
+                    .background(Brush.linearGradient(listOf(DashboardCyan.copy(.32f), DashboardBlue.copy(.18f))), CircleShape)
+                    .border(1.dp, DashboardCyan.copy(.65f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) { Text("∞", color = DashboardCyan, fontSize = 32.sp, fontWeight = FontWeight.Black) }
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text("AURORA NEXT", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Black, letterSpacing = 1.4.sp)
+                Text("Workspace $workspace  •  MODO OPERATIVO", color = DashboardCyan, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                Text("Un escritorio. Tres espacios. Tu ecosistema.", color = DashboardMuted, fontSize = 10.sp)
+            }
+            Box(
+                Modifier.background(DashboardCyan.copy(.12f), RoundedCornerShape(12.dp))
+                    .border(1.dp, DashboardCyan.copy(.35f), RoundedCornerShape(12.dp))
+                    .padding(horizontal = 10.dp, vertical = 7.dp)
+            ) { Text("CORE", color = DashboardCyan, fontSize = 9.sp, fontWeight = FontWeight.Black) }
+        }
+    }
+}
+
+@Composable
+private fun AuroraFeatureStrip() {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        listOf(
+            Triple("DESKTOP", "Entorno", DashboardBlue),
+            Triple("ORBIT", "Monitor", DashboardViolet),
+            Triple("CONNECT", "Enlace", DashboardCyan)
+        ).forEach { (title, caption, tint) ->
+            Column(
+                Modifier.weight(1f).background(DashboardPanel, RoundedCornerShape(15.dp))
+                    .border(1.dp, tint.copy(.28f), RoundedCornerShape(15.dp))
+                    .padding(vertical = 11.dp, horizontal = 9.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Box(Modifier.size(6.dp).background(tint, CircleShape))
+                Text(title, color = tint, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = .7.sp)
+                Text(caption, color = DashboardMuted, fontSize = 9.sp)
+            }
+        }
+    }
+}
+
+
+@Composable
+private fun AuroraWorkspaceSwitcher(current: Int, onSelect: (Int) -> Unit) {
+    Card(
+        Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = DashboardPanel)
+    ) {
+        Column(Modifier.padding(13.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("WORKSPACES", color = DashboardCyan, fontSize = 10.sp, fontWeight = FontWeight.Black, letterSpacing = 1.3.sp, modifier = Modifier.weight(1f))
+                Text("3 ESPACIOS", color = DashboardMuted, fontSize = 8.sp)
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                (1..3).forEach { target ->
+                    val selected = current == target
+                    Column(
+                        Modifier.weight(1f)
+                            .background(if (selected) DashboardCyan.copy(.13f) else DashboardInk.copy(.35f), RoundedCornerShape(14.dp))
+                            .border(1.dp, if (selected) DashboardCyan.copy(.7f) else Color.White.copy(.1f), RoundedCornerShape(14.dp))
+                            .selectable(selected = selected, role = Role.RadioButton) { onSelect(target) }
+                            .heightIn(min = 48.dp)
+                            .padding(vertical = 11.dp, horizontal = 8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text("0$target", color = if (selected) DashboardCyan else Color.White, fontSize = 18.sp, fontWeight = FontWeight.Black)
+                        Text(if (selected) "ACTIVO" else "CAMBIAR", color = if (selected) DashboardCyan else DashboardMuted, fontSize = 8.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+            Text("Cambia de espacio sin salir del centro de control.", color = DashboardMuted, fontSize = 9.sp)
+        }
     }
 }

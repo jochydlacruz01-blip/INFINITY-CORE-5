@@ -3,11 +3,7 @@ package com.infinity.core
 import android.content.Context
 import android.content.Intent
 import android.provider.Settings
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.layout.heightIn
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -39,15 +35,41 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-private val AdvancedBackground = Color(0xF20D1B30)
-private val AdvancedAccent = Color(0xFF56D6C9)
-private val AdvancedMuted = Color(0xFFB7C7D9)
-
 @Composable
 fun InfinityAdvancedPanel(
-    onClose: () -> Unit
+    onClose: () -> Unit,
+    desktopTheme: String = "infinity"
 ) {
     val context = LocalContext.current
+    val AdvancedBackground = when (desktopTheme) {
+        "windows11" -> Color(0xF21B3554)
+        else -> Color(0xF20D1B30)
+    }
+    val AdvancedAccent = when (desktopTheme) {
+        "windows11" -> Color(0xFF8BCBFA)
+        else -> Color(0xFF56D6C9)
+    }
+    val AdvancedMuted = Color(0xFFB7C7D9)
+    val sectionSurface = when (desktopTheme) {
+        "windows11" -> Color(0xFF203F5D)
+        else -> Color(0xFF1B304A)
+    }
+    val notificationSurface = when (desktopTheme) {
+        "windows11" -> Color(0xFF294D6D)
+        else -> Color(0xFF263D57)
+    }
+    val panelShape = when (desktopTheme) {
+        "windows11" -> 18.dp
+        else -> 26.dp
+    }
+    val sectionShape = when (desktopTheme) {
+        "windows11" -> 12.dp
+        else -> 17.dp
+    }
+    val notificationShape = when (desktopTheme) {
+        "windows11" -> 9.dp
+        else -> 13.dp
+    }
     val privacyPrefs = remember {
         context.getSharedPreferences("infinity_privacy", Context.MODE_PRIVATE)
     }
@@ -62,15 +84,13 @@ fun InfinityAdvancedPanel(
         modifier = Modifier
             .fillMaxWidth()
             .padding(12.dp),
-        shape = RoundedCornerShape(26.dp),
+        shape = RoundedCornerShape(panelShape),
         colors = CardDefaults.cardColors(
             containerColor = AdvancedBackground
         )
     ) {
         Column(
-            modifier = Modifier
-                .padding(18.dp)
-                .verticalScroll(rememberScrollState()),
+            modifier = Modifier.padding(18.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Row(
@@ -111,7 +131,14 @@ fun InfinityAdvancedPanel(
                     modifier = Modifier.weight(1f),
                     glyph = "◉",
                     title = "Wi-Fi",
-                    subtitle = "Redes e Internet"
+                    subtitle = "Redes e Internet",
+                    accent = AdvancedAccent,
+                    muted = AdvancedMuted,
+                    tileSurface = when (desktopTheme) {
+                        "windows11" -> Color(0xFF24496B)
+                        else -> Color(0xFF203A57)
+                    },
+                    desktopTheme = desktopTheme
                 ) {
                     openAdvancedSettings(context, Settings.ACTION_WIFI_SETTINGS)
                 }
@@ -120,7 +147,14 @@ fun InfinityAdvancedPanel(
                     modifier = Modifier.weight(1f),
                     glyph = "ᛒ",
                     title = "Bluetooth",
-                    subtitle = "Dispositivos"
+                    subtitle = "Dispositivos",
+                    accent = AdvancedAccent,
+                    muted = AdvancedMuted,
+                    tileSurface = when (desktopTheme) {
+                        "windows11" -> Color(0xFF24496B)
+                        else -> Color(0xFF203A57)
+                    },
+                    desktopTheme = desktopTheme
                 ) {
                     openAdvancedSettings(context, Settings.ACTION_BLUETOOTH_SETTINGS)
                 }
@@ -134,7 +168,14 @@ fun InfinityAdvancedPanel(
                     modifier = Modifier.weight(1f),
                     glyph = "☼",
                     title = "Pantalla",
-                    subtitle = "Brillo y visualización"
+                    subtitle = "Brillo y visualización",
+                    accent = AdvancedAccent,
+                    muted = AdvancedMuted,
+                    tileSurface = when (desktopTheme) {
+                        "windows11" -> Color(0xFF24496B)
+                        else -> Color(0xFF203A57)
+                    },
+                    desktopTheme = desktopTheme
                 ) {
                     openAdvancedSettings(context, Settings.ACTION_DISPLAY_SETTINGS)
                 }
@@ -143,7 +184,14 @@ fun InfinityAdvancedPanel(
                     modifier = Modifier.weight(1f),
                     glyph = "♫",
                     title = "Sonido",
-                    subtitle = "Volumen y audio"
+                    subtitle = "Volumen y audio",
+                    accent = AdvancedAccent,
+                    muted = AdvancedMuted,
+                    tileSurface = when (desktopTheme) {
+                        "windows11" -> Color(0xFF24496B)
+                        else -> Color(0xFF203A57)
+                    },
+                    desktopTheme = desktopTheme
                 ) {
                     openAdvancedSettings(context, Settings.ACTION_SOUND_SETTINGS)
                 }
@@ -158,9 +206,9 @@ fun InfinityAdvancedPanel(
 
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(17.dp),
+                shape = RoundedCornerShape(sectionShape),
                 colors = CardDefaults.cardColors(
-                    containerColor = Color(0xFF1B304A)
+                    containerColor = sectionSurface
                 )
             ) {
                 Column(
@@ -267,19 +315,13 @@ fun InfinityAdvancedPanel(
                             fontSize = 11.sp
                         )
                     } else {
-                        LazyColumn(
-                            modifier = Modifier.heightIn(max = 260.dp),
-                            verticalArrangement = Arrangement.spacedBy(7.dp)
-                        ) {
-                            items(
-                                InfinityNotificationStore.notifications,
-                                key = { it.key }
-                            ) { notification ->
+                        Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                            InfinityNotificationStore.notifications.take(30).forEach { notification ->
                                 Card(
                                     modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(13.dp),
+                                    shape = RoundedCornerShape(notificationShape),
                                     colors = CardDefaults.cardColors(
-                                        containerColor = Color(0xFF263D57)
+                                        containerColor = notificationSurface
                                     )
                                 ) {
                                     Column(
@@ -367,14 +409,18 @@ private fun AdvancedActionTile(
     glyph: String,
     title: String,
     subtitle: String,
+    accent: Color,
+    muted: Color,
+    tileSurface: Color,
+    desktopTheme: String,
     onClick: () -> Unit
 ) {
     Card(
         onClick = onClick,
         modifier = modifier,
-        shape = RoundedCornerShape(17.dp),
+        shape = RoundedCornerShape(if (desktopTheme == "windows11") 12.dp else 17.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color(0xFF203A57)
+            containerColor = tileSurface
         )
     ) {
         Column(
@@ -383,7 +429,7 @@ private fun AdvancedActionTile(
         ) {
             Text(
                 glyph,
-                color = AdvancedAccent,
+                color = accent,
                 fontSize = 23.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -395,7 +441,7 @@ private fun AdvancedActionTile(
             )
             Text(
                 subtitle,
-                color = AdvancedMuted,
+                color = muted,
                 fontSize = 9.sp
             )
         }
