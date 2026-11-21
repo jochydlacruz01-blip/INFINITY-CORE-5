@@ -211,6 +211,27 @@ private fun Infinity08App() {
         else -> Color(0xFF56D6C9)
     }
     val foreground = if (lightMode) Color(0xFF203149) else Color.White
+    val windowRadius = when (desktopTheme) {
+        "windows11" -> 12.dp
+        "apple" -> 24.dp
+        else -> 20.dp
+    }
+    val windowSurface = when (desktopTheme) {
+        "windows11" -> if (lightMode) Color(0xF2F3F8FC) else Color(0xF21A3652)
+        "apple" -> if (lightMode) Color(0xF2F4F5F7) else Color(0xF22A303A)
+        else -> if (lightMode) Color(0xF2F5F8FC) else Color(0xF21B2B40)
+    }
+    val titleBarSurface = when (desktopTheme) {
+        "windows11" -> if (lightMode) Color(0xFFE2EDF8) else Color(0xFF24496B)
+        "apple" -> if (lightMode) Color(0xFFE7E9ED) else Color(0xFF3A424E)
+        else -> if (lightMode) Color(0xFFE0EAF5) else Color(0xFF263D57)
+    }
+    val windowBorder = when (desktopTheme) {
+        "windows11" -> Color(0xFF8BCBFA).copy(.58f)
+        "apple" -> Color(0xFFD5DCE6).copy(.48f)
+        else -> accent.copy(.38f)
+    }
+    val controlRadius = if (desktopTheme == "windows11") 8.dp else if (desktopTheme == "apple") 18.dp else 14.dp
 
     var clockText by remember { mutableStateOf("--:--") }
     var dateText by remember { mutableStateOf("") }
@@ -779,6 +800,7 @@ val iconOffsets = remember {
                         installedApps = installedApps,
                         accent = accent,
                         lightMode = lightMode,
+                        desktopTheme = iconPack,
                         themeChoice = themeChoice,
                         onThemeChange = {
                             val normalized = infinityNormalizeThemeChoice(it)
@@ -2014,6 +2036,7 @@ private fun Infinity08Window(
     installedApps: List<InstalledApp>,
     accent: Color,
     lightMode: Boolean,
+    desktopTheme: String,
     themeChoice: String,
     onThemeChange: (String) -> Unit,
     appearance: String,
@@ -2068,12 +2091,9 @@ private fun Infinity08Window(
             }
             .width(win.width.dp)
             .height(win.height.dp)
-            .shadow(26.dp, RoundedCornerShape(20.dp))
-            .background(
-                if (lightMode) Color(0xF2F5F8FC) else Color(0xF21B2B40),
-                RoundedCornerShape(20.dp)
-            )
-            .border(1.dp, accent.copy(.38f), RoundedCornerShape(20.dp)) 
+             .shadow(26.dp, RoundedCornerShape(windowRadius))
+            .background(windowSurface, RoundedCornerShape(windowRadius))
+            .border(1.dp, windowBorder, RoundedCornerShape(windowRadius)) 
             .clickable { onFocus() }
     ) {
         
@@ -2082,11 +2102,10 @@ private fun Infinity08Window(
             Modifier
                 .fillMaxWidth()
                 .background(
-                    if (lightMode) Color(0xFFE0EAF5)
-                    else Color(0xFF263D57),
+                    titleBarSurface,
                     RoundedCornerShape(
-                        topStart = 20.dp,
-                        topEnd = 20.dp
+                        topStart = windowRadius,
+                        topEnd = windowRadius
                     )
                 ) 
                 .clickable { onFocus() }
@@ -2145,7 +2164,7 @@ private fun Infinity08Window(
                     .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
                     .background(
                         Color(0xFF71849B).copy(alpha = 0.22f),
-                        CircleShape
+                        RoundedCornerShape(controlRadius)
                     )
             ) {
                 Icon(
@@ -2163,7 +2182,7 @@ private fun Infinity08Window(
                     .size(36.dp)
                     .background(
                         accent.copy(alpha = 0.20f),
-                        CircleShape
+                        RoundedCornerShape(controlRadius)
                     )
             ) {
                 Icon(
@@ -2184,7 +2203,7 @@ private fun Infinity08Window(
                     .size(36.dp)
                     .background(
                         Color(0xFFFF6262).copy(alpha = 0.20f),
-                        CircleShape
+                        RoundedCornerShape(controlRadius)
                     )
             ) {
                 Icon(
