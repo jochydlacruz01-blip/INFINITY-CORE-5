@@ -967,7 +967,7 @@ val iconOffsets = remember {
                         // INFINITY 0.11 — MOVIMIENTO CON LÍMITES
                         onMove = { dx, dy ->
                             val index = windows.indexOfFirst { it.id == win.id }
-                            if (index >= 0) {
+                            if (index >= 0 && infinityWindowCanManipulateGeometry(windows[index].maximized, maxW.value)) {
                                 val current = windows[index]
                                 val boundedPosition = infinityClampWindowPosition(
                                     current.x + dx,
@@ -986,7 +986,7 @@ val iconOffsets = remember {
                         // INFINITY 0.11 — REDIMENSIONAMIENTO ADAPTABLE
                         onResize = { dx, dy ->
                             val index = windows.indexOfFirst { it.id == win.id }
-                            if (index >= 0) {
+                            if (index >= 0 && infinityWindowCanManipulateGeometry(windows[index].maximized, maxW.value)) {
                                 val current = windows[index]
 
                                 val availableWidth =
