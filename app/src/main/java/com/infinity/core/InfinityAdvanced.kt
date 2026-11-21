@@ -35,15 +35,26 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-private val AdvancedBackground = Color(0xF20D1B30)
-private val AdvancedAccent = Color(0xFF56D6C9)
-private val AdvancedMuted = Color(0xFFB7C7D9)
-
 @Composable
 fun InfinityAdvancedPanel(
-    onClose: () -> Unit
+    onClose: () -> Unit,
+    desktopTheme: String = "infinity"
 ) {
     val context = LocalContext.current
+    val AdvancedBackground = when (desktopTheme) {
+        "windows11" -> Color(0xF21B3554)
+        "apple" -> Color(0xF22B303A)
+        else -> Color(0xF20D1B30)
+    }
+    val AdvancedAccent = when (desktopTheme) {
+        "windows11" -> Color(0xFF8BCBFA)
+        "apple" -> Color(0xFFF2F4F8)
+        else -> Color(0xFF56D6C9)
+    }
+    val AdvancedMuted = when (desktopTheme) {
+        "apple" -> Color(0xFFD0D5DE)
+        else -> Color(0xFFB7C7D9)
+    }
     val privacyPrefs = remember {
         context.getSharedPreferences("infinity_privacy", Context.MODE_PRIVATE)
     }
