@@ -28,6 +28,15 @@ class InfinityBatch11WorkspaceTest {
         assertEquals(0, infinityDockHiddenTaskCount(-3, 2))
     }
 
+    @Test fun geometryControlsAreHiddenOnlyOnCompactOrInvalidViewports() {
+        assertEquals(false, infinityWindowGeometryControlsVisible(390f))
+        assertEquals(false, infinityWindowGeometryControlsVisible(599.9f))
+        assertEquals(true, infinityWindowGeometryControlsVisible(600f))
+        assertEquals(true, infinityWindowGeometryControlsVisible(1280f))
+        assertEquals(false, infinityWindowGeometryControlsVisible(Float.NaN))
+        assertEquals(false, infinityWindowGeometryControlsVisible(Float.POSITIVE_INFINITY))
+    }
+
     @Test fun maximizedAndPhoneWindowsCannotMutateDesktopGeometry() {
         assertEquals(false, infinityWindowCanManipulateGeometry(true, 1280f))
         assertEquals(false, infinityWindowCanManipulateGeometry(false, 599.9f))
