@@ -4,6 +4,22 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class InfinityBatch11WorkspaceTest {
+    @Test fun dockTaskLimitPreservesPrimaryControlsAcrossWidths() {
+        assertEquals(1, infinityDockVisibleTaskLimit(390f))
+        assertEquals(1, infinityDockVisibleTaskLimit(599.9f))
+        assertEquals(2, infinityDockVisibleTaskLimit(600f))
+        assertEquals(2, infinityDockVisibleTaskLimit(719.9f))
+        assertEquals(3, infinityDockVisibleTaskLimit(720f))
+        assertEquals(3, infinityDockVisibleTaskLimit(959.9f))
+        assertEquals(5, infinityDockVisibleTaskLimit(960f))
+    }
+
+    @Test fun dockTaskLimitHandlesInvalidWidthsSafely() {
+        assertEquals(1, infinityDockVisibleTaskLimit(Float.NaN))
+        assertEquals(1, infinityDockVisibleTaskLimit(Float.POSITIVE_INFINITY))
+        assertEquals(1, infinityDockVisibleTaskLimit(-1f))
+    }
+
     @Test fun workspaceSelectionIsBounded() {
         assertEquals(1, infinityNormalizeWorkspace(Int.MIN_VALUE))
         assertEquals(1, infinityNormalizeWorkspace(0))
