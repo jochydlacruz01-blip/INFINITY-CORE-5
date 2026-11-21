@@ -3,11 +3,7 @@ package com.infinity.core
 import android.content.Context
 import android.content.Intent
 import android.provider.Settings
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.layout.heightIn
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -68,9 +64,7 @@ fun InfinityAdvancedPanel(
         )
     ) {
         Column(
-            modifier = Modifier
-                .padding(18.dp)
-                .verticalScroll(rememberScrollState()),
+            modifier = Modifier.padding(18.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Row(
@@ -267,14 +261,8 @@ fun InfinityAdvancedPanel(
                             fontSize = 11.sp
                         )
                     } else {
-                        LazyColumn(
-                            modifier = Modifier.heightIn(max = 260.dp),
-                            verticalArrangement = Arrangement.spacedBy(7.dp)
-                        ) {
-                            items(
-                                InfinityNotificationStore.notifications,
-                                key = { it.key }
-                            ) { notification ->
+                        Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                            InfinityNotificationStore.notifications.take(30).forEach { notification ->
                                 Card(
                                     modifier = Modifier.fillMaxWidth(),
                                     shape = RoundedCornerShape(13.dp),
