@@ -66,6 +66,13 @@ class InfinityConnectSessionController(private val engine: InfinityConnectEngine
         if (lifecycle.transition(InfinityConnectSessionState.FAILED, safe)) sink(lifecycle.state, lifecycle.failureMessage)
     }
     private fun moveToIdle(sink: (InfinityConnectSessionState, String?) -> Unit) {
+        val current = lifecycle.state
+        if (current == InfinityConnectSessionState.CONNECTED ||
+            current == InfinityConnectSessionState.CONNECTING ||
+            current == InfinityConnectSessionState.AUTHENTICATING ||
+            current == InfinityConnectSessionState.RECONNECTING) {
+            lifecycle.transition(InfinityConnectSessionState.DISCONNECTING)
+        }
         if (lifecycle.state == InfinityConnectSessionState.DISCONNECTING ||
             lifecycle.state == InfinityConnectSessionState.FAILED) {
             if (lifecycle.transition(InfinityConnectSessionState.IDLE)) sink(lifecycle.state, null)
