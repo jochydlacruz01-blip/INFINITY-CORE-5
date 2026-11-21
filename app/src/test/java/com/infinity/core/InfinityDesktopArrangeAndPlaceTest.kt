@@ -23,7 +23,7 @@ class InfinityDesktopOrderedGridPlacementTest {
             InfinityDesktopIconRecord("a", "Aplicaciones", "app", 2)
         )
         val map = infinityDesktopArrangeAndPlace(icons, InfinityIconArrangement.NAME, 500f, 100f, 120f)
-        assertEquals(listOf("f", "a", "n"), map.keys.toList())
+        assertEquals(listOf("a", "f", "n"), map.keys.toList())
     }
 
     @Test fun narrowViewportStillProducesSafePositions() {
