@@ -917,7 +917,7 @@ val iconOffsets = remember {
                     }
                 )
             ) {
-                DockAction("⌂", "HOME", accent) {
+                DockAction("⌂", "HOME", accent, iconPack) {
                     dashboardOpen = true
                     startOpen = false
                     orbitOpen = false
@@ -925,24 +925,24 @@ val iconOffsets = remember {
                     advancedOpen = false
                 }
 
-                DockAction("✦", "START", accent) {
+                DockAction("✦", "START", accent, iconPack) {
                     startOpen = !startOpen
                     orbitOpen = false
                     controlOpen = false
                 }
 
-                DockAction("◎", "ORBIT", Color(0xFFB69CFF)) {
+                DockAction("◎", "ORBIT", Color(0xFFB69CFF), iconPack) {
                     orbitOpen = !orbitOpen
                     startOpen = false
                     controlOpen = false
                 }
 
-                DockAction("☷", "CONTROL", Color(0xFFFFC27A)) {
+                DockAction("☷", "CONTROL", Color(0xFFFFC27A), iconPack) {
                     controlOpen = !controlOpen
                     startOpen = false
                     orbitOpen = false
                 }
-DockAction("▤", "ADVANCED", accent) {
+DockAction("▤", "ADVANCED", accent, iconPack) {
     advancedOpen = !advancedOpen
     startOpen = false
     orbitOpen = false
@@ -958,7 +958,7 @@ DockAction("▤", "ADVANCED", accent) {
                 infinityWorkspaceWindowIds(windows.map { it.id }, windows.associate { it.id to it.workspace }, workspace).mapNotNull { id -> windows.firstOrNull { it.id == id } }.let { workspaceWindows ->
                     infinityDockWindowIds(workspaceWindows.map { it.id }, workspaceWindows.associate { it.id to it.minimized }).forEach { taskId ->
                         val task = workspaceWindows.firstOrNull { it.id == taskId } ?: return@forEach
-                        DockAction(if (task.minimized) "□" else "▣", infinityDockLabel(task.title), accent) {
+                        DockAction(if (task.minimized) "□" else "▣", infinityDockLabel(task.title), accent, iconPack) {
                             val idx = windows.indexOfFirst { it.id == task.id }
                             if (idx >= 0) {
                                 val tappedTask = windows[idx]
@@ -1011,9 +1011,21 @@ DockAction("▤", "ADVANCED", accent) {
                         .widthIn(min = 290.dp, max = 420.dp)
                         .heightIn(max = maxH - 116.dp)
                         .shadow(28.dp, RoundedCornerShape(28.dp)),
-                    shape = RoundedCornerShape(28.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xF0142036)),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, accent.copy(alpha = .28f))
+                    shape = RoundedCornerShape(when (iconPack) {
+                        "windows11" -> 16.dp
+                        "apple" -> 30.dp
+                        else -> 28.dp
+                    }),
+                    colors = CardDefaults.cardColors(containerColor = when (iconPack) {
+                        "windows11" -> Color(0xF0254563)
+                        "apple" -> Color(0xF02D3541)
+                        else -> Color(0xF0142036)
+                    }),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, when (iconPack) {
+                        "windows11" -> Color(0xFF8BCBFA).copy(alpha = .58f)
+                        "apple" -> Color.White.copy(alpha = .48f)
+                        else -> accent.copy(alpha = .28f)
+                    })
                 ) {
                     Column(Modifier.padding(18.dp)) {
                         Text("INFINITY START", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Black)
@@ -1765,14 +1777,25 @@ private fun DockAction(
     glyph: String,
     description: String,
     tint: Color,
+    desktopTheme: String = "infinity",
     onClick: () -> Unit
 ) {
+    val actionRadius = when (desktopTheme) {
+        "windows11" -> 9.dp
+        "apple" -> 20.dp
+        else -> 14.dp
+    }
+    val actionSurface = when (desktopTheme) {
+        "windows11" -> Color(0xFF345574).copy(alpha = .48f)
+        "apple" -> Color(0xFF657184).copy(alpha = .28f)
+        else -> Color.White.copy(alpha = .045f)
+    }
     Column(
         Modifier
             .widthIn(min = 48.dp)
-            .clip(RoundedCornerShape(14.dp))
-            .background(Color.White.copy(alpha = 0.045f), RoundedCornerShape(15.dp))
-            .border(1.dp, tint.copy(alpha = 0.22f), RoundedCornerShape(15.dp))
+            .clip(RoundedCornerShape(actionRadius))
+            .background(actionSurface, RoundedCornerShape(actionRadius))
+            .border(1.dp, tint.copy(alpha = if (desktopTheme == "apple") .34f else .22f), RoundedCornerShape(actionRadius))
             .clickable(onClick = onClick)
             .padding(horizontal = 5.dp, vertical = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
