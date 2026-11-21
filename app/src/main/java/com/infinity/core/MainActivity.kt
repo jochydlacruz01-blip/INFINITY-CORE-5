@@ -536,18 +536,7 @@ val iconOffsets = remember {
                 }
             }
 
-            // Full desktop identity: distinct visual language for INFINITY, Windows 11 and macOS.
-            Box(
-                Modifier.fillMaxSize().background(
-                    Brush.linearGradient(
-                        when (iconPack) {
-                            "windows11" -> listOf(Color(0xFF071B36), Color(0xFF164D79), Color(0xFF071426))
-                            "apple" -> listOf(Color(0xFF303B4C), Color(0xFF111923), Color(0xFF05080E))
-                            else -> listOf(Color(0xFF081729), Color(0xFF102E48), Color(0xFF080F1D))
-                        }
-                    )
-                )
-            )
+            // The selected desktop theme is rendered by the root background above.
             val currentWallpaperBitmap = wallpaperBitmap
             if (currentWallpaperBitmap != null) {
                 Image(
