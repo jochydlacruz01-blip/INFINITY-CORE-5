@@ -32,8 +32,10 @@ internal fun infinityDesktopViewportPlacement(
     fun safe(value: Float, fallback: Float, min: Float = 0f) =
         value.takeIf { it.isFinite() && it >= min } ?: fallback
 
-    val width = safe(viewportWidth, 1f, 1f)
-    val height = safe(viewportHeight, 1f, 1f)
+    // Invalid viewport measurements use a conservative portrait fallback rather than
+    // collapsing the desktop to a 1x1 area and incorrectly overflowing valid items.
+    val width = safe(viewportWidth, 320f, 1f)
+    val height = safe(viewportHeight, 480f, 1f)
     val left = safe(leftInset, 0f).coerceAtMost(width - 1f)
     val top = safe(topInset, 0f).coerceAtMost(height - 1f)
     val right = safe(rightInset, 0f).coerceAtMost((width - left - 1f).coerceAtLeast(0f))
