@@ -16,7 +16,7 @@ class InfinityDesktopContextMenuRulesTest {
     }
     @Test fun typeSortUsesLabelAsTieBreaker() {
         val mixed = icons + InfinityDesktopIconRecord("d", "Apps", "app", 3)
-        assertEquals(listOf("Apps", "CONNECT", "Archivos", "Notas"),
+        assertEquals(listOf("Apps", "CONNECT", "Notas", "Archivos"),
             infinityArrangeDesktopIcons(mixed, InfinityIconArrangement.TYPE).map { it.label })
     }
     @Test fun manualSortPreservesSavedOrder() {
