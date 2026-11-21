@@ -15,8 +15,8 @@ internal fun infinityArrangeDesktopIcons(
     icons: List<InfinityDesktopIconRecord>, arrangement: InfinityIconArrangement
 ): List<InfinityDesktopIconRecord> = when (arrangement) {
     InfinityIconArrangement.MANUAL -> icons.sortedBy { it.order }
-    InfinityIconArrangement.NAME -> icons.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.label })
-    InfinityIconArrangement.TYPE -> icons.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.type }.thenBy { it.label.lowercase(java.util.Locale.ROOT) })
+    InfinityIconArrangement.NAME -> icons.sortedWith(Comparator { a, b -> String.CASE_INSENSITIVE_ORDER.compare(a.label, b.label) })
+    InfinityIconArrangement.TYPE -> icons.sortedWith(Comparator { a, b -> val typeCompare = String.CASE_INSENSITIVE_ORDER.compare(a.type, b.type); if (typeCompare != 0) typeCompare else a.label.lowercase(java.util.Locale.ROOT).compareTo(b.label.lowercase(java.util.Locale.ROOT)) })
     InfinityIconArrangement.GRID -> icons.sortedBy { it.order }
 }
 
