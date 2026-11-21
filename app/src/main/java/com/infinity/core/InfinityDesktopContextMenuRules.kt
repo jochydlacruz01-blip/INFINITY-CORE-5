@@ -21,12 +21,12 @@ internal fun infinityArrangeDesktopIcons(
 }
 
 /** Context menu policy: desktop shell settings belong on the desktop, not in the Dock. */
-internal fun infinityDesktopContextActions(): List<InfinityDesktopContextAction> = listOf(
+internal fun infinityDesktopContextActions(iconsVisible: Boolean = true): List<InfinityDesktopContextAction> = listOf(
     InfinityDesktopContextAction.SORT_NAME,
     InfinityDesktopContextAction.SORT_TYPE,
     InfinityDesktopContextAction.SORT_MANUAL,
     InfinityDesktopContextAction.ALIGN_GRID,
-    InfinityDesktopContextAction.SHOW_ICONS,
+    if (iconsVisible) InfinityDesktopContextAction.HIDE_ICONS else InfinityDesktopContextAction.SHOW_ICONS,
     InfinityDesktopContextAction.REFRESH_LAYOUT,
     InfinityDesktopContextAction.DESKTOP_APPEARANCE,
     InfinityDesktopContextAction.WALLPAPER,
