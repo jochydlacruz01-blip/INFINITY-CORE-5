@@ -28,6 +28,15 @@ class InfinityBatch11WorkspaceTest {
         assertEquals(0, infinityDockHiddenTaskCount(-3, 2))
     }
 
+    @Test fun maximizedAndPhoneWindowsCannotMutateDesktopGeometry() {
+        assertEquals(false, infinityWindowCanManipulateGeometry(true, 1280f))
+        assertEquals(false, infinityWindowCanManipulateGeometry(false, 599.9f))
+        assertEquals(true, infinityWindowCanManipulateGeometry(false, 600f))
+        assertEquals(true, infinityWindowCanManipulateGeometry(false, 1024f))
+        assertEquals(false, infinityWindowCanManipulateGeometry(false, Float.NaN))
+        assertEquals(false, infinityWindowCanManipulateGeometry(false, Float.POSITIVE_INFINITY))
+    }
+
     @Test fun workspaceSelectionIsBounded() {
         assertEquals(1, infinityNormalizeWorkspace(Int.MIN_VALUE))
         assertEquals(1, infinityNormalizeWorkspace(0))
