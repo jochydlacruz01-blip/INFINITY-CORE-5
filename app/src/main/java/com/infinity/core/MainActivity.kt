@@ -1750,7 +1750,8 @@ Row(
                         .verticalScroll(rememberScrollState())
                 ) {
                     InfinityAdvancedPanel(
-                        onClose = { advancedOpen = false }
+                        onClose = { advancedOpen = false },
+                        desktopTheme = iconPack
                     )
                 }
             }
