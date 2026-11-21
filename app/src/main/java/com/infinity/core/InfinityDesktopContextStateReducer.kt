@@ -30,17 +30,3 @@ internal fun infinityReduceDesktopContextState(
     InfinityDesktopContextAction.WORKSPACE -> state
 }
 
-/** Menu catalog includes both visibility toggles; callers can filter the currently active one. */
-internal fun infinityDesktopContextActions(iconsVisible: Boolean = true): List<InfinityDesktopContextAction> =
-    listOf(
-        InfinityDesktopContextAction.SORT_NAME,
-        InfinityDesktopContextAction.SORT_TYPE,
-        InfinityDesktopContextAction.SORT_MANUAL,
-        InfinityDesktopContextAction.ALIGN_GRID,
-        if (iconsVisible) InfinityDesktopContextAction.HIDE_ICONS else InfinityDesktopContextAction.SHOW_ICONS,
-        InfinityDesktopContextAction.REFRESH_LAYOUT,
-        InfinityDesktopContextAction.DESKTOP_APPEARANCE,
-        InfinityDesktopContextAction.WALLPAPER,
-        InfinityDesktopContextAction.ICON_SIZE,
-        InfinityDesktopContextAction.WORKSPACE
-    )
