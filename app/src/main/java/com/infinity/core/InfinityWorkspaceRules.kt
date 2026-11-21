@@ -28,6 +28,14 @@ internal fun infinityResolveFocusedWindow(currentId: String?, eligibleIds: List<
 internal fun infinityDockWindowIds(windowIds: List<String>, minimizedById: Map<String, Boolean>): List<String> =
     windowIds.filter { it in minimizedById.keys }
 
+/** Limits visible task shortcuts so primary controls and the clock remain on-screen. */
+internal fun infinityDockVisibleTaskLimit(availableWidthDp: Float): Int = when {
+    !availableWidthDp.isFinite() || availableWidthDp < 600f -> 1
+    availableWidthDp < 720f -> 2
+    availableWidthDp < 960f -> 3
+    else -> 5
+}
+
 /** Dock tap toggles minimization only for the currently focused, visible task. */
 internal fun infinityDockTapMinimizes(taskId: String, currentFocusId: String?, minimized: Boolean): Boolean =
     !minimized && taskId == currentFocusId
