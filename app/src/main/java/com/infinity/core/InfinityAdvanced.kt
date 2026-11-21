@@ -43,41 +43,31 @@ fun InfinityAdvancedPanel(
     val context = LocalContext.current
     val AdvancedBackground = when (desktopTheme) {
         "windows11" -> Color(0xF21B3554)
-        "apple" -> Color(0xF22B303A)
         else -> Color(0xF20D1B30)
     }
     val AdvancedAccent = when (desktopTheme) {
         "windows11" -> Color(0xFF8BCBFA)
-        "apple" -> Color(0xFFF2F4F8)
         else -> Color(0xFF56D6C9)
     }
-    val AdvancedMuted = when (desktopTheme) {
-        "apple" -> Color(0xFFD0D5DE)
-        else -> Color(0xFFB7C7D9)
-    }
+    val AdvancedMuted = Color(0xFFB7C7D9)
     val sectionSurface = when (desktopTheme) {
         "windows11" -> Color(0xFF203F5D)
-        "apple" -> Color(0xFF39424F)
         else -> Color(0xFF1B304A)
     }
     val notificationSurface = when (desktopTheme) {
         "windows11" -> Color(0xFF294D6D)
-        "apple" -> Color(0xFF485361)
         else -> Color(0xFF263D57)
     }
     val panelShape = when (desktopTheme) {
         "windows11" -> 18.dp
-        "apple" -> 30.dp
         else -> 26.dp
     }
     val sectionShape = when (desktopTheme) {
         "windows11" -> 12.dp
-        "apple" -> 22.dp
         else -> 17.dp
     }
     val notificationShape = when (desktopTheme) {
         "windows11" -> 9.dp
-        "apple" -> 17.dp
         else -> 13.dp
     }
     val privacyPrefs = remember {
@@ -146,7 +136,6 @@ fun InfinityAdvancedPanel(
                     muted = AdvancedMuted,
                     tileSurface = when (desktopTheme) {
                         "windows11" -> Color(0xFF24496B)
-                        "apple" -> Color(0xFF414B5B)
                         else -> Color(0xFF203A57)
                     },
                     desktopTheme = desktopTheme
@@ -163,7 +152,6 @@ fun InfinityAdvancedPanel(
                     muted = AdvancedMuted,
                     tileSurface = when (desktopTheme) {
                         "windows11" -> Color(0xFF24496B)
-                        "apple" -> Color(0xFF414B5B)
                         else -> Color(0xFF203A57)
                     },
                     desktopTheme = desktopTheme
@@ -185,7 +173,6 @@ fun InfinityAdvancedPanel(
                     muted = AdvancedMuted,
                     tileSurface = when (desktopTheme) {
                         "windows11" -> Color(0xFF24496B)
-                        "apple" -> Color(0xFF414B5B)
                         else -> Color(0xFF203A57)
                     },
                     desktopTheme = desktopTheme
@@ -202,7 +189,6 @@ fun InfinityAdvancedPanel(
                     muted = AdvancedMuted,
                     tileSurface = when (desktopTheme) {
                         "windows11" -> Color(0xFF24496B)
-                        "apple" -> Color(0xFF414B5B)
                         else -> Color(0xFF203A57)
                     },
                     desktopTheme = desktopTheme
@@ -432,11 +418,7 @@ private fun AdvancedActionTile(
     Card(
         onClick = onClick,
         modifier = modifier,
-        shape = RoundedCornerShape(when (desktopTheme) {
-            "windows11" -> 12.dp
-            "apple" -> 22.dp
-            else -> 17.dp
-        }),
+        shape = RoundedCornerShape(if (desktopTheme == "windows11") 12.dp else 17.dp),
         colors = CardDefaults.cardColors(
             containerColor = tileSurface
         )
