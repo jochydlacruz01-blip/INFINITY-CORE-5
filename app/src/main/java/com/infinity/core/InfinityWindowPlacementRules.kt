@@ -36,7 +36,7 @@ internal fun infinityInitialWindowSize(
 }
 
 
-/** Clamp a window's top-left position after movement to keep its full bounds visible. */
+/** Clamp a window's top-left position after movement, recovering from invalid geometry. */
 internal fun infinityClampWindowPosition(
     x: Float,
     y: Float,
@@ -45,9 +45,15 @@ internal fun infinityClampWindowPosition(
     viewportWidth: Float,
     viewportHeight: Float
 ): Pair<Float, Float> {
-    val maxX = (viewportWidth - windowWidth).coerceAtLeast(0f)
-    val maxY = (viewportHeight - windowHeight).coerceAtLeast(0f)
-    return x.coerceIn(0f, maxX) to y.coerceIn(0f, maxY)
+    val safeViewportWidth = viewportWidth.takeIf { it.isFinite() && it >= 0f } ?: 0f
+    val safeViewportHeight = viewportHeight.takeIf { it.isFinite() && it >= 0f } ?: 0f
+    val safeWindowWidth = windowWidth.takeIf { it.isFinite() && it >= 0f } ?: safeViewportWidth
+    val safeWindowHeight = windowHeight.takeIf { it.isFinite() && it >= 0f } ?: safeViewportHeight
+    val maxX = (safeViewportWidth - safeWindowWidth).coerceAtLeast(0f)
+    val maxY = (safeViewportHeight - safeWindowHeight).coerceAtLeast(0f)
+    val safeX = x.takeIf { it.isFinite() } ?: 0f
+    val safeY = y.takeIf { it.isFinite() } ?: 0f
+    return safeX.coerceIn(0f, maxX) to safeY.coerceIn(0f, maxY)
 }
 
 /** Normalized geometry for a restored window, ensuring it remains reachable on a changed viewport. */

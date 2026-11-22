@@ -27,3 +27,10 @@ class InfinityWindowBoundaryTest {
         )
     }
 }
+
+    @Test fun movementRecoversFromNonFiniteGeometry() {
+        assertEquals(0f to 0f, infinityClampWindowPosition(Float.NaN, Float.POSITIVE_INFINITY, 300f, 200f, 500f, 400f))
+        assertEquals(0f to 0f, infinityClampWindowPosition(20f, 30f, Float.NaN, Float.NEGATIVE_INFINITY, 500f, 400f))
+        assertEquals(0f to 0f, infinityClampWindowPosition(20f, 30f, 300f, 200f, Float.NaN, Float.NEGATIVE_INFINITY))
+    }
+
