@@ -1,6 +1,7 @@
 package com.infinity.core
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class InfinityWindowBoundaryTest {
@@ -32,5 +33,26 @@ class InfinityWindowBoundaryTest {
         assertEquals(0f to 0f, infinityClampWindowPosition(Float.NaN, Float.POSITIVE_INFINITY, 300f, 200f, 500f, 400f))
         assertEquals(0f to 0f, infinityClampWindowPosition(20f, 30f, Float.NaN, Float.NEGATIVE_INFINITY, 500f, 400f))
         assertEquals(0f to 0f, infinityClampWindowPosition(20f, 30f, 300f, 200f, Float.NaN, Float.NEGATIVE_INFINITY))
+    }
+
+    @Test fun restoredBoundsRecoverFromNonFiniteValues() {
+        val bounds = infinityNormalizeWindowBounds(
+            Float.NaN, Float.POSITIVE_INFINITY, Float.NaN, Float.NEGATIVE_INFINITY,
+            500f, 400f
+        )
+        assertTrue(bounds.x.isFinite() && bounds.y.isFinite())
+        assertTrue(bounds.width.isFinite() && bounds.height.isFinite())
+        assertTrue(bounds.x >= 0f && bounds.y >= 0f)
+        assertTrue(bounds.width > 0f && bounds.height > 0f)
+    }
+
+    @Test fun restoredBoundsSanitizeInvalidViewportAndMargins() {
+        val bounds = infinityNormalizeWindowBounds(
+            20f, 30f, 300f, 200f, Float.NaN, Float.POSITIVE_INFINITY,
+            minWidth = Float.NaN, minHeight = Float.NEGATIVE_INFINITY, margin = Float.NaN
+        )
+        assertTrue(bounds.x.isFinite() && bounds.y.isFinite())
+        assertTrue(bounds.width.isFinite() && bounds.height.isFinite())
+        assertTrue(bounds.x >= 0f && bounds.y >= 0f)
     }
 }

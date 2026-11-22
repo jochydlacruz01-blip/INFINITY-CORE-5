@@ -17,10 +17,7 @@ internal fun infinityInitialWindowPosition(
     return (90f + offset).coerceIn(0f, maxX) to (75f + offset).coerceIn(0f, maxY)
 }
 
-/**
- * Chooses a useful default window size without allowing it to exceed a phone viewport.
- * Larger desktop/tablet layouts retain the established 370 x 330 dp window size.
- */
+/** Chooses a useful default window size without allowing it to exceed a phone viewport. */
 internal fun infinityInitialWindowSize(
     viewportWidth: Float,
     viewportHeight: Float,
@@ -34,7 +31,6 @@ internal fun infinityInitialWindowSize(
     return preferredWidth.coerceAtMost(availableWidth) to
         preferredHeight.coerceAtMost(availableHeight)
 }
-
 
 /** Clamp a window's top-left position after movement, recovering from invalid geometry. */
 internal fun infinityClampWindowPosition(
@@ -65,12 +61,19 @@ internal fun infinityNormalizeWindowBounds(
     minWidth: Float = 240f, minHeight: Float = 180f,
     margin: Float = 16f
 ): InfinityWindowBounds {
-    val availableWidth = (viewportWidth - margin).coerceAtLeast(1f)
-    val availableHeight = (viewportHeight - margin).coerceAtLeast(1f)
-    val safeWidth = width.coerceIn(minWidth.coerceAtMost(availableWidth), availableWidth)
-    val safeHeight = height.coerceIn(minHeight.coerceAtMost(availableHeight), availableHeight)
+    val safeViewportWidth = viewportWidth.takeIf { it.isFinite() && it > 0f } ?: 1f
+    val safeViewportHeight = viewportHeight.takeIf { it.isFinite() && it > 0f } ?: 1f
+    val safeMargin = margin.takeIf { it.isFinite() && it >= 0f } ?: 0f
+    val availableWidth = (safeViewportWidth - safeMargin).coerceAtLeast(1f)
+    val availableHeight = (safeViewportHeight - safeMargin).coerceAtLeast(1f)
+    val safeMinWidth = minWidth.takeIf { it.isFinite() && it > 0f } ?: 1f
+    val safeMinHeight = minHeight.takeIf { it.isFinite() && it > 0f } ?: 1f
+    val safeRequestedWidth = width.takeIf { it.isFinite() && it > 0f } ?: safeMinWidth
+    val safeRequestedHeight = height.takeIf { it.isFinite() && it > 0f } ?: safeMinHeight
+    val normalizedWidth = safeRequestedWidth.coerceIn(safeMinWidth.coerceAtMost(availableWidth), availableWidth)
+    val normalizedHeight = safeRequestedHeight.coerceIn(safeMinHeight.coerceAtMost(availableHeight), availableHeight)
     val (safeX, safeY) = infinityClampWindowPosition(
-        x, y, safeWidth, safeHeight, viewportWidth, viewportHeight
+        x, y, normalizedWidth, normalizedHeight, safeViewportWidth, safeViewportHeight
     )
-    return InfinityWindowBounds(safeX, safeY, safeWidth, safeHeight)
+    return InfinityWindowBounds(safeX, safeY, normalizedWidth, normalizedHeight)
 }
