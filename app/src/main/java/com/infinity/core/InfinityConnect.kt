@@ -25,6 +25,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
@@ -151,6 +152,9 @@ fun InfinityConnectPanel() {
     val editingPort = remember { mutableStateOf("3389") }
     val editingUsername = remember { mutableStateOf("") }
     val editingPassword = remember { mutableStateOf("") }
+    DisposableEffect(Unit) {
+        onDispose { editingPassword.value = "" }
+    }
     val credentialVault = remember(context) { InfinityConnectCredentialVault(context) }
     val editingIndex = remember { mutableStateOf(-1) }
 
@@ -409,6 +413,7 @@ fun InfinityConnectPanel() {
     if (showEditor.value) {
         AlertDialog(
             onDismissRequest = {
+                editingPassword.value = ""
                 showEditor.value = false
             },
             title = {
@@ -473,7 +478,7 @@ fun InfinityConnectPanel() {
                     
                     OutlinedTextField(
                         value = editingPassword.value,
-                        onValueChange = { editingPassword.value = it },
+                        onValueChange = { editingPassword.value = it.take(256) },
                         label = { Text("Contraseña (opcional)") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
@@ -523,6 +528,7 @@ fun InfinityConnectPanel() {
                             saveInfinityProfiles(context, profiles)
                             credentialVault.save(profile.address, editingPassword.value)
 
+                            editingPassword.value = ""
                             showEditor.value = false
                             editingIndex.value = -1
                             notifyUser("Computadora guardada")
@@ -535,6 +541,7 @@ fun InfinityConnectPanel() {
             dismissButton = {
                 TextButton(
                     onClick = {
+                        editingPassword.value = ""
                         showEditor.value = false
                     }
                 ) {
