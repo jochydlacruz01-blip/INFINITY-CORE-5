@@ -21,8 +21,8 @@ class InfinityDesktopContextMenuRulesTest {
     }
     @Test fun manualSortPreservesSavedOrderAndUsesIdForTies() {
         val tied = icons + InfinityDesktopIconRecord("z", "Extra", "app", 1)
-        assertEquals(listOf("Archivos", "b", "z", "c"),
-            infinityArrangeDesktopIcons(tied, InfinityIconArrangement.MANUAL).map { if (it.label == "Notas") it.id else it.id })
+        assertEquals(listOf("a", "b", "z", "c"),
+            infinityArrangeDesktopIcons(tied, InfinityIconArrangement.MANUAL).map { it.id })
     }
     @Test fun equalLabelsUseStableIdTieBreaker() {
         val same = listOf(
