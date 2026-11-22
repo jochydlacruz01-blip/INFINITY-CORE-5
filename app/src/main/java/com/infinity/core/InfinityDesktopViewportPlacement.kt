@@ -40,8 +40,10 @@ internal fun infinityDesktopViewportPlacement(
     val top = safe(topInset, 0f).coerceAtMost(height - 1f)
     val right = safe(rightInset, 0f).coerceAtMost((width - left - 1f).coerceAtLeast(0f))
     val bottom = safe(bottomInset, 0f).coerceAtMost((height - top - 1f).coerceAtLeast(0f))
-    val gapX = safe(horizontalGap, 0f)
-    val gapY = safe(verticalGap, 0f)
+    // Gaps are bounded to the viewport dimensions to prevent extreme values from
+    // overflowing arithmetic or collapsing usable grid capacity unexpectedly.
+    val gapX = safe(horizontalGap, 0f).coerceAtMost(width)
+    val gapY = safe(verticalGap, 0f).coerceAtMost(height)
     val availableWidth = (width - left - right).coerceAtLeast(1f)
     val availableHeight = (height - top - bottom).coerceAtLeast(1f)
     val cellWidth = safe(itemWidth, 1f, 1f).coerceAtMost(availableWidth)
