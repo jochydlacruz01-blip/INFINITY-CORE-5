@@ -8,16 +8,27 @@ internal enum class InfinityDesktopContextAction {
 
 internal enum class InfinityIconArrangement { MANUAL, NAME, TYPE, GRID }
 
-/** Sort stable icon records using locale-independent deterministic ordering. */
+/** Stable desktop records. Sorting uses deterministic tie-breakers to avoid icon jitter. */
 internal data class InfinityDesktopIconRecord(val id: String, val label: String, val type: String, val order: Int)
+
+private fun infinityCompareIconLabels(a: InfinityDesktopIconRecord, b: InfinityDesktopIconRecord): Int {
+    val insensitive = String.CASE_INSENSITIVE_ORDER.compare(a.label, b.label)
+    if (insensitive != 0) return insensitive
+    val normalized = a.label.lowercase(java.util.Locale.ROOT).compareTo(b.label.lowercase(java.util.Locale.ROOT))
+    if (normalized != 0) return normalized
+    return a.id.compareTo(b.id)
+}
 
 internal fun infinityArrangeDesktopIcons(
     icons: List<InfinityDesktopIconRecord>, arrangement: InfinityIconArrangement
 ): List<InfinityDesktopIconRecord> = when (arrangement) {
-    InfinityIconArrangement.MANUAL -> icons.sortedBy { it.order }
-    InfinityIconArrangement.NAME -> icons.sortedWith(Comparator { a, b -> String.CASE_INSENSITIVE_ORDER.compare(a.label, b.label) })
-    InfinityIconArrangement.TYPE -> icons.sortedWith(Comparator { a, b -> val typeCompare = String.CASE_INSENSITIVE_ORDER.compare(a.type, b.type); if (typeCompare != 0) typeCompare else a.label.lowercase(java.util.Locale.ROOT).compareTo(b.label.lowercase(java.util.Locale.ROOT)) })
-    InfinityIconArrangement.GRID -> icons.sortedBy { it.order }
+    InfinityIconArrangement.MANUAL -> icons.sortedWith(compareBy<InfinityDesktopIconRecord> { it.order }.thenBy { it.id })
+    InfinityIconArrangement.NAME -> icons.sortedWith(::infinityCompareIconLabels)
+    InfinityIconArrangement.TYPE -> icons.sortedWith(Comparator { a, b ->
+        val typeCompare = String.CASE_INSENSITIVE_ORDER.compare(a.type, b.type)
+        if (typeCompare != 0) typeCompare else infinityCompareIconLabels(a, b)
+    })
+    InfinityIconArrangement.GRID -> icons.sortedWith(compareBy<InfinityDesktopIconRecord> { it.order }.thenBy { it.id })
 }
 
 /** Context menu policy: desktop shell settings belong on the desktop, not in the Dock. */
