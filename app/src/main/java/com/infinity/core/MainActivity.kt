@@ -109,6 +109,7 @@ private fun InfinityAppBadge(item: DeskItem, size: androidx.compose.ui.unit.Dp, 
         "apps" -> Icons.Filled.Apps
         "connect" -> Icons.Filled.Computer
         "settings" -> Icons.Filled.Palette
+        "orbit" -> Icons.Filled.Apps
         else -> Icons.Filled.Info
     }
     Box(
@@ -171,6 +172,7 @@ private fun Infinity08App() {
             DeskItem("apps", "Papelera de Reciclaje", "◈"),
             DeskItem("about", "INFINITY START", "∞"),
             DeskItem("settings", "System Guard", "⚙"),
+            DeskItem("orbit", "ORBIT", "∞"),
             DeskItem("connect", "CONNECT", "◉")
         )
     }
@@ -878,7 +880,14 @@ val iconOffsets = remember {
                                 }
                             }
                             .clickable {
-                                focusedWindowId = openInfinityWindow(item.id, windows, workspace, maxW.value, maxH.value)
+                                if (item.id == "orbit") {
+                                    orbitOpen = !orbitOpen
+                                    startOpen = false
+                                    controlOpen = false
+                                    advancedOpen = false
+                                } else {
+                                    focusedWindowId = openInfinityWindow(item.id, windows, workspace, maxW.value, maxH.value)
+                                }
                             }
                             .padding(6.dp)
                     ) {
@@ -1245,7 +1254,11 @@ DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED"
                                 Row(
                                     Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
                                         .clickable {
-                                            focusedWindowId = openInfinityWindow(item.id, windows, workspace, maxW.value, maxH.value)
+                                            if (item.id == "orbit") {
+                                                orbitOpen = true
+                                            } else {
+                                                focusedWindowId = openInfinityWindow(item.id, windows, workspace, maxW.value, maxH.value)
+                                            }
                                             startOpen = false
                                         }.padding(9.dp),
                                     verticalAlignment = Alignment.CenterVertically
