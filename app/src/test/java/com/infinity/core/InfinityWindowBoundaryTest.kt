@@ -13,6 +13,7 @@ class InfinityWindowBoundaryTest {
     @Test fun movementPreservesInteriorCoordinates() {
         assertEquals(75f to 120f, infinityClampWindowPosition(75f, 120f, 300f, 200f, 500f, 400f))
     }
+
     @Test fun restoredWindowBoundsNormalizeSizeAndPositionForSmallViewport() {
         assertEquals(
             InfinityWindowBounds(0f, 0f, 260f, 210f),
@@ -26,11 +27,10 @@ class InfinityWindowBoundaryTest {
             infinityNormalizeWindowBounds(60f, 70f, 300f, 220f, 600f, 500f)
         )
     }
-}
 
     @Test fun movementRecoversFromNonFiniteGeometry() {
         assertEquals(0f to 0f, infinityClampWindowPosition(Float.NaN, Float.POSITIVE_INFINITY, 300f, 200f, 500f, 400f))
         assertEquals(0f to 0f, infinityClampWindowPosition(20f, 30f, Float.NaN, Float.NEGATIVE_INFINITY, 500f, 400f))
         assertEquals(0f to 0f, infinityClampWindowPosition(20f, 30f, 300f, 200f, Float.NaN, Float.NEGATIVE_INFINITY))
     }
-
+}
