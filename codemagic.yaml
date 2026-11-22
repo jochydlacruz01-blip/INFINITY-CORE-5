@@ -1,0 +1,55 @@
+workflows:
+  infinity-core-android:
+    name: INFINITY CORE 5 - Android verification and APK
+    max_build_duration: 60
+    instance_type: android_large
+    environment:
+      java: 17
+      groups:
+        - infinity-signing
+    triggering:
+      events:
+        - manual
+    scripts:
+      - name: Restore signing keystore (when configured)
+        script: |
+          set -e
+          if [ -n "${INFINITY_KEYSTORE_BASE64:-}" ]; then
+            echo "$INFINITY_KEYSTORE_BASE64" | base64 --decode > "$CM_BUILD_DIR/infinity-release.jks"
+            chmod 600 "$CM_BUILD_DIR/infinity-release.jks"
+            export INFINITY_KEYSTORE_FILE="$CM_BUILD_DIR/infinity-release.jks"
+          fi
+      - name: Run unit tests
+        script: |
+          ./gradlew testDebugUnitTest testReleaseUnitTest --stacktrace
+      - name: Android lint
+        script: |
+          ./gradlew lintDebug lintRelease --stacktrace
+      - name: Build APKs
+        script: |
+          if [ -n "${INFINITY_KEYSTORE_BASE64:-}" ]; then
+            export INFINITY_KEYSTORE_FILE="$CM_BUILD_DIR/infinity-release.jks"
+          fi
+          ./gradlew assembleDebug assembleRelease --stacktrace
+      - name: Verify release APK signature when signed
+        script: |
+          set -e
+          APK="app/build/outputs/apk/release/app-release.apk"
+          test -s "$APK"
+          if [ -n "${INFINITY_KEYSTORE_BASE64:-}" ]; then
+            APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+            "$APKSIGNER" verify --verbose --print-certs "$APK"
+          else
+            echo "Release APK built without configured signing secrets; signing verification skipped."
+          fi
+    artifacts:
+      - app/build/outputs/apk/**/*.apk
+      - app/build/outputs/**/*.aab
+      - app/build/outputs/**/mapping.txt
+    publishing:
+      email:
+        recipients:
+          - ${CM_EMAIL:-}
+        notify:
+          success: false
+          failure: false
