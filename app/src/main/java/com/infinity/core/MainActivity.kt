@@ -101,6 +101,7 @@ private fun InfinityAppBadge(item: DeskItem, size: androidx.compose.ui.unit.Dp, 
         "apps" -> Color(0xFFB69CFF)
         "connect" -> Color(0xFF55D6A4)
         "settings" -> Color(0xFFFF8E78)
+        "orbit" -> Color(0xFFB69CFF)
         else -> Color(0xFF56D6C9)
     }
     val appIcon = when (item.id) {
