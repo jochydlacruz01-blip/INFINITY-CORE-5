@@ -26,6 +26,34 @@ class InfinityConnectSessionControllerTest {
         assertEquals(InfinityConnectSessionState.CONNECTED, controller.lifecycle.state)
     }
 
+    @Test fun controllerClearsPasswordBufferAfterSuccessfulEngineCall() = runBlocking {
+        val engine = FakeEngine()
+        val controller = InfinityConnectSessionController(engine)
+        val secret = charArrayOf('s', 'e', 'c', 'r', 'e', 't')
+
+        controller.connect(InfinityConnectTarget("host", username = "user", password = secret))
+
+        assertArrayEquals(CharArray(secret.size) { '\u0000' }, secret)
+        assertEquals(InfinityConnectSessionState.CONNECTED, controller.lifecycle.state)
+    }
+
+    @Test fun controllerClearsPasswordBufferWhenEngineThrows() = runBlocking {
+        val engine = object : InfinityConnectEngine {
+            override val isConnected = false
+            override suspend fun connect(target: InfinityConnectTarget, eventSink: (InfinityConnectEngineEvent) -> Unit) {
+                throw IllegalStateException("native failure")
+            }
+            override suspend fun disconnect() {}
+        }
+        val secret = charArrayOf('p', 'a', 's', 's')
+        val controller = InfinityConnectSessionController(engine)
+
+        controller.connect(InfinityConnectTarget("host", username = "user", password = secret))
+
+        assertArrayEquals(CharArray(secret.size) { '\u0000' }, secret)
+        assertEquals(InfinityConnectSessionState.FAILED, controller.lifecycle.state)
+    }
+
     @Test fun disconnectReturnsToIdleAndInvokesEngine() = runBlocking {
         val engine = FakeEngine()
         val controller = InfinityConnectSessionController(engine)
