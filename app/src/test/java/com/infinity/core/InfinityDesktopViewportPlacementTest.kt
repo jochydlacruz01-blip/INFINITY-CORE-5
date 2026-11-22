@@ -40,6 +40,17 @@ class InfinityDesktopViewportPlacementTest {
         assertTrue(result.positions.values.all { it.x.isFinite() && it.y.isFinite() })
     }
 
+    @Test fun extremeFiniteGapsAreBoundedAndGeometryRemainsFinite() {
+        val result = infinityDesktopViewportPlacement(
+            listOf("a", "b", "c", "d"), 320f, 480f,
+            itemWidth = 80f, itemHeight = 90f,
+            leftInset = 8f, topInset = 20f, rightInset = 8f, bottomInset = 40f,
+            horizontalGap = Float.MAX_VALUE, verticalGap = Float.MAX_VALUE
+        )
+        assertTrue(result.positions.values.all { it.x.isFinite() && it.y.isFinite() })
+        assertEquals(4, result.positions.size + result.overflowIds.size)
+    }
+
     @Test fun emptyInputReturnsNoPlacementsOrOverflow() {
         assertEquals(
             InfinityDesktopViewportPlacement(emptyMap(), emptyList()),
