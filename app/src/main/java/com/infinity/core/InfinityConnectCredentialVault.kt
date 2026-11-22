@@ -43,11 +43,11 @@ class InfinityConnectCredentialVault(context: Context) {
         val encoded = prefs.getString(id(endpoint), null) ?: return null
         val payload = Base64.decode(encoded, Base64.NO_WRAP)
         val iv = payload.copyOfRange(0, 12)
-        val encrypted = payload.copyOfRange(12, payload.size)
+        val encrypted = payload.copyOfRange(IV_LENGTH, payload.size)
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
         cipher.init(Cipher.DECRYPT_MODE, key(), GCMParameterSpec(128, iv))
         String(cipher.doFinal(encrypted), Charsets.UTF_8)
     } catch (_: Exception) { null }
 
-    fun delete(endpoint: String) { prefs.edit().remove(id(endpoint)).apply() }
+    fun delete(endpoint: String) {\n        if (endpoint.isBlank()) return\n        prefs.edit().remove(id(endpoint)).apply()\n    }\n\n    private companion object {\n        const val IV_LENGTH = 12\n        const val MIN_PAYLOAD_LENGTH = IV_LENGTH + 16 // GCM authentication tag\n        const val MAX_SECRET_LENGTH = 4096\n        const val MAX_PAYLOAD_LENGTH = IV_LENGTH + MAX_SECRET_LENGTH * 4 + 16 // UTF-8 worst case\n    }
 }
