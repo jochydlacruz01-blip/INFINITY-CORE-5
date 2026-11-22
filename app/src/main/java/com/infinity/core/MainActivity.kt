@@ -164,13 +164,14 @@ private fun Infinity08App() {
     val prefs = remember { context.getSharedPreferences("infinity_desktop", 0) }
 
     val desktopItems = remember {
+        // INFINITY FUTURE reference desktop: stable IDs preserve existing window actions.
         listOf(
-            DeskItem("files", "Archivos", "▣"),
-            DeskItem("notes", "Notas", "✎"),
-            DeskItem("apps", "Aplicaciones", "◈"),
-            DeskItem("connect", "INFINITY CONNECT", "◉"),
-            DeskItem("settings", "Personalizar", "⚙"),
-            DeskItem("about", "INFINITY", "∞")
+            DeskItem("files", "Este Equipo", "▣"),
+            DeskItem("notes", "Mis Archivos", "✎"),
+            DeskItem("apps", "Papelera de Reciclaje", "◈"),
+            DeskItem("about", "INFINITY START", "∞"),
+            DeskItem("settings", "System Guard", "⚙"),
+            DeskItem("connect", "CONNECT", "◉")
         )
     }
 
