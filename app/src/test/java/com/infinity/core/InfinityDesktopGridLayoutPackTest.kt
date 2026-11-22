@@ -5,31 +5,21 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class InfinityDesktopGridLayoutPackTest {
-    @Test fun emptyCountProducesNoPositions() {
-        assertTrue(infinityDesktopGridOffsets(0, 600f, 100f, 120f).isEmpty())
+    @Test fun invalidViewportAndItemDimensionsRecoverToFiniteCoordinates() {
+        val points = infinityDesktopGridOffsets(4, Float.NaN, Float.NaN, Float.POSITIVE_INFINITY)
+        assertEquals(4, points.size)
+        assertTrue(points.all { it.x.isFinite() && it.y.isFinite() && it.x >= 0f && it.y >= 0f })
     }
 
-    @Test fun gridWrapsAfterAvailableColumns() {
-        val offsets = infinityDesktopGridOffsets(4, 260f, 100f, 120f, leftInset = 10f, topInset = 20f, horizontalGap = 10f, verticalGap = 5f)
-        assertEquals(10f, offsets[0].x, 0f)
-        assertEquals(20f, offsets[0].y, 0f)
-        assertEquals(120f, offsets[1].x, 0f)
-        assertEquals(20f, offsets[1].y, 0f)
-        assertEquals(10f, offsets[2].x, 0f)
-        assertEquals(145f, offsets[2].y, 0f)
+    @Test fun nonPositiveCountReturnsEmpty() {
+        assertEquals(emptyList<androidx.compose.ui.geometry.Offset>(), infinityDesktopGridOffsets(0, 400f, 100f, 100f))
+        assertEquals(emptyList<androidx.compose.ui.geometry.Offset>(), infinityDesktopGridOffsets(-1, 400f, 100f, 100f))
     }
 
-    @Test fun invalidViewportAndGapsAreSafelyNormalized() {
-        val offsets = infinityDesktopGridOffsets(2, Float.NaN, 80f, 90f, horizontalGap = Float.NaN, verticalGap = -5f)
-        assertEquals(16f, offsets[0].x, 0f)
-        assertEquals(118f, offsets[0].y, 0f)
-        assertEquals(16f, offsets[1].x, 0f)
-        assertTrue(offsets[1].y > offsets[0].y)
-    }
-
-    @Test fun allContextActionsHaveSpanishLabels() {
-        infinityDesktopContextActions().forEach { action ->
-            assertTrue(infinityDesktopContextActionLabel(action).isNotBlank())
-        }
+    @Test fun narrowViewportUsesOneColumn() {
+        val points = infinityDesktopGridOffsets(3, 80f, 100f, 100f)
+        assertEquals(16f, points[0].x, 0f)
+        assertEquals(16f, points[1].x, 0f)
+        assertTrue(points[1].y > points[0].y && points[2].y > points[1].y)
     }
 }

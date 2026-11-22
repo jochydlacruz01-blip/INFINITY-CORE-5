@@ -14,9 +14,10 @@ internal fun infinityDesktopGridOffsets(
     verticalGap: Float = 14f
 ): List<androidx.compose.ui.geometry.Offset> {
     if (count <= 0) return emptyList()
-    val safeWidth = viewportWidth.takeIf { it.isFinite() && it > 0f } ?: itemWidth
     val safeItemWidth = itemWidth.takeIf { it.isFinite() && it > 0f } ?: 1f
     val safeItemHeight = itemHeight.takeIf { it.isFinite() && it > 0f } ?: 1f
+    // Recover from invalid viewport input using the sanitized icon width, not raw geometry.
+    val safeWidth = viewportWidth.takeIf { it.isFinite() && it > 0f } ?: safeItemWidth
     val safeGap = horizontalGap.takeIf { it.isFinite() && it >= 0f } ?: 0f
     val safeVerticalGap = verticalGap.takeIf { it.isFinite() && it >= 0f } ?: 0f
     val safeLeft = leftInset.takeIf { it.isFinite() && it >= 0f } ?: 0f
