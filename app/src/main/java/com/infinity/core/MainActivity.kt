@@ -1075,6 +1075,25 @@ val iconOffsets = remember {
                     controlOpen = false
                     advancedOpen = false
                 }
+                if (maxW >= 600.dp && futuristicDesktop) {
+                    Row(
+                        Modifier.widthIn(min = 150.dp, max = 260.dp).height(42.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(Color(0xFF122640))
+                            .border(1.dp, Color(0xFF38C8FF).copy(.55f), RoundedCornerShape(14.dp))
+                            .clickable {
+                                startOpen = true
+                                orbitOpen = false
+                                controlOpen = false
+                                advancedOpen = false
+                            }
+                            .padding(horizontal = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.Search, contentDescription = "Buscar", tint = Color(0xFF62D8FF), modifier = Modifier.size(19.dp))
+                        Text("Buscar en INFINITY...", color = Color(0xFFB8D5EF), fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 8.dp))
+                    }
+                }
 
                 DockAction(if (futuristicDesktop && maxW >= 600.dp) "∞" else "◎", "ORBIT", Color(0xFFB69CFF), iconPack, compact = maxW < 390.dp, referenceStyle = futuristicDesktop && maxW >= 600.dp) {
                     orbitOpen = !orbitOpen
