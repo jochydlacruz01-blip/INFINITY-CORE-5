@@ -7,12 +7,28 @@ data class InfinityConnectRetryDecision(val retry: Boolean, val delayMillis: Lon
 
 object InfinityConnectReconnectPolicy {
     private val delays = listOf(1_000L, 2_000L, 4_000L, 8_000L, 16_000L)
-    fun decide(attempt: Int, failure: InfinityConnectFailureKind, maxAttempts: Int = 5): InfinityConnectRetryDecision {
+
+    fun decide(
+        attempt: Int,
+        failure: InfinityConnectFailureKind,
+        maxAttempts: Int = 5
+    ): InfinityConnectRetryDecision {
         require(attempt >= 0) { "Attempt cannot be negative." }
         require(maxAttempts in 0..10) { "Maximum attempts must be between 0 and 10." }
-        val transient = failure in setOf(InfinityConnectFailureKind.NETWORK, InfinityConnectFailureKind.TIMEOUT, InfinityConnectFailureKind.SERVER)
-        // Saturate instead of overflowing when callers supply extreme attempt values.\n        val next = if (attempt == Int.MAX_VALUE) Int.MAX_VALUE else attempt + 1
+
+        val transient = failure in setOf(
+            InfinityConnectFailureKind.NETWORK,
+            InfinityConnectFailureKind.TIMEOUT,
+            InfinityConnectFailureKind.SERVER
+        )
+        // Saturate instead of overflowing when callers supply extreme attempt values.
+        val next = if (attempt == Int.MAX_VALUE) Int.MAX_VALUE else attempt + 1
         val allowed = transient && next <= maxAttempts
-        return InfinityConnectRetryDecision(allowed, if (allowed) delays[(next - 1).coerceAtMost(delays.lastIndex)] else 0L, next)
+
+        return InfinityConnectRetryDecision(
+            retry = allowed,
+            delayMillis = if (allowed) delays[(next - 1).coerceAtMost(delays.lastIndex)] else 0L,
+            attempt = next
+        )
     }
 }
