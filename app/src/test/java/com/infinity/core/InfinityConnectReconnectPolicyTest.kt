@@ -18,7 +18,7 @@ class InfinityConnectReconnectPolicyTest {
             assertFalse(InfinityConnectReconnectPolicy.decide(0, it).retry)
         }
     }
-    @Test fun maxAttemptsCanDisableRetry() {
+    @Test fun extremeAttemptCounterDoesNotOverflowOrCrash() {\n        val decision = InfinityConnectReconnectPolicy.decide(Int.MAX_VALUE, InfinityConnectFailureKind.NETWORK)\n        assertFalse(decision.retry)\n        assertEquals(Int.MAX_VALUE, decision.attempt)\n        assertEquals(0L, decision.delayMillis)\n    }\n\n    @Test fun maxAttemptsCanDisableRetry() {
         assertFalse(InfinityConnectReconnectPolicy.decide(0, InfinityConnectFailureKind.SERVER, 0).retry)
     }
 }
