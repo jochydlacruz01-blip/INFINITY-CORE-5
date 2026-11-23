@@ -15,16 +15,16 @@ workflows:
             chmod 600 "$CM_BUILD_DIR/infinity-release.jks"
           fi
       - name: Run unit tests
-        script: ./gradlew testDebugUnitTest testReleaseUnitTest --stacktrace
+        script: gradle testDebugUnitTest testReleaseUnitTest --stacktrace
       - name: Android lint
-        script: ./gradlew lintDebug lintRelease --stacktrace
+        script: gradle lintDebug lintRelease --stacktrace
       - name: Build APKs
         script: |
           set -e
           if [ -n "${INFINITY_KEYSTORE_BASE64:-}" ] && [ -n "${INFINITY_KEYSTORE_PASSWORD:-}" ] && [ -n "${INFINITY_KEY_ALIAS:-}" ] && [ -n "${INFINITY_KEY_PASSWORD:-}" ]; then
             export INFINITY_KEYSTORE_FILE="$CM_BUILD_DIR/infinity-release.jks"
           fi
-          ./gradlew assembleDebug assembleRelease --stacktrace
+          gradle assembleDebug assembleRelease --stacktrace
       - name: Verify release APK
         script: |
           set -e
