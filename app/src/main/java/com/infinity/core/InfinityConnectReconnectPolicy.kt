@@ -11,7 +11,7 @@ object InfinityConnectReconnectPolicy {
         require(attempt >= 0) { "Attempt cannot be negative." }
         require(maxAttempts in 0..10) { "Maximum attempts must be between 0 and 10." }
         val transient = failure in setOf(InfinityConnectFailureKind.NETWORK, InfinityConnectFailureKind.TIMEOUT, InfinityConnectFailureKind.SERVER)
-        val next = attempt + 1
+        // Saturate instead of overflowing when callers supply extreme attempt values.\n        val next = if (attempt == Int.MAX_VALUE) Int.MAX_VALUE else attempt + 1
         val allowed = transient && next <= maxAttempts
         return InfinityConnectRetryDecision(allowed, if (allowed) delays[(next - 1).coerceAtMost(delays.lastIndex)] else 0L, next)
     }
