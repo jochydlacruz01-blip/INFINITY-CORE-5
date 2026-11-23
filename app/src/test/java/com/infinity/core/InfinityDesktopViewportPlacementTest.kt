@@ -51,6 +51,16 @@ class InfinityDesktopViewportPlacementTest {
         assertEquals(4, result.positions.size + result.overflowIds.size)
     }
 
+    @Test fun invalidViewportDimensionsUseTheDocumentedSafeFallback() {
+        val ids = listOf("a", "b", "c")
+        val fallback = infinityDesktopViewportPlacement(ids, 320f, 480f)
+        val invalid = infinityDesktopViewportPlacement(ids, Float.NaN, -1f)
+
+        assertEquals(fallback, invalid)
+        assertTrue(invalid.positions.values.all { it.x.isFinite() && it.y.isFinite() })
+        assertEquals(ids.size, invalid.positions.size + invalid.overflowIds.size)
+    }
+
     @Test fun emptyInputReturnsNoPlacementsOrOverflow() {
         assertEquals(
             InfinityDesktopViewportPlacement(emptyMap(), emptyList()),
