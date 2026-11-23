@@ -26,28 +26,45 @@ class InfinityConnectCredentialVault(context: Context) {
         return generator.generateKey()
     }
 
-    private fun id(endpoint: String) = android.util.Base64.encodeToString(
+    private fun id(endpoint: String) = Base64.encodeToString(
         java.security.MessageDigest.getInstance("SHA-256").digest(endpoint.toByteArray(Charsets.UTF_8)),
         Base64.NO_WRAP
     )
 
     fun save(endpoint: String, secret: String) {
+        if (endpoint.isBlank()) return
         if (secret.isEmpty()) { delete(endpoint); return }
+        val secretBytes = secret.toByteArray(Charsets.UTF_8)
+        if (secretBytes.size > MAX_SECRET_LENGTH) return
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
         cipher.init(Cipher.ENCRYPT_MODE, key())
-        val payload = cipher.iv + cipher.doFinal(secret.toByteArray(Charsets.UTF_8))
+        val payload = cipher.iv + cipher.doFinal(secretBytes)
         prefs.edit().putString(id(endpoint), Base64.encodeToString(payload, Base64.NO_WRAP)).apply()
     }
 
-    fun retrieve(endpoint: String): String? = try {
-        val encoded = prefs.getString(id(endpoint), null) ?: return null
-        val payload = Base64.decode(encoded, Base64.NO_WRAP)
-        val iv = payload.copyOfRange(0, 12)
-        val encrypted = payload.copyOfRange(IV_LENGTH, payload.size)
-        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
-        cipher.init(Cipher.DECRYPT_MODE, key(), GCMParameterSpec(128, iv))
-        String(cipher.doFinal(encrypted), Charsets.UTF_8)
-    } catch (_: Exception) { null }
+    fun retrieve(endpoint: String): String? {
+        if (endpoint.isBlank()) return null
+        return try {
+            val encoded = prefs.getString(id(endpoint), null) ?: return null
+            val payload = Base64.decode(encoded, Base64.NO_WRAP)
+            if (payload.size < MIN_PAYLOAD_LENGTH || payload.size > MAX_PAYLOAD_LENGTH) return null
+            val iv = payload.copyOfRange(0, IV_LENGTH)
+            val encrypted = payload.copyOfRange(IV_LENGTH, payload.size)
+            val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+            cipher.init(Cipher.DECRYPT_MODE, key(), GCMParameterSpec(128, iv))
+            String(cipher.doFinal(encrypted), Charsets.UTF_8)
+        } catch (_: Exception) { null }
+    }
 
-    fun delete(endpoint: String) {\n        if (endpoint.isBlank()) return\n        prefs.edit().remove(id(endpoint)).apply()\n    }\n\n    private companion object {\n        const val IV_LENGTH = 12\n        const val MIN_PAYLOAD_LENGTH = IV_LENGTH + 16 // GCM authentication tag\n        const val MAX_SECRET_LENGTH = 4096\n        const val MAX_PAYLOAD_LENGTH = IV_LENGTH + MAX_SECRET_LENGTH * 4 + 16 // UTF-8 worst case\n    }
+    fun delete(endpoint: String) {
+        if (endpoint.isBlank()) return
+        prefs.edit().remove(id(endpoint)).apply()
+    }
+
+    private companion object {
+        const val IV_LENGTH = 12
+        const val MIN_PAYLOAD_LENGTH = IV_LENGTH + 16 // GCM authentication tag
+        const val MAX_SECRET_LENGTH = 4096
+        const val MAX_PAYLOAD_LENGTH = IV_LENGTH + MAX_SECRET_LENGTH + 16
+    }
 }
