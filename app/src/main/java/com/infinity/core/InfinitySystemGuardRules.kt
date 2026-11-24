@@ -27,17 +27,24 @@ internal fun infinityGuardReport(operation: String, error: Exception): InfinityG
     return InfinityGuardReport(category, severity, "$op no pudo completarse. $category")
 }
 
+private fun normalizeInfinityGuardLabel(value: String): String {
+    return value.map { char ->
+        if (char.isLetterOrDigit() || char == ' ' || char == '-' || char == '_') char else ' '
+    }.joinToString("")
+        .trim()
+        .replace(Regex("\\s+"), " ")
+}
+
 internal fun infinityGuardSafeLabel(
     value: String,
     maxLength: Int = 64,
     fallback: String = "Elemento"
 ): String {
     val limit = maxLength.coerceIn(1, 128)
-    return value.map { char ->
-        if (char.isLetterOrDigit() || char == ' ' || char == '-' || char == '_') char else ' '
-    }.joinToString("")
-        .trim()
-        .replace(Regex("\\s+"), " ")
-        .take(limit)
-        .ifBlank { fallback.take(32).ifBlank { "Elemento" } }
+    val normalized = normalizeInfinityGuardLabel(value).take(limit).trim()
+    if (normalized.isNotBlank()) return normalized
+
+    // Custom fallbacks must follow the same filtering rules as the primary label.
+    val safeFallback = normalizeInfinityGuardLabel(fallback).take(32).trim()
+    return safeFallback.ifBlank { "Elemento" }
 }
