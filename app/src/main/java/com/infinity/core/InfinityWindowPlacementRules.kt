@@ -87,3 +87,9 @@ internal fun infinityNormalizeWindowBounds(
     )
     return InfinityWindowBounds(safeX, safeY, normalizedWidth, normalizedHeight)
 }
+/** Converts a Compose pointer delta in physical pixels to the dp unit used by window geometry. */
+internal fun infinityGestureDeltaToDp(deltaPx: Float, density: Float): Float {
+    val safeDelta = deltaPx.takeIf { it.isFinite() } ?: 0f
+    val safeDensity = density.takeIf { it.isFinite() && it > 0f } ?: 1f
+    return safeDelta / safeDensity
+}
