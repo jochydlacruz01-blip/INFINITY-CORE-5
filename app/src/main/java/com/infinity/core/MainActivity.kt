@@ -353,15 +353,16 @@ private fun Infinity08App() {
                     val kind = item.optString("kind")
                     if (kind !in setOf("files", "notes", "apps", "connect", "settings", "about")) continue
                     val restoredWorkspace = infinityNormalizeWorkspace(item.optInt("workspace", 1))
-                    val savedId = item.optString("id")
-                        .trim()
-                        .takeIf { it.isNotBlank() && it != "null" && it.length <= 96 }
-                        ?: infinityWindowIdentity(kind, restoredWorkspace)
-                    // Ignore duplicate persisted identities instead of restoring overlapping task records.
-                    if (any { it.id == savedId }) continue
+                    // Canonical IDs keep restored windows addressable by openInfinityWindow().
+                    // Legacy or mismatched IDs previously made focus point to a nonexistent task ID.
+                    val restoredId = infinityNormalizeRestoredWindowId(
+                        item.optString("id"), kind, restoredWorkspace
+                    )
+                    // Ignore duplicate kind/workspace records instead of restoring duplicate tasks.
+                    if (any { it.id == restoredId }) continue
                     add(
                         DeskWindow(
-                            id = savedId,
+                            id = restoredId,
                             title = item.optString("title", kind).trim().take(80).ifBlank { kind },
                             kind = kind,
                             x = infinityNormalizeWindowCoordinate(item.optDouble("x", 24.0).toFloat(), 24f),
