@@ -11,7 +11,8 @@ class InfinityBatch48AdaptiveWindowSizeTest {
 
     @Test fun windowSizeSanitizesNonFiniteValues() {
         assertEquals(1f to 1f, infinityInitialWindowSize(Float.NaN, Float.POSITIVE_INFINITY))
-        assertEquals(1f to 1f, infinityInitialWindowSize(100f, 100f, Float.NaN, Float.NEGATIVE_INFINITY, Float.NaN, Float.NaN))
+        // Invalid preferred dimensions fall back to the usable viewport; invalid margins become zero.
+        assertEquals(100f to 100f, infinityInitialWindowSize(100f, 100f, Float.NaN, Float.NEGATIVE_INFINITY, Float.NaN, Float.NaN))
     }
 
     @Test fun desktopKeepsEstablishedWindowDimensions() {
