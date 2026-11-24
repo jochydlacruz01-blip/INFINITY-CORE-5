@@ -2164,6 +2164,7 @@ private fun FileExplorer08(
     var renameDocumentId by remember { mutableStateOf<String?>(null) }
     var renameRequest by remember { mutableStateOf<Pair<String, String>?>(null) }
     var deleteRequest by remember { mutableStateOf<String?>(null) }
+    var deleteCandidate by remember { mutableStateOf<ExplorerEntry?>(null) }
     val filteredEntries = entries.filter { it.name.contains(fileSearch.trim(), ignoreCase = true) }
 
     LaunchedEffect(rootUri, currentDocumentId, refreshVersion) {
@@ -2429,12 +2430,31 @@ private fun FileExplorer08(
             dismissButton = {
                 Row {
                     TextButton(onClick = {
-                        deleteRequest = entry.documentId
-                        operationMessage = "Eliminando elemento…"
+                        deleteCandidate = entry
                         actionEntry = null
                     }) { Text("Eliminar") }
                     TextButton(onClick = { actionEntry = null }) { Text("Cerrar") }
                 }
+            }
+        )
+    }
+
+    deleteCandidate?.let { entry ->
+        AlertDialog(
+            onDismissRequest = { deleteCandidate = null },
+            title = { Text("¿Eliminar elemento?") },
+            text = {
+                Text("Se eliminará “${entry.name}”. Esta acción depende del proveedor de archivos y puede no tener deshacer.")
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    deleteRequest = entry.documentId
+                    operationMessage = "Eliminando elemento…"
+                    deleteCandidate = null
+                }) { Text("Eliminar") }
+            },
+            dismissButton = {
+                TextButton(onClick = { deleteCandidate = null }) { Text("Cancelar") }
             }
         )
     }
