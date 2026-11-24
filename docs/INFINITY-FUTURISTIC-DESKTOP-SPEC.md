@@ -1,24 +1,24 @@
 # INFINITY Futuristic Desktop — implementation contract
 
-Reference image supplied by the user is the design target.
+The target is the user's supplied visual reference: an immersive blue/violet space desktop with a central INFINITY identity, left-side desktop shortcuts, top-right clock/date and a functional bottom dock.
 
-## Required visual fidelity
-- Desktop icon column on the left; recognizable icons, captions, spacing and draggable placement.
-- Centered INFINITY identity/ring and futuristic planet/city environment, without turning the reference image into an overlay that blocks interaction.
-- Clock/date in the top-right corner, updating from device time.
-- Bottom taskbar/dock with Start/search, app shortcuts, active-task indicators, system controls and notification entry.
-- Right-click / touch long-press context menu, with rearrangement, grid, icon visibility, wallpaper and appearance actions.
-- Responsive layout for landscape and portrait; prevent dock, clock, menus and icon column from clipping or colliding.
-- Preserve the current/legacy wallpaper and theme as a selectable option.
-- User wallpaper selection remains supported.
+## PACK13 delivery
 
-## Catalog groundwork
-`InfinityFuturisticDesktopPreset.kt` adds a stable preset ID catalog and layout contract, with tests. It does not yet render the supplied PNG nor replace the MainActivity Compose layout. The supplied artwork still needs to be bundled as an app resource and the desktop rendering/preset selector wired into MainActivity.
+- Added `InfinityFuturisticScene.kt`: a resolution-independent Compose Canvas scene with deep-space gradient, deterministic star field, nebula glow, planetary horizon, orbital light and a futuristic skyline.
+- Integrated the scene into the tablet desktop only when the Futuristic preset is active and no personal wallpaper has been selected.
+- Kept all desktop controls as live Compose elements above the scene. The scene is not a flattened screenshot and does not intercept interaction.
+- Existing user-selected wallpaper and legacy preset remain available.
+- Existing masthead, desktop icons, clock, brand badge, dock, context menu and system controls remain separate interactive UI.
 
-## Integration sequence
-1. Bundle the optimized artwork as a drawable/resource and preserve a legacy option.
-2. Implement preset selection and persisted preference.
-3. Render desktop layout elements as live Compose controls, not artwork baked into the screen.
-4. Integrate context-menu sorting/actions and persisted icon layout.
-5. Test landscape/portrait, long press, keyboard, visibility, docking and background switching.
-6. Run Android CI; record result without claiming unverified success.
+## Important visual limitation
+
+This pack creates a native procedural scene based on the written reference contract. It does **not** contain the original reference artwork because that image asset is not currently present in the repository or available in the current conversation. Exact pixel-level matching to that image remains pending its addition as an optimized drawable resource.
+
+## Required validation
+
+1. Android debug build and unit tests.
+2. Tablet landscape and portrait screenshots.
+3. Confirm wallpaper override, icon drag/drop, dock actions, clock and context menu remain functional.
+4. Inspect generated APK artifact before declaring it ready.
+
+A green compile does not by itself prove visual fidelity or device behavior.
