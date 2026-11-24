@@ -991,9 +991,12 @@ val iconOffsets = remember {
                             val index = windows.indexOfFirst { it.id == win.id }
                             if (index >= 0 && infinityWindowCanManipulateGeometry(windows[index].maximized, maxW.value)) {
                                 val current = windows[index]
+                                // Compose drag deltas are pixels; persisted window geometry is dp.
+                                val deltaXdp = with(density) { dx.toDp().value }
+                                val deltaYdp = with(density) { dy.toDp().value }
                                 val boundedPosition = infinityClampWindowPosition(
-                                    current.x + dx,
-                                    current.y + dy,
+                                    current.x + deltaXdp,
+                                    current.y + deltaYdp,
                                     current.width,
                                     current.height,
                                     maxW.value,
@@ -1010,6 +1013,9 @@ val iconOffsets = remember {
                             val index = windows.indexOfFirst { it.id == win.id }
                             if (index >= 0 && infinityWindowCanManipulateGeometry(windows[index].maximized, maxW.value)) {
                                 val current = windows[index]
+                                // Resize gestures also report pixels; dimensions and viewport are dp.
+                                val deltaWidthDp = with(density) { dx.toDp().value }
+                                val deltaHeightDp = with(density) { dy.toDp().value }
 
                                 val availableWidth =
                                     (maxW.value - current.x).coerceAtLeast(1f)
@@ -1018,8 +1024,8 @@ val iconOffsets = remember {
                                     (maxH.value - current.y).coerceAtLeast(1f)
 
                                 windows[index] = current.copy(
-                                    width = infinityResizeDimension(current.width, dx, availableWidth, 280f),
-                                    height = infinityResizeDimension(current.height, dy, availableHeight, 190f)
+                                    width = infinityResizeDimension(current.width, deltaWidthDp, availableWidth, 280f),
+                                    height = infinityResizeDimension(current.height, deltaHeightDp, availableHeight, 190f)
                                 )
                             }
                         },
