@@ -556,8 +556,14 @@ fun InfinityConnectEnrollmentPanel() {
                     vault.delete("identity-session:$expectedServerId")
                     vault.delete("remote-session:$expectedServerId")
                     vault.delete("file-session:$expectedServerId")
+                    identityVerified = false
+                    allowedCapabilities = setOf("identity.read")
+                    sessionActive = false
+                    activeSessionId = ""
                     remoteSessionActive = false
+                    remoteSessionId = ""
                     fileSessionActive = false
+                    fileSessionId = ""
                     fileSessionToken = ""
                     prefs.edit().clear().apply()
                     confirmForget = false
