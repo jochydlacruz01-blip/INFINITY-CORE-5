@@ -2142,6 +2142,13 @@ private fun FileExplorer08(
     var currentDocumentId by remember(rootUri) {
         mutableStateOf(rootUri?.let { DocumentsContract.getTreeDocumentId(it) })
     }
+    var folderPath by remember(rootUri) {
+        mutableStateOf(
+            rootUri?.let {
+                listOf(DocumentsContract.getTreeDocumentId(it) to "Inicio")
+            } ?: emptyList()
+        )
+    }
     var refreshVersion by remember(rootUri) { mutableIntStateOf(0) }
     var entries by remember(rootUri, currentDocumentId) { mutableStateOf<List<ExplorerEntry>>(emptyList()) }
     var loading by remember(rootUri, currentDocumentId) { mutableStateOf(false) }
@@ -2241,10 +2248,34 @@ private fun FileExplorer08(
                     enabled = !loading
                 ) { Text(if (loading) "Actualizando…" else "Actualizar") }
             }
-            if (rootUri != null && currentDocumentId != DocumentsContract.getTreeDocumentId(rootUri)) {
+            if (rootUri != null && folderPath.size > 1) {
                 OutlinedButton(
-                    onClick = { currentDocumentId = DocumentsContract.getTreeDocumentId(rootUri) }
-                ) { Text("Volver al inicio") }
+                    onClick = {
+                        folderPath = folderPath.dropLast(1)
+                        currentDocumentId = folderPath.last().first
+                    }
+                ) { Text("‹ Atrás") }
+            }
+        }
+        if (rootUri != null && folderPath.isNotEmpty()) {
+            Row(
+                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(5.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                folderPath.forEachIndexed { index, level ->
+                    Text(
+                        level.second,
+                        color = if (index == folderPath.lastIndex) accent else InfinityMuted,
+                        fontSize = 10.sp,
+                        fontWeight = if (index == folderPath.lastIndex) FontWeight.Bold else FontWeight.Normal,
+                        modifier = Modifier.clickable {
+                            folderPath = folderPath.take(index + 1)
+                            currentDocumentId = level.first
+                        }
+                    )
+                    if (index < folderPath.lastIndex) Text("›", color = InfinityMuted, fontSize = 10.sp)
+                }
             }
         }
         when {
@@ -2260,6 +2291,8 @@ private fun FileExplorer08(
                             Modifier.fillMaxWidth().clickable {
                                 if (entry.isDirectory) {
                                     currentDocumentId = entry.documentId
+                                    folderPath = folderPath + (entry.documentId to entry.name)
+                                    fileSearch = ""
                                 } else {
                                     onOpenFile(
                                         DocumentsContract.buildDocumentUriUsingTree(rootUri, entry.documentId),
