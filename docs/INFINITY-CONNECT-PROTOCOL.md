@@ -145,7 +145,7 @@ Each capability needs its own threat model, explicit session consent, permission
 | Android one-time challenge registry | bounded process-local registry with consume-once semantics | Implemented and unit tests added; not wired to network enrollment |
 | Android certificate fingerprint comparison | strict SHA-256 format and constant-time comparison | Implemented local primitive |
 | Android X.509 trust policy | bounded DER parsing, SHA-256 pin, validity, EKU and digital-signature key-usage checks | Implemented helper; not yet wired into TLS transport |
-| Android identity signing key | non-exportable EC P-256 key generated/stored in Android Keystore; domain-separated transcript signing | Key primitive implemented; no certificate issuance/enrollment |
+| Android identity signing key | non-exportable EC P-256 key generated/stored in Android Keystore; domain-separated transcript signing; aliases restricted to 1–80 ASCII letters/digits/dot/underscore/dash | Key primitive implemented; alias-policy unit tests added; no certificate issuance/enrollment |
 | Android client certificate provisioning | no issued client certificate or chain installation verified | Not implemented |
 | Android TLS 1.3 mTLS client | no live client transport verified | Not implemented |
 | Windows TLS 1.3 mTLS endpoint | Kestrel identity-only endpoint | Implemented in source; interoperability test still required |
@@ -156,7 +156,7 @@ Each capability needs its own threat model, explicit session consent, permission
 
 ## 13. Immediate next implementation steps
 
-1. Add Android certificate enrollment/key lifecycle with explicit user confirmation and Android Keystore-backed private key where supported.
+1. Add Android certificate enrollment/key lifecycle with explicit user confirmation and Android Keystore-backed private key where supported. The current PACK 16 alias validator is covered by local JVM unit tests; it does not yet exercise the Android Keystore provider on a physical device.
 2. Add an Android TLS 1.3 client transport that validates the pinned Windows server certificate and presents the enrolled client certificate.
 3. Add a Windows-side enrollment mechanism that updates allowed client pins only after local approval.
 4. Add interoperability tests against the real Windows service before adding remote display or input capabilities.
