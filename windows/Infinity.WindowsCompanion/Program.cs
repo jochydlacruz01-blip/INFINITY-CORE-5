@@ -274,6 +274,23 @@ app.MapPost("/v1/files", async (HttpContext context) =>
     }
 });
 
+app.MapGet("/v1/files", async (HttpContext context) =>
+{
+    var clientCertificate = await context.Connection.GetClientCertificateAsync();
+    if (clientCertificate is null) return Results.Unauthorized();
+    var fingerprint = CertificatePinning.ComputeSha256Pin(clientCertificate);
+    var sessionId = context.Request.Headers["X-INFINITY-Session-ID"].ToString();
+    var token = ReadBearerToken(context);
+    if (token is null || !authorizedSessions.IsAuthorized(sessionId, token, fingerprint, "file.transfer"))
+    {
+        auditLog.Write("file.list-denied", fingerprint, null, "denied");
+        return Results.StatusCode(StatusCodes.Status403Forbidden);
+    }
+
+    auditLog.Write("file.listed", fingerprint, sessionId, "allowed");
+    return Results.Ok(fileTransferStore.List(fingerprint));
+});
+
 app.MapGet("/v1/files/{fileId}", async (HttpContext context, string fileId) =>
 {
     var clientCertificate = await context.Connection.GetClientCertificateAsync();
