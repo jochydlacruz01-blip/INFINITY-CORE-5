@@ -134,6 +134,13 @@ internal class InfinityConnectMtlsTransport(
                 if (child.issuerX500Principal != issuer.subjectX500Principal) {
                     throw java.security.cert.CertificateException("Windows certificate chain issuer mismatch.")
                 }
+                if (issuer.basicConstraints < 0) {
+                    throw java.security.cert.CertificateException("Windows issuer certificate is not a CA.")
+                }
+                val issuerUsage = issuer.keyUsage
+                if (issuerUsage != null && (issuerUsage.size <= 5 || !issuerUsage[5])) {
+                    throw java.security.cert.CertificateException("Windows issuer cannot sign certificates.")
+                }
                 try { child.verify(issuer.publicKey) } catch (error: Exception) {
                     throw java.security.cert.CertificateException("Windows certificate chain signature is invalid.", error)
                 }
