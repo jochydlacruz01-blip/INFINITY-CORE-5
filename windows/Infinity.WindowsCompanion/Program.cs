@@ -159,13 +159,21 @@ app.MapPost("/v1/sessions", async (HttpContext context, SessionCreateRequest req
             fingerprint,
             request.Consent,
             request.RequestedCapabilities ?? Array.Empty<string>());
-        auditLog.Write("session.created", fingerprint, grant.SessionId, "allowed");
+        try
+        {
+            auditLog.Write("session.created", fingerprint, grant.SessionId, "allowed");
+        }
+        catch
+        {
+            authorizedSessions.Revoke(grant.SessionId, fingerprint);
+            throw;
+        }
         return Results.Ok(grant);
     }
     catch (UnauthorizedAccessException)
     {
         auditLog.Write("session.capability-denied", fingerprint, null, "denied");
-        return Results.Forbid();
+        return Results.StatusCode(StatusCodes.Status403Forbidden);
     }
     catch (InvalidOperationException)
     {
