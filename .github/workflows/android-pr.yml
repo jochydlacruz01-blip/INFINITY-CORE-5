@@ -4,10 +4,12 @@ on:
   pull_request:
     branches:
       - INFINITY-0.9
+      - INFINITY-PACK-01-FILES-REVIEWED
   push:
     branches:
       - INFINITY-AURORA-NEXT-INTEGRATED
       - INFINITY-PACK-01-FILES-REVIEWED
+      - INFINITY-PACK-02-ORBIT-WORKSPACES
   workflow_dispatch:
 
 permissions:
