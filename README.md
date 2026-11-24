@@ -53,5 +53,5 @@ Durante esta etapa el repositorio utiliza verificación de código fuente sin ge
 
 ## Arquitectura
 
-Consulta [docs/INFINITY-ARCHITECTURE.md](docs/INFINITY-ARCHITECTURE.md) para conocer los límites entre Android, Windows Companion y CONNECT, las fases técnicas, los criterios de aceptación y el estado verificado del proyecto.
+Consulta [docs/INFINITY-ARCHITECTURE.md](docs/INFINITY-ARCHITECTURE.md) para conocer la arquitectura y sus fases. El contrato de identidad, emparejamiento y confianza se documenta en [docs/INFINITY-CONNECT-PROTOCOL.md](docs/INFINITY-CONNECT-PROTOCOL.md).
 
