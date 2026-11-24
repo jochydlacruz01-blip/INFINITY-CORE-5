@@ -61,6 +61,39 @@ class InfinityDesktopViewportPlacementTest {
         assertEquals(ids.size, invalid.positions.size + invalid.overflowIds.size)
     }
 
+    @Test fun tinyViewportProducesFinitePlacementAndOverflowRatherThanCrash() {
+        val result = infinityDesktopViewportPlacement(
+            listOf("one", "two", "three"), 1f, 1f,
+            itemWidth = 116f, itemHeight = 150f,
+            leftInset = 118f, topInset = 118f, rightInset = 168f, bottomInset = 168f
+        )
+        assertEquals(1, result.positions.size)
+        assertEquals(listOf("two", "three"), result.overflowIds)
+        assertTrue(result.positions.values.all { it.x.isFinite() && it.y.isFinite() })
+    }
+
+    @Test fun excessiveAndNonFiniteInsetsAreClamped() {
+        val result = infinityDesktopViewportPlacement(
+            listOf("a", "b"), 320f, 480f,
+            itemWidth = 80f, itemHeight = 80f,
+            leftInset = Float.MAX_VALUE, topInset = Float.NaN,
+            rightInset = Float.POSITIVE_INFINITY, bottomInset = Float.MAX_VALUE,
+            horizontalGap = Float.POSITIVE_INFINITY, verticalGap = Float.NaN
+        )
+        assertTrue(result.positions.values.all { it.x.isFinite() && it.y.isFinite() })
+        assertEquals(result.positions.size + result.overflowIds.size, 2)
+    }
+
+    @Test fun zeroAndNegativeViewportValuesStillReturnFiniteCoordinates() {
+        val result = infinityDesktopViewportPlacement(
+            listOf("a", "b"), 0f, -20f,
+            itemWidth = 0f, itemHeight = -10f,
+            leftInset = -5f, topInset = -5f
+        )
+        assertTrue(result.positions.values.all { it.x.isFinite() && it.y.isFinite() })
+        assertEquals(2, result.positions.size + result.overflowIds.size)
+    }
+
     @Test fun emptyInputReturnsNoPlacementsOrOverflow() {
         assertEquals(
             InfinityDesktopViewportPlacement(emptyMap(), emptyList()),
