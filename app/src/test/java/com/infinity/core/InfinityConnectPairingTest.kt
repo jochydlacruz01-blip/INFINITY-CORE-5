@@ -36,6 +36,7 @@ class InfinityConnectPairingTest {
         val valid = InfinityConnectPairing.createChallenge(5_000L)
         assertFalse(InfinityConnectPairing.isChallengeValid(valid.copy(nonce = "abc"), 5_001L))
         assertFalse(InfinityConnectPairing.isChallengeValid(valid.copy(requestId = "not-a-uuid"), 5_001L))
+        assertFalse(InfinityConnectPairing.isChallengeValid(valid.copy(requestId = "1-1-1-1-1"), 5_001L))
     }
 
     @Test fun normalizesColonSeparatedSha256Fingerprint() {
@@ -92,6 +93,12 @@ class InfinityConnectPairingTest {
         registry.clear()
         assertEquals(0, registry.outstandingCount(40_003L))
         assertTrue(registry.register(second, 40_004L))
+    }
+
+    @Test fun challengeCreationRejectsClockOverflow() {
+        assertFalse(runCatching {
+            InfinityConnectPairing.createChallenge(Long.MAX_VALUE)
+        }.isSuccess)
     }
 
     @Test fun rejectsNegativeClockAndAlteredLifetime() {
