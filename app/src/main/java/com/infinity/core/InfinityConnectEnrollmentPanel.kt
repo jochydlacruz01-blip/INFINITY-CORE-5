@@ -66,6 +66,7 @@ fun InfinityConnectEnrollmentPanel() {
     var confirmFileConsent by remember { mutableStateOf(false) }
     var remoteSessionActive by remember { mutableStateOf(false) }
     var remoteSessionId by remember { mutableStateOf("") }
+    var remoteSessionToken by remember { mutableStateOf("") }
     var remoteSessionExpiry by remember { mutableStateOf("") }
     var fileSessionActive by remember { mutableStateOf(false) }
     var fileSessionId by remember { mutableStateOf("") }
@@ -279,7 +280,8 @@ fun InfinityConnectEnrollmentPanel() {
                     "Capacidades habilitadas por Windows: ${allowedCapabilities.sorted().joinToString()}",
                     style = MaterialTheme.typography.bodySmall
                 )
-                if (!remoteSessionActive && allowedCapabilities.containsAll(setOf("remote.display", "remote.input"))) {
+                if (InfinityConnectFeatureGates.REMOTE_DESKTOP_VALIDATED && !remoteSessionActive &&
+                    allowedCapabilities.containsAll(setOf("remote.display", "remote.input"))) {
                     OutlinedButton(
                         enabled = !busy,
                         onClick = { confirmRemoteConsent = true },
@@ -288,10 +290,22 @@ fun InfinityConnectEnrollmentPanel() {
                 }
                 if (remoteSessionActive) {
                     Text("Permisos de escritorio concedidos · vence: $remoteSessionExpiry")
-                    Text(
-                        "La apertura de pantalla/entrada permanece bloqueada hasta completar la validación física del cliente RDP.",
-                        style = MaterialTheme.typography.bodySmall
-                    )
+                    if (InfinityConnectFeatureGates.REMOTE_DESKTOP_VALIDATED && remoteSessionToken.isNotBlank()) {
+                        InfinityConnectRemoteDesktopPanel(
+                            companionHost = companionHost,
+                            companionPort = companionPort.toInt(),
+                            clientKeyAlias = CONNECT_CLIENT_KEY_ALIAS,
+                            companionServerPin = serverPin,
+                            expectedWindowsDeviceId = expectedServerId,
+                            remoteSessionId = remoteSessionId,
+                            remoteSessionToken = remoteSessionToken
+                        )
+                    } else {
+                        Text(
+                            "Conexión RDP bloqueada por seguridad hasta validar físicamente la tablet y el PC Windows.",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
                     OutlinedButton(
                         enabled = !busy,
                         onClick = {
@@ -312,6 +326,7 @@ fun InfinityConnectEnrollmentPanel() {
                                     vault.delete("remote-session:$expectedServerId")
                                     remoteSessionActive = false
                                     remoteSessionId = ""
+                                    remoteSessionToken = ""
                                     status = "Permisos de escritorio revocados en Windows."
                                 } else status = "No se pudo confirmar la revocación de escritorio."
                             }
@@ -319,7 +334,8 @@ fun InfinityConnectEnrollmentPanel() {
                         modifier = Modifier.fillMaxWidth()
                     ) { Text("Revocar permisos de escritorio") }
                 }
-                if (!fileSessionActive && allowedCapabilities.contains("file.transfer")) {
+                if (InfinityConnectFeatureGates.FILE_TRANSFER_VALIDATED && !fileSessionActive &&
+                    allowedCapabilities.contains("file.transfer")) {
                     OutlinedButton(
                         enabled = !busy,
                         onClick = { confirmFileConsent = true },
@@ -355,7 +371,7 @@ fun InfinityConnectEnrollmentPanel() {
                         },
                         modifier = Modifier.fillMaxWidth()
                     ) { Text("Revocar sesión de archivos") }
-                    if (fileSessionToken.isNotBlank()) {
+                    if (InfinityConnectFeatureGates.FILE_TRANSFER_VALIDATED && fileSessionToken.isNotBlank()) {
                         InfinityConnectFileTransferPanel(
                             baseUrl = companionBaseUrl(companionHost, companionPort),
                             clientKeyAlias = CONNECT_CLIENT_KEY_ALIAS,
@@ -493,6 +509,7 @@ fun InfinityConnectEnrollmentPanel() {
                             )
                             if (saved) {
                                 remoteSessionId = grant.sessionId
+                                remoteSessionToken = grant.token
                                 remoteSessionExpiry = grant.expiresAtUtc
                                 remoteSessionActive = true
                                 status = "Permisos de escritorio concedidos por Windows. El túnel sigue protegido por validación."
@@ -562,6 +579,7 @@ fun InfinityConnectEnrollmentPanel() {
                     activeSessionId = ""
                     remoteSessionActive = false
                     remoteSessionId = ""
+                    remoteSessionToken = ""
                     fileSessionActive = false
                     fileSessionId = ""
                     fileSessionToken = ""
