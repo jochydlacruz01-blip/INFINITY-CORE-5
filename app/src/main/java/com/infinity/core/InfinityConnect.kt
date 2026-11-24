@@ -526,12 +526,15 @@ fun InfinityConnectPanel() {
                                 profiles.add(profile)
                             }
                             saveInfinityProfiles(context, profiles)
-                            credentialVault.save(profile.address, editingPassword.value)
+                            val credentialSaved = credentialVault.save(profile.address, editingPassword.value)
 
                             editingPassword.value = ""
                             showEditor.value = false
                             editingIndex.value = -1
-                            notifyUser("Computadora guardada")
+                            notifyUser(
+                                if (credentialSaved) "Computadora guardada"
+                                else "Perfil guardado; no se pudo proteger la contraseña. Inténtalo de nuevo."
+                            )
                         }
                     }
                 ) {
