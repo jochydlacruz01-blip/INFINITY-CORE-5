@@ -1,4 +1,6 @@
+using System.Security.AccessControl;
 using System.Security.Cryptography;
+using System.Security.Principal;
 using Infinity.WindowsCompanion.Security;
 using Xunit;
 
@@ -40,6 +42,43 @@ public sealed class SecureFileTransferStoreTests : IDisposable
         Assert.False(store.Delete(receipt.FileId, OtherDevicePin));
         Assert.True(store.Delete(receipt.FileId, DevicePin));
         Assert.Null(store.Find(receipt.FileId, DevicePin));
+    }
+
+    [Fact]
+    public async Task TransferDirectoriesUseProtectedAclWithoutBroadUserGroups()
+    {
+        var bytes = new byte[] { 1, 2, 3 };
+        var digest = Convert.ToHexString(SHA256.HashData(bytes));
+        await using var source = new MemoryStream(bytes);
+        await store.SaveAsync(source, DevicePin, "private.bin", bytes.Length, digest, CancellationToken.None);
+
+        var broadPrincipals = new HashSet<string>(StringComparer.Ordinal)
+        {
+            new SecurityIdentifier(WellKnownSidType.WorldSid, null).Value,
+            new SecurityIdentifier(WellKnownSidType.AuthenticatedUserSid, null).Value,
+            new SecurityIdentifier(WellKnownSidType.BuiltinUsersSid, null).Value
+        };
+        var requiredPrincipals = new HashSet<string>(StringComparer.Ordinal)
+        {
+            new SecurityIdentifier(WellKnownSidType.LocalSystemSid, null).Value,
+            new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null).Value
+        };
+
+        foreach (var directoryPath in new[] { root, Path.Combine(root, DevicePin) })
+        {
+            var security = new DirectoryInfo(directoryPath).GetAccessControl();
+            Assert.True(security.AreAccessRulesProtected);
+            var rules = security.GetAccessRules(true, true, typeof(SecurityIdentifier))
+                .Cast<FileSystemAccessRule>()
+                .ToArray();
+            var allowedSids = rules
+                .Where(rule => rule.AccessControlType == AccessControlType.Allow)
+                .Select(rule => ((SecurityIdentifier)rule.IdentityReference).Value)
+                .ToHashSet(StringComparer.Ordinal);
+
+            Assert.Empty(allowedSids.Intersect(broadPrincipals));
+            Assert.True(requiredPrincipals.IsSubsetOf(allowedSids));
+        }
     }
 
     [Fact]
