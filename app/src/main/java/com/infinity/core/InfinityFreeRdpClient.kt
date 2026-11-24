@@ -289,6 +289,17 @@ internal class InfinityFreeRdpClient(
     fun processAndroidKeyEvent(event: KeyEvent): Boolean =
         canSendInput() && keyboardMapper.processAndroidKeyEvent(event)
 
+    fun sendMouseMove(x: Int, y: Int): Boolean =
+        sendPointer(x, y, Mouse.getMoveEvent())
+
+    fun sendUnicodeCharacter(codePoint: Int): Boolean {
+        if (!canSendInput() || !Character.isValidCodePoint(codePoint)) return false
+        val current = session ?: return false
+        val down = LibFreeRDP.sendUnicodeKeyEvent(current.instance, codePoint, true)
+        val up = LibFreeRDP.sendUnicodeKeyEvent(current.instance, codePoint, false)
+        return down && up
+    }
+
     fun sendMouseButton(x: Int, y: Int, button: Int, down: Boolean): Boolean {
         val flags = when (button) {
             1 -> Mouse.getLeftButtonEvent(context, down)
