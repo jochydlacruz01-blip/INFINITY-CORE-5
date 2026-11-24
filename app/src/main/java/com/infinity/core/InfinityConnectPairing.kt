@@ -27,6 +27,9 @@ internal object InfinityConnectPairing {
 
     fun createChallenge(nowEpochMillis: Long = System.currentTimeMillis()): InfinityPairingChallenge {
         require(nowEpochMillis >= 0L) { "Clock value must not be negative" }
+        require(nowEpochMillis <= Long.MAX_VALUE - CHALLENGE_LIFETIME_MILLIS) {
+            "Clock value is too large to create a bounded challenge."
+        }
         val bytes = ByteArray(NONCE_BYTES)
         secureRandom.nextBytes(bytes)
         return InfinityPairingChallenge(
@@ -45,7 +48,8 @@ internal object InfinityConnectPairing {
         if (challenge.expiresAtEpochMillis <= challenge.issuedAtEpochMillis) return false
         if (challenge.expiresAtEpochMillis - challenge.issuedAtEpochMillis != CHALLENGE_LIFETIME_MILLIS) return false
         if (nowEpochMillis < challenge.issuedAtEpochMillis || nowEpochMillis >= challenge.expiresAtEpochMillis) return false
-        if (runCatching { UUID.fromString(challenge.requestId) }.isFailure) return false
+        val parsedRequestId = runCatching { UUID.fromString(challenge.requestId) }.getOrNull() ?: return false
+        if (parsedRequestId.toString() != challenge.requestId.lowercase()) return false
         val decoded = runCatching { Base64.getUrlDecoder().decode(challenge.nonce) }.getOrNull()
             ?: return false
         return decoded.size == NONCE_BYTES
