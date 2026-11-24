@@ -1,5 +1,6 @@
 plugins {
     id("com.android.library")
+    id("org.jetbrains.kotlin.android")
 }
 
 val freeRdpRoot = "../external/FreeRDP/client/Android/Studio/freeRDPCore"
@@ -36,6 +37,7 @@ android {
         getByName("main") {
             manifest.srcFile("src/main/AndroidManifest.xml")
             java.srcDir("$freeRdpRoot/src/main/java")
+            java.exclude("**/GlobalApp.java")
             res.srcDir("$freeRdpRoot/src/main/res")
             assets.srcDir("$freeRdpRoot/src/main/assets")
             jniLibs.srcDir("$freeRdpRoot/src/main/jniLibs")
