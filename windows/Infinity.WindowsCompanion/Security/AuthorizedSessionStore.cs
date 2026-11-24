@@ -13,15 +13,24 @@ public sealed class AuthorizedSessionStore
     public SessionGrant Create(
         string clientCertificateSha256,
         bool explicitConsent,
-        IReadOnlyCollection<string> requestedCapabilities)
+        IReadOnlyCollection<string> requestedCapabilities,
+        IReadOnlySet<string>? allowedCapabilities = null)
     {
         var fingerprint = CertificatePinning.NormalizeSha256Pin(clientCertificateSha256)
             ?? throw new ArgumentException("A valid client certificate fingerprint is required.");
         if (!explicitConsent)
             throw new UnauthorizedAccessException("Explicit user consent is required to create a session.");
-        if (requestedCapabilities.Count != 1 ||
-            !requestedCapabilities.Contains("identity.read", StringComparer.Ordinal))
-            throw new UnauthorizedAccessException("Only the identity.read capability is currently available.");
+        var allowed = allowedCapabilities ??
+            new HashSet<string>(StringComparer.Ordinal) { "identity.read" };
+        if (requestedCapabilities.Count is < 1 or > 4 ||
+            !requestedCapabilities.Contains("identity.read", StringComparer.Ordinal) ||
+            requestedCapabilities.Distinct(StringComparer.Ordinal).Count() != requestedCapabilities.Count ||
+            requestedCapabilities.Any(capability => !allowed.Contains(capability)))
+            throw new UnauthorizedAccessException("One or more requested capabilities are not enabled by Windows policy.");
+        var hasRemoteDisplay = requestedCapabilities.Contains("remote.display", StringComparer.Ordinal);
+        var hasRemoteInput = requestedCapabilities.Contains("remote.input", StringComparer.Ordinal);
+        if (hasRemoteDisplay != hasRemoteInput)
+            throw new UnauthorizedAccessException("Remote display and input must be granted together.");
 
         lock (gate)
         {
@@ -41,8 +50,8 @@ public sealed class AuthorizedSessionStore
                 fingerprint,
                 tokenHash,
                 expiresAt,
-                new HashSet<string>(StringComparer.Ordinal) { "identity.read" }));
-            return new SessionGrant(sessionId.ToString("D"), token, expiresAt, new[] { "identity.read" });
+                new HashSet<string>(requestedCapabilities, StringComparer.Ordinal)));
+            return new SessionGrant(sessionId.ToString("D"), token, expiresAt, requestedCapabilities.ToArray());
         }
     }
 
