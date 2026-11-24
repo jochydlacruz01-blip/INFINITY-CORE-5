@@ -116,8 +116,9 @@ internal fun InfinityConnectRemoteDesktopPanel(
         }
     }
 
-    DisposableEffect(Unit) {
-        onDispose { client?.let { current -> scope.launch { runCatching { current.closeSession() } } } }
+    DisposableEffect(client) {
+        val activeClient = client
+        onDispose { activeClient?.let { current -> scope.launch { runCatching { current.closeSession() } } } }
     }
 
     LaunchedEffect(client) {
