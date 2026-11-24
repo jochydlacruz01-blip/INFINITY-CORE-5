@@ -42,9 +42,19 @@ class InfinityConnectCredentialVault(context: Context) {
         return try {
             val cipher = Cipher.getInstance("AES/GCM/NoPadding")
             cipher.init(Cipher.ENCRYPT_MODE, key())
-            val payload = cipher.iv + cipher.doFinal(secretBytes)
-            prefs.edit().putString(id(endpoint), Base64.encodeToString(payload, Base64.NO_WRAP)).apply()
-            true
+            val iv = cipher.iv
+            val encryptedBytes = cipher.doFinal(secretBytes)
+            val payload = iv + encryptedBytes
+            try {
+                prefs.edit()
+                    .putString(id(endpoint), Base64.encodeToString(payload, Base64.NO_WRAP))
+                    .apply()
+                true
+            } finally {
+                iv.fill(0)
+                encryptedBytes.fill(0)
+                payload.fill(0)
+            }
         } catch (_: Exception) {
             // Keep any previously saved credential if encrypting the replacement fails.
             // The caller receives false and can warn the user without destroying valid data.
@@ -59,16 +69,27 @@ class InfinityConnectCredentialVault(context: Context) {
         return try {
             val encoded = prefs.getString(id(endpoint), null) ?: return null
             val payload = Base64.decode(encoded, Base64.NO_WRAP)
-            if (payload.size < MIN_PAYLOAD_LENGTH || payload.size > MAX_PAYLOAD_LENGTH) return null
-            val iv = payload.copyOfRange(0, IV_LENGTH)
-            val encrypted = payload.copyOfRange(IV_LENGTH, payload.size)
-            val cipher = Cipher.getInstance("AES/GCM/NoPadding")
-            cipher.init(Cipher.DECRYPT_MODE, key(), GCMParameterSpec(128, iv))
-            val clearBytes = cipher.doFinal(encrypted)
             try {
-                String(clearBytes, Charsets.UTF_8)
+                if (payload.size < MIN_PAYLOAD_LENGTH || payload.size > MAX_PAYLOAD_LENGTH) {
+                    return null
+                }
+                val iv = payload.copyOfRange(0, IV_LENGTH)
+                val encrypted = payload.copyOfRange(IV_LENGTH, payload.size)
+                try {
+                    val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+                    cipher.init(Cipher.DECRYPT_MODE, key(), GCMParameterSpec(128, iv))
+                    val clearBytes = cipher.doFinal(encrypted)
+                    try {
+                        String(clearBytes, Charsets.UTF_8)
+                    } finally {
+                        clearBytes.fill(0)
+                    }
+                } finally {
+                    iv.fill(0)
+                    encrypted.fill(0)
+                }
             } finally {
-                clearBytes.fill(0)
+                payload.fill(0)
             }
         } catch (_: Exception) { null }
     }
