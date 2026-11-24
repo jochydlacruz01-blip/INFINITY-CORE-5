@@ -295,6 +295,7 @@ app.MapGet("/v1/files/{fileId}", async (HttpContext context, string fileId) =>
         $"attachment; filename*=UTF-8''{Uri.EscapeDataString(metadata.FileName)}";
     await file.CopyToAsync(context.Response.Body, 64 * 1024, context.RequestAborted);
     auditLog.Write("file.downloaded", fingerprint, sessionId, "allowed");
+    return Results.StatusCode(StatusCodes.Status200OK);
 });
 
 app.MapDelete("/v1/files/{fileId}", async (HttpContext context, string fileId) =>
