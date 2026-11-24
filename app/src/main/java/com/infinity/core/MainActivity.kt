@@ -436,14 +436,26 @@ val iconOffsets = remember {
             put(
                     item.id,
                     Offset(
-                        prefs.getFloat("${item.id}_x", infinityDesktopIconGridOffset(
+                        prefs.getFloat(infinityWorkspaceIconPositionKey(workspace, item.id, "x"), if (workspace == 1) prefs.getFloat(infinityLegacyWorkspaceIconPositionKey(item.id, "x"), infinityDesktopIconGridOffset(
+                            index, context.resources.displayMetrics.widthPixels.toFloat(),
+                            116f * context.resources.displayMetrics.density, 150f * context.resources.displayMetrics.density,
+                            horizontalGap = 12f * context.resources.displayMetrics.density,
+                            verticalGap = 14f * context.resources.displayMetrics.density,
+                            topInset = 118f * context.resources.displayMetrics.density
+                        ).x) else infinityDesktopIconGridOffset(
                             index, context.resources.displayMetrics.widthPixels.toFloat(),
                             116f * context.resources.displayMetrics.density, 150f * context.resources.displayMetrics.density,
                             horizontalGap = 12f * context.resources.displayMetrics.density,
                             verticalGap = 14f * context.resources.displayMetrics.density,
                             topInset = 118f * context.resources.displayMetrics.density
                         ).x),
-                        prefs.getFloat("${item.id}_y", infinityDesktopIconGridOffset(
+                        prefs.getFloat(infinityWorkspaceIconPositionKey(workspace, item.id, "y"), if (workspace == 1) prefs.getFloat(infinityLegacyWorkspaceIconPositionKey(item.id, "y"), infinityDesktopIconGridOffset(
+                            index, context.resources.displayMetrics.widthPixels.toFloat(),
+                            116f * context.resources.displayMetrics.density, 150f * context.resources.displayMetrics.density,
+                            horizontalGap = 12f * context.resources.displayMetrics.density,
+                            verticalGap = 14f * context.resources.displayMetrics.density,
+                            topInset = 118f * context.resources.displayMetrics.density
+                        ).y) else infinityDesktopIconGridOffset(
                             index, context.resources.displayMetrics.widthPixels.toFloat(),
                             116f * context.resources.displayMetrics.density, 150f * context.resources.displayMetrics.density,
                             horizontalGap = 12f * context.resources.displayMetrics.density,
@@ -453,6 +465,32 @@ val iconOffsets = remember {
                     )
                 )
             }
+        }
+    }
+
+    // Reload the selected ORBIT workspace's own desktop icon arrangement.
+    // Workspace 1 imports legacy coordinates once; spaces 2 and 3 start independently.
+    LaunchedEffect(workspace) {
+        val metrics = context.resources.displayMetrics
+        val density = metrics.density
+        desktopItems.forEachIndexed { index, item ->
+            val fallback = infinityDesktopIconGridOffset(
+                index, metrics.widthPixels.toFloat(),
+                116f * density, 150f * density,
+                horizontalGap = 12f * density,
+                verticalGap = 14f * density,
+                topInset = 118f * density
+            )
+            val legacyX = if (workspace == 1) {
+                prefs.getFloat(infinityLegacyWorkspaceIconPositionKey(item.id, "x"), fallback.x)
+            } else fallback.x
+            val legacyY = if (workspace == 1) {
+                prefs.getFloat(infinityLegacyWorkspaceIconPositionKey(item.id, "y"), fallback.y)
+            } else fallback.y
+            iconOffsets[item.id] = Offset(
+                prefs.getFloat(infinityWorkspaceIconPositionKey(workspace, item.id, "x"), legacyX),
+                prefs.getFloat(infinityWorkspaceIconPositionKey(workspace, item.id, "y"), legacyY)
+            )
         }
     }
 
@@ -518,8 +556,8 @@ val iconOffsets = remember {
                     if (bounded != current) {
                         iconOffsets[item.id] = bounded
                         prefs.edit()
-                            .putFloat("${item.id}_x", bounded.x)
-                            .putFloat("${item.id}_y", bounded.y)
+                            .putFloat(infinityWorkspaceIconPositionKey(workspace, item.id, "x"), bounded.x)
+                            .putFloat(infinityWorkspaceIconPositionKey(workspace, item.id, "y"), bounded.y)
                             .apply()
                     }
                 }
@@ -767,7 +805,7 @@ val iconOffsets = remember {
                         iconSize = infinityNormalizeIconSize(plan.nextState.iconSizePx)
                         plan.placements?.forEach { (id, position) ->
                             iconOffsets[id] = position
-                            prefs.edit().putFloat("${id}_x", position.x).putFloat("${id}_y", position.y).apply()
+                            prefs.edit().putFloat(infinityWorkspaceIconPositionKey(workspace, id, "x"), position.x).putFloat(infinityWorkspaceIconPositionKey(workspace, id, "y"), position.y).apply()
                         }
                         if (plan.requestWallpaperPicker) wallpaperPicker.launch(arrayOf("image/*"))
                         if (plan.requestAppearancePanel) {
@@ -875,8 +913,8 @@ val iconOffsets = remember {
                                         val position = resolvedOffsets[index]
                                         iconOffsets[desktopItem.id] = position
                                         prefs.edit()
-                                            .putFloat("${desktopItem.id}_x", position.x)
-                                            .putFloat("${desktopItem.id}_y", position.y)
+                                            .putFloat(infinityWorkspaceIconPositionKey(workspace, desktopItem.id, "x"), position.x)
+                                            .putFloat(infinityWorkspaceIconPositionKey(workspace, desktopItem.id, "y"), position.y)
                                             .apply()
                                     }
                                 }
