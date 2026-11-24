@@ -278,7 +278,8 @@ fun InfinityConnectEnrollmentPanel() {
                                         CONNECT_CLIENT_KEY_ALIAS,
                                         serverPin,
                                         activeSessionId,
-                                        token
+                                        token,
+                                        expectedServerId
                                     )
                                 }
                             }.getOrDefault(false)
