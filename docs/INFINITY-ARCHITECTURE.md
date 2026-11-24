@@ -230,4 +230,6 @@ A package is complete only when:
 1. Add a repository inventory and source-only CI guard so future changes cannot silently reintroduce APK tasks during development.
 2. Audit the current Connect pairing, preflight, identity endpoint, and remote-frame pipeline against the protocol/security requirements above.
 3. Correct documentation that still describes the old APK-publishing workflow.
-4. Continue with the smallest verified implementation package; do not begin FreeRDP native integration until the current contracts and compatibility review are complete.
+4. Add a bounded, process-local, single-use pairing challenge registry and regression tests; keep it explicitly separate from network enrollment until TLS client identity is implemented.
+5. Define the CONNECT trust/protocol contract and map every capability to its real implementation status.
+6. Continue with Android Keystore-backed certificate enrollment and a pinned TLS 1.3 client; do not begin FreeRDP native integration until the trust channel is verified.
