@@ -113,6 +113,7 @@ var app = builder.Build();
 app.UseWebSockets();
 var rdpTunnelGate = new SemaphoreSlim(1, 1);
 var authorizedSessions = new AuthorizedSessionStore();
+var capabilityPolicy = RemoteCapabilityPolicy.LoadFromEnvironment();
 var auditLog = new InfinityAuditLog();
 var fileTransferStore = new SecureFileTransferStore();
 
@@ -146,7 +147,7 @@ app.MapGet("/v1/identity", () => Results.Ok(new CompanionIdentity(
     "INFINITY Windows Companion",
     "1.0.0",
     "TLS 1.3 mutual certificate authentication",
-    "identity-only; remote desktop is not enabled")));
+    "Remote capabilities are administrator-policy gated and default-deny")));
 
 app.MapPost("/v1/sessions", async (HttpContext context, SessionCreateRequest request) =>
 {
@@ -165,7 +166,8 @@ app.MapPost("/v1/sessions", async (HttpContext context, SessionCreateRequest req
         var grant = authorizedSessions.Create(
             fingerprint,
             request.Consent,
-            request.RequestedCapabilities ?? Array.Empty<string>());
+            request.RequestedCapabilities ?? Array.Empty<string>(),
+            capabilityPolicy.GetAllowedCapabilities());
         try
         {
             auditLog.Write("session.created", fingerprint, grant.SessionId, "allowed");
