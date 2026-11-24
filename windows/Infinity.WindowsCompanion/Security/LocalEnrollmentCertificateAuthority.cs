@@ -170,22 +170,26 @@ public sealed class LocalEnrollmentCertificateAuthority
             !usage.KeyUsages.HasFlag(X509KeyUsageFlags.KeyCertSign) ||
             now < certificate.NotBefore.ToUniversalTime() ||
             now > certificate.NotAfter.ToUniversalTime() ||
-            certificate.Subject != certificate.Issuer ||
-            (requirePrivateKey && (!certificate.HasPrivateKey || certificate.GetECDsaPrivateKey() is null)))
+            certificate.Subject != certificate.Issuer)
             throw new CryptographicException("The stored INFINITY enrollment CA is invalid or unusable.");
         using var publicKey = certificate.GetECDsaPublicKey()
             ?? throw new CryptographicException("The enrollment CA must use ECDSA.");
-        using var verifier = certificate.GetECDsaPrivateKey();
-        if (verifier is null || !verifier.VerifyData(
-            certificate.RawData,
-            Array.Empty<byte>(),
-            HashAlgorithmName.SHA384))
+        if (requirePrivateKey)
         {
-            // Self-signature is verified below using the certificate's public key and TBS bytes.
-            using var parsed = new X509Certificate2(certificate.RawData);
-            var signatureAlgorithm = parsed.SignatureAlgorithm.Value;
-            if (signatureAlgorithm is null || !signatureAlgorithm.StartsWith("1.2.840.10045.4.3.", StringComparison.Ordinal))
-                throw new CryptographicException("The enrollment CA signature algorithm is not ECDSA.");
+            using var signingKey = certificate.GetECDsaPrivateKey()
+                ?? throw new CryptographicException("The enrollment CA private key is unavailable.");
+            var challenge = RandomNumberGenerator.GetBytes(32);
+            var signature = signingKey.SignData(challenge, HashAlgorithmName.SHA384);
+            try
+            {
+                if (!publicKey.VerifyData(challenge, signature, HashAlgorithmName.SHA384))
+                    throw new CryptographicException("The enrollment CA private key does not match its certificate.");
+            }
+            finally
+            {
+                CryptographicOperations.ZeroMemory(challenge);
+                CryptographicOperations.ZeroMemory(signature);
+            }
         }
     }
 
