@@ -148,7 +148,7 @@ app.MapGet("/v1/identity", () => Results.Ok(new CompanionIdentity(
     "1.0.0",
     "TLS 1.3 mutual certificate authentication",
     "Remote capabilities are administrator-policy gated and default-deny",
-    capabilityPolicy.GetAllowedCapabilities().OrderBy(value => value, StringComparer.Ordinal).ToArray()));
+    capabilityPolicy.GetAllowedCapabilities().OrderBy(value => value, StringComparer.Ordinal).ToArray())));
 
 app.MapPost("/v1/sessions", async (HttpContext context, SessionCreateRequest request) =>
 {
