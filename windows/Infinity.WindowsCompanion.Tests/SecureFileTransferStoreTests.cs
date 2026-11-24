@@ -29,9 +29,11 @@ public sealed class SecureFileTransferStoreTests : IDisposable
         Assert.Equal(digest, receipt.Sha256);
         Assert.NotNull(store.Find(receipt.FileId, DevicePin));
         Assert.Null(store.Find(receipt.FileId, OtherDevicePin));
+        Assert.Single(store.List(DevicePin));
+        Assert.Empty(store.List(OtherDevicePin));
 
         var metadata = store.Find(receipt.FileId, DevicePin)!;
-        await using var downloaded = store.OpenRead(metadata)!;
+        await using var downloaded = (await store.OpenReadVerifiedAsync(metadata, CancellationToken.None))!;
         using var output = new MemoryStream();
         await downloaded.CopyToAsync(output);
         Assert.Equal(bytes, output.ToArray());
@@ -59,6 +61,22 @@ public sealed class SecureFileTransferStoreTests : IDisposable
         }
 
         Assert.Empty(Directory.Exists(root) ? Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories) : Array.Empty<string>());
+    }
+
+    [Fact]
+    public async Task RejectsStoredFileThatWasModifiedAfterUpload()
+    {
+        var bytes = new byte[] { 7, 8, 9, 10 };
+        var digest = Convert.ToHexString(SHA256.HashData(bytes));
+        await using var source = new MemoryStream(bytes);
+        var receipt = await store.SaveAsync(source, DevicePin, "immutable.bin", bytes.Length, digest, CancellationToken.None);
+
+        var storedPath = Path.Combine(root, DevicePin, Guid.Parse(receipt.FileId).ToString("N") + ".bin");
+        await File.WriteAllBytesAsync(storedPath, new byte[] { 1, 1, 1, 1 });
+        var metadata = store.Find(receipt.FileId, DevicePin)!;
+
+        var verified = await store.OpenReadVerifiedAsync(metadata, CancellationToken.None);
+        Assert.Null(verified);
     }
 
     [Fact]
