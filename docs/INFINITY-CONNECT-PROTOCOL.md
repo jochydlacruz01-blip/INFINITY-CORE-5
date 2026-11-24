@@ -136,6 +136,15 @@ Each capability needs its own threat model, explicit session consent, permission
 - Unknown/changed server identity is rejected and shown as a trust error.
 - No remote input or screen stream is available in the identity-only stage.
 
+### Local Windows device approval commands
+
+Run the Companion executable from an elevated Windows administrator console:
+
+- `Infinity.WindowsCompanion.exe --approve-client-cert C:\\path\\android-client.cer` validates a current client-auth certificate and adds its SHA-256 fingerprint to the machine authorization registry.
+- `Infinity.WindowsCompanion.exe --revoke-client-cert <SHA256>` removes the exact fingerprint. The next TLS handshake is rejected.
+
+The current approval operation is local-console only. It does not expose an unauthenticated network enrollment endpoint. It approves a certificate already issued by a trusted enrollment process; automated Android CSR issuance and certificate delivery remain a separate required stage.
+
 ## 12. Current implementation ledger
 
 | Capability | Current evidence | Status |
@@ -148,8 +157,8 @@ Each capability needs its own threat model, explicit session consent, permission
 | Android identity signing key | non-exportable EC P-256 key generated/stored in Android Keystore; domain-separated transcript signing; aliases restricted to 1–80 ASCII letters/digits/dot/underscore/dash | Key primitive implemented; alias-policy unit tests added; no certificate issuance/enrollment |
 | Android client certificate provisioning | no issued client certificate or chain installation verified | Not implemented |
 | Android TLS 1.3 mTLS client | no live client transport verified | Not implemented |
-| Windows TLS 1.3 mTLS endpoint | Kestrel identity-only endpoint | Implemented in source; interoperability test still required |
-| Windows certificate pin, validity, EKU and key-usage checks | CertificatePinning.cs | Implemented in source with unit tests; digitalSignature is required when Key Usage is present |
+| Windows TLS 1.3 mTLS endpoint | Kestrel identity-only endpoint; client certificate validated against machine-scoped approved fingerprint registry on every handshake | Implemented in source; physical Android interoperability test still required |
+| Windows client certificate approval/revocation | AuthorizedDeviceStore.cs; local elevated console commands; HKLM registry allowlist | Implemented in source; Windows integration and ACL verification still required |\n| Windows certificate pin, validity, EKU and key-usage checks | CertificatePinning.cs | Implemented in source with unit tests; digitalSignature is required when Key Usage is present |
 | Windows identity endpoint | /v1/identity | Identity only |
 | Remote screen capture/input | no implementation verified | Not implemented |
 | RDP engine | adapter contract only; FreeRDP not integrated | Not implemented |
@@ -158,5 +167,5 @@ Each capability needs its own threat model, explicit session consent, permission
 
 1. Add Android certificate enrollment/key lifecycle with explicit user confirmation and Android Keystore-backed private key where supported. The current PACK 16 alias validator is covered by local JVM unit tests; it does not yet exercise the Android Keystore provider on a physical device.
 2. Add an Android TLS 1.3 client transport that validates the pinned Windows server certificate and presents the enrolled client certificate.
-3. Add a Windows-side enrollment mechanism that updates allowed client pins only after local approval.
+3. Complete Android CSR/certificate issuance and secure certificate delivery; the Windows local approval store is now present but does not issue certificates.
 4. Add interoperability tests against the real Windows service before adding remote display or input capabilities.
