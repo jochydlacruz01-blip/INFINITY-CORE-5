@@ -69,7 +69,7 @@ The intended enrollment sequence is:
 
 - TLS 1.3 only for the current Companion endpoint.
 - Mutual TLS is mandatory.
-- Server certificate must be within its validity window and contain server-authentication EKU.
+- Windows Companion requires its server certificate to be within its validity window, have a private key, contain server-authentication EKU, and permit digitalSignature when a Key Usage extension is present. A missing Key Usage extension remains permitted; duplicate or malformed usage extensions fail closed.
 - Android client certificate must be within its validity window and contain client-authentication EKU.
 - Windows accepts only explicitly configured/enrolled Android client pins.
 - Fingerprint comparison must use strict SHA-256 parsing and constant-time byte comparison.
