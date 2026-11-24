@@ -992,8 +992,8 @@ val iconOffsets = remember {
                             if (index >= 0 && infinityWindowCanManipulateGeometry(windows[index].maximized, maxW.value)) {
                                 val current = windows[index]
                                 // Compose drag deltas are pixels; persisted window geometry is dp.
-                                val deltaXdp = with(density) { dx.toDp().value }
-                                val deltaYdp = with(density) { dy.toDp().value }
+                                val deltaXdp = infinityGestureDeltaToDp(dx, density.density)
+                                val deltaYdp = infinityGestureDeltaToDp(dy, density.density)
                                 val boundedPosition = infinityClampWindowPosition(
                                     current.x + deltaXdp,
                                     current.y + deltaYdp,
@@ -1014,8 +1014,8 @@ val iconOffsets = remember {
                             if (index >= 0 && infinityWindowCanManipulateGeometry(windows[index].maximized, maxW.value)) {
                                 val current = windows[index]
                                 // Resize gestures also report pixels; dimensions and viewport are dp.
-                                val deltaWidthDp = with(density) { dx.toDp().value }
-                                val deltaHeightDp = with(density) { dy.toDp().value }
+                                val deltaWidthDp = infinityGestureDeltaToDp(dx, density.density)
+                                val deltaHeightDp = infinityGestureDeltaToDp(dy, density.density)
 
                                 val availableWidth =
                                     (maxW.value - current.x).coerceAtLeast(1f)
