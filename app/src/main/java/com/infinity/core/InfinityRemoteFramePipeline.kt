@@ -33,7 +33,7 @@ class InfinityRemoteFramePacket(
         }
         require(capturedAtEpochMillis >= 0L) { "Frame timestamp must not be negative." }
         if (encoding == Encoding.RGBA_8888) {
-            require(payloadBytes.size == width.toLong() * height.toLong() * 4L) {
+            require(payloadBytes.size.toLong() == width.toLong() * height.toLong() * 4L) {
                 "RGBA payload length does not match its dimensions."
             }
         }
