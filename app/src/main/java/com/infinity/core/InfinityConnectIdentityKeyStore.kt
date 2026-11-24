@@ -69,16 +69,16 @@ internal class InfinityConnectIdentityKeyStore(
         if (keyStore.containsAlias(alias)) keyStore.deleteEntry(alias)
     }
 
-    private companion object {
+    companion object {
         /** Android Keystore aliases are deliberately restricted to printable ASCII. */
         internal fun isValidAlias(alias: String): Boolean =
             alias.length in 1..MAX_ALIAS_LENGTH &&
                 alias.all { it in 'A'..'Z' || it in 'a'..'z' || it in '0'..'9' ||
                     it == '.' || it == '_' || it == '-' }
 
-        const val ANDROID_KEYSTORE = "AndroidKeyStore"
-        const val MAX_ALIAS_LENGTH = 80
-        const val MAX_TRANSCRIPT_BYTES = 16 * 1024
-        val DOMAIN_SEPARATOR = "INFINITY-CONNECT-ENROLLMENT-V1\u0000".toByteArray(Charsets.US_ASCII)
+        private const val ANDROID_KEYSTORE = "AndroidKeyStore"
+        private const val MAX_ALIAS_LENGTH = 80
+        private const val MAX_TRANSCRIPT_BYTES = 16 * 1024
+        private val DOMAIN_SEPARATOR = "INFINITY-CONNECT-ENROLLMENT-V1\u0000".toByteArray(Charsets.US_ASCII)
     }
 }
