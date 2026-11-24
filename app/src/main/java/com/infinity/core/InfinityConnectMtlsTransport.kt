@@ -176,9 +176,18 @@ internal class InfinityConnectMtlsTransport(
         clientKeyAlias: String,
         trustedServerSha256: String,
         sessionId: String,
-        sessionToken: String
+        sessionToken: String,
+        expectedDeviceId: String
     ): Boolean {
-        require(runCatching { java.util.UUID.fromString(sessionId) }.isSuccess) {
+        require(fetchWindowsIdentity(
+            baseUrl,
+            clientKeyAlias,
+            trustedServerSha256,
+            expectedDeviceId
+        ).deviceId == expectedDeviceId) {
+            "The authenticated Windows identity changed before session revocation."
+        }
+        require(runCatching { java.util.UUID.fromString(sessionId).toString() == sessionId }.getOrDefault(false)) {
             "Session ID is invalid."
         }
         require(sessionToken.matches(Regex("[A-Za-z0-9_-]{43}"))) {
