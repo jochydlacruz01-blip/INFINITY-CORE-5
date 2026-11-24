@@ -149,7 +149,7 @@ Each capability needs its own threat model, explicit session consent, permission
 | Android client certificate provisioning | no issued client certificate or chain installation verified | Not implemented |
 | Android TLS 1.3 mTLS client | no live client transport verified | Not implemented |
 | Windows TLS 1.3 mTLS endpoint | Kestrel identity-only endpoint | Implemented in source; interoperability test still required |
-| Windows certificate pin and EKU checks | CertificatePinning.cs | Implemented in source with unit tests |
+| Windows certificate pin, validity, EKU and key-usage checks | CertificatePinning.cs | Implemented in source with unit tests; digitalSignature is required when Key Usage is present |
 | Windows identity endpoint | /v1/identity | Identity only |
 | Remote screen capture/input | no implementation verified | Not implemented |
 | RDP engine | adapter contract only; FreeRDP not integrated | Not implemented |
