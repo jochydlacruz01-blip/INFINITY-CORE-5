@@ -4,6 +4,9 @@ using System.Security.Cryptography.X509Certificates;
 using Infinity.WindowsCompanion.Security;
 using Microsoft.AspNetCore.Server.Kestrel.Https;
 
+if (!OperatingSystem.IsWindows())
+    throw new PlatformNotSupportedException("INFINITY Windows Companion runs only on Windows.");
+
 if (args.Length == 2 && args[0] == "--approve-client-cert")
 {
     if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException("Windows is required.");
