@@ -14,3 +14,5 @@ dependencyResolutionManagement {
 }
 rootProject.name = "InfinityCore"
 include(":app")
+include(":freerdpCore")
+project(":freerdpCore").projectDir = file("freerdp-core")
