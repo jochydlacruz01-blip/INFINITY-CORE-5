@@ -1,5 +1,7 @@
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
+using System.Security.AccessControl;
+using System.Security.Principal;
 using Infinity.WindowsCompanion.Security;
 using Xunit;
 
@@ -23,6 +25,27 @@ public sealed class AuthorizedDeviceStoreTests
 
             var store = new AuthorizedDeviceStore();
             Assert.True(store.IsAuthorized(certificate));
+
+            using (var registryKey = Registry.LocalMachine.OpenSubKey(
+                @"SOFTWARE\\INFINITY\\WindowsCompanion\\AuthorizedDevices", writable: false))
+            {
+                Assert.NotNull(registryKey);
+                var security = registryKey!.GetAccessControl(AccessControlSections.Access);
+                Assert.True(security.AreAccessRulesProtected);
+                var rules = security.GetAccessRules(true, false, typeof(SecurityIdentifier))
+                    .Cast<RegistryAccessRule>().ToArray();
+                var users = new SecurityIdentifier(WellKnownSidType.BuiltinUsersSid, null);
+                var admins = new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null);
+                var system = new SecurityIdentifier(WellKnownSidType.LocalSystemSid, null);
+                Assert.Contains(rules, rule => rule.IdentityReference == users &&
+                    (rule.RegistryRights & RegistryRights.ReadKey) == RegistryRights.ReadKey);
+                Assert.DoesNotContain(rules, rule => rule.IdentityReference == users &&
+                    (rule.RegistryRights & (RegistryRights.SetValue | RegistryRights.CreateSubKey | RegistryRights.Delete)) != 0);
+                Assert.Contains(rules, rule => rule.IdentityReference == admins &&
+                    (rule.RegistryRights & RegistryRights.FullControl) == RegistryRights.FullControl);
+                Assert.Contains(rules, rule => rule.IdentityReference == system &&
+                    (rule.RegistryRights & RegistryRights.FullControl) == RegistryRights.FullControl);
+            }
 
             Assert.True(AuthorizedDeviceStore.RevokeFromLocalConsole(pin));
             Assert.False(store.IsAuthorized(certificate));
