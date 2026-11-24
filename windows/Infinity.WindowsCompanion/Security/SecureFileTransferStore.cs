@@ -12,6 +12,9 @@ public sealed class SecureFileTransferStore
     public const long MaximumFileBytes = 50L * 1024 * 1024;
     private const int MaximumFileNameLength = 128;
     private readonly string rootPath;
+    private readonly SemaphoreSlim writeGate = new(1, 1);
+    private const int MaximumFilesPerDevice = 100;
+    private const long MaximumBytesPerDevice = 500L * 1024 * 1024;
 
     public SecureFileTransferStore(string? storageRoot = null)
     {
@@ -30,6 +33,26 @@ public sealed class SecureFileTransferStore
         string expectedSha256,
         CancellationToken cancellationToken)
     {
+        await writeGate.WaitAsync(cancellationToken);
+        try
+        {
+            return await SaveCoreAsync(
+                source, clientCertificateSha256, fileName, contentLength, expectedSha256, cancellationToken);
+        }
+        finally
+        {
+            writeGate.Release();
+        }
+    }
+
+    private async Task<FileReceipt> SaveCoreAsync(
+        Stream source,
+        string clientCertificateSha256,
+        string fileName,
+        long contentLength,
+        string expectedSha256,
+        CancellationToken cancellationToken)
+    {
         ArgumentNullException.ThrowIfNull(source);
         var fingerprint = CertificatePinning.NormalizeSha256Pin(clientCertificateSha256)
             ?? throw new ArgumentException("A valid device certificate fingerprint is required.");
@@ -41,6 +64,10 @@ public sealed class SecureFileTransferStore
 
         var deviceDirectory = Path.Combine(rootPath, fingerprint);
         Directory.CreateDirectory(deviceDirectory);
+        var existingFiles = Directory.EnumerateFiles(deviceDirectory, "*.bin").Take(MaximumFilesPerDevice + 1).ToArray();
+        if (existingFiles.Length >= MaximumFilesPerDevice ||
+            existingFiles.Sum(path => new FileInfo(path).Length) > MaximumBytesPerDevice - contentLength)
+            throw new InvalidDataException("Per-device transfer storage quota has been reached.");
         var fileId = Guid.NewGuid();
         var temporaryPath = Path.Combine(deviceDirectory, fileId.ToString("N") + ".tmp");
         var finalPath = Path.Combine(deviceDirectory, fileId.ToString("N") + ".bin");
@@ -131,6 +158,9 @@ public sealed class SecureFileTransferStore
                 metadata.ClientCertificateSha256 != fingerprint ||
                 metadata.Length is < 0 or > MaximumFileBytes)
                 return null;
+            ValidateFileName(metadata.FileName);
+            if (CertificatePinning.NormalizeSha256Pin(metadata.Sha256) is null)
+                return null;
             return metadata;
         }
         catch (JsonException)
@@ -138,6 +168,10 @@ public sealed class SecureFileTransferStore
             return null;
         }
         catch (IOException)
+        {
+            return null;
+        }
+        catch (InvalidDataException)
         {
             return null;
         }
@@ -156,6 +190,39 @@ public sealed class SecureFileTransferStore
             return null;
         }
         return stream;
+    }
+
+    public async Task<FileStream?> OpenReadVerifiedAsync(
+        FileMetadata metadata,
+        CancellationToken cancellationToken)
+    {
+        var stream = OpenRead(metadata);
+        if (stream is null) return null;
+        try
+        {
+            var actual = await SHA256.HashDataAsync(stream, cancellationToken);
+            var expected = Convert.FromHexString(metadata.Sha256);
+            try
+            {
+                if (!CryptographicOperations.FixedTimeEquals(actual, expected))
+                {
+                    await stream.DisposeAsync();
+                    return null;
+                }
+            }
+            finally
+            {
+                CryptographicOperations.ZeroMemory(actual);
+                CryptographicOperations.ZeroMemory(expected);
+            }
+            stream.Position = 0;
+            return stream;
+        }
+        catch
+        {
+            await stream.DisposeAsync();
+            throw;
+        }
     }
 
     public bool Delete(string fileId, string clientCertificateSha256)
