@@ -2160,6 +2160,8 @@ private fun FileExplorer08(
     var operationMessage by remember { mutableStateOf<String?>(null) }
     var actionEntry by remember { mutableStateOf<ExplorerEntry?>(null) }
     var previewTarget by remember { mutableStateOf<Triple<Uri, String, String?>?>(null) }
+    var pendingTransfer by remember { mutableStateOf<Triple<String, String, Boolean>?>(null) }
+    var transferRequest by remember { mutableStateOf<Pair<Triple<String, String, Boolean>, String>?>(null) }
     var showRenameDialog by remember { mutableStateOf(false) }
     var renameName by remember { mutableStateOf("") }
     var renameDocumentId by remember { mutableStateOf<String?>(null) }
@@ -2295,6 +2297,42 @@ private fun FileExplorer08(
         }
     }
 
+    LaunchedEffect(transferRequest, rootUri) {
+        val request = transferRequest
+        val tree = rootUri
+        if (request != null && tree != null) {
+            val (source, destinationDocumentId) = request
+            val result = withContext(Dispatchers.IO) {
+                runCatching {
+                    val sourceUri = DocumentsContract.buildDocumentUriUsingTree(tree, source.first)
+                    val sourceParentUri = DocumentsContract.buildDocumentUriUsingTree(tree, source.second)
+                    val destinationUri = DocumentsContract.buildDocumentUriUsingTree(tree, destinationDocumentId)
+                    val transferred = if (source.third) {
+                        DocumentsContract.moveDocument(
+                            context.contentResolver, sourceUri, sourceParentUri, destinationUri
+                        )
+                    } else {
+                        DocumentsContract.copyDocument(
+                            context.contentResolver, sourceUri, destinationUri
+                        )
+                    }
+                    transferred ?: throw IllegalStateException(
+                        "El proveedor de almacenamiento no admite esta operación o no pudo completarla."
+                    )
+                }
+            }
+            transferRequest = null
+            pendingTransfer = null
+            operationMessage = if (result.isSuccess) {
+                if (source.third) "Archivo movido correctamente." else "Copia creada correctamente."
+            } else {
+                result.exceptionOrNull()?.message
+                    ?: "No se pudo completar la operación. Este proveedor puede no admitir copiar o mover."
+            }
+            if (result.isSuccess) refreshVersion++
+        }
+    }
+
     Column(Modifier.fillMaxSize().padding(12.dp)) {
         Text("INFINITY FILE EXPLORER", color = accent, fontWeight = FontWeight.Bold)
         Text("Navega por carpetas y abre archivos con aplicaciones Android.", color = InfinityMuted, fontSize = 10.sp)
@@ -2358,6 +2396,33 @@ private fun FileExplorer08(
         }
         operationMessage?.let { message ->
             Text(message, color = accent, fontSize = 10.sp)
+        }
+
+        pendingTransfer?.let { transfer ->
+            Row(
+                Modifier.fillMaxWidth().padding(vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    if (transfer.third) "Mover archivo: navega al destino y confirma aquí."
+                    else "Copiar archivo: navega al destino y confirma aquí.",
+                    color = accent,
+                    fontSize = 10.sp,
+                    modifier = Modifier.weight(1f)
+                )
+                OutlinedButton(
+                    enabled = !loading && currentDocumentId != null,
+                    onClick = {
+                        val destination = currentDocumentId
+                        if (destination != null) {
+                            transferRequest = transfer to destination
+                            operationMessage = if (transfer.third) "Moviendo archivo…" else "Copiando archivo…"
+                        }
+                    }
+                ) { Text("Confirmar aquí") }
+                TextButton(onClick = { pendingTransfer = null }) { Text("Cancelar") }
+            }
         }
         when {
             rootUri == null -> Text("Selecciona una carpeta para comenzar.", color = Color.White, fontSize = 12.sp)
@@ -2436,6 +2501,19 @@ private fun FileExplorer08(
                             previewTarget = Triple(uri, entry.name, entry.mimeType)
                             actionEntry = null
                         }) { Text("Vista previa") }
+                    }
+
+                    if (!entry.isDirectory && currentDocumentId != null) {
+                        TextButton(onClick = {
+                            pendingTransfer = Triple(entry.documentId, currentDocumentId!!, false)
+                            operationMessage = "Elige la carpeta de destino y confirma la copia."
+                            actionEntry = null
+                        }) { Text("Copiar") }
+                        TextButton(onClick = {
+                            pendingTransfer = Triple(entry.documentId, currentDocumentId!!, true)
+                            operationMessage = "Elige la carpeta de destino y confirma el movimiento."
+                            actionEntry = null
+                        }) { Text("Mover") }
                     }
                     TextButton(onClick = {
                         deleteCandidate = entry
