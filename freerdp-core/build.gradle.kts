@@ -57,7 +57,6 @@ android {
             cmake {
                 path = file("$freeRdpRoot/src/main/cpp/CMakeLists.txt")
                 version = "3.22.1"
-                targets += listOf("freerdp-android")
             }
         }
     }
