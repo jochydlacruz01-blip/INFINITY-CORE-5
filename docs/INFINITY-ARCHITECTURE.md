@@ -14,7 +14,7 @@ PROJECT INFINITY is a native Android desktop environment with its own futuristic
 The product has three architectural boundaries:
 
 1. **INFINITY Android:** desktop shell, local apps, settings, storage access, notifications, and connection client.
-2. **INFINITY Windows Companion:** a Windows service responsible for device identity and, in later approved stages, secure remote-session capabilities.
+2. **INFINITY Windows Companion:** a Windows service for TLS 1.3/mTLS identity, short-lived capability-bound sessions, per-device file transfer, and a loopback-only RDP tunnel. Remote capabilities remain administrator-default-deny.
 3. **INFINITY CONNECT protocol:** versioned contracts for pairing, identity, transport, session state, remote frames, and user input.
 
 The Android desktop must remain useful when Windows is offline or the Companion is not installed.
@@ -25,11 +25,12 @@ The following facts were verified from source on the development branch:
 
 - The Gradle root currently includes only `:app`; feature modules have not yet been split into independent Gradle modules.
 - The Android app is Kotlin/Jetpack Compose, with current documented baseline AGP 8.7.3, Gradle 8.9, Kotlin 2.0.21, compile/target SDK 35, and min SDK 26.
-- INFINITY CONNECT currently stores and edits Windows connection profiles, performs local preflight checks, and can probe a TCP endpoint.
-- Pairing/fingerprint and session/frame pipeline primitives exist, but their presence does not establish a complete authenticated remote session.
-- The Windows Companion currently exposes an identity-only endpoint. Its declared capability explicitly says remote desktop is not enabled.
-- The current Android UI must continue to identify saved profiles as unverified until a real authenticated session is active.
-- A remote-frame mailbox/packet abstraction is not itself a screen-capture pipeline, a network transport, or an RDP implementation.
+- INFINITY CONNECT includes profile/preflight/TCP diagnostics, Android Keystore-backed CSR generation and certificate-chain installation, TLS 1.3 mTLS identity/session/file APIs, and a WebSocket RDP tunnel client.
+- The Android client includes a FreeRDP adapter configured for NLA and a user-supplied SHA-256 RDP certificate pin; it connects only through an INFINITY-owned loopback socket.
+- Windows Companion includes local certificate enrollment/approval, per-certificate authorization, short-lived capability sessions, bounded/audited file transfer, and a WebSocket tunnel to `127.0.0.1:3389`.
+- Server capabilities are default-deny; remote display/input and file transfer require explicit Windows environment policy. Android feature gates also remain false until physical interoperability/security tests pass.
+- A successful source/native build does not prove a live RDP session. Physical Android tablet ↔ Windows PC tests remain mandatory.
+- The remote-frame mailbox/packet abstraction is only the bounded frame handoff; it is not the RDP decoder or network transport.
 - The current PR verification workflow is intentionally source-only: compile, unit tests, and lint. It does not build or publish APKs.
 
 ## 3. Architectural principles
@@ -101,15 +102,16 @@ This is the target logical separation, not a claim that all listed Gradle or Win
 - Store small app preferences with DataStore; do not introduce a database for simple preferences.
 - Store cryptographic keys in Android Keystore; never store raw credentials in ordinary preferences.
 - Manage connection profiles and present explicit connection/session states.
-- Host a dedicated remote viewer only after a real remote engine and authenticated transport are integrated.
+- Host the dedicated remote viewer through the mTLS-authorized tunnel and FreeRDP adapter; keep the UI feature gate disabled until physical validation is accepted.
 
 ## 6. Windows Companion responsibilities
 
 - Run as a Windows service with an explicit installation/configuration path.
 - Bind only to an administrator-selected private interface and configured port.
 - Expose a minimal, versioned, authenticated API.
-- Present a verifiable device identity and certificate.
-- Keep screen capture and input-control capabilities disabled until their own threat model, authorization, and tests are approved.
+- Present a verifiable device identity and certificate; issue/approve client certificates locally.
+- Create short-lived, certificate-bound sessions and enforce explicit capabilities.
+- Provide per-device file transfer and an RDP tunnel restricted to Windows loopback; keep all remote capabilities disabled by default until their threat model and device tests are approved.
 - Never expose an unauthenticated remote shell or unrestricted file access.
 - Record security-relevant events without recording passwords, private keys, or screen contents.
 
@@ -188,18 +190,25 @@ Required controls:
 - Harden service lifecycle, private-interface binding, TLS, certificate provisioning, and diagnostics.
 - Acceptance: Windows service tests and Android-to-Windows identity handshake on a private network.
 
-### Phase G — Remote engine feasibility spike
-- Pin and audit a stable FreeRDP revision, license, security advisories, ABIs, NDK/CMake requirements, and Android compatibility.
-- Build in an isolated native integration branch/module without upgrading the main app toolchain.
-- Acceptance: reproducible arm64-v8a native build and a documented license/security review.
+### Phase G — FreeRDP native engine integration
+- A pinned FreeRDP submodule, Android library module, JNI adapter, NLA client configuration, RDP certificate pin check, and loopback tunnel are present in source.
+- CI has a separate arm64-v8a native-library build gate; no APK is produced.
+- Acceptance still requires a reproducible current-head native build, license/security review, and physical Android/Windows session.
 
 ### Phase H — Authenticated remote desktop
-- Add native session lifecycle, certificate trust, credentials in memory only, frame decode/render, keyboard/pointer input, rotation, reconnect, and deterministic cleanup.
-- Acceptance: real Windows session on physical hardware; connection states match actual engine state.
+- Android source includes frame rendering, keyboard/Unicode, pointer input, session teardown, and an mTLS WebSocket tunnel to the Windows loopback RDP service.
+- Windows enforces certificate-bound sessions and rechecks authorization during the tunnel.
+- Both server policy and Android feature gates remain disabled by default pending physical tests.
+- Acceptance: real Windows session on the target tablet/PC, validated NLA and certificate pin, keyboard/mouse, reconnect, revocation, and deterministic cleanup.
 
-### Phase I — Advanced connectivity
-- Add optional clipboard, file transfer, multi-display, and multiple-session support only after independent security reviews.
-- Acceptance: per-feature authorization, bounded transfers, audit tests, and device tests.
+### Phase I — Secure file transfer
+- Android SAF upload/download, 50 MiB per-file bound, SHA-256 integrity checks, per-device Windows storage quotas, and audited authorization are implemented in source.
+- Acceptance: physical bidirectional transfer, interrupted-transfer cleanup, quota and revocation tests.
+
+### Phase J — Release readiness
+- Complete accessibility, privacy, performance, battery, compatibility, backup/recovery, and physical-device testing.
+- Generate a signed APK only after explicit user authorization.
+- Acceptance: release checklist, reproducible build, verified signature, and installation/update test.
 
 ### Phase J — Release readiness
 - Complete accessibility, privacy, performance, battery, compatibility, backup/recovery, and physical-device testing.
