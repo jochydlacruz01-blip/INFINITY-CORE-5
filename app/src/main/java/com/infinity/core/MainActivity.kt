@@ -2718,7 +2718,7 @@ private fun Infinity08Window(
                     )
                 }
 
-                "files" -> InfinityFileManager(
+                "files" -> FileExplorer08(
                     rootUri = selectedFolder,
                     accent = accent,
                     onChooseFolder = onChooseFolder
