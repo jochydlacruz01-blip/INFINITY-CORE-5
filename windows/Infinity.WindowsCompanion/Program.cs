@@ -10,10 +10,7 @@ var serverCertificate = new X509Certificate2(
     settings.ServerCertificatePassword,
     X509KeyStorageFlags.MachineKeySet | X509KeyStorageFlags.EphemeralKeySet);
 
-if (!serverCertificate.HasPrivateKey ||
-    DateTime.UtcNow < serverCertificate.NotBefore.ToUniversalTime() ||
-    DateTime.UtcNow > serverCertificate.NotAfter.ToUniversalTime() ||
-    !CertificatePinning.HasEnhancedKeyUsage(serverCertificate, CertificatePinning.ServerAuthenticationOid))
+if (!CertificatePinning.IsUsableServerCertificate(serverCertificate))
 {
     throw new InvalidOperationException("The configured server certificate is unusable or outside its validity period.");
 }
