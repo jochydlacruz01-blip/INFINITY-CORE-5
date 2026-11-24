@@ -2154,6 +2154,10 @@ private fun FileExplorer08(
     var loading by remember(rootUri, currentDocumentId) { mutableStateOf(false) }
     var error by remember(rootUri, currentDocumentId) { mutableStateOf<String?>(null) }
     var fileSearch by remember(rootUri, currentDocumentId) { mutableStateOf("") }
+    var showCreateFolder by remember { mutableStateOf(false) }
+    var newFolderName by remember { mutableStateOf("") }
+    var createFolderRequest by remember { mutableStateOf<Pair<String, String>?>(null) }
+    var operationMessage by remember { mutableStateOf<String?>(null) }
     val filteredEntries = entries.filter { it.name.contains(fileSearch.trim(), ignoreCase = true) }
 
     LaunchedEffect(rootUri, currentDocumentId, refreshVersion) {
@@ -2221,6 +2225,31 @@ private fun FileExplorer08(
         }
     }
 
+    LaunchedEffect(createFolderRequest, rootUri) {
+        val request = createFolderRequest
+        val tree = rootUri
+        if (request != null && tree != null) {
+            val result = withContext(Dispatchers.IO) {
+                runCatching {
+                    val parentUri = DocumentsContract.buildDocumentUriUsingTree(tree, request.second)
+                    DocumentsContract.createDocument(
+                        context.contentResolver,
+                        parentUri,
+                        DocumentsContract.Document.MIME_TYPE_DIR,
+                        request.first
+                    ) ?: throw IllegalStateException("El proveedor no pudo crear la carpeta.")
+                }
+            }
+            createFolderRequest = null
+            if (result.isSuccess) {
+                operationMessage = "Carpeta creada correctamente."
+                refreshVersion++
+            } else {
+                operationMessage = result.exceptionOrNull()?.message ?: "No se pudo crear la carpeta."
+            }
+        }
+    }
+
     Column(Modifier.fillMaxSize().padding(12.dp)) {
         Text("INFINITY FILE EXPLORER", color = accent, fontWeight = FontWeight.Bold)
         Text("Navega por carpetas y abre archivos con aplicaciones Android.", color = InfinityMuted, fontSize = 10.sp)
@@ -2243,6 +2272,10 @@ private fun FileExplorer08(
                 Text(if (rootUri == null) "Elegir carpeta" else "Cambiar carpeta")
             }
             if (rootUri != null) {
+                OutlinedButton(
+                    onClick = { showCreateFolder = true },
+                    enabled = !loading
+                ) { Text("+ Carpeta") }
                 OutlinedButton(
                     onClick = { refreshVersion++ },
                     enabled = !loading
@@ -2277,6 +2310,9 @@ private fun FileExplorer08(
                     if (index < folderPath.lastIndex) Text("›", color = InfinityMuted, fontSize = 10.sp)
                 }
             }
+        }
+        operationMessage?.let { message ->
+            Text(message, color = accent, fontSize = 10.sp)
         }
         when {
             rootUri == null -> Text("Selecciona una carpeta para comenzar.", color = Color.White, fontSize = 12.sp)
@@ -2321,6 +2357,40 @@ private fun FileExplorer08(
                 }
             }
         }
+    }
+
+    if (showCreateFolder) {
+        AlertDialog(
+            onDismissRequest = { showCreateFolder = false },
+            title = { Text("Crear carpeta") },
+            text = {
+                OutlinedTextField(
+                    value = newFolderName,
+                    onValueChange = { newFolderName = it },
+                    singleLine = true,
+                    label = { Text("Nombre") },
+                    placeholder = { Text("Ej. Proyectos") }
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = newFolderName.isNotBlank() && currentDocumentId != null,
+                    onClick = {
+                        val name = newFolderName.trim()
+                        val parent = currentDocumentId
+                        if (name.isNotEmpty() && parent != null) {
+                            createFolderRequest = name to parent
+                            newFolderName = ""
+                            showCreateFolder = false
+                            operationMessage = "Creando carpeta…"
+                        }
+                    }
+                ) { Text("Crear") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCreateFolder = false }) { Text("Cancelar") }
+            }
+        )
     }
 }
 
