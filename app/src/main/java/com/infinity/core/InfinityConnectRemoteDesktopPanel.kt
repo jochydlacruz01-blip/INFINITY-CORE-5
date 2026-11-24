@@ -121,8 +121,8 @@ internal fun InfinityConnectRemoteDesktopPanel(
         onDispose { activeClient?.let { current -> scope.launch { runCatching { current.closeSession() } } } }
     }
 
-    LaunchedEffect(client) {
-        if (client != null) runCatching { focusRequester.requestFocus() }
+    LaunchedEffect(frameRevision) {
+        if (frameRevision > 0) runCatching { focusRequester.requestFocus() }
     }
 
     Card(modifier = Modifier.fillMaxWidth()) {
