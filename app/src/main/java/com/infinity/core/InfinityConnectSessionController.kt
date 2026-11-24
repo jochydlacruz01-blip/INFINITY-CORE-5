@@ -59,7 +59,15 @@ class InfinityConnectSessionController(private val engine: InfinityConnectEngine
                 sink(lifecycle.state, null)
             }
         }
-        try { engine.disconnect() } catch (_: Exception) { /* best-effort cleanup */ }
+        try {
+            engine.disconnect()
+        } catch (cancelled: CancellationException) {
+            // Restore a consistent lifecycle while preserving structured cancellation.
+            moveToIdle(sink)
+            throw cancelled
+        } catch (_: Exception) {
+            // Native disconnect diagnostics are intentionally not exposed to the UI.
+        }
         moveToIdle(sink)
     }
 
