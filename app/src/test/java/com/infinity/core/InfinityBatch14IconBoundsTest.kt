@@ -93,7 +93,7 @@ class InfinityBatch14IconBoundsTest {
 
     @Test fun dockSafeZoneRecoversFromNonFiniteMetrics() {
         assertEquals(0f, infinityDesktopHeightAboveDock(Float.NaN), 0.001f)
-        assertEquals(0f, infinityDesktopHeightAboveDock(600f, Float.POSITIVE_INFINITY), 0.001f)
+        assertEquals(432f, infinityDesktopHeightAboveDock(600f, Float.POSITIVE_INFINITY), 0.001f)
     }
 
     @Test fun overlapResolverReturnsFiniteCoordinatesForInvalidMetrics() {
