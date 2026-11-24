@@ -235,3 +235,18 @@ A separate GitHub Actions workflow builds `:freerdpCore:externalNativeBuildDebug
 **RDP security integration rule:** the upstream `LibFreeRDP.setConnectionInfo(Context, instance, BookmarkBase)` path appends `/cert:ignore` and must not be used by INFINITY. The adapter must use a controlled argument path with certificate verification enabled and accept the RDP server certificate only when its fingerprint matches an explicitly trusted pin. No RDP connection is enabled by this dependency integration alone.
 
 The native library is not yet considered a functioning INFINITY remote session. It must pass native compilation, runtime loading on the Samsung tablet, pinned RDP certificate validation, screen update tests, input gating and the mTLS-authorized loopback tunnel before remote capabilities are granted.
+
+
+## 17. PACK32 loopback RDP tunnel (capability-gated)
+
+Windows now has a WebSocket tunnel endpoint at `GET /v1/tunnel/rdp`:
+- Requires mTLS, a valid bearer session, and both `remote.display` and `remote.input`.
+- Opens only `127.0.0.1:3389`; the client cannot select an arbitrary destination or port.
+- Allows one active RDP tunnel at a time.
+- Relays bounded 32 KiB binary frames in both directions.
+- Revalidates the approved client certificate and both session capabilities every two seconds; revocation closes the tunnel.
+- Records tunnel start, denial, revocation and end events without recording RDP payloads or credentials.
+
+Android now has a companion relay that binds a temporary TCP listener only to `127.0.0.1`, uses the pinned TLS 1.3 mTLS context for the WebSocket, requires both remote capabilities before opening, bounds its queues, and closes both sides when the tunnel ends.
+
+**The route is deliberately unavailable at present:** the session issuer still grants only `identity.read`, so the server rejects RDP tunnel requests. The FreeRDP client is not yet connected to this local port. This keeps remote input and display disabled until the native engine and the physical-device security tests pass.
