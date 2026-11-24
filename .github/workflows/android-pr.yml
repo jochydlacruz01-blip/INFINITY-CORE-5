@@ -13,6 +13,7 @@ on:
       - INFINITY-PACK-07-CONTROL-CENTER
       - INFINITY-PACK-08-ORBIT-SPACES
       - INFINITY-PACK-09-SECURITY-AUDIT
+      - INFINITY-PACK-10-FINAL-INTEGRATION
   push:
     branches:
       - INFINITY-AURORA-NEXT-INTEGRATED
@@ -66,6 +67,12 @@ jobs:
           test -f app/src/main/AndroidManifest.xml
           grep -q 'android:allowBackup="false"' app/src/main/AndroidManifest.xml
           grep -q 'android:usesCleartextTraffic="false"' app/src/main/AndroidManifest.xml
+
+      - name: Verify integrated INFINITY package inventory
+        run: |
+          set -euo pipefail
+          python3 scripts/verify_infinity_pack_inventory.py .
+          python3 -m unittest discover -s scripts/tests -p 'test_*.py' -v
 
       - name: Audit Android manifest security boundaries
         run: |
