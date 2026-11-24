@@ -56,6 +56,11 @@ fun InfinityConnectEnrollmentPanel() {
     var status by remember { mutableStateOf("Enrolamiento pendiente. Todavía no hay una identidad Windows verificada.") }
     var busy by remember { mutableStateOf(false) }
     var confirmForget by remember { mutableStateOf(false) }
+    var confirmSessionConsent by remember { mutableStateOf(false) }
+    var identityVerified by remember { mutableStateOf(false) }
+    var sessionActive by remember { mutableStateOf(false) }
+    var activeSessionId by remember { mutableStateOf("") }
+    var sessionExpiry by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
 
     val createCsrLauncher = rememberLauncherForActivityResult(
@@ -239,8 +244,10 @@ fun InfinityConnectEnrollmentPanel() {
                                 .putString("server_pin", serverPin)
                                 .putString("server_id", expectedServerId)
                                 .apply()
+                            identityVerified = true
                             status = "IDENTIDAD VERIFICADA: ${identity.product} · ${identity.deviceId} · ${identity.transportSecurity}"
                         } else {
+                            identityVerified = false
                             status = "Autenticación no completada: ${result.exceptionOrNull()?.message ?: "error TLS"}"
                         }
                     }
@@ -248,6 +255,48 @@ fun InfinityConnectEnrollmentPanel() {
                 modifier = Modifier.fillMaxWidth()
             ) { Text("3 · Verificar identidad Windows con mTLS") }
             Text(status, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
+            if (identityVerified && !sessionActive) {
+                OutlinedButton(
+                    enabled = !busy,
+                    onClick = { confirmSessionConsent = true },
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("4 · Autorizar sesión protegida (solo identidad)") }
+            }
+            if (sessionActive) {
+                Text("Sesión de identidad autorizada · vence: $sessionExpiry")
+                OutlinedButton(
+                    enabled = !busy,
+                    onClick = {
+                        scope.launch {
+                            busy = true
+                            val tokenVault = InfinityConnectCredentialVault(context)
+                            val token = tokenVault.retrieve("identity-session:$expectedServerId")
+                            val revoked = runCatching {
+                                withContext(Dispatchers.IO) {
+                                    token != null && InfinityConnectMtlsTransport().revokeIdentitySession(
+                                        "https://${if (companionHost.contains(':') && !companionHost.startsWith("[")) "[$companionHost]" else companionHost}:${companionPort}/",
+                                        CONNECT_CLIENT_KEY_ALIAS,
+                                        serverPin,
+                                        activeSessionId,
+                                        token
+                                    )
+                                }
+                            }.getOrDefault(false)
+                            busy = false
+                            if (revoked) {
+                                tokenVault.delete("identity-session:$expectedServerId")
+                                prefs.edit().remove("session_id").remove("session_expiry").apply()
+                                sessionActive = false
+                                activeSessionId = ""
+                                status = "Sesión revocada en Windows."
+                            } else {
+                                status = "No se pudo confirmar la revocación. La sesión expira automáticamente en Windows en 15 minutos."
+                            }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("Revocar sesión") }
+            }
             Text(
                 "El CSR y la cadena son archivos públicos, pero la clave privada nunca se exporta. La emisión y aprobación siguen siendo operaciones locales del administrador de Windows. Esta verificación no habilita escritorio remoto.",
                 style = MaterialTheme.typography.bodySmall
@@ -259,6 +308,59 @@ fun InfinityConnectEnrollmentPanel() {
             ) { Text("Eliminar identidad y confianza de esta tablet") }
         }
     }
+    if (confirmSessionConsent) {
+        AlertDialog(
+            onDismissRequest = { confirmSessionConsent = false },
+            title = { Text("Autorizar sesión INFINITY CONNECT") },
+            text = { Text("¿Autorizas una sesión protegida de 15 minutos? En esta etapa solo se concede identity.read. No se habilitan pantalla, teclado, ratón ni archivos.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmSessionConsent = false
+                    scope.launch {
+                        busy = true
+                        val result = runCatching {
+                            withContext(Dispatchers.IO) {
+                                val host = companionHost.trim()
+                                val formattedHost = if (host.contains(':') && !host.startsWith("[")) "[$host]" else host
+                                InfinityConnectMtlsTransport().createIdentitySession(
+                                    "https://$formattedHost:${companionPort}/",
+                                    CONNECT_CLIENT_KEY_ALIAS,
+                                    serverPin,
+                                    expectedServerId
+                                )
+                            }
+                        }
+                        busy = false
+                        if (result.isSuccess) {
+                            val grant = result.getOrThrow()
+                            val saved = InfinityConnectCredentialVault(context).save(
+                                "identity-session:$expectedServerId",
+                                grant.token
+                            )
+                            if (saved) {
+                                activeSessionId = grant.sessionId
+                                sessionExpiry = grant.expiresAtUtc
+                                sessionActive = true
+                                prefs.edit()
+                                    .putString("session_id", grant.sessionId)
+                                    .putString("session_expiry", grant.expiresAtUtc)
+                                    .apply()
+                                status = "Sesión autorizada por mTLS. Capacidad concedida: identity.read."
+                            } else {
+                                status = "Windows creó la sesión, pero no se pudo guardar su token cifrado. Revoca la sesión desde Windows."
+                            }
+                        } else {
+                            status = "Windows no autorizó la sesión: ${result.exceptionOrNull()?.message ?: "error de autorización"}"
+                        }
+                    }
+                }) { Text("Autorizar") }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmSessionConsent = false }) { Text("Cancelar") }
+            }
+        )
+    }
+
     if (confirmForget) {
         AlertDialog(
             onDismissRequest = { confirmForget = false },
@@ -267,6 +369,7 @@ fun InfinityConnectEnrollmentPanel() {
             confirmButton = {
                 TextButton(onClick = {
                     runCatching { InfinityConnectIdentityKeyStore().delete(CONNECT_CLIENT_KEY_ALIAS) }
+                    InfinityConnectCredentialVault(context).delete("identity-session:$expectedServerId")
                     prefs.edit().clear().apply()
                     confirmForget = false
                     status = "Identidad local eliminada. Revoca el certificado en Windows para cerrar su autorización."
