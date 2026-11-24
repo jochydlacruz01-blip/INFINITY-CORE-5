@@ -179,7 +179,7 @@ internal class InfinityConnectRdpTunnel(
                         if (webSocket.queueSize() > MAX_QUEUED_BYTES) {
                             throw IOException("RDP tunnel send queue exceeded its safety limit.")
                         }
-                        if (!webSocket.send(buffer.toByteString(0, count))) {
+                        if (!webSocket.send(buffer.copyOf(count).toByteString())) {
                             throw IOException("Windows WebSocket tunnel is no longer accepting data.")
                         }
                     }
