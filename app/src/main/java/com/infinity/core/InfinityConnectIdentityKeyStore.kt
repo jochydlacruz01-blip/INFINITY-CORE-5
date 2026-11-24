@@ -64,6 +64,23 @@ internal class InfinityConnectIdentityKeyStore(
         return signature.sign()
     }
 
+    /** Signs the exact PKCS##10 CertificationRequestInfo bytes using the non-exportable key. */
+    fun signCertificationRequestInfo(alias: String, certificationRequestInfo: ByteArray): ByteArray {
+        require(isValidAlias(alias)) { "Identity key alias is invalid." }
+        require(certificationRequestInfo.isNotEmpty() && certificationRequestInfo.size <= MAX_TRANSCRIPT_BYTES) {
+            "Certification request information exceeds the supported size."
+        }
+        val privateKey = keyStore.getKey(alias, null)
+            ?: throw IllegalStateException("Identity key has not been provisioned.")
+        require(privateKey.algorithm.equals("EC", ignoreCase = true)) {
+            "Identity key uses an unsupported algorithm."
+        }
+        val signature = Signature.getInstance("SHA256withECDSA")
+        signature.initSign(privateKey as java.security.PrivateKey)
+        signature.update(certificationRequestInfo)
+        return signature.sign()
+    }
+
     fun delete(alias: String) {
         require(isValidAlias(alias)) { "Identity key alias is invalid." }
         if (keyStore.containsAlias(alias)) keyStore.deleteEntry(alias)
