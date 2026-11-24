@@ -2304,6 +2304,14 @@ private fun FileExplorer08(
             val (source, destinationDocumentId) = request
             val result = withContext(Dispatchers.IO) {
                 runCatching {
+                    val validationError = InfinityFilesTransferPolicy.validate(
+                        sourceDocumentId = source.first,
+                        sourceParentDocumentId = source.second,
+                        destinationDocumentId = destinationDocumentId
+                    )
+                    if (validationError != null) {
+                        throw IllegalArgumentException(validationError)
+                    }
                     val sourceUri = DocumentsContract.buildDocumentUriUsingTree(tree, source.first)
                     val sourceParentUri = DocumentsContract.buildDocumentUriUsingTree(tree, source.second)
                     val destinationUri = DocumentsContract.buildDocumentUriUsingTree(tree, destinationDocumentId)
@@ -2416,8 +2424,17 @@ private fun FileExplorer08(
                     onClick = {
                         val destination = currentDocumentId
                         if (destination != null) {
-                            transferRequest = transfer to destination
-                            operationMessage = if (transfer.third) "Moviendo archivo…" else "Copiando archivo…"
+                            val validationError = InfinityFilesTransferPolicy.validate(
+                                sourceDocumentId = transfer.first,
+                                sourceParentDocumentId = transfer.second,
+                                destinationDocumentId = destination
+                            )
+                            if (validationError != null) {
+                                operationMessage = validationError
+                            } else {
+                                transferRequest = transfer to destination
+                                operationMessage = if (transfer.third) "Moviendo archivo…" else "Copiando archivo…"
+                            }
                         }
                     }
                 ) { Text("Confirmar aquí") }
