@@ -250,3 +250,16 @@ Windows now has a WebSocket tunnel endpoint at `GET /v1/tunnel/rdp`:
 Android now has a companion relay that binds a temporary TCP listener only to `127.0.0.1`, uses the pinned TLS 1.3 mTLS context for the WebSocket, requires both remote capabilities before opening, bounds its queues, and closes both sides when the tunnel ends.
 
 **The route is deliberately unavailable at present:** the session issuer still grants only `identity.read`, so the server rejects RDP tunnel requests. The FreeRDP client is not yet connected to this local port. This keeps remote input and display disabled until the native engine and the physical-device security tests pass.
+
+
+## 18. PACK34 administrator capability policy
+
+Remote capabilities are server-side default-deny and are read when the Companion starts:
+- `INFINITY_ENABLE_REMOTE_DISPLAY=true` and `INFINITY_ENABLE_REMOTE_INPUT=true` must both be set to permit the RDP capability pair.
+- `INFINITY_ENABLE_FILE_TRANSFER=true` independently permits the file-transfer capability.
+- Any missing, invalid or non-`true` value is treated as disabled.
+- A session request must explicitly include `identity.read`; RDP display/input must be requested together.
+- The RDP tunnel still checks both capabilities on every request and every two seconds during the tunnel.
+- Changing the environment requires restarting the Windows Companion service.
+
+Do not enable these variables until the matching Android/Windows integration tests and physical-device checks pass. The current Android enrollment panel requests only `identity.read`, so no remote capability is silently requested.
