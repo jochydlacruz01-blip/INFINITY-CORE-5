@@ -78,6 +78,31 @@ class InfinityWindowBoundaryTest {
         assertTrue(bounds.width.isFinite() && bounds.height.isFinite())
         assertTrue(bounds.x >= 0f && bounds.y >= 0f)
     }
+
+    @Test fun restoredWindowBoundsAdaptFromLandscapeToPortraitViewport() {
+        assertEquals(
+            InfinityWindowBounds(16f, 80f, 344f, 300f),
+            infinityNormalizeWindowBounds(250f, 80f, 500f, 300f, 360f, 640f)
+        )
+    }
+
+    @Test fun restoredWindowBoundsAdaptFromPortraitToLandscapeViewport() {
+        assertEquals(
+            InfinityWindowBounds(40f, 16f, 300f, 484f),
+            infinityNormalizeWindowBounds(40f, 120f, 300f, 500f, 900f, 500f)
+        )
+    }
+
+    @Test fun restoredWindowBoundsStayReachableInExtremelySmallViewport() {
+        val bounds = infinityNormalizeWindowBounds(
+            -500f, 900f, 700f, 600f, 180f, 120f
+        )
+        assertEquals(0f, bounds.x, 0.001f)
+        assertEquals(0f, bounds.y, 0.001f)
+        assertEquals(164f, bounds.width, 0.001f)
+        assertEquals(104f, bounds.height, 0.001f)
+    }
+
     @Test fun gestureDeltaConvertsPixelsToDpAtDifferentDensities() {
         assertEquals(10f, infinityGestureDeltaToDp(20f, 2f), 0.001f)
         assertEquals(20f, infinityGestureDeltaToDp(30f, 1.5f), 0.001f)
