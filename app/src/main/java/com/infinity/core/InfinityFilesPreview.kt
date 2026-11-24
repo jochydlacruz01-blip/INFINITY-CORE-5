@@ -80,7 +80,7 @@ internal fun InfinityFilesPreviewDialog(
                     if (bytes.any { it == 0.toByte() }) {
                         throw IllegalArgumentException("El archivo parece binario y no se mostrará como texto.")
                     }
-                    val text = bytes.toString(Charsets.UTF_8)
+                    val text = String(bytes, Charsets.UTF_8)
                     if (bytes.size > InfinityFilesPreviewPolicy.MAX_PREVIEW_BYTES) {
                         text + "\n\n[Vista limitada a 256 KB para proteger la memoria de la tablet.]"
                     } else text
