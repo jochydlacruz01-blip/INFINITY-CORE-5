@@ -39,7 +39,7 @@ public static class CertificatePinning
         var normalizedExpected = NormalizeSha256Pin(expectedPin);
         if (normalizedExpected is null) return false;
 
-        using var certificate2 = certificate as X509Certificate2 ?? new X509Certificate2(certificate);
+        // Always work on an owned copy. TLS callbacks may provide a short-lived certificate\n        // handle, and disposing a caller-owned X509Certificate2 would invalidate it.\n        using var certificate2 = new X509Certificate2(certificate);
         var now = DateTime.UtcNow;
         if (now < certificate2.NotBefore.ToUniversalTime() ||
             now > certificate2.NotAfter.ToUniversalTime() ||
