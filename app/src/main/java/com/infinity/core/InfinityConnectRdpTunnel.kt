@@ -100,7 +100,7 @@ internal class InfinityConnectRdpTunnel(
             .retryOnConnectionFailure(false)
             .build()
         val url = HttpUrl.Builder()
-            .scheme("wss")
+            .scheme("https")
             .host(host)
             .port(config.companionPort)
             .addPathSegments("v1/tunnel/rdp")
@@ -143,7 +143,7 @@ internal class InfinityConnectRdpTunnel(
             override fun onFailure(webSocket: WebSocket, error: Throwable, response: Response?) {
                 opened.completeExceptionally(error)
                 inboundFrames.close(error)
-                localSocketRef.getAndSet(null)?.runCatching { close() }
+                localSocketRef.getAndSet(null)?.let { socket -> runCatching { socket.close() } }
                 runCatching { localServer.close() }
             }
         })
