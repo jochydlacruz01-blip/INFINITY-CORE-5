@@ -10,6 +10,43 @@ using System.Runtime.Versioning;
 if (!OperatingSystem.IsWindows())
     throw new PlatformNotSupportedException("INFINITY Windows Companion runs only on Windows.");
 
+if (args.Length == 1 && args[0] == "--initialize-enrollment-ca")
+{
+    var thumbprint = LocalEnrollmentCertificateAuthority.Initialize();
+    Console.WriteLine($"INFINITY enrollment CA initialized. Windows certificate thumbprint: {thumbprint}");
+    using var authority = new X509Certificate2(LocalEnrollmentCertificateAuthority.ExportAuthorityCertificate());
+    Console.WriteLine($"Android CA SHA-256 pin: {CertificatePinning.ComputeSha256Pin(authority)}");
+    return;
+}
+if (args.Length == 2 && args[0] == "--export-enrollment-ca")
+{
+    var certificateBytes = LocalEnrollmentCertificateAuthority.ExportAuthorityCertificate();
+    File.WriteAllBytes(Path.GetFullPath(args[1]), certificateBytes);
+    using var authority = new X509Certificate2(certificateBytes);
+    Console.WriteLine($"Enrollment CA exported. SHA-256: {CertificatePinning.ComputeSha256Pin(authority)}");
+    return;
+}
+if (args.Length == 4 && args[0] == "--issue-client-csr")
+{
+    var csrPath = Path.GetFullPath(args[1]);
+    var chainPath = Path.GetFullPath(args[2]);
+    var deviceId = args[3];
+    var csrInfo = new FileInfo(csrPath);
+    if (!csrInfo.Exists || csrInfo.Length is <= 0 or > 16384)
+        throw new InvalidOperationException("CSR file must exist and be no larger than 16 KiB.");
+    var issued = LocalEnrollmentCertificateAuthority.IssueClientCertificate(
+        File.ReadAllBytes(csrPath), deviceId);
+    File.WriteAllBytes(chainPath, issued.CertificateChainDer);
+    var clientCertificatePath = chainPath + ".client.cer";
+    File.WriteAllBytes(clientCertificatePath, issued.ClientCertificateDer);
+    Console.WriteLine($"Client certificate issued for device: {deviceId}");
+    Console.WriteLine($"Client SHA-256: {issued.ClientCertificateSha256}");
+    Console.WriteLine($"CA SHA-256 pin for Android: {issued.AuthoritySha256}");
+    Console.WriteLine($"Certificate chain: {chainPath}");
+    Console.WriteLine($"Client certificate for local approval: {clientCertificatePath}");
+    Console.WriteLine("Issuance does not itself authorize the device; approve it separately after reviewing the identity.");
+    return;
+}
 if (args.Length == 2 && args[0] == "--approve-client-cert")
 {
     if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException("Windows is required.");
