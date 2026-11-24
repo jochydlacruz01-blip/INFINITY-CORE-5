@@ -48,6 +48,29 @@ public sealed class AuthorizedSessionStoreTests
     }
 
     [Fact]
+    public void GrantsRemoteCapabilitiesOnlyWhenWindowsPolicyAllowsTheCompletePair()
+    {
+        var store = new AuthorizedSessionStore();
+        var allowed = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "identity.read", "remote.display", "remote.input", "file.transfer"
+        };
+        var grant = store.Create(
+            DevicePin,
+            true,
+            new[] { "identity.read", "remote.display", "remote.input" },
+            allowed);
+
+        Assert.True(store.IsAuthorized(grant.SessionId, grant.Token, DevicePin, "remote.display"));
+        Assert.True(store.IsAuthorized(grant.SessionId, grant.Token, DevicePin, "remote.input"));
+        Assert.False(store.IsAuthorized(grant.SessionId, grant.Token, DevicePin, "file.transfer"));
+        Assert.Throws<UnauthorizedAccessException>(() =>
+            store.Create(DevicePin, true, new[] { "identity.read", "remote.display" }, allowed));
+        Assert.Throws<UnauthorizedAccessException>(() =>
+            store.Create(DevicePin, true, new[] { "identity.read", "file.transfer" }));
+    }
+
+    [Fact]
     public void RejectsMalformedTokensAndSessionIds()
     {
         var store = new AuthorizedSessionStore();
