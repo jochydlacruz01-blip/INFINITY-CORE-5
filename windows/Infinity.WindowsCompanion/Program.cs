@@ -4,7 +4,21 @@ using System.Security.Cryptography.X509Certificates;
 using Infinity.WindowsCompanion.Security;
 using Microsoft.AspNetCore.Server.Kestrel.Https;
 
+if (args.Length == 2 && args[0] == "--approve-client-cert")
+{
+    var approvedPin = AuthorizedDeviceStore.ApproveFromLocalConsole(args[1]);
+    Console.WriteLine($"Approved Android client certificate SHA-256: {approvedPin}");
+    return;
+}
+if (args.Length == 2 && args[0] == "--revoke-client-cert")
+{
+    var revoked = AuthorizedDeviceStore.RevokeFromLocalConsole(args[1]);
+    Console.WriteLine(revoked ? "Device certificate revoked." : "No matching authorized device was found.");
+    return;
+}
+
 var settings = CompanionSettings.LoadFromEnvironment();
+var authorizedDevices = new AuthorizedDeviceStore();
 var serverCertificate = new X509Certificate2(
     settings.ServerCertificatePath,
     settings.ServerCertificatePassword,
@@ -28,7 +42,7 @@ builder.WebHost.ConfigureKestrel(options =>
             https.ClientCertificateMode = ClientCertificateMode.RequireCertificate;
             https.ClientCertificateValidation = (certificate, _, _) =>
                 certificate is not null &&
-                CertificatePinning.MatchesSha256Pin(certificate, settings.AllowedAndroidCertificateSha256);
+                authorizedDevices.IsAuthorized(certificate);
         });
     });
 });
