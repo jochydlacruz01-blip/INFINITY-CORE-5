@@ -81,6 +81,16 @@ internal class InfinityConnectIdentityKeyStore(
         return signature.sign()
     }
 
+    /** Builds a PKCS#10 CSR whose signature is produced by this Android Keystore key. */
+    fun createCertificateSigningRequest(alias: String, commonName: String): ByteArray {
+        require(isValidAlias(alias)) { "Identity key alias is invalid." }
+        val publicKey = keyStore.getCertificate(alias)?.publicKey?.encoded
+            ?: throw IllegalStateException("Identity key has not been provisioned.")
+        return InfinityConnectCsr.create(commonName, publicKey) { requestInfo ->
+            signCertificationRequestInfo(alias, requestInfo)
+        }
+    }
+
     fun delete(alias: String) {
         require(isValidAlias(alias)) { "Identity key alias is invalid." }
         if (keyStore.containsAlias(alias)) keyStore.deleteEntry(alias)
