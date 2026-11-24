@@ -101,7 +101,7 @@ jobs:
         run: gradle compileDebugKotlin testDebugUnitTest testReleaseUnitTest --stacktrace
 
       - name: Detect FreeRDP native source changes
-        id: freerdp-changes
+        id: freerdp_changes
         shell: bash
         run: |
           set -euo pipefail
@@ -117,7 +117,7 @@ jobs:
           fi
 
       - name: Build and verify FreeRDP native libraries (no APK)
-        if: steps.freedrp-changes.outputs.changed == 'true'
+        if: steps.freedrp_changes.outputs.changed == 'true'
         run: |
           set -euo pipefail
           gradle -PINFINITY_BUILD_FREERDP_NATIVE=true :freerdpCore:externalNativeBuildDebug --no-daemon --max-workers=2 --stacktrace
