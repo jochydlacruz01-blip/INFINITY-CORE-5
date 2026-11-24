@@ -1,6 +1,7 @@
 package com.infinity.core
 
 import org.json.JSONObject
+import org.json.JSONArray
 import android.util.Base64
 import java.io.InputStream
 import java.io.OutputStream
@@ -81,7 +82,7 @@ internal class InfinityConnectMtlsTransport(
                 while (true) {
                     val count = input.read(buffer)
                     if (count < 0) break
-                    require(output.size() + count <= MAX_RESPONSE_BYTES) {
+                    require(output.size() + count <= maxBytes) {
                         "Windows identity response exceeds the supported size."
                     }
                     output.write(buffer, 0, count)
@@ -426,6 +427,55 @@ internal class InfinityConnectMtlsTransport(
         }
     }
 
+    fun listRemoteFiles(
+        baseUrl: String,
+        clientKeyAlias: String,
+        trustedServerSha256: String,
+        expectedDeviceId: String,
+        sessionId: String,
+        sessionToken: String
+    ): List<FileTransferReceipt> {
+        validateSessionCredentials(sessionId, sessionToken)
+        require(fetchWindowsIdentity(baseUrl, clientKeyAlias, trustedServerSha256, expectedDeviceId).deviceId == expectedDeviceId) {
+            "Windows device identity changed before file listing."
+        }
+        val connection = openMtlsConnection(
+            baseUrl.trimEnd('/') + "/v1/files",
+            clientKeyAlias,
+            trustedServerSha256
+        )
+        try {
+            connection.requestMethod = "GET"
+            connection.setRequestProperty("Accept", "application/json")
+            connection.setRequestProperty("Authorization", "Bearer $sessionToken")
+            connection.setRequestProperty("X-INFINITY-Session-ID", sessionId)
+            require(connection.responseCode == 200) {
+                "Windows rejected file listing (HTTP ${connection.responseCode})."
+            }
+            val array = JSONArray(readBoundedResponse(connection, MAX_FILE_LIST_RESPONSE_BYTES).toString(Charsets.UTF_8))
+            require(array.length() <= MAX_REMOTE_FILES) { "Windows returned too many files." }
+            return (0 until array.length()).map { index ->
+                val item = array.getJSONObject(index)
+                val receipt = FileTransferReceipt(
+                    fileId = item.getString("fileId"),
+                    fileName = item.getString("fileName"),
+                    length = item.getLong("length"),
+                    sha256 = item.getString("sha256"),
+                    createdAtUtc = item.getString("createdAtUtc")
+                )
+                require(runCatching { java.util.UUID.fromString(receipt.fileId).toString() == receipt.fileId }.getOrDefault(false) &&
+                    receipt.length in 0..MAX_FILE_BYTES &&
+                    normalizePin(receipt.sha256) != null) {
+                    "Windows returned invalid file metadata."
+                }
+                validateTransferFileName(receipt.fileName)
+                receipt
+            }
+        } finally {
+            connection.disconnect()
+        }
+    }
+
     fun deleteRemoteFile(
         baseUrl: String,
         clientKeyAlias: String,
@@ -501,7 +551,7 @@ internal class InfinityConnectMtlsTransport(
         return connection
     }
 
-    private fun readBoundedResponse(connection: HttpsURLConnection): ByteArray =
+    private fun readBoundedResponse(connection: HttpsURLConnection, maxBytes: Int = MAX_RESPONSE_BYTES): ByteArray =
         connection.inputStream.use { input ->
             val output = ByteArrayOutputStream()
             val buffer = ByteArray(1024)
@@ -605,6 +655,8 @@ internal class InfinityConnectMtlsTransport(
         private const val MAX_RESPONSE_BYTES = 8 * 1024
         private const val MAX_CHAIN_CERTIFICATES = 4
         private const val MAX_FILE_BYTES = 50L * 1024 * 1024
+        private const val MAX_FILE_LIST_RESPONSE_BYTES = 128 * 1024
+        private const val MAX_REMOTE_FILES = 100
         private const val FILE_TRANSFER_TIMEOUT_MS = 60_000
         private val KNOWN_CAPABILITIES = setOf("identity.read", "remote.display", "remote.input", "file.transfer")
     }
