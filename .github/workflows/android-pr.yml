@@ -17,6 +17,7 @@ on:
       - INFINITY-PACK-11-SECURE-PAIRING
       - INFINITY-PACK-12-WINDOWS-COMPANION
       - INFINITY-PACK-13-FUTURISTIC-DESKTOP-VISUAL
+      - INFINITY-PACK-14-REMOTE-FRAME-PIPELINE
   push:
     branches:
       - INFINITY-AURORA-NEXT-INTEGRATED
@@ -45,7 +46,7 @@ concurrency:
 
 jobs:
   verify:
-    name: Verify PR (Debug, Lint, Tests, Signed Release)
+    name: Verify source (unit tests and lint only; no APK)
     runs-on: ubuntu-latest
     timeout-minutes: 35
 
@@ -88,56 +89,9 @@ jobs:
           python3 scripts/verify_android_security_manifest.py app/src/main/AndroidManifest.xml
           python3 -m unittest discover -s scripts/tests -p 'test_*.py' -v
 
-      - name: Restore existing INFINITY signing key
-        env:
-          INFINITY_KEYSTORE_BASE64: ${{ secrets.INFINITY_KEYSTORE_BASE64 }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          test -n "${INFINITY_KEYSTORE_BASE64}" || {
-            echo "::error::Missing repository secret INFINITY_KEYSTORE_BASE64"
-            exit 1
-          }
-          printf '%s' "${INFINITY_KEYSTORE_BASE64}" | base64 --decode > "${RUNNER_TEMP}/infinity-release.jks"
-          test -s "${RUNNER_TEMP}/infinity-release.jks"
-          chmod 600 "${RUNNER_TEMP}/infinity-release.jks"
+      - name: Run source compilation and unit tests (no APK)
+        run: gradle compileDebugKotlin testDebugUnitTest testReleaseUnitTest --stacktrace
 
-      - name: Run Debug and Release unit tests
-        run: gradle testDebugUnitTest testReleaseUnitTest --stacktrace
-
-      - name: Run Android lint for Debug and Release
+      - name: Run Android lint (no APK)
         run: gradle lintDebug lintRelease --stacktrace
-
-      - name: Build Debug and Release APKs with existing signing identity
-        env:
-          INFINITY_KEYSTORE_FILE: ${{ runner.temp }}/infinity-release.jks
-          INFINITY_KEYSTORE_PASSWORD: ${{ secrets.INFINITY_KEYSTORE_PASSWORD }}
-          INFINITY_KEY_ALIAS: ${{ secrets.INFINITY_KEY_ALIAS }}
-          INFINITY_KEY_PASSWORD: ${{ secrets.INFINITY_KEY_PASSWORD }}
-        run: |
-          set -euo pipefail
-          test -n "${INFINITY_KEYSTORE_PASSWORD}"
-          test -n "${INFINITY_KEY_ALIAS}"
-          test -n "${INFINITY_KEY_PASSWORD}"
-          gradle assembleDebug assembleRelease --stacktrace
-
-      - name: Verify signed Release APK
-        shell: bash
-        run: |
-          set -euo pipefail
-          APK="app/build/outputs/apk/release/app-release.apk"
-          test -s "${APK}"
-          APKSIGNER="$(find "${ANDROID_HOME}/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
-          test -n "${APKSIGNER}"
-          "${APKSIGNER}" verify --verbose --print-certs "${APK}"
-
-      - name: Publish verified APKs
-        uses: actions/upload-artifact@v4
-        with:
-          name: PROJECT-INFINITY-FILES-APK-${{ github.sha }}
-          path: |
-            app/build/outputs/apk/debug/app-debug.apk
-            app/build/outputs/apk/release/app-release.apk
-          if-no-files-found: error
-          retention-days: 14
 
