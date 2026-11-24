@@ -35,11 +35,21 @@ class InfinityConnectCredentialVault(context: Context) {
         if (endpoint.isBlank()) return
         if (secret.isEmpty()) { delete(endpoint); return }
         val secretBytes = secret.toByteArray(Charsets.UTF_8)
-        if (secretBytes.size > MAX_SECRET_LENGTH) return
-        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
-        cipher.init(Cipher.ENCRYPT_MODE, key())
-        val payload = cipher.iv + cipher.doFinal(secretBytes)
-        prefs.edit().putString(id(endpoint), Base64.encodeToString(payload, Base64.NO_WRAP)).apply()
+        if (secretBytes.size > MAX_SECRET_LENGTH) {
+            secretBytes.fill(0)
+            return
+        }
+        try {
+            val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+            cipher.init(Cipher.ENCRYPT_MODE, key())
+            val payload = cipher.iv + cipher.doFinal(secretBytes)
+            prefs.edit().putString(id(endpoint), Base64.encodeToString(payload, Base64.NO_WRAP)).apply()
+        } catch (_: Exception) {
+            // Keystore failures must not crash the CONNECT profile editor.
+            delete(endpoint)
+        } finally {
+            secretBytes.fill(0)
+        }
     }
 
     fun retrieve(endpoint: String): String? {
@@ -52,7 +62,12 @@ class InfinityConnectCredentialVault(context: Context) {
             val encrypted = payload.copyOfRange(IV_LENGTH, payload.size)
             val cipher = Cipher.getInstance("AES/GCM/NoPadding")
             cipher.init(Cipher.DECRYPT_MODE, key(), GCMParameterSpec(128, iv))
-            String(cipher.doFinal(encrypted), Charsets.UTF_8)
+            val clearBytes = cipher.doFinal(encrypted)
+            try {
+                String(clearBytes, Charsets.UTF_8)
+            } finally {
+                clearBytes.fill(0)
+            }
         } catch (_: Exception) { null }
     }
 
