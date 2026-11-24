@@ -55,6 +55,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
+          fetch-depth: 0
 
       - name: Configure Java 17
         uses: actions/setup-java@v4
@@ -98,6 +99,35 @@ jobs:
 
       - name: Run source compilation and unit tests (no APK)
         run: gradle compileDebugKotlin testDebugUnitTest testReleaseUnitTest --stacktrace
+
+      - name: Detect FreeRDP native source changes
+        id: freerdp-changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          else
+            BASE_SHA="${{ github.event.before }}"
+          fi
+          if git diff --name-only "$BASE_SHA"...HEAD | grep -Eq '^(freerdp-core/|external/FreeRDP/|\\.gitmodules$)'; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build and verify FreeRDP native libraries (no APK)
+        if: steps.freedrp-changes.outputs.changed == 'true'
+        run: |
+          set -euo pipefail
+          gradle -PINFINITY_BUILD_FREERDP_NATIVE=true :freerdpCore:externalNativeBuildDebug --no-daemon --max-workers=2 --stacktrace
+          JNI_LIBS="external/FreeRDP/client/Android/Studio/freeRDPCore/src/main/jniLibs/arm64-v8a"
+          for library in libfreerdp3.so libfreerdp-client3.so libwinpr3.so libssl.so libcrypto.so liburiparser.so; do
+            test -s "$JNI_LIBS/$library"
+          done
+          ANDROID_JNI="$(find freerdp-core external/FreeRDP -type f -name 'libfreerdp-android.so' -print -quit)"
+          test -n "$ANDROID_JNI"
+          ls -lh "$ANDROID_JNI"
 
       - name: Run Android lint (no APK)
         run: gradle lintDebug lintRelease --stacktrace
