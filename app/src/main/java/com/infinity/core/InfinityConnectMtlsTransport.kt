@@ -104,6 +104,140 @@ internal class InfinityConnectMtlsTransport(
         }
     }
 
+    data class AuthorizedIdentitySession(
+        val sessionId: String,
+        val token: String,
+        val expiresAtUtc: String,
+        val capabilities: List<String>
+    )
+
+    fun createIdentitySession(
+        baseUrl: String,
+        clientKeyAlias: String,
+        trustedServerSha256: String,
+        expectedDeviceId: String
+    ): AuthorizedIdentitySession {
+        val connection = openMtlsConnection(
+            baseUrl.trimEnd('/') + "/v1/sessions",
+            clientKeyAlias,
+            trustedServerSha256
+        )
+        try {
+            connection.requestMethod = "POST"
+            connection.doOutput = true
+            connection.setRequestProperty("Content-Type", "application/json")
+            connection.setRequestProperty("Accept", "application/json")
+            val request = JSONObject()
+                .put("consent", true)
+                .put("requestedCapabilities", org.json.JSONArray().put("identity.read"))
+                .toString()
+                .toByteArray(Charsets.UTF_8)
+            connection.outputStream.use { it.write(request) }
+            require(connection.responseCode == 200) {
+                "Windows rechazó la autorización de sesión (HTTP ${connection.responseCode})."
+            }
+            val json = JSONObject(readBoundedResponse(connection))
+            val sessionId = json.getString("sessionId")
+            val token = json.getString("token")
+            val expiry = json.getString("expiresAtUtc")
+            val capabilitiesJson = json.getJSONArray("capabilities")
+            val capabilities = (0 until capabilitiesJson.length()).map { capabilitiesJson.getString(it) }
+            require(runCatching { java.util.UUID.fromString(sessionId) }.isSuccess) {
+                "Windows devolvió un ID de sesión inválido."
+            }
+            require(token.matches(Regex("[A-Za-z0-9_-]{43}"))) {
+                "Windows devolvió un token de sesión inválido."
+            }
+            val expiresAt = java.time.Instant.parse(expiry)
+            require(expiresAt.isAfter(java.time.Instant.now()) &&
+                expiresAt.isBefore(java.time.Instant.now().plusSeconds(20 * 60))) {
+                "La vigencia de sesión devuelta por Windows está fuera del límite."
+            }
+            require(capabilities == listOf("identity.read")) {
+                "Windows concedió capacidades distintas de identity.read."
+            }
+            require(expectedDeviceId.isNotBlank()) { "El perfil de dispositivo esperado está vacío." }
+            return AuthorizedIdentitySession(sessionId, token, expiry, capabilities)
+        } finally {
+            connection.disconnect()
+        }
+    }
+
+    fun revokeIdentitySession(
+        baseUrl: String,
+        clientKeyAlias: String,
+        trustedServerSha256: String,
+        sessionId: String,
+        sessionToken: String
+    ): Boolean {
+        require(runCatching { java.util.UUID.fromString(sessionId) }.isSuccess) {
+            "Session ID is invalid."
+        }
+        require(sessionToken.matches(Regex("[A-Za-z0-9_-]{43}"))) {
+            "Session token is invalid."
+        }
+        val connection = openMtlsConnection(
+            baseUrl.trimEnd('/') + "/v1/sessions/$sessionId",
+            clientKeyAlias,
+            trustedServerSha256
+        )
+        try {
+            connection.requestMethod = "DELETE"
+            connection.setRequestProperty("Authorization", "Bearer $sessionToken")
+            return connection.responseCode == 204
+        } finally {
+            connection.disconnect()
+        }
+    }
+
+    private fun openMtlsConnection(
+        endpoint: String,
+        clientKeyAlias: String,
+        trustedServerSha256: String
+    ): HttpsURLConnection {
+        require(InfinityConnectIdentityKeyStore.isValidAlias(clientKeyAlias)) {
+            "Identity key alias is invalid."
+        }
+        val serverPin = normalizePin(trustedServerSha256)
+            ?: throw IllegalArgumentException("A valid Windows server SHA-256 fingerprint is required.")
+        require(keyStore.getKey(clientKeyAlias, null) != null &&
+            keyStore.getCertificateChain(clientKeyAlias)?.isNotEmpty() == true) {
+            "The Android client certificate has not been installed."
+        }
+        val url = URL(endpoint)
+        require(url.protocol.equals("https", ignoreCase = true) &&
+            !url.host.isNullOrBlank() && url.userInfo == null && url.query == null && url.ref == null) {
+            "Only a direct HTTPS Companion URL is accepted."
+        }
+        val keyManagers = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm()).apply {
+            init(keyStore, null)
+        }
+        val sslContext = SSLContext.getInstance("TLSv1.3")
+        sslContext.init(keyManagers.keyManagers, arrayOf<TrustManager>(PinnedServerTrustManager(serverPin)), null)
+        val connection = url.openConnection() as? HttpsURLConnection
+            ?: throw IllegalArgumentException("The Companion endpoint must use HTTPS.")
+        connection.connectTimeout = connectTimeoutMs.coerceIn(1_000, MAX_TIMEOUT_MS)
+        connection.readTimeout = readTimeoutMs.coerceIn(1_000, MAX_TIMEOUT_MS)
+        connection.instanceFollowRedirects = false
+        connection.sslSocketFactory = sslContext.socketFactory
+        return connection
+    }
+
+    private fun readBoundedResponse(connection: HttpsURLConnection): ByteArray =
+        connection.inputStream.use { input ->
+            val output = ByteArrayOutputStream()
+            val buffer = ByteArray(1024)
+            while (true) {
+                val count = input.read(buffer)
+                if (count < 0) break
+                require(output.size() + count <= MAX_RESPONSE_BYTES) {
+                    "Windows response exceeds the supported size."
+                }
+                output.write(buffer, 0, count)
+            }
+            output.toByteArray()
+        }
+
     private class PinnedServerTrustManager(private val expectedPin: String) : X509TrustManager {
         override fun checkClientTrusted(chain: Array<out X509Certificate>?, authType: String?) {
             throw java.security.cert.CertificateException("Client certificates are not accepted by this trust manager.")
