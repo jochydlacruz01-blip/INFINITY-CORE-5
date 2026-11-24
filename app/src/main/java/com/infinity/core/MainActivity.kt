@@ -2158,6 +2158,12 @@ private fun FileExplorer08(
     var newFolderName by remember { mutableStateOf("") }
     var createFolderRequest by remember { mutableStateOf<Pair<String, String>?>(null) }
     var operationMessage by remember { mutableStateOf<String?>(null) }
+    var actionEntry by remember { mutableStateOf<ExplorerEntry?>(null) }
+    var showRenameDialog by remember { mutableStateOf(false) }
+    var renameName by remember { mutableStateOf("") }
+    var renameDocumentId by remember { mutableStateOf<String?>(null) }
+    var renameRequest by remember { mutableStateOf<Pair<String, String>?>(null) }
+    var deleteRequest by remember { mutableStateOf<String?>(null) }
     val filteredEntries = entries.filter { it.name.contains(fileSearch.trim(), ignoreCase = true) }
 
     LaunchedEffect(rootUri, currentDocumentId, refreshVersion) {
@@ -2247,6 +2253,43 @@ private fun FileExplorer08(
             } else {
                 operationMessage = result.exceptionOrNull()?.message ?: "No se pudo crear la carpeta."
             }
+        }
+    }
+
+    LaunchedEffect(renameRequest, rootUri) {
+        val request = renameRequest
+        val tree = rootUri
+        if (request != null && tree != null) {
+            val result = withContext(Dispatchers.IO) {
+                runCatching {
+                    val uri = DocumentsContract.buildDocumentUriUsingTree(tree, request.second)
+                    DocumentsContract.renameDocument(context.contentResolver, uri, request.first)
+                        ?: throw IllegalStateException("El proveedor no pudo renombrar el elemento.")
+                }
+            }
+            renameRequest = null
+            operationMessage = if (result.isSuccess) "Elemento renombrado correctamente."
+                else result.exceptionOrNull()?.message ?: "No se pudo renombrar el elemento."
+            if (result.isSuccess) refreshVersion++
+        }
+    }
+
+    LaunchedEffect(deleteRequest, rootUri) {
+        val documentId = deleteRequest
+        val tree = rootUri
+        if (documentId != null && tree != null) {
+            val result = withContext(Dispatchers.IO) {
+                runCatching {
+                    val uri = DocumentsContract.buildDocumentUriUsingTree(tree, documentId)
+                    if (!DocumentsContract.deleteDocument(context.contentResolver, uri)) {
+                        throw IllegalStateException("El proveedor no pudo eliminar el elemento.")
+                    }
+                }
+            }
+            deleteRequest = null
+            operationMessage = if (result.isSuccess) "Elemento eliminado correctamente."
+                else result.exceptionOrNull()?.message ?: "No se pudo eliminar el elemento."
+            if (result.isSuccess) refreshVersion++
         }
     }
 
@@ -2350,6 +2393,17 @@ private fun FileExplorer08(
                                     fontSize = 9.sp
                                 )
                             }
+                            Box {
+                                Text(
+                                    "⋮",
+                                    color = accent,
+                                    fontSize = 22.sp,
+                                    modifier = Modifier
+                                        .clickable { actionEntry = entry }
+                                        .padding(horizontal = 10.dp, vertical = 2.dp)
+                                        .semantics { contentDescription = "Más opciones para ${entry.name}" }
+                                )
+                            }
                             if (entry.isDirectory) Text("›", color = accent, fontSize = 22.sp)
                         }
                         HorizontalDivider(color = Color.White.copy(.08f))
@@ -2357,6 +2411,65 @@ private fun FileExplorer08(
                 }
             }
         }
+    }
+
+    actionEntry?.let { entry ->
+        AlertDialog(
+            onDismissRequest = { actionEntry = null },
+            title = { Text(entry.name, maxLines = 2, overflow = TextOverflow.Ellipsis) },
+            text = { Text(if (entry.isDirectory) "Administrar carpeta" else "Administrar archivo") },
+            confirmButton = {
+                TextButton(onClick = {
+                    renameName = entry.name
+                    renameDocumentId = entry.documentId
+                    showRenameDialog = true
+                    actionEntry = null
+                }) { Text("Renombrar") }
+            },
+            dismissButton = {
+                Row {
+                    TextButton(onClick = {
+                        deleteRequest = entry.documentId
+                        operationMessage = "Eliminando elemento…"
+                        actionEntry = null
+                    }) { Text("Eliminar") }
+                    TextButton(onClick = { actionEntry = null }) { Text("Cerrar") }
+                }
+            }
+        )
+    }
+
+    if (showRenameDialog) {
+        AlertDialog(
+            onDismissRequest = { showRenameDialog = false },
+            title = { Text("Renombrar elemento") },
+            text = {
+                OutlinedTextField(
+                    value = renameName,
+                    onValueChange = { renameName = it },
+                    singleLine = true,
+                    label = { Text("Nuevo nombre") }
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = renameName.isNotBlank(),
+                    onClick = {
+                        val name = renameName.trim()
+                        val documentId = renameDocumentId
+                        if (name.isNotEmpty() && documentId != null) {
+                            renameRequest = name to documentId
+                            operationMessage = "Renombrando elemento…"
+                        }
+                        showRenameDialog = false
+                        renameDocumentId = null
+                    }
+                ) { Text("Guardar") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showRenameDialog = false }) { Text("Cancelar") }
+            }
+        )
     }
 
     if (showCreateFolder) {
