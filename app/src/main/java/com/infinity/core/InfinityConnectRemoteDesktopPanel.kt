@@ -184,7 +184,7 @@ internal fun InfinityConnectRemoteDesktopPanel(
                                     companionHost = companionHost,
                                     companionPort = companionPort,
                                     clientKeyAlias = clientKeyAlias,
-                                    serverSha256 = companionServerPin,
+                                    trustedServerSha256 = companionServerPin,
                                     expectedWindowsDeviceId = expectedWindowsDeviceId,
                                     sessionId = remoteSessionId,
                                     sessionToken = remoteSessionToken,
