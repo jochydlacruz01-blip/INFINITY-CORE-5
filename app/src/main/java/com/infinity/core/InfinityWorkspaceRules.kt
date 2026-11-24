@@ -7,6 +7,12 @@ internal fun infinityNormalizeWorkspace(target: Int): Int = target.coerceIn(1, 3
 internal fun infinityWindowIdentity(kind: String, workspace: Int): String =
     "${kind}_${infinityNormalizeWorkspace(workspace)}"
 
+/** Restored IDs must match the canonical kind/workspace key used by window activation. */
+internal fun infinityNormalizeRestoredWindowId(savedId: String?, kind: String, workspace: Int): String {
+    val canonicalId = infinityWindowIdentity(kind, workspace)
+    return savedId?.trim()?.takeIf { it == canonicalId } ?: canonicalId
+}
+
 /** Rejects blank window types and canonicalizes identity tokens for stable matching. */
 internal fun infinityCanonicalWindowKind(kind: String?): String? {
     val normalized = kind?.trim()?.lowercase(java.util.Locale.ROOT)
