@@ -1,11 +1,11 @@
 using System.Net;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
+using Infinity.WindowsCompanion.Security;
+using Microsoft.AspNetCore.Server.Kestrel.Https;
 using System.Runtime.Versioning;
 
 [assembly: SupportedOSPlatform("windows")]
-using Infinity.WindowsCompanion.Security;
-using Microsoft.AspNetCore.Server.Kestrel.Https;
 
 if (!OperatingSystem.IsWindows())
     throw new PlatformNotSupportedException("INFINITY Windows Companion runs only on Windows.");
