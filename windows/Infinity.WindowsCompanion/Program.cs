@@ -6,12 +6,14 @@ using Microsoft.AspNetCore.Server.Kestrel.Https;
 
 if (args.Length == 2 && args[0] == "--approve-client-cert")
 {
+    if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException("Windows is required.");
     var approvedPin = AuthorizedDeviceStore.ApproveFromLocalConsole(args[1]);
     Console.WriteLine($"Approved Android client certificate SHA-256: {approvedPin}");
     return;
 }
 if (args.Length == 2 && args[0] == "--revoke-client-cert")
 {
+    if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException("Windows is required.");
     var revoked = AuthorizedDeviceStore.RevokeFromLocalConsole(args[1]);
     Console.WriteLine(revoked ? "Device certificate revoked." : "No matching authorized device was found.");
     return;
