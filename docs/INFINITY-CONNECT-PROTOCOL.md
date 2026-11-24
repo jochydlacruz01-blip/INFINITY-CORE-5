@@ -1,16 +1,14 @@
 # INFINITY CONNECT — Protocol and Trust Contract
 
-**Status:** Contract specification; not yet a wire-protocol implementation.
-**Scope:** Android ↔ Windows Companion identity and future remote-session transport.
+**Status:** Source implementation present; physical interoperability and release acceptance pending.
+**Scope:** Android ↔ Windows Companion identity, capability-bound sessions, RDP tunnel and secure file transfer.
 **Security posture:** fail closed; no public RDP exposure.
 
 ## 1. Scope and non-goals
 
-This contract defines how the Android client and Windows Companion are expected to establish device trust before any remote capability is offered.
+This contract documents the source-level implementation for device trust, short-lived sessions, the loopback RDP tunnel and file transfer. Android includes Keystore CSR generation/chain installation, TLS 1.3 mTLS, session authorization, a WebSocket tunnel and a FreeRDP adapter. Windows includes local certificate issuance/approval, mTLS, capability sessions, bounded file transfer and a loopback-only RDP relay.
 
-The current Windows Companion exposes an identity-only HTTPS endpoint protected by TLS 1.3 and mandatory client-certificate authentication. The Android app currently has local pairing-challenge and certificate-fingerprint primitives, but does not yet provision a client certificate, perform the mutual-TLS request, or verify a live Windows identity.
-
-This document does not claim that pairing or remote desktop is operational. It does not authorize screen capture, keyboard/mouse injection, file transfer, shell access, or an RDP proxy.
+This is not a claim of physical-device operation. Android remote-desktop and file-transfer feature gates remain false, and Windows capability switches default to deny until the tablet/PC interoperability and security checklist passes. No public RDP exposure is allowed.
 
 ## 2. Trust model
 
@@ -31,14 +29,7 @@ Every application-level request/response must carry a protocol version. The init
 
 ## 4. Device identity response
 
-The current /v1/identity endpoint returns a small identity document. Before it is treated as a stable contract, its schema should be extended with:
-- protocolVersion
-- deviceId (stable GUID)
-- product
-- companionVersion
-- capabilities (initially identity only)
-- serverCertificateSha256
-- issuedAtUtc and a bounded response/request correlation identifier
+The current `/v1/identity` response contains `deviceId`, `product`, `version`, `transportSecurity`, `capability` and `allowedCapabilities`. It is bounded and protected by TLS 1.3/mTLS. Protocol versioning and a request correlation ID remain candidates for a future compatible schema revision; a certificate fingerprint in JSON must not replace TLS pin validation.
 
 Do not return host usernames, Windows account identifiers, filesystem paths, installed software lists, or other unnecessary personal information.
 
@@ -89,14 +80,7 @@ A state may be shown only after the corresponding operation actually succeeds. A
 
 ## 8. Capability authorization
 
-The initial Windows Companion capability is identity only. Future capabilities must be separately designed and authorized:
-- remote.display
-- remote.input
-- file.transfer
-- clipboard.sync
-- multi.display
-
-Each capability needs its own threat model, explicit session consent, permission checks, bounded message formats, audit events, and tests. No capability is implied by mTLS alone.
+The Windows Companion source implements `identity.read`, `remote.display`, `remote.input` and `file.transfer`. RDP display/input must be granted together; file transfer is independent. The administrator policy is default-deny and requires explicit environment switches. Each capability is bound to a short-lived certificate-specific session and requires explicit Android consent. Clipboard, shell and multi-display remain unavailable. mTLS alone never grants a capability.
 
 ## 9. Network deployment
 
@@ -127,14 +111,14 @@ Each capability needs its own threat model, explicit session consent, permission
 - Service refuses missing/invalid certificate configuration.
 - Service refuses public bind addresses.
 - Client certificate missing, expired, wrong EKU, and wrong pin are rejected.
-- Only the configured identity route is exposed in the identity-only stage.
+- Remote endpoints reject requests unless the matching capability is explicitly enabled by Windows administrator policy and granted to the certificate-bound session.
 - Service restart and certificate rotation behave predictably.
 
 ### End-to-end
 - Physical Android tablet and Windows PC test on the same private network.
 - Physical Android tablet and Windows PC test across a private VPN.
 - Unknown/changed server identity is rejected and shown as a trust error.
-- No remote input or screen stream is available in the identity-only stage.
+- With default policy, remote input, screen stream and file transfer are denied. After explicit administrator configuration, verify capability authorization and revocation on physical devices.
 
 ### Local Windows device approval commands
 
@@ -147,28 +131,31 @@ The current approval operation is local-console only. It does not expose an unau
 
 ## 12. Current implementation ledger
 
-| Capability | Current evidence | Status |
+| Capability | Source evidence | Status |
 |---|---|---|
-| Android challenge generation | InfinityConnectPairing.kt | Implemented local primitive |
-| Android challenge validation | expiry, UUID, nonce length and clock bounds | Implemented local primitive |
-| Android one-time challenge registry | bounded process-local registry with consume-once semantics | Implemented and unit tests added; not wired to network enrollment |
-| Android certificate fingerprint comparison | strict SHA-256 format and constant-time comparison | Implemented local primitive |
-| Android X.509 trust policy | bounded DER parsing, SHA-256 pin, validity, EKU and digital-signature key-usage checks | Implemented helper; not yet wired into TLS transport |
-| Android identity signing key | non-exportable EC P-256 key generated/stored in Android Keystore; domain-separated transcript signing; aliases restricted to 1–80 ASCII letters/digits/dot/underscore/dash | Key primitive implemented; alias-policy unit tests added; no certificate issuance/enrollment |
-| Android client certificate provisioning | no issued client certificate or chain installation verified | Not implemented |
-| Android TLS 1.3 mTLS client | no live client transport verified | Not implemented |
-| Windows TLS 1.3 mTLS endpoint | Kestrel identity-only endpoint; client certificate validated against machine-scoped approved fingerprint registry on every handshake | Implemented in source; physical Android interoperability test still required |
-| Windows client certificate approval/revocation | AuthorizedDeviceStore.cs; local elevated console commands; HKLM registry allowlist | Implemented in source; Windows integration and ACL verification still required |\n| Windows certificate pin, validity, EKU and key-usage checks | CertificatePinning.cs | Implemented in source with unit tests; digitalSignature is required when Key Usage is present |
-| Windows identity endpoint | /v1/identity | Identity only |
-| Remote screen capture/input | no implementation verified | Not implemented |
-| RDP engine | adapter contract only; FreeRDP not integrated | Not implemented |
+| Android identity key and CSR | `InfinityConnectIdentityKeyStore`, `InfinityConnectCsr` | Implemented in source; physical Keystore behavior pending |
+| Windows local CA and CSR issuance | `LocalEnrollmentCertificateAuthority`, `CertificateSigningRequestValidator` | Implemented; local elevated operator workflow |
+| Android client certificate installation | `InfinityConnectClientCertificateInstaller` | Implemented with chain, EKU, validity, public-key and CA-pin checks |
+| TLS 1.3 mTLS identity | `InfinityConnectMtlsTransport`, `/v1/identity` | Implemented in source; live device handshake pending |
+| Capability-bound sessions | `AuthorizedSessionStore`, `POST/GET/DELETE /v1/sessions` | Implemented; 15-minute lifetime, certificate binding, explicit consent and revocation |
+| Administrator capability policy | `RemoteCapabilityPolicy` | Implemented; remote and file capabilities default-deny |
+| Android remote RDP relay | `InfinityConnectRdpTunnel` | Implemented in source; loopback-only client socket and mTLS WebSocket |
+| Windows RDP relay | `GET /v1/tunnel/rdp` | Implemented in source; forwards only to `127.0.0.1:3389`, rechecks authorization |
+| FreeRDP Android adapter | `InfinityFreeRdpClient`, pinned FreeRDP 3.33.1 submodule | Integrated in source; current native build/runtime validation pending |
+| Remote screen and input UI | `InfinityConnectRemoteDesktopPanel` | Implemented but client feature gate remains false |
+| Secure file transfer | `InfinityConnectFileTransferPanel`, `SecureFileTransferStore` | Implemented in source; 50 MiB/file, quotas and SHA-256 checks; client gate false |
+| Windows Companion unit tests | `Infinity.WindowsCompanion.Tests` | CI has passed on earlier/current runs; final current-head result tracked separately |
+| Physical Android ↔ Windows validation | Samsung tablet + Windows PC | Pending; mandatory before enabling capabilities |
 
 ## 13. Immediate next implementation steps
 
-1. Add Android certificate enrollment/key lifecycle with explicit user confirmation and Android Keystore-backed private key where supported. The current PACK 16 alias validator is covered by local JVM unit tests; it does not yet exercise the Android Keystore provider on a physical device.
-2. Add an Android TLS 1.3 client transport that validates the pinned Windows server certificate and presents the enrolled client certificate.
-3. Complete Android CSR/certificate issuance and secure certificate delivery; the Windows local approval store is now present but does not issue certificates.
-4. Add interoperability tests against the real Windows service before adding remote display or input capabilities.
+1. Complete the current-head Android source compilation, unit tests, lint and FreeRDP arm64-v8a native build without generating APKs.
+2. Complete the current-head Windows Companion build and unit tests.
+3. Perform physical Android Keystore enrollment, mTLS handshake, hostname/pin verification and certificate revocation tests.
+4. Perform physical NLA/RDP tests covering screen updates, keyboard, pointer, reconnect, disconnect, certificate rejection and immediate session revocation.
+5. Perform bidirectional SAF file transfer, integrity, interruption, quota, per-device isolation and revocation tests.
+6. Only after those tests pass, review and deliberately change both Windows administrator policy and Android feature gates. Keep TCP/3389 loopback-only; use a private VPN between different networks.
+7. Add protocol version/correlation fields only with compatibility tests; do not claim full protocol version negotiation until implemented.
 
 ## 14. PACK26-PACK27 local enrollment implementation
 
@@ -191,7 +178,7 @@ The CA private key is imported into the Windows LocalMachine personal certificat
 Android additions:
 - `InfinityConnectIdentityKeyStore.createCertificateSigningRequest` builds a PKCS#10 request from the existing non-exportable Android Keystore P-256 key.
 - `InfinityConnectClientCertificateInstaller` validates the returned client certificate public key against the Keystore key, clientAuth EKU, validity, digitalSignature usage, issuer chain signatures, CA constraints, and a user-supplied CA SHA-256 pin before installing the chain onto the existing key alias.
-- `InfinityConnectMtlsTransport` creates a TLS 1.3 client context using Android Keystore key managers, pins the Windows server leaf certificate, validates serverAuth/validity/chain signatures/CA constraints, relies on HTTPS hostname verification, and calls only `/v1/identity`. Redirects are disabled and the response is bounded to 8 KiB.
+- `InfinityConnectMtlsTransport` creates a TLS 1.3 client context using Android Keystore key managers, pins the Windows server certificate, validates serverAuth/validity/chain signatures/CA constraints, relies on HTTPS hostname verification, and exposes identity, session, revocation and file-transfer requests with bounded responses.
 
 These source modules are not yet equivalent to a proven physical-device enrollment. Android Keystore chain replacement behavior, live TLS 1.3 client-certificate presentation, server hostname validation, and Samsung tablet ↔ Windows PC interoperability must pass on the actual devices before this stage is marked complete. Remote display, input, and file transfer remain disabled.
 
@@ -223,7 +210,7 @@ The Windows Companion now exposes a narrowly scoped session authorization API af
 
 Android CONNECT now has a separate explicit consent step for an identity-only session. It stores the returned bearer token encrypted through the existing Android Keystore AES-GCM credential vault and offers a session-revoke action.
 
-**Important capability boundary:** the only session capability granted in this pack is `identity.read`. `remote.display`, `remote.input`, `file.transfer`, clipboard, shell and RDP proxy capabilities remain denied and are not mapped to endpoints. Session authorization is not remote desktop functionality.
+**Important capability boundary:** session creation accepts only capabilities allowed by `RemoteCapabilityPolicy`. The default policy grants `identity.read` only. When explicitly enabled by the Windows administrator, `remote.display` and `remote.input` must be requested together, while `file.transfer` is independently granted. Tokens are short-lived, certificate-bound and revocable.
 
 
 ## 16. PACK31 native RDP engine dependency
@@ -234,7 +221,7 @@ A separate GitHub Actions workflow builds `:freerdpCore:externalNativeBuildDebug
 
 **RDP security integration rule:** the upstream `LibFreeRDP.setConnectionInfo(Context, instance, BookmarkBase)` path appends `/cert:ignore` and must not be used by INFINITY. The adapter must use a controlled argument path with certificate verification enabled and accept the RDP server certificate only when its fingerprint matches an explicitly trusted pin. No RDP connection is enabled by this dependency integration alone.
 
-The native library is not yet considered a functioning INFINITY remote session. It must pass native compilation, runtime loading on the Samsung tablet, pinned RDP certificate validation, screen update tests, input gating and the mTLS-authorized loopback tunnel before remote capabilities are granted.
+The Android source now integrates the FreeRDP adapter with the mTLS WebSocket-to-loopback tunnel, NLA and a pinned RDP certificate. The native library still requires a current-head build and runtime loading on the Samsung tablet; screen updates, input, credential handling, disconnect and revocation must be validated physically before remote capabilities are enabled.
 
 
 ## 17. PACK32 loopback RDP tunnel (capability-gated)
@@ -249,7 +236,7 @@ Windows now has a WebSocket tunnel endpoint at `GET /v1/tunnel/rdp`:
 
 Android now has a companion relay that binds a temporary TCP listener only to `127.0.0.1`, uses the pinned TLS 1.3 mTLS context for the WebSocket, requires both remote capabilities before opening, bounds its queues, and closes both sides when the tunnel ends.
 
-**The route is deliberately unavailable at present:** the session issuer still grants only `identity.read`, so the server rejects RDP tunnel requests. The FreeRDP client is not yet connected to this local port. This keeps remote input and display disabled until the native engine and the physical-device security tests pass.
+**The route is implemented but remains disabled by default:** Windows refuses `remote.display`/`remote.input` unless both administrator switches are explicitly enabled and the session grants both capabilities. Android's `REMOTE_DESKTOP_VALIDATED` gate is also false. The tunnel and FreeRDP adapter are connected in source, but no live tablet-to-PC session is certified until physical tests pass.
 
 
 ## 18. PACK34 administrator capability policy
@@ -262,7 +249,7 @@ Remote capabilities are server-side default-deny and are read when the Companion
 - The RDP tunnel still checks both capabilities on every request and every two seconds during the tunnel.
 - Changing the environment requires restarting the Windows Companion service.
 
-Do not enable these variables until the matching Android/Windows integration tests and physical-device checks pass. The current Android enrollment panel requests only `identity.read`, so no remote capability is silently requested.
+Do not enable these variables until the matching Android/Windows integration tests and physical-device checks pass. The Android UI contains separate explicit consent flows for remote desktop and file transfer, but the hard-coded client feature gates remain false, so those screens stay unavailable during this development phase.
 
 
 ## 19. PACK37–38 Android remote client and safety gates
