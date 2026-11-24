@@ -7,7 +7,6 @@ val freeRdpRoot = "../external/FreeRDP/client/Android/Studio/freeRDPCore"
 android {
     namespace = "com.freerdp.freerdpcore"
     compileSdk = 35
-    ndkVersion = "29.0.13113456"
 
     defaultConfig {
         minSdk = 26
