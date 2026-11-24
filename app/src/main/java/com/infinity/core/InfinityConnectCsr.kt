@@ -65,7 +65,7 @@ internal object InfinityConnectCsr {
 
     private fun oid(value: String): ByteArray {
         val arcs = value.split('.').map { it.toLong() }
-        require(arcs.size >= 2 && arcs[0] in 0..2 && arcs[1] >= 0 &&
+        require(arcs.size >= 2 && arcs[0] in 0L..2L && arcs[1] >= 0 &&
             (arcs[0] == 2L || arcs[1] <= 39))
         val body = ByteArray(0) + base128(arcs[0] * 40 + arcs[1]) +
             arcs.drop(2).fold(ByteArray(0)) { acc, arc ->
