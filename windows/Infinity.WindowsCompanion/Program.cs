@@ -106,13 +106,113 @@ builder.WebHost.ConfigureKestrel(options =>
 });
 
 var app = builder.Build();
+var authorizedSessions = new AuthorizedSessionStore();
+var auditLog = new InfinityAuditLog();
+
+// Re-check authorization on every HTTP request, not only at the TLS handshake.
+// This makes certificate revocation effective on the next request of an existing TLS connection.
+app.Use(async (context, next) =>
+{
+    var clientCertificate = await context.Connection.GetClientCertificateAsync();
+    if (clientCertificate is null)
+    {
+        auditLog.Write("request.missing-certificate", null, null, "denied");
+        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+        return;
+    }
+
+    var fingerprint = CertificatePinning.ComputeSha256Pin(clientCertificate);
+    if (!authorizedDevices.IsAuthorized(clientCertificate))
+    {
+        authorizedSessions.RevokeDevice(fingerprint);
+        auditLog.Write("request.device-denied", fingerprint, null, "denied");
+        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+        return;
+    }
+
+    auditLog.Write("request.authenticated", fingerprint, null, "allowed");
+    await next();
+});
+
 app.MapGet("/v1/identity", () => Results.Ok(new CompanionIdentity(
     settings.DeviceId,
     "INFINITY Windows Companion",
     "1.0.0",
     "TLS 1.3 mutual certificate authentication",
     "identity-only; remote desktop is not enabled")));
+
+app.MapPost("/v1/sessions", async (HttpContext context, SessionCreateRequest request) =>
+{
+    var clientCertificate = await context.Connection.GetClientCertificateAsync();
+    if (clientCertificate is null) return Results.Unauthorized();
+    var fingerprint = CertificatePinning.ComputeSha256Pin(clientCertificate);
+
+    if (!request.Consent)
+    {
+        auditLog.Write("session.consent-denied", fingerprint, null, "denied");
+        return Results.Forbid();
+    }
+
+    try
+    {
+        var grant = authorizedSessions.Create(
+            fingerprint,
+            request.Consent,
+            request.RequestedCapabilities ?? Array.Empty<string>());
+        auditLog.Write("session.created", fingerprint, grant.SessionId, "allowed");
+        return Results.Ok(grant);
+    }
+    catch (UnauthorizedAccessException)
+    {
+        auditLog.Write("session.capability-denied", fingerprint, null, "denied");
+        return Results.Forbid();
+    }
+    catch (InvalidOperationException)
+    {
+        auditLog.Write("session.limit-reached", fingerprint, null, "failed");
+        return Results.Problem("The session limit has been reached.", statusCode: StatusCodes.Status503ServiceUnavailable);
+    }
+});
+
+app.MapGet("/v1/sessions/{sessionId}", async (HttpContext context, string sessionId) =>
+{
+    var clientCertificate = await context.Connection.GetClientCertificateAsync();
+    if (clientCertificate is null) return Results.Unauthorized();
+    var fingerprint = CertificatePinning.ComputeSha256Pin(clientCertificate);
+    var token = ReadBearerToken(context);
+    if (token is null || !authorizedSessions.IsAuthorized(sessionId, token, fingerprint, "identity.read"))
+    {
+        auditLog.Write("session.validation-denied", fingerprint, null, "denied");
+        return Results.Unauthorized();
+    }
+    return Results.Ok(new { sessionId, active = true, capability = "identity.read" });
+});
+
+app.MapDelete("/v1/sessions/{sessionId}", async (HttpContext context, string sessionId) =>
+{
+    var clientCertificate = await context.Connection.GetClientCertificateAsync();
+    if (clientCertificate is null) return Results.Unauthorized();
+    var fingerprint = CertificatePinning.ComputeSha256Pin(clientCertificate);
+    var token = ReadBearerToken(context);
+    if (token is null || !authorizedSessions.IsAuthorized(sessionId, token, fingerprint, "identity.read"))
+        return Results.Unauthorized();
+
+    var revoked = authorizedSessions.Revoke(sessionId, fingerprint);
+    auditLog.Write("session.revoked", fingerprint, sessionId, revoked ? "revoked" : "failed");
+    return revoked ? Results.NoContent() : Results.NotFound();
+});
+
 app.Run();
+
+static string? ReadBearerToken(HttpContext context)
+{
+    var header = context.Request.Headers.Authorization.ToString();
+    return header.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)
+        ? header["Bearer ".Length..].Trim()
+        : null;
+}
+
+internal sealed record SessionCreateRequest(bool Consent, string[]? RequestedCapabilities);
 
 internal sealed record CompanionIdentity(
     string DeviceId,
