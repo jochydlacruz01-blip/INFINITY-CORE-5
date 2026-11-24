@@ -208,3 +208,19 @@ These source modules are not yet equivalent to a proven physical-device enrollme
 8. On Android, enter the CA pin, import the DER chain, enter the PC private/VPN address, Companion port (7443 by default), server certificate pin and expected Companion GUID. Run the mTLS identity check.
 
 The CSR/chain file exchange is intentionally user-mediated for this first release; no unauthenticated enrollment API is exposed. The Android UI does not report a verified PC until the TLS handshake, certificate pin, hostname validation, and expected device ID checks succeed.
+
+
+## 15. PACK29-PACK30 session authorization and audit
+
+The Windows Companion now exposes a narrowly scoped session authorization API after mTLS:
+- `POST /v1/sessions` requires a verified client certificate, explicit `consent: true`, and exactly the `identity.read` capability.
+- The server issues a random 256-bit bearer token, stores only its SHA-256 hash, binds it to the client certificate fingerprint, and limits the session to 15 minutes.
+- The store is bounded to 256 active sessions, purges expired records, supports individual and device-wide revocation, and clears token hashes from memory when a session is removed.
+- `GET /v1/sessions/{sessionId}` validates the bearer token, certificate binding, expiry and capability.
+- `DELETE /v1/sessions/{sessionId}` revokes the session.
+- Every HTTP request re-checks the client certificate against the persistent device allowlist. If a certificate has been revoked, the next request is rejected and all in-memory sessions for that certificate are removed.
+- A bounded JSONL audit log is written under ProgramData. It records UTC timestamp, event code, certificate fingerprint, session ID and outcome; it never records bearer tokens, private keys, screen content or file content.
+
+Android CONNECT now has a separate explicit consent step for an identity-only session. It stores the returned bearer token encrypted through the existing Android Keystore AES-GCM credential vault and offers a session-revoke action.
+
+**Important capability boundary:** the only session capability granted in this pack is `identity.read`. `remote.display`, `remote.input`, `file.transfer`, clipboard, shell and RDP proxy capabilities remain denied and are not mapped to endpoints. Session authorization is not remote desktop functionality.
