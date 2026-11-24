@@ -69,4 +69,4 @@ jobs:
           test "$(git -C external/FreeRDP rev-parse HEAD)" = "65bcca1913a28cbdd7eb913599f692bd2b707991"
 
       - name: Build native FreeRDP library only (no APK)
-        run: gradle :freerdpCore:externalNativeBuildDebug --no-daemon --max-workers=2 --stacktrace
+        run: gradle -PINFINITY_BUILD_FREERDP_NATIVE=true :freerdpCore:externalNativeBuildDebug --no-daemon --max-workers=2 --stacktrace
