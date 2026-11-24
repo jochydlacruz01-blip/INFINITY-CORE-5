@@ -24,6 +24,9 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
+import java.nio.ByteBuffer
+import java.nio.charset.CodingErrorAction
+import java.nio.charset.StandardCharsets
 
 /**
  * Conservative, read-only preview policy. Binary and potentially expensive formats
@@ -35,7 +38,9 @@ internal object InfinityFilesPreviewPolicy {
     fun supportsTextPreview(fileName: String, mimeType: String?): Boolean {
         val mime = mimeType?.substringBefore(';')?.trim()?.lowercase().orEmpty()
         if (mime.startsWith("text/")) return true
-        if (mime in setOf("application/json", "application/xml", "application/csv")) return true
+        if (mime in setOf("application/json", "application/xml", "application/csv", "application/x-yaml")) return true
+        // A provider's explicit binary/unknown MIME type overrides a misleading extension.
+        if (mime.isNotEmpty()) return false
 
         val extension = fileName.substringAfterLast('.', "").lowercase()
         return extension in setOf("txt", "md", "csv", "json", "xml", "log", "yaml", "yml", "kt", "kts", "java", "html", "css")
@@ -80,7 +85,10 @@ internal fun InfinityFilesPreviewDialog(
                     if (bytes.any { it == 0.toByte() }) {
                         throw IllegalArgumentException("El archivo parece binario y no se mostrará como texto.")
                     }
-                    val text = String(bytes, Charsets.UTF_8)
+                    val decoder = StandardCharsets.UTF_8.newDecoder()
+                        .onMalformedInput(CodingErrorAction.REPORT)
+                        .onUnmappableCharacter(CodingErrorAction.REPORT)
+                    val text = decoder.decode(ByteBuffer.wrap(bytes)).toString()
                     if (bytes.size > InfinityFilesPreviewPolicy.MAX_PREVIEW_BYTES) {
                         text + "\n\n[Vista limitada a 256 KB para proteger la memoria de la tablet.]"
                     } else text
