@@ -70,6 +70,50 @@ public sealed class CertificatePinningTests
     }
 
     [Fact]
+    public void AcceptsCurrentServerCertificateWithDigitalSignatureUsage()
+    {
+        using var certificate = CreateCertificate(
+            CertificatePinning.ServerAuthenticationOid,
+            DateTimeOffset.UtcNow.AddMinutes(-1),
+            DateTimeOffset.UtcNow.AddHours(1),
+            includeKeyUsage: true,
+            keyUsage: X509KeyUsageFlags.DigitalSignature);
+        Assert.True(CertificatePinning.IsUsableServerCertificate(certificate));
+    }
+
+    [Fact]
+    public void RejectsServerCertificateWhenKeyUsageForbidsDigitalSignature()
+    {
+        using var certificate = CreateCertificate(
+            CertificatePinning.ServerAuthenticationOid,
+            DateTimeOffset.UtcNow.AddMinutes(-1),
+            DateTimeOffset.UtcNow.AddHours(1),
+            includeKeyUsage: true,
+            keyUsage: X509KeyUsageFlags.KeyEncipherment);
+        Assert.False(CertificatePinning.IsUsableServerCertificate(certificate));
+    }
+
+    [Fact]
+    public void RejectsClientCertificateAsWindowsServerCertificate()
+    {
+        using var certificate = CreateCertificate(
+            CertificatePinning.ClientAuthenticationOid,
+            DateTimeOffset.UtcNow.AddMinutes(-1),
+            DateTimeOffset.UtcNow.AddHours(1));
+        Assert.False(CertificatePinning.IsUsableServerCertificate(certificate));
+    }
+
+    [Fact]
+    public void RejectsExpiredServerCertificate()
+    {
+        using var certificate = CreateCertificate(
+            CertificatePinning.ServerAuthenticationOid,
+            DateTimeOffset.UtcNow.AddHours(-2),
+            DateTimeOffset.UtcNow.AddHours(-1));
+        Assert.False(CertificatePinning.IsUsableServerCertificate(certificate));
+    }
+
+    [Fact]
     public void RejectsExpiredClientCertificate()
     {
         using var certificate = CreateCertificate(CertificatePinning.ClientAuthenticationOid,
