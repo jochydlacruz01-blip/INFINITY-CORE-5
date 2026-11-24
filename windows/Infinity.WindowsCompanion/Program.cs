@@ -10,6 +10,19 @@ using System.Runtime.Versioning;
 if (!OperatingSystem.IsWindows())
     throw new PlatformNotSupportedException("INFINITY Windows Companion runs only on Windows.");
 
+if (args.Length == 1 && args[0] == "--server-cert-sha256")
+{
+    var serverSettings = CompanionSettings.LoadFromEnvironment();
+    using var configuredCertificate = new X509Certificate2(
+        serverSettings.ServerCertificatePath,
+        serverSettings.ServerCertificatePassword,
+        X509KeyStorageFlags.MachineKeySet | X509KeyStorageFlags.EphemeralKeySet);
+    if (!CertificatePinning.IsUsableServerCertificate(configuredCertificate))
+        throw new InvalidOperationException("The configured Windows TLS server certificate is unusable.");
+    Console.WriteLine($"Windows Companion server certificate SHA-256: {CertificatePinning.ComputeSha256Pin(configuredCertificate)}");
+    Console.WriteLine($"Windows Companion device ID: {serverSettings.DeviceId}");
+    return;
+}
 if (args.Length == 1 && args[0] == "--initialize-enrollment-ca")
 {
     var thumbprint = LocalEnrollmentCertificateAuthority.Initialize();
