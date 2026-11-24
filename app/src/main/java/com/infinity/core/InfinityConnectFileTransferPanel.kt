@@ -250,5 +250,5 @@ private fun calculateTransferSha256(context: Context, uri: Uri): String {
             digest.update(buffer, 0, count)
         }
     }
-    return digest.digest().joinToString("") { "%02X".format(it) }
+    return digest.digest().joinToString("") { "%02X".format(it.toInt() and 0xFF) }
 }
