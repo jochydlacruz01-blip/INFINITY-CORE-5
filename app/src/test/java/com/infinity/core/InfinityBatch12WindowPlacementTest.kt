@@ -16,6 +16,11 @@ class InfinityBatch12WindowPlacementTest {
         assertEquals(170f, edge.second, 0f)
     }
 
+    @Test fun positionSanitizesNonFiniteViewportAndWindowDimensions() {
+        assertEquals(0f to 0f, infinityInitialWindowPosition(0, Float.NaN, Float.POSITIVE_INFINITY))
+        assertEquals(0f to 0f, infinityInitialWindowPosition(0, 100f, 100f, Float.NaN, Float.POSITIVE_INFINITY))
+    }
+
     @Test fun cascadePatternRepeatsWithoutGrowingUnbounded() {
         assertEquals(
             infinityInitialWindowPosition(1, 1000f, 800f),
