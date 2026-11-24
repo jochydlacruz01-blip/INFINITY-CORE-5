@@ -144,7 +144,7 @@ internal class InfinityConnectMtlsTransport(
             require(connection.responseCode == 200) {
                 "Windows rechazó la autorización de sesión (HTTP ${connection.responseCode})."
             }
-            val json = JSONObject(readBoundedResponse(connection))
+            val json = JSONObject(readBoundedResponse(connection).toString(Charsets.UTF_8))
             val sessionId = json.getString("sessionId")
             val token = json.getString("token")
             val expiry = json.getString("expiresAtUtc")
