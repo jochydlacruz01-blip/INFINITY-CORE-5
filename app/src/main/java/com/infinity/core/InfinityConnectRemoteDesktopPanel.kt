@@ -135,7 +135,7 @@ internal fun InfinityConnectRemoteDesktopPanel(
             if (client == null) {
                 OutlinedTextField(
                     value = rdpServerPin,
-                    onValueChange = { rdpServerPin = it.filter { ch -> ch.isLetterOrDigit() || ch == ':' }.take(80) },
+                    onValueChange = { rdpServerPin = it.filter { ch -> ch in "0123456789abcdefABCDEF:" }.take(80) },
                     label = { Text("SHA-256 del certificado RDP de Windows") },
                     supportingText = { Text("64 caracteres hexadecimales. No se acepta confiar en cualquier certificado.") },
                     modifier = Modifier.fillMaxWidth(),
@@ -165,7 +165,7 @@ internal fun InfinityConnectRemoteDesktopPanel(
                     singleLine = true
                 )
                 Button(
-                    enabled = !busy && rdpServerPin.filter { it.isLetterOrDigit() }.length == 64 &&
+                    enabled = !busy && rdpServerPin.filter { it != ':' }.matches(Regex("[0-9A-Fa-f]{64}")) &&
                         rdpUsername.isNotBlank() && rdpPassword.isNotEmpty(),
                     onClick = {
                         val pin = rdpServerPin
