@@ -29,9 +29,33 @@ public static class CertificatePinning
 
     public static bool HasEnhancedKeyUsage(X509Certificate2 certificate, string requiredOid)
     {
-        var extension = certificate.Extensions.OfType<X509EnhancedKeyUsageExtension>().SingleOrDefault();
-        return extension is not null &&
-               extension.EnhancedKeyUsages.Cast<Oid>().Any(oid => oid.Value == requiredOid);
+        try
+        {
+            var extensions = certificate.Extensions.OfType<X509EnhancedKeyUsageExtension>().ToArray();
+            return extensions.Length == 1 &&
+                   extensions[0].EnhancedKeyUsages.Cast<Oid>().Any(oid => oid.Value == requiredOid);
+        }
+        catch (CryptographicException)
+        {
+            return false;
+        }
+    }
+
+    public static bool AllowsDigitalSignature(X509Certificate2 certificate)
+    {
+        try
+        {
+            var extensions = certificate.Extensions.OfType<X509KeyUsageExtension>().ToArray();
+            // RFC 5280 permits the Key Usage extension to be absent. If present,
+            // require digitalSignature for TLS client authentication.
+            return extensions.Length <= 1 &&
+                   (extensions.Length == 0 ||
+                    extensions[0].KeyUsages.HasFlag(X509KeyUsageFlags.DigitalSignature));
+        }
+        catch (CryptographicException)
+        {
+            return false;
+        }
     }
 
     public static bool MatchesSha256Pin(X509Certificate certificate, string expectedPin)
@@ -45,7 +69,8 @@ public static class CertificatePinning
         var now = DateTime.UtcNow;
         if (now < certificate2.NotBefore.ToUniversalTime() ||
             now > certificate2.NotAfter.ToUniversalTime() ||
-            !HasEnhancedKeyUsage(certificate2, ClientAuthenticationOid))
+            !HasEnhancedKeyUsage(certificate2, ClientAuthenticationOid) ||
+            !AllowsDigitalSignature(certificate2))
         {
             return false;
         }
