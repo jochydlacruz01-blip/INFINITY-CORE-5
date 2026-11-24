@@ -1,5 +1,6 @@
 package com.infinity.core
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.*
 import org.junit.Test
@@ -74,6 +75,41 @@ class InfinityConnectSessionControllerTest {
         val controller = InfinityConnectSessionController(engine)
         controller.connect(InfinityConnectTarget("host", username = "user"))
         assertEquals(InfinityConnectSessionState.FAILED, controller.lifecycle.state)
-        assertEquals("Server rejected", controller.lifecycle.failureMessage)
+        assertEquals("No se pudo completar la conexión.", controller.lifecycle.failureMessage)
+    }
+
+    @Test fun engineFailureDoesNotExposeNativeDiagnosticDetails() = runBlocking {
+        val engine = object : InfinityConnectEngine {
+            override val isConnected = false
+            override suspend fun connect(target: InfinityConnectTarget, eventSink: (InfinityConnectEngineEvent) -> Unit) {
+                eventSink(InfinityConnectEngineEvent.Failure("password=secret host=private.example"))
+            }
+            override suspend fun disconnect() {}
+        }
+        val controller = InfinityConnectSessionController(engine)
+        controller.connect(InfinityConnectTarget("private.example", username = "user"))
+        assertEquals("No se pudo completar la conexión.", controller.lifecycle.failureMessage)
+        assertFalse(controller.lifecycle.failureMessage!!.contains("secret"))
+        assertFalse(controller.lifecycle.failureMessage!!.contains("private.example"))
+    }
+
+    @Test fun coroutineCancellationIsPropagatedAndPasswordIsCleared() = runBlocking {
+        val engine = object : InfinityConnectEngine {
+            override val isConnected = false
+            override suspend fun connect(target: InfinityConnectTarget, eventSink: (InfinityConnectEngineEvent) -> Unit) {
+                throw CancellationException("cancelled")
+            }
+            override suspend fun disconnect() {}
+        }
+        val secret = charArrayOf('s', 'e', 'c', 'r', 'e', 't')
+        val controller = InfinityConnectSessionController(engine)
+        var propagated = false
+        try {
+            controller.connect(InfinityConnectTarget("host", username = "user", password = secret))
+        } catch (_: CancellationException) {
+            propagated = true
+        }
+        assertTrue(propagated)
+        assertArrayEquals(CharArray(secret.size) { '\u0000' }, secret)
     }
 }
