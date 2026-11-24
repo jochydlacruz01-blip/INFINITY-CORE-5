@@ -1,4 +1,6 @@
 using System.Net;
+using System.Net.Sockets;
+using System.Net.WebSockets;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 using Infinity.WindowsCompanion.Security;
@@ -106,6 +108,8 @@ builder.WebHost.ConfigureKestrel(options =>
 });
 
 var app = builder.Build();
+app.UseWebSockets();
+var rdpTunnelGate = new SemaphoreSlim(1, 1);
 var authorizedSessions = new AuthorizedSessionStore();
 var auditLog = new InfinityAuditLog();
 
@@ -210,6 +214,91 @@ app.MapDelete("/v1/sessions/{sessionId}", async (HttpContext context, string ses
     return revoked ? Results.NoContent() : Results.NotFound();
 });
 
+app.MapGet("/v1/tunnel/rdp", async (HttpContext context) =>
+{
+    if (!context.WebSockets.IsWebSocketRequest)
+    {
+        context.Response.StatusCode = StatusCodes.Status400BadRequest;
+        return;
+    }
+
+    var clientCertificate = await context.Connection.GetClientCertificateAsync();
+    if (clientCertificate is null)
+    {
+        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+        return;
+    }
+
+    var fingerprint = CertificatePinning.ComputeSha256Pin(clientCertificate);
+    var sessionId = context.Request.Query["sessionId"].ToString();
+    var token = ReadBearerToken(context);
+    if (token is null ||
+        !authorizedSessions.IsAuthorized(sessionId, token, fingerprint, "remote.display") ||
+        !authorizedSessions.IsAuthorized(sessionId, token, fingerprint, "remote.input"))
+    {
+        auditLog.Write("tunnel.capability-denied", fingerprint, null, "denied");
+        context.Response.StatusCode = StatusCodes.Status403Forbidden;
+        return;
+    }
+
+    if (!await rdpTunnelGate.WaitAsync(0, context.RequestAborted))
+    {
+        context.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+        return;
+    }
+
+    try
+    {
+        using var rdpClient = new TcpClient(AddressFamily.InterNetwork) { NoDelay = true };
+        try
+        {
+            await rdpClient.ConnectAsync(IPAddress.Loopback, 3389, context.RequestAborted);
+        }
+        catch (SocketException)
+        {
+            auditLog.Write("tunnel.rdp-unavailable", fingerprint, sessionId, "failed");
+            context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+            return;
+        }
+
+        using var webSocket = await context.WebSockets.AcceptWebSocketAsync();
+        using var tunnelCancellation = CancellationTokenSource.CreateLinkedTokenSource(context.RequestAborted);
+        var rdpStream = rdpClient.GetStream();
+        auditLog.Write("tunnel.started", fingerprint, sessionId, "allowed");
+
+        var androidToRdp = PumpWebSocketToRdpAsync(webSocket, rdpStream, tunnelCancellation.Token);
+        var rdpToAndroid = PumpRdpToWebSocketAsync(rdpStream, webSocket, tunnelCancellation.Token);
+        var authorizationWatch = MonitorRdpAuthorizationAsync(
+            webSocket,
+            clientCertificate,
+            fingerprint,
+            sessionId,
+            token,
+            authorizedDevices,
+            authorizedSessions,
+            auditLog,
+            tunnelCancellation);
+
+        await Task.WhenAny(androidToRdp, rdpToAndroid, authorizationWatch);
+        tunnelCancellation.Cancel();
+        webSocket.Abort();
+
+        try
+        {
+            await Task.WhenAll(androidToRdp, rdpToAndroid, authorizationWatch);
+        }
+        catch (OperationCanceledException) { }
+        catch (IOException) { }
+        catch (WebSocketException) { }
+
+        auditLog.Write("tunnel.ended", fingerprint, sessionId, "allowed");
+    }
+    finally
+    {
+        rdpTunnelGate.Release();
+    }
+});
+
 app.Run();
 
 static string? ReadBearerToken(HttpContext context)
@@ -218,6 +307,66 @@ static string? ReadBearerToken(HttpContext context)
     return header.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)
         ? header["Bearer ".Length..].Trim()
         : null;
+}
+
+static async Task PumpWebSocketToRdpAsync(
+    WebSocket webSocket,
+    Stream rdpStream,
+    CancellationToken cancellationToken)
+{
+    var buffer = new byte[32 * 1024];
+    while (!cancellationToken.IsCancellationRequested)
+    {
+        var result = await webSocket.ReceiveAsync(buffer.AsMemory(), cancellationToken);
+        if (result.MessageType == WebSocketMessageType.Close) return;
+        if (result.MessageType != WebSocketMessageType.Binary)
+            throw new WebSocketException(WebSocketError.InvalidMessageType);
+        await rdpStream.WriteAsync(buffer.AsMemory(0, result.Count), cancellationToken);
+    }
+}
+
+static async Task PumpRdpToWebSocketAsync(
+    Stream rdpStream,
+    WebSocket webSocket,
+    CancellationToken cancellationToken)
+{
+    var buffer = new byte[32 * 1024];
+    while (!cancellationToken.IsCancellationRequested)
+    {
+        var count = await rdpStream.ReadAsync(buffer.AsMemory(), cancellationToken);
+        if (count == 0) return;
+        await webSocket.SendAsync(
+            buffer.AsMemory(0, count),
+            WebSocketMessageType.Binary,
+            endOfMessage: true,
+            cancellationToken);
+    }
+}
+
+static async Task MonitorRdpAuthorizationAsync(
+    WebSocket webSocket,
+    X509Certificate clientCertificate,
+    string fingerprint,
+    string sessionId,
+    string token,
+    AuthorizedDeviceStore authorizedDevices,
+    AuthorizedSessionStore authorizedSessions,
+    InfinityAuditLog auditLog,
+    CancellationTokenSource cancellation)
+{
+    while (!cancellation.IsCancellationRequested)
+    {
+        await Task.Delay(TimeSpan.FromSeconds(2), cancellation.Token);
+        if (authorizedDevices.IsAuthorized(clientCertificate) &&
+            authorizedSessions.IsAuthorized(sessionId, token, fingerprint, "remote.display") &&
+            authorizedSessions.IsAuthorized(sessionId, token, fingerprint, "remote.input"))
+            continue;
+
+        auditLog.Write("tunnel.revoked", fingerprint, sessionId, "revoked");
+        cancellation.Cancel();
+        webSocket.Abort();
+        return;
+    }
 }
 
 internal sealed record SessionCreateRequest(bool Consent, string[]? RequestedCapabilities);
