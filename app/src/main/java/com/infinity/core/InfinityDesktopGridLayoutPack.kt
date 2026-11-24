@@ -14,14 +14,15 @@ internal fun infinityDesktopGridOffsets(
     verticalGap: Float = 14f
 ): List<androidx.compose.ui.geometry.Offset> {
     if (count <= 0) return emptyList()
-    val safeItemWidth = itemWidth.takeIf { it.isFinite() && it > 0f } ?: 1f
-    val safeItemHeight = itemHeight.takeIf { it.isFinite() && it > 0f } ?: 1f
-    // Recover from invalid viewport input using the sanitized icon width, not raw geometry.
-    val safeWidth = viewportWidth.takeIf { it.isFinite() && it > 0f } ?: safeItemWidth
-    val safeGap = horizontalGap.takeIf { it.isFinite() && it >= 0f } ?: 0f
-    val safeVerticalGap = verticalGap.takeIf { it.isFinite() && it >= 0f } ?: 0f
-    val safeLeft = leftInset.takeIf { it.isFinite() && it >= 0f } ?: 0f
-    val safeTop = topInset.takeIf { it.isFinite() && it >= 0f } ?: 0f
+    // Bound every finite input before arithmetic: finite Float.MAX_VALUE operands can
+    // still overflow when added or multiplied while deriving grid coordinates.
+    val safeItemWidth = (itemWidth.takeIf { it.isFinite() && it > 0f } ?: 1f).coerceAtMost(1_000_000f)
+    val safeItemHeight = (itemHeight.takeIf { it.isFinite() && it > 0f } ?: 1f).coerceAtMost(1_000_000f)
+    val safeWidth = (viewportWidth.takeIf { it.isFinite() && it > 0f } ?: safeItemWidth).coerceAtMost(1_000_000f)
+    val safeGap = (horizontalGap.takeIf { it.isFinite() && it >= 0f } ?: 0f).coerceAtMost(1_000_000f)
+    val safeVerticalGap = (verticalGap.takeIf { it.isFinite() && it >= 0f } ?: 0f).coerceAtMost(1_000_000f)
+    val safeLeft = (leftInset.takeIf { it.isFinite() && it >= 0f } ?: 0f).coerceAtMost(1_000_000f)
+    val safeTop = (topInset.takeIf { it.isFinite() && it >= 0f } ?: 0f).coerceAtMost(1_000_000f)
     val columns = max(1, ((safeWidth - safeLeft + safeGap) / (safeItemWidth + safeGap)).toInt())
     return List(count) { index ->
         val col = index % columns

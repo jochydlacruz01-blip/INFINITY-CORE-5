@@ -11,6 +11,15 @@ class InfinityDesktopGridLayoutPackTest {
         assertTrue(points.all { it.x.isFinite() && it.y.isFinite() && it.x >= 0f && it.y >= 0f })
     }
 
+    @Test fun extremeFiniteMetricsDoNotOverflowGridCoordinates() {
+        val points = infinityDesktopGridOffsets(
+            8, Float.MAX_VALUE, Float.MAX_VALUE, Float.MAX_VALUE,
+            Float.MAX_VALUE, Float.MAX_VALUE, Float.MAX_VALUE, Float.MAX_VALUE
+        )
+        assertEquals(8, points.size)
+        assertTrue(points.all { it.x.isFinite() && it.y.isFinite() && it.x >= 0f && it.y >= 0f })
+    }
+
     @Test fun nonPositiveCountReturnsEmpty() {
         assertEquals(emptyList<androidx.compose.ui.geometry.Offset>(), infinityDesktopGridOffsets(0, 400f, 100f, 100f))
         assertEquals(emptyList<androidx.compose.ui.geometry.Offset>(), infinityDesktopGridOffsets(-1, 400f, 100f, 100f))
