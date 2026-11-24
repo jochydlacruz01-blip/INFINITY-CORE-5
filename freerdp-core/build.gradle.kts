@@ -36,8 +36,9 @@ android {
     sourceSets {
         getByName("main") {
             manifest.srcFile("src/main/AndroidManifest.xml")
-            java.srcDir("$freeRdpRoot/src/main/java")
-            java.exclude("**/GlobalApp.java")
+            java.srcDir(fileTree("$freeRdpRoot/src/main/java") {
+                exclude("**/GlobalApp.java")
+            })
             res.srcDir("$freeRdpRoot/src/main/res")
             assets.srcDir("$freeRdpRoot/src/main/assets")
             jniLibs.srcDir("$freeRdpRoot/src/main/jniLibs")
