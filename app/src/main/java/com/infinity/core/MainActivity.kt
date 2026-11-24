@@ -2159,6 +2159,7 @@ private fun FileExplorer08(
     var createFolderRequest by remember { mutableStateOf<Pair<String, String>?>(null) }
     var operationMessage by remember { mutableStateOf<String?>(null) }
     var actionEntry by remember { mutableStateOf<ExplorerEntry?>(null) }
+    var previewTarget by remember { mutableStateOf<Triple<Uri, String, String?>?>(null) }
     var showRenameDialog by remember { mutableStateOf(false) }
     var renameName by remember { mutableStateOf("") }
     var renameDocumentId by remember { mutableStateOf<String?>(null) }
@@ -2429,6 +2430,13 @@ private fun FileExplorer08(
             },
             dismissButton = {
                 Row {
+                    if (!entry.isDirectory && rootUri != null) {
+                        TextButton(onClick = {
+                            val uri = DocumentsContract.buildDocumentUriUsingTree(rootUri, entry.documentId)
+                            previewTarget = Triple(uri, entry.name, entry.mimeType)
+                            actionEntry = null
+                        }) { Text("Vista previa") }
+                    }
                     TextButton(onClick = {
                         deleteCandidate = entry
                         actionEntry = null
@@ -2523,6 +2531,15 @@ private fun FileExplorer08(
             dismissButton = {
                 TextButton(onClick = { showCreateFolder = false }) { Text("Cancelar") }
             }
+        )
+    }
+
+    previewTarget?.let { target ->
+        InfinityFilesPreviewDialog(
+            uri = target.first,
+            fileName = target.second,
+            mimeType = target.third,
+            onDismiss = { previewTarget = null }
         )
     }
 }
