@@ -259,4 +259,23 @@ fun InfinityConnectEnrollmentPanel() {
             ) { Text("Eliminar identidad y confianza de esta tablet") }
         }
     }
+    if (confirmForget) {
+        AlertDialog(
+            onDismissRequest = { confirmForget = false },
+            title = { Text("Eliminar identidad local") },
+            text = { Text("Se borrará la clave privada de Android Keystore y los pins guardados. El PC deberá revocar también el certificado emitido.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    runCatching { InfinityConnectIdentityKeyStore().delete(CONNECT_CLIENT_KEY_ALIAS) }
+                    prefs.edit().clear().apply()
+                    confirmForget = false
+                    status = "Identidad local eliminada. Revoca el certificado en Windows para cerrar su autorización."
+                }) { Text("Eliminar") }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmForget = false }) { Text("Cancelar") }
+            },
+            properties = DialogProperties(dismissOnBackPress = true, dismissOnClickOutside = false)
+        )
+    }
 }
