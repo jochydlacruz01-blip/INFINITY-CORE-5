@@ -707,6 +707,7 @@ val iconOffsets = remember {
                                 .selectable(selected = selected, role = Role.RadioButton) {
                                     switchWorkspace(targetWorkspace)
                                 }
+                                .semantics { contentDescription = infinityWorkspaceAccessibilityLabel(targetWorkspace) }
                                 .padding(horizontal = 11.dp, vertical = 7.dp)
                         ) {
                             Text(
