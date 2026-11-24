@@ -5,6 +5,29 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class InfinityWindowBoundaryTest {
+    @Test fun initialWindowPositionRecoversFromInvalidGeometry() {
+        val position = infinityInitialWindowPosition(
+            Int.MAX_VALUE, Float.NaN, Float.POSITIVE_INFINITY,
+            Float.NaN, Float.NEGATIVE_INFINITY
+        )
+        assertTrue(position.first.isFinite() && position.second.isFinite())
+        assertTrue(position.first >= 0f && position.second >= 0f)
+    }
+
+    @Test fun initialWindowPositionClampsOversizedWindowsToOrigin() {
+        assertEquals(0f to 0f, infinityInitialWindowPosition(0, 320f, 240f, 500f, 400f))
+    }
+
+    @Test fun initialWindowSizeRecoversFromInvalidMetrics() {
+        val size = infinityInitialWindowSize(
+            Float.NaN, Float.POSITIVE_INFINITY,
+            Float.NaN, Float.NEGATIVE_INFINITY,
+            Float.NaN, Float.POSITIVE_INFINITY
+        )
+        assertTrue(size.first.isFinite() && size.second.isFinite())
+        assertTrue(size.first > 0f && size.second > 0f)
+    }
+
     @Test fun movementClampsWindowToViewport() {
         assertEquals(0f to 0f, infinityClampWindowPosition(-20f, -5f, 300f, 200f, 500f, 400f))
         assertEquals(200f to 200f, infinityClampWindowPosition(999f, 999f, 300f, 200f, 500f, 400f))

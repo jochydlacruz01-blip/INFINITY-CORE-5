@@ -8,8 +8,12 @@ internal fun infinityInitialWindowPosition(
     windowWidth: Float = 370f,
     windowHeight: Float = 330f
 ): Pair<Float, Float> {
-    val maxX = (viewportWidth - windowWidth).coerceAtLeast(0f)
-    val maxY = (viewportHeight - windowHeight).coerceAtLeast(0f)
+    val safeViewportWidth = viewportWidth.takeIf { it.isFinite() && it > 0f } ?: 1f
+    val safeViewportHeight = viewportHeight.takeIf { it.isFinite() && it > 0f } ?: 1f
+    val safeWindowWidth = windowWidth.takeIf { it.isFinite() && it > 0f } ?: safeViewportWidth
+    val safeWindowHeight = windowHeight.takeIf { it.isFinite() && it > 0f } ?: safeViewportHeight
+    val maxX = (safeViewportWidth - safeWindowWidth).coerceAtLeast(0f)
+    val maxY = (safeViewportHeight - safeWindowHeight).coerceAtLeast(0f)
     val safeIndex = index.coerceAtLeast(0)
     val step = 22f
     val cascadeCount = 12
@@ -26,10 +30,16 @@ internal fun infinityInitialWindowSize(
     horizontalMargin: Float = 24f,
     verticalMargin: Float = 150f
 ): Pair<Float, Float> {
-    val availableWidth = (viewportWidth - horizontalMargin).coerceAtLeast(1f)
-    val availableHeight = (viewportHeight - verticalMargin).coerceAtLeast(1f)
-    return preferredWidth.coerceAtMost(availableWidth) to
-        preferredHeight.coerceAtMost(availableHeight)
+    val safeViewportWidth = viewportWidth.takeIf { it.isFinite() && it > 0f } ?: 1f
+    val safeViewportHeight = viewportHeight.takeIf { it.isFinite() && it > 0f } ?: 1f
+    val safeHorizontalMargin = horizontalMargin.takeIf { it.isFinite() && it >= 0f } ?: 0f
+    val safeVerticalMargin = verticalMargin.takeIf { it.isFinite() && it >= 0f } ?: 0f
+    val availableWidth = (safeViewportWidth - safeHorizontalMargin).coerceAtLeast(1f)
+    val availableHeight = (safeViewportHeight - safeVerticalMargin).coerceAtLeast(1f)
+    val safePreferredWidth = preferredWidth.takeIf { it.isFinite() && it > 0f } ?: availableWidth
+    val safePreferredHeight = preferredHeight.takeIf { it.isFinite() && it > 0f } ?: availableHeight
+    return safePreferredWidth.coerceAtMost(availableWidth) to
+        safePreferredHeight.coerceAtMost(availableHeight)
 }
 
 /** Clamp a window's top-left position after movement, recovering from invalid geometry. */
