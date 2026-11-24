@@ -26,4 +26,15 @@ class InfinityFilesPreviewPolicyTest {
                 assertFalse("$name should use an external viewer", InfinityFilesPreviewPolicy.supportsTextPreview(name, null))
             }
     }
+
+    @Test
+    fun explicitBinaryMimeTypeOverridesTextLikeExtension() {
+        assertFalse(InfinityFilesPreviewPolicy.supportsTextPreview("payload.txt", "application/octet-stream"))
+        assertFalse(InfinityFilesPreviewPolicy.supportsTextPreview("payload.json", "image/png"))
+    }
+
+    @Test
+    fun supportsExtensionFallbackWhenProviderOmitsMimeType() {
+        assertTrue(InfinityFilesPreviewPolicy.supportsTextPreview("NOTES.TXT", null))
+    }
 }
