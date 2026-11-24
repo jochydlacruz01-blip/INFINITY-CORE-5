@@ -23,7 +23,6 @@ internal fun infinityBoundIconOffset(
     return Offset(x.coerceIn(0f, maxX), y.coerceIn(0f, maxY))
 }
 
-
 /** Stable grid defaults for icons when saved coordinates are missing or invalid. */
 internal fun infinityDesktopIconGridOffset(
     index: Int,
@@ -34,15 +33,23 @@ internal fun infinityDesktopIconGridOffset(
     verticalGap: Float = 14f,
     topInset: Float = 24f
 ): Offset {
+    fun safe(value: Float, fallback: Float) = value.takeIf { it.isFinite() } ?: fallback
+    val width = safe(viewportWidth, 0f).coerceAtLeast(0f)
+    val iconWidth = safe(itemWidth, 110f).coerceAtLeast(1f)
+    val iconHeight = safe(itemHeight, 150f).coerceAtLeast(0f)
+    val gapX = safe(horizontalGap, 12f).coerceAtLeast(0f)
+    val gapY = safe(verticalGap, 14f).coerceAtLeast(0f)
+    val inset = safe(topInset, 24f).coerceAtLeast(0f)
+    val usableWidth = (width - gapX).coerceAtLeast(iconWidth)
+    val columns = (((usableWidth + gapX) / (iconWidth + gapX)).toInt()).coerceIn(1, 10_000)
     val safeIndex = index.coerceAtLeast(0)
-    val usableWidth = (viewportWidth - horizontalGap).coerceAtLeast(itemWidth)
-    val columns = ((usableWidth + horizontalGap) / (itemWidth + horizontalGap)).toInt().coerceAtLeast(1)
     val column = safeIndex % columns
     val row = safeIndex / columns
-    return Offset(
-        (horizontalGap + column * (itemWidth + horizontalGap)).coerceAtMost((viewportWidth - itemWidth).coerceAtLeast(0f)),
-        topInset + row * (itemHeight + verticalGap)
-    )
+    val x = (gapX.toDouble() + column.toDouble() * (iconWidth + gapX).toDouble())
+        .coerceAtMost((width - iconWidth).coerceAtLeast(0f).toDouble()).toFloat()
+    val y = (inset.toDouble() + row.toDouble() * (iconHeight + gapY).toDouble())
+        .coerceAtMost(Float.MAX_VALUE.toDouble()).toFloat()
+    return Offset(x, y)
 }
 
 /** Computes a protected desktop height above the dock and its touch/navigation inset. */
@@ -51,8 +58,13 @@ internal fun infinityDesktopHeightAboveDock(
     dockHeight: Float = 88f,
     dockBottomInset: Float = 24f,
     safetyGap: Float = 56f
-): Float = (viewportHeight - dockHeight.coerceAtLeast(0f) -
-    dockBottomInset.coerceAtLeast(0f) - safetyGap.coerceAtLeast(0f)).coerceAtLeast(0f)
+): Float {
+    fun safe(value: Float, fallback: Float = 0f) = value.takeIf { it.isFinite() } ?: fallback
+    return (safe(viewportHeight) -
+        safe(dockHeight, 88f).coerceAtLeast(0f) -
+        safe(dockBottomInset, 24f).coerceAtLeast(0f) -
+        safe(safetyGap, 56f).coerceAtLeast(0f)).coerceAtLeast(0f)
+}
 
 /** Resolve collisions using free grid cells; never clamp different rows onto the same edge. */
 internal fun infinityResolveIconOverlaps(
@@ -61,20 +73,44 @@ internal fun infinityResolveIconOverlaps(
     horizontalGap: Float = 12f, verticalGap: Float = 14f, topInset: Float = 118f
 ): List<Offset> {
     if (offsets.isEmpty()) return emptyList()
-    val width = itemWidth.coerceAtMost(viewportWidth.coerceAtLeast(1f))
-    val height = itemHeight.coerceAtMost((viewportHeight - topInset).coerceAtLeast(1f))
-    val gapX = horizontalGap.coerceAtLeast(0f); val gapY = verticalGap.coerceAtLeast(0f)
-    val columns = (((viewportWidth.coerceAtLeast(width) + gapX) / (width + gapX)).toInt()).coerceAtLeast(1)
-    val rows = (((viewportHeight - topInset).coerceAtLeast(height) + gapY) / (height + gapY)).toInt().coerceAtLeast(1)
-    val slots = (0 until columns * rows).map { slot ->
-        Offset((gapX + (slot % columns) * (width + gapX)).coerceAtMost((viewportWidth - width).coerceAtLeast(0f)),
-            (topInset + (slot / columns) * (height + gapY)).coerceAtMost((viewportHeight - height).coerceAtLeast(0f)))
+    fun safe(value: Float, fallback: Float) = value.takeIf { it.isFinite() } ?: fallback
+    val width = safe(viewportWidth, 1f).coerceAtLeast(1f)
+    val height = safe(viewportHeight, 1f).coerceAtLeast(1f)
+    val gapX = safe(horizontalGap, 12f).coerceAtLeast(0f)
+    val gapY = safe(verticalGap, 14f).coerceAtLeast(0f)
+    val inset = safe(topInset, 118f).coerceIn(0f, height)
+    val iconWidth = safe(itemWidth, 116f).coerceAtLeast(1f).coerceAtMost(width)
+    val availableHeight = (height - inset).coerceAtLeast(1f)
+    val iconHeight = safe(itemHeight, 150f).coerceAtLeast(1f).coerceAtMost(availableHeight)
+    val columns = (((width + gapX) / (iconWidth + gapX)).toInt()).coerceIn(1, 10_000)
+    val rows = (((availableHeight + gapY) / (iconHeight + gapY)).toInt()).coerceIn(1, 10_000)
+    val maxSlots = (columns.toLong() * rows.toLong()).coerceAtMost(1_000_000L).toInt()
+
+    fun overlaps(a: Offset, b: Offset) =
+        a.x < b.x + iconWidth && a.x + iconWidth > b.x &&
+            a.y < b.y + iconHeight && a.y + iconHeight > b.y
+
+    fun slotAt(slot: Int): Offset {
+        val column = slot % columns
+        val row = slot / columns
+        val x = (gapX.toDouble() + column.toDouble() * (iconWidth + gapX).toDouble())
+            .coerceAtMost((width - iconWidth).coerceAtLeast(0f).toDouble()).toFloat()
+        val y = (inset.toDouble() + row.toDouble() * (iconHeight + gapY).toDouble())
+            .coerceAtMost((height - iconHeight).coerceAtLeast(0f).toDouble()).toFloat()
+        return Offset(x, y)
     }
-    fun overlaps(a: Offset, b: Offset) = a.x < b.x + width && a.x + width > b.x && a.y < b.y + height && a.y + height > b.y
+
     val resolved = mutableListOf<Offset>()
     offsets.forEach { raw ->
-        val bounded = infinityBoundIconOffset(raw, Offset.Zero, viewportWidth, viewportHeight, width, height)
-        resolved += if (resolved.none { overlaps(bounded, it) }) bounded else slots.firstOrNull { s -> resolved.none { overlaps(s, it) } } ?: bounded
+        val bounded = infinityBoundIconOffset(raw, Offset.Zero, width, height, iconWidth, iconHeight)
+        if (resolved.none { overlaps(bounded, it) }) {
+            resolved += bounded
+        } else {
+            val freeSlot = (0 until maxSlots).asSequence()
+                .map(::slotAt)
+                .firstOrNull { candidate -> resolved.none { overlaps(candidate, it) } }
+            resolved += freeSlot ?: bounded
+        }
     }
     return resolved
 }

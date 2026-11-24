@@ -80,4 +80,31 @@ class InfinityBatch14IconBoundsTest {
             assertEquals(false, a.x < b.x + 110f && a.x + 110f > b.x && a.y < b.y + 120f && a.y + 120f > b.y)
         }
     }
+    @Test fun gridPlacementRecoversFromNonFiniteAndNegativeMetrics() {
+        val result = infinityDesktopIconGridOffset(
+            2, Float.NaN, Float.NaN, Float.POSITIVE_INFINITY,
+            horizontalGap = Float.NEGATIVE_INFINITY,
+            verticalGap = Float.NaN,
+            topInset = Float.NEGATIVE_INFINITY
+        )
+        assertEquals(true, result.x.isFinite() && result.y.isFinite())
+        assertEquals(true, result.x >= 0f && result.y >= 0f)
+    }
+
+    @Test fun dockSafeZoneRecoversFromNonFiniteMetrics() {
+        assertEquals(0f, infinityDesktopHeightAboveDock(Float.NaN), 0.001f)
+        assertEquals(0f, infinityDesktopHeightAboveDock(600f, Float.POSITIVE_INFINITY), 0.001f)
+    }
+
+    @Test fun overlapResolverReturnsFiniteCoordinatesForInvalidMetrics() {
+        val result = infinityResolveIconOverlaps(
+            listOf(Offset(Float.NaN, Float.POSITIVE_INFINITY), Offset(-20f, Float.NaN)),
+            Float.NaN, Float.NEGATIVE_INFINITY,
+            itemWidth = Float.NaN, itemHeight = Float.POSITIVE_INFINITY,
+            horizontalGap = Float.NaN, verticalGap = Float.NEGATIVE_INFINITY,
+            topInset = Float.NaN
+        )
+        assertEquals(2, result.size)
+        result.forEach { assertEquals(true, it.x.isFinite() && it.y.isFinite()) }
+    }
 }
