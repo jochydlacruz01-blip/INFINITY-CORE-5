@@ -7,6 +7,11 @@ val freeRdpRoot = "../external/FreeRDP/client/Android/Studio/freeRDPCore"
 val buildFreeRdpNative = providers.gradleProperty("INFINITY_BUILD_FREERDP_NATIVE").orNull == "true"
 
 android {
+    // Pinned upstream FreeRDP Android sources contain legacy lint findings.
+    // App lint remains strict; keep the third-party module report visible without failing the app gate.
+    lint {
+        abortOnError = false
+    }
     namespace = "com.freerdp.freerdpcore"
     compileSdk = 35
 
