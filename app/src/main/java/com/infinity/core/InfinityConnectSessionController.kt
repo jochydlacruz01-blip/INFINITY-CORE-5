@@ -1,5 +1,6 @@
 package com.infinity.core
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
@@ -31,7 +32,11 @@ class InfinityConnectSessionController(private val engine: InfinityConnectEngine
                     InfinityConnectEngineEvent.Disconnected -> moveToIdle(sink)
                 }
             }
-        } catch (e: Exception) {
+        } catch (cancelled: CancellationException) {
+            // Preserve structured cancellation; callers must be able to stop CONNECT promptly.
+            throw cancelled
+        } catch (_: Exception) {
+            // Native engines may include hostnames, account names, or protocol details in errors.
             fail("No se pudo completar la conexión.", sink)
         } finally {
             target.password?.fill('\u0000')
@@ -62,7 +67,8 @@ class InfinityConnectSessionController(private val engine: InfinityConnectEngine
         if (lifecycle.transition(next)) sink(lifecycle.state, lifecycle.failureMessage)
     }
     private fun fail(message: String, sink: (InfinityConnectSessionState, String?) -> Unit) {
-        val safe = message.take(240).ifBlank { "Error de conexión." }
+        // Never surface raw engine text: it may contain endpoint or authentication details.
+        val safe = "No se pudo completar la conexión."
         if (lifecycle.transition(InfinityConnectSessionState.FAILED, safe)) sink(lifecycle.state, lifecycle.failureMessage)
     }
     private fun moveToIdle(sink: (InfinityConnectSessionState, String?) -> Unit) {
