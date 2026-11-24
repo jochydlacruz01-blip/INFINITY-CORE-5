@@ -31,7 +31,7 @@ jobs:
       - name: Restore
         run: dotnet restore .\windows\Infinity.WindowsCompanion.Tests\Infinity.WindowsCompanion.Tests.csproj
 
-      - name: Build and run unit tests
+      - name: Build and run Windows security/unit tests (including transfer ACL)
         run: dotnet test .\windows\Infinity.WindowsCompanion.Tests\Infinity.WindowsCompanion.Tests.csproj --configuration Release --no-restore
 
       - name: Publish Windows x64 companion
