@@ -33,7 +33,8 @@ class InfinityConnectSessionController(private val engine: InfinityConnectEngine
                 }
             }
         } catch (cancelled: CancellationException) {
-            // Preserve structured cancellation; callers must be able to stop CONNECT promptly.
+            // Leave no stale CONNECTING/AUTHENTICATING state after a caller cancels the attempt.
+            moveToIdle(sink)
             throw cancelled
         } catch (_: Exception) {
             // Native engines may include hostnames, account names, or protocol details in errors.
