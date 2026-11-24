@@ -1,6 +1,9 @@
 using System.Net;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
+using System.Runtime.Versioning;
+
+[assembly: SupportedOSPlatform("windows")]
 using Infinity.WindowsCompanion.Security;
 using Microsoft.AspNetCore.Server.Kestrel.Https;
 
