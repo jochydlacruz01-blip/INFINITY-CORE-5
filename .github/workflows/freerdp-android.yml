@@ -67,7 +67,6 @@ jobs:
         run: |
           set -euo pipefail
           test -f external/FreeRDP/client/Android/Studio/freeRDPCore/src/main/cpp/CMakeLists.txt
-          git -C external/FreeRDP describe --tags --exact-match
           test "$(git -C external/FreeRDP rev-parse HEAD)" = "65bcca1913a28cbdd7eb913599f692bd2b707991"
 
       - name: Build native FreeRDP library only (no APK)
