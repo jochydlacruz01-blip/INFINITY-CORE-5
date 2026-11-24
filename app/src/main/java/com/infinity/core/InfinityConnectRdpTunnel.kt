@@ -132,10 +132,12 @@ internal class InfinityConnectRdpTunnel(
 
             override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
                 inboundFrames.close()
+                runCatching { localServer.close() }
             }
 
             override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
                 inboundFrames.close()
+                runCatching { localServer.close() }
             }
 
             override fun onFailure(webSocket: WebSocket, error: Throwable, response: Response?) {
