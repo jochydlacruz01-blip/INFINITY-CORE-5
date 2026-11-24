@@ -3,6 +3,7 @@ plugins {
 }
 
 val freeRdpRoot = "../external/FreeRDP/client/Android/Studio/freeRDPCore"
+val buildFreeRdpNative = providers.gradleProperty("INFINITY_BUILD_FREERDP_NATIVE").orNull == "true"
 
 android {
     namespace = "com.freerdp.freerdpcore"
@@ -13,18 +14,20 @@ android {
         ndk {
             abiFilters += listOf("arm64-v8a")
         }
-        externalNativeBuild {
-            cmake {
-                arguments += listOf(
-                    "-DWITH_OPENSSL=ON",
-                    "-DWITH_FFMPEG=OFF",
-                    "-DWITH_OPENH264=OFF",
-                    "-DWITH_OPUS=OFF",
-                    "-DWITH_CJSON=OFF",
-                    "-DWITH_PNG=OFF",
-                    "-DWITH_WEBP=OFF",
-                    "-DWITH_JPEG=OFF"
-                )
+        if (buildFreeRdpNative) {
+            externalNativeBuild {
+                cmake {
+                    arguments += listOf(
+                        "-DWITH_OPENSSL=ON",
+                        "-DWITH_FFMPEG=OFF",
+                        "-DWITH_OPENH264=OFF",
+                        "-DWITH_OPUS=OFF",
+                        "-DWITH_CJSON=OFF",
+                        "-DWITH_PNG=OFF",
+                        "-DWITH_WEBP=OFF",
+                        "-DWITH_JPEG=OFF"
+                    )
+                }
             }
         }
     }
@@ -39,10 +42,12 @@ android {
         }
     }
 
-    externalNativeBuild {
-        cmake {
-            path = file("$freeRdpRoot/src/main/cpp/CMakeLists.txt")
-            version = "3.22.1"
+    if (buildFreeRdpNative) {
+        externalNativeBuild {
+            cmake {
+                path = file("$freeRdpRoot/src/main/cpp/CMakeLists.txt")
+                version = "3.22.1"
+            }
         }
     }
 
