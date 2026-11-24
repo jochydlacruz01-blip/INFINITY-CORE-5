@@ -1080,6 +1080,9 @@ val iconOffsets = remember {
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .zIndex(20f)
+                    // On narrow screens, keep every Dock action reachable instead of clipping
+                    // the trailing controls and task buttons beyond the viewport.
+                    .then(if (infinityDockRequiresHorizontalScroll(maxW.value)) Modifier.horizontalScroll(rememberScrollState()) else Modifier)
                     .then(if (iconPack == "windows11" || (maxW >= 600.dp && futuristicDesktop)) Modifier.fillMaxWidth() else Modifier)
                     .padding(
                         horizontal = if (iconPack == "windows11" || (maxW >= 600.dp && futuristicDesktop)) 0.dp else 12.dp,
