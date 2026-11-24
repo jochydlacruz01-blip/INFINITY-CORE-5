@@ -82,7 +82,7 @@ internal class InfinityConnectMtlsTransport(
                 while (true) {
                     val count = input.read(buffer)
                     if (count < 0) break
-                    require(output.size() + count <= maxBytes) {
+                    require(output.size() + count <= MAX_RESPONSE_BYTES) {
                         "Windows identity response exceeds the supported size."
                     }
                     output.write(buffer, 0, count)
@@ -558,7 +558,7 @@ internal class InfinityConnectMtlsTransport(
             while (true) {
                 val count = input.read(buffer)
                 if (count < 0) break
-                require(output.size() + count <= MAX_RESPONSE_BYTES) {
+                require(output.size() + count <= maxBytes) {
                     "Windows response exceeds the supported size."
                 }
                 output.write(buffer, 0, count)
