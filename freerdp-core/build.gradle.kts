@@ -13,6 +13,10 @@ android {
     defaultConfig {
         minSdk = 26
         ndkVersion = "27.0.12077973"
+        externalNativeBuild {
+            cmake {
+            }
+        }
         ndk {
             abiFilters += listOf("arm64-v8a")
         }
