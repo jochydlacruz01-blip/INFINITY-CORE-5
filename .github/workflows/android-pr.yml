@@ -7,6 +7,7 @@ on:
   push:
     branches:
       - INFINITY-AURORA-NEXT-INTEGRATED
+      - INFINITY-PACK-01-FILES-REVIEWED
   workflow_dispatch:
 
 permissions:
