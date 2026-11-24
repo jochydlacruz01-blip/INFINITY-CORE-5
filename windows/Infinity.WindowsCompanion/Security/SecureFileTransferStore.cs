@@ -149,7 +149,7 @@ public sealed class SecureFileTransferStore
         var fingerprint = CertificatePinning.NormalizeSha256Pin(clientCertificateSha256);
         if (fingerprint is null) return null;
         var path = Path.Combine(rootPath, fingerprint, parsedId.ToString("N") + ".json");
-        if (!File.Exists(path)) return null;
+        if (!File.Exists(path) || new FileInfo(path).Length > 8 * 1024) return null;
         try
         {
             var metadata = JsonSerializer.Deserialize<FileMetadata>(File.ReadAllText(path, Encoding.UTF8));
@@ -159,9 +159,9 @@ public sealed class SecureFileTransferStore
                 metadata.Length is < 0 or > MaximumFileBytes)
                 return null;
             ValidateFileName(metadata.FileName);
-            if (CertificatePinning.NormalizeSha256Pin(metadata.Sha256) is null)
-                return null;
-            return metadata;
+            var normalizedHash = CertificatePinning.NormalizeSha256Pin(metadata.Sha256);
+            if (normalizedHash is null) return null;
+            return metadata with { Sha256 = normalizedHash };
         }
         catch (JsonException)
         {
@@ -175,6 +175,24 @@ public sealed class SecureFileTransferStore
         {
             return null;
         }
+    }
+
+    public IReadOnlyList<FileMetadata> List(string clientCertificateSha256)
+    {
+        var fingerprint = CertificatePinning.NormalizeSha256Pin(clientCertificateSha256);
+        if (fingerprint is null) return Array.Empty<FileMetadata>();
+        var directory = Path.Combine(rootPath, fingerprint);
+        if (!Directory.Exists(directory)) return Array.Empty<FileMetadata>();
+
+        return Directory.EnumerateFiles(directory, "*.json")
+            .Take(MaximumFilesPerDevice)
+            .Select(path => Path.GetFileNameWithoutExtension(path))
+            .Where(name => Guid.TryParseExact(name, "N", out _))
+            .Select(name => Find(Guid.ParseExact(name, "N").ToString("D"), fingerprint))
+            .Where(metadata => metadata is not null)
+            .Select(metadata => metadata!)
+            .OrderByDescending(metadata => metadata.CreatedAtUtc)
+            .ToArray();
     }
 
     public FileStream? OpenRead(FileMetadata metadata)
@@ -201,7 +219,13 @@ public sealed class SecureFileTransferStore
         try
         {
             var actual = await SHA256.HashDataAsync(stream, cancellationToken);
-            var expected = Convert.FromHexString(metadata.Sha256);
+            var normalizedHash = CertificatePinning.NormalizeSha256Pin(metadata.Sha256);
+            if (normalizedHash is null)
+            {
+                await stream.DisposeAsync();
+                return null;
+            }
+            var expected = Convert.FromHexString(normalizedHash);
             try
             {
                 if (!CryptographicOperations.FixedTimeEquals(actual, expected))
@@ -248,7 +272,7 @@ public sealed class SecureFileTransferStore
             fileName.EndsWith('.'))
             throw new InvalidDataException("Filename is invalid or contains path/control characters.");
 
-        var stem = fileName.Split('.')[0];
+        var stem = fileName.Split('.')[0].TrimEnd(' ', '.');
         if (new[] { "CON", "PRN", "AUX", "NUL" }.Contains(stem, StringComparer.OrdinalIgnoreCase) ||
             (stem.Length == 4 && (stem.StartsWith("COM", StringComparison.OrdinalIgnoreCase) ||
                                   stem.StartsWith("LPT", StringComparison.OrdinalIgnoreCase)) &&
