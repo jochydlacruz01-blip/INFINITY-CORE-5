@@ -1,4 +1,5 @@
 using System.Security.Cryptography.X509Certificates;
+using System.Runtime.Versioning;
 using Microsoft.Win32;
 using System.Security.Principal;
 
@@ -9,6 +10,7 @@ namespace Infinity.WindowsCompanion.Security;
 /// permissions; the service reads the registry on every new TLS client handshake,
 /// so revocation affects the next connection without restarting the service.
 /// </summary>
+[SupportedOSPlatform("windows")]
 public sealed class AuthorizedDeviceStore
 {
     private const string RegistryPath = @"SOFTWARE\INFINITY\WindowsCompanion\AuthorizedDevices";
