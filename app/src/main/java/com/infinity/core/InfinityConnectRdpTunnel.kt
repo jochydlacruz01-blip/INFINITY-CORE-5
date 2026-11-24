@@ -32,7 +32,7 @@ import okio.ByteString.Companion.toByteString
  * The Companion server can reach only 127.0.0.1:3389; this client binds only 127.0.0.1.
  */
 internal class InfinityConnectRdpTunnel(
-    private val transport: InfinityConnectMtlsTransport = InfinityConnectMtlsTransport()
+    private val transportFactory: () -> InfinityConnectMtlsTransport = { InfinityConnectMtlsTransport() }
 ) {
     data class Config(
         val companionHost: String,
@@ -73,6 +73,7 @@ internal class InfinityConnectRdpTunnel(
         }) { "Companion host is invalid." }
 
         val baseUrl = "https://${if (host.contains(':')) "[$host]" else host}:${config.companionPort}/"
+        val transport = transportFactory()
         transport.fetchWindowsIdentity(
             baseUrl,
             config.clientKeyAlias,
