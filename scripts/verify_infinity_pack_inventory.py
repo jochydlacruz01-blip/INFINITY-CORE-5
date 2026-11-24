@@ -20,6 +20,8 @@ REQUIRED = [
     "app/src/test/java/com/infinity/core/InfinityConnectPreflightTest.kt",
     "app/src/test/java/com/infinity/core/InfinityControlCenterPolicyTest.kt",
     "app/src/test/java/com/infinity/core/InfinityOrbitWorkspacePresentationTest.kt",
+    "app/src/main/java/com/infinity/core/InfinityRemoteFramePipeline.kt",
+    "app/src/test/java/com/infinity/core/InfinityRemoteFrameMailboxTest.kt",
     "scripts/verify_android_security_manifest.py",
     "scripts/tests/test_manifest_security_audit.py",
     "docs/INFINITY-SECURITY-MANIFEST-AUDIT.md",
