@@ -79,7 +79,13 @@ android {
 
 val prepareFreeRdpJavaSources = tasks.register<Sync>("prepareFreeRdpJavaSources") {
     from("$freeRdpRoot/src/main/java")
+    // INFINITY supplies its own GlobalApp and does not expose FreeRDP's sample print UI.
+    // Exclude the unused sample print pipeline so Android 13 POST_NOTIFICATIONS is not
+    // requested solely for an unshipped feature.
     exclude("**/GlobalApp.java")
+    exclude("**/presentation/PrintNotificationHelper.java")
+    exclude("**/presentation/PrintJobMonitor.java")
+    exclude("**/presentation/PrintProxyActivity.java")
     into(layout.buildDirectory.dir("generated/freerdp/java"))
 }
 
