@@ -22,7 +22,6 @@ internal class InfinityFreeRdpClient(
     private val context: Context,
     private val tunnel: InfinityConnectRdpTunnel.Handle,
     expectedRdpCertificateSha256: String,
-    private val rdpCertificateName: String,
     private val credentials: RdpCredentials,
     private val grantedCapabilities: Set<String>,
     private val listener: Listener
@@ -60,17 +59,12 @@ internal class InfinityFreeRdpClient(
 
     private val expectedRdpPin = normalizeRdpFingerprint(expectedRdpCertificateSha256)
         ?: throw IllegalArgumentException("A valid SHA-256 RDP server certificate pin is required.")
-    private val safeCertificateName = rdpCertificateName.trim().also {
-        require(it.matches(Regex("[A-Za-z0-9.-]{1,253}"))) {
-            "RDP certificate name is invalid."
-        }
-    }
     private val instanceLock = Any()
     private val mainHandler = Handler(Looper.getMainLooper())
     private val closed = AtomicBoolean(false)
     private var session: SessionState? = null
     private var frameBitmap: Bitmap? = null
-    private var connected = false
+    @Volatile private var connected = false
 
     init {
         require(grantedCapabilities.containsAll(setOf("remote.display", "remote.input"))) {
@@ -287,15 +281,16 @@ internal class InfinityFreeRdpClient(
         credentials.clear()
         val current = session
         session = null
+        tunnel.close()
         if (current != null) {
             GlobalApp.unregisterSessionListener(current.instance)
+            LibFreeRDP.cancelConnection(current.instance)
             GlobalApp.freeSession(current.instance)
         }
         synchronized(instanceLock) {
             frameBitmap?.recycle()
             frameBitmap = null
         }
-        tunnel.close()
     }
 
     companion object {
