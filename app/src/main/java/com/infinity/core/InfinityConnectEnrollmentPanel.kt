@@ -61,6 +61,16 @@ fun InfinityConnectEnrollmentPanel() {
     var sessionActive by remember { mutableStateOf(false) }
     var activeSessionId by remember { mutableStateOf("") }
     var sessionExpiry by remember { mutableStateOf("") }
+    var allowedCapabilities by remember { mutableStateOf(setOf("identity.read")) }
+    var confirmRemoteConsent by remember { mutableStateOf(false) }
+    var confirmFileConsent by remember { mutableStateOf(false) }
+    var remoteSessionActive by remember { mutableStateOf(false) }
+    var remoteSessionId by remember { mutableStateOf("") }
+    var remoteSessionExpiry by remember { mutableStateOf("") }
+    var fileSessionActive by remember { mutableStateOf(false) }
+    var fileSessionId by remember { mutableStateOf("") }
+    var fileSessionExpiry by remember { mutableStateOf("") }
+    var fileSessionToken by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
 
     val createCsrLauncher = rememberLauncherForActivityResult(
@@ -245,9 +255,11 @@ fun InfinityConnectEnrollmentPanel() {
                                 .putString("server_id", expectedServerId)
                                 .apply()
                             identityVerified = true
+                            allowedCapabilities = identity.allowedCapabilities
                             status = "IDENTIDAD VERIFICADA: ${identity.product} · ${identity.deviceId} · ${identity.transportSecurity}"
                         } else {
                             identityVerified = false
+                            allowedCapabilities = setOf("identity.read")
                             status = "Autenticación no completada: ${result.exceptionOrNull()?.message ?: "error TLS"}"
                         }
                     }
@@ -261,6 +273,99 @@ fun InfinityConnectEnrollmentPanel() {
                     onClick = { confirmSessionConsent = true },
                     modifier = Modifier.fillMaxWidth()
                 ) { Text("4 · Autorizar sesión protegida (solo identidad)") }
+            }
+            if (identityVerified) {
+                Text(
+                    "Capacidades habilitadas por Windows: ${allowedCapabilities.sorted().joinToString()}",
+                    style = MaterialTheme.typography.bodySmall
+                )
+                if (!remoteSessionActive && allowedCapabilities.containsAll(setOf("remote.display", "remote.input"))) {
+                    OutlinedButton(
+                        enabled = !busy,
+                        onClick = { confirmRemoteConsent = true },
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text("Solicitar autorización de escritorio remoto") }
+                }
+                if (remoteSessionActive) {
+                    Text("Permisos de escritorio concedidos · vence: $remoteSessionExpiry")
+                    Text(
+                        "La apertura de pantalla/entrada permanece bloqueada hasta completar la validación física del cliente RDP.",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    OutlinedButton(
+                        enabled = !busy,
+                        onClick = {
+                            scope.launch {
+                                busy = true
+                                val vault = InfinityConnectCredentialVault(context)
+                                val token = vault.retrieve("remote-session:$expectedServerId")
+                                val revoked = runCatching {
+                                    withContext(Dispatchers.IO) {
+                                        token != null && InfinityConnectMtlsTransport().revokeIdentitySession(
+                                            companionBaseUrl(companionHost, companionPort),
+                                            CONNECT_CLIENT_KEY_ALIAS, serverPin, remoteSessionId, token, expectedServerId
+                                        )
+                                    }
+                                }.getOrDefault(false)
+                                busy = false
+                                if (revoked) {
+                                    vault.delete("remote-session:$expectedServerId")
+                                    remoteSessionActive = false
+                                    remoteSessionId = ""
+                                    status = "Permisos de escritorio revocados en Windows."
+                                } else status = "No se pudo confirmar la revocación de escritorio."
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text("Revocar permisos de escritorio") }
+                }
+                if (!fileSessionActive && allowedCapabilities.contains("file.transfer")) {
+                    OutlinedButton(
+                        enabled = !busy,
+                        onClick = { confirmFileConsent = true },
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text("Solicitar transferencia segura de archivos") }
+                }
+                if (fileSessionActive) {
+                    Text("Sesión de archivos autorizada · vence: $fileSessionExpiry")
+                    OutlinedButton(
+                        enabled = !busy,
+                        onClick = {
+                            scope.launch {
+                                busy = true
+                                val vault = InfinityConnectCredentialVault(context)
+                                val token = vault.retrieve("file-session:$expectedServerId")
+                                val revoked = runCatching {
+                                    withContext(Dispatchers.IO) {
+                                        token != null && InfinityConnectMtlsTransport().revokeIdentitySession(
+                                            companionBaseUrl(companionHost, companionPort),
+                                            CONNECT_CLIENT_KEY_ALIAS, serverPin, fileSessionId, token, expectedServerId
+                                        )
+                                    }
+                                }.getOrDefault(false)
+                                busy = false
+                                if (revoked) {
+                                    vault.delete("file-session:$expectedServerId")
+                                    fileSessionActive = false
+                                    fileSessionId = ""
+                                    fileSessionToken = ""
+                                    status = "Sesión de transferencia revocada en Windows."
+                                } else status = "No se pudo confirmar la revocación de archivos."
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text("Revocar sesión de archivos") }
+                    if (fileSessionToken.isNotBlank()) {
+                        InfinityConnectFileTransferPanel(
+                            baseUrl = companionBaseUrl(companionHost, companionPort),
+                            clientKeyAlias = CONNECT_CLIENT_KEY_ALIAS,
+                            serverPin = serverPin,
+                            expectedServerId = expectedServerId,
+                            sessionId = fileSessionId,
+                            sessionToken = fileSessionToken
+                        )
+                    }
+                }
             }
             if (sessionActive) {
                 Text("Sesión de identidad autorizada · vence: $sessionExpiry")
@@ -362,6 +467,83 @@ fun InfinityConnectEnrollmentPanel() {
         )
     }
 
+    if (confirmRemoteConsent) {
+        AlertDialog(
+            onDismissRequest = { confirmRemoteConsent = false },
+            title = { Text("Autorizar escritorio remoto") },
+            text = { Text("¿Autorizas que esta tablet solicite una sesión de 15 minutos para ver la pantalla y controlar teclado/ratón? Windows debe tener habilitadas ambas capacidades. No se activa el túnel hasta superar las validaciones de seguridad.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmRemoteConsent = false
+                    scope.launch {
+                        busy = true
+                        val result = runCatching {
+                            withContext(Dispatchers.IO) {
+                                InfinityConnectMtlsTransport().createRemoteSession(
+                                    companionBaseUrl(companionHost, companionPort),
+                                    CONNECT_CLIENT_KEY_ALIAS, serverPin, expectedServerId
+                                )
+                            }
+                        }
+                        busy = false
+                        if (result.isSuccess) {
+                            val grant = result.getOrThrow()
+                            val saved = InfinityConnectCredentialVault(context).save(
+                                "remote-session:$expectedServerId", grant.token
+                            )
+                            if (saved) {
+                                remoteSessionId = grant.sessionId
+                                remoteSessionExpiry = grant.expiresAtUtc
+                                remoteSessionActive = true
+                                status = "Permisos de escritorio concedidos por Windows. El túnel sigue protegido por validación."
+                            } else status = "No se pudo guardar el token cifrado. Revoca la sesión desde Windows."
+                        } else status = "Windows no autorizó escritorio remoto: ${result.exceptionOrNull()?.message ?: "política denegada"}"
+                    }
+                }) { Text("Autorizar escritorio") }
+            },
+            dismissButton = { TextButton(onClick = { confirmRemoteConsent = false }) { Text("Cancelar") } }
+        )
+    }
+
+    if (confirmFileConsent) {
+        AlertDialog(
+            onDismissRequest = { confirmFileConsent = false },
+            title = { Text("Autorizar transferencia de archivos") },
+            text = { Text("¿Autorizas una sesión de 15 minutos para enviar y recibir archivos? Cada archivo tiene un límite de 50 MiB y se verifica mediante SHA-256. Windows debe habilitar file.transfer.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmFileConsent = false
+                    scope.launch {
+                        busy = true
+                        val result = runCatching {
+                            withContext(Dispatchers.IO) {
+                                InfinityConnectMtlsTransport().createFileTransferSession(
+                                    companionBaseUrl(companionHost, companionPort),
+                                    CONNECT_CLIENT_KEY_ALIAS, serverPin, expectedServerId
+                                )
+                            }
+                        }
+                        busy = false
+                        if (result.isSuccess) {
+                            val grant = result.getOrThrow()
+                            val saved = InfinityConnectCredentialVault(context).save(
+                                "file-session:$expectedServerId", grant.token
+                            )
+                            if (saved) {
+                                fileSessionId = grant.sessionId
+                                fileSessionExpiry = grant.expiresAtUtc
+                                fileSessionToken = grant.token
+                                fileSessionActive = true
+                                status = "Sesión de transferencia autorizada por Windows."
+                            } else status = "No se pudo guardar el token cifrado. Revoca la sesión desde Windows."
+                        } else status = "Windows no autorizó archivos: ${result.exceptionOrNull()?.message ?: "política denegada"}"
+                    }
+                }) { Text("Autorizar archivos") }
+            },
+            dismissButton = { TextButton(onClick = { confirmFileConsent = false }) { Text("Cancelar") } }
+        )
+    }
+
     if (confirmForget) {
         AlertDialog(
             onDismissRequest = { confirmForget = false },
@@ -370,7 +552,13 @@ fun InfinityConnectEnrollmentPanel() {
             confirmButton = {
                 TextButton(onClick = {
                     runCatching { InfinityConnectIdentityKeyStore().delete(CONNECT_CLIENT_KEY_ALIAS) }
-                    InfinityConnectCredentialVault(context).delete("identity-session:$expectedServerId")
+                    val vault = InfinityConnectCredentialVault(context)
+                    vault.delete("identity-session:$expectedServerId")
+                    vault.delete("remote-session:$expectedServerId")
+                    vault.delete("file-session:$expectedServerId")
+                    remoteSessionActive = false
+                    fileSessionActive = false
+                    fileSessionToken = ""
                     prefs.edit().clear().apply()
                     confirmForget = false
                     status = "Identidad local eliminada. Revoca el certificado en Windows para cerrar su autorización."
@@ -382,4 +570,11 @@ fun InfinityConnectEnrollmentPanel() {
             properties = DialogProperties(dismissOnBackPress = true, dismissOnClickOutside = false)
         )
     }
+}
+
+
+private fun companionBaseUrl(hostValue: String, port: String): String {
+    val host = hostValue.trim()
+    val formattedHost = if (host.contains(':') && !host.startsWith("[")) "[$host]" else host
+    return "https://$formattedHost:$port/"
 }
