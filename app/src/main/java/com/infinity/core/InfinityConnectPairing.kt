@@ -70,3 +70,75 @@ internal object InfinityConnectPairing {
         )
     }
 }
+
+
+/**
+ * Bounded, process-local, single-use challenge registry.
+ *
+ * Register the challenge before sending it to a peer. Consume it only after the
+ * peer returns the request id and nonce over an authenticated channel. This
+ * prevents replay within this process; it is not a substitute for TLS or a
+ * persistent cross-process enrollment protocol.
+ */
+internal class InfinityPairingChallengeRegistry(
+    private val maxOutstanding: Int = DEFAULT_MAX_OUTSTANDING
+) {
+    private val outstanding = LinkedHashMap<String, InfinityPairingChallenge>()
+
+    init {
+        require(maxOutstanding in 1..MAX_ALLOWED_OUTSTANDING) {
+            "Challenge registry capacity is outside the supported range."
+        }
+    }
+
+    @Synchronized
+    fun register(challenge: InfinityPairingChallenge, nowEpochMillis: Long): Boolean {
+        purgeExpired(nowEpochMillis)
+        if (!InfinityConnectPairing.isChallengeValid(challenge, nowEpochMillis)) return false
+        if (challenge.requestId in outstanding || outstanding.size >= maxOutstanding) return false
+        outstanding[challenge.requestId] = challenge
+        return true
+    }
+
+    @Synchronized
+    fun consume(requestId: String, nonce: String, nowEpochMillis: Long): Boolean {
+        purgeExpired(nowEpochMillis)
+        val stored = outstanding[requestId] ?: return false
+        val suppliedBytes = runCatching { Base64.getUrlDecoder().decode(nonce) }.getOrNull()
+            ?: return false
+        val storedBytes = runCatching { Base64.getUrlDecoder().decode(stored.nonce) }.getOrNull()
+            ?: return false
+        if (!MessageDigest.isEqual(storedBytes, suppliedBytes)) return false
+        if (!InfinityConnectPairing.isChallengeValid(stored, nowEpochMillis)) {
+            outstanding.remove(requestId)
+            return false
+        }
+        outstanding.remove(requestId)
+        return true
+    }
+
+    @Synchronized
+    fun clear() {
+        outstanding.clear()
+    }
+
+    @Synchronized
+    fun outstandingCount(nowEpochMillis: Long): Int {
+        purgeExpired(nowEpochMillis)
+        return outstanding.size
+    }
+
+    private fun purgeExpired(nowEpochMillis: Long) {
+        val iterator = outstanding.entries.iterator()
+        while (iterator.hasNext()) {
+            if (!InfinityConnectPairing.isChallengeValid(iterator.next().value, nowEpochMillis)) {
+                iterator.remove()
+            }
+        }
+    }
+
+    companion object {
+        const val DEFAULT_MAX_OUTSTANDING = 128
+        const val MAX_ALLOWED_OUTSTANDING = 4096
+    }
+}
