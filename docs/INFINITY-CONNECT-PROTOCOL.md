@@ -194,3 +194,17 @@ Android additions:
 - `InfinityConnectMtlsTransport` creates a TLS 1.3 client context using Android Keystore key managers, pins the Windows server leaf certificate, validates serverAuth/validity/chain signatures/CA constraints, relies on HTTPS hostname verification, and calls only `/v1/identity`. Redirects are disabled and the response is bounded to 8 KiB.
 
 These source modules are not yet equivalent to a proven physical-device enrollment. Android Keystore chain replacement behavior, live TLS 1.3 client-certificate presentation, server hostname validation, and Samsung tablet ↔ Windows PC interoperability must pass on the actual devices before this stage is marked complete. Remote display, input, and file transfer remain disabled.
+
+
+### Operator workflow for the first real enrollment
+
+1. On Windows, configure the Companion server certificate and its private/VPN bind address as documented in the deployment section.
+2. From an elevated console in the Companion folder, run `Infinity.WindowsCompanion.exe --initialize-enrollment-ca` once. Keep the displayed Android CA SHA-256 pin.
+3. Run `Infinity.WindowsCompanion.exe --server-cert-sha256` in the same configured environment. Record the server SHA-256 pin and the Companion GUID.
+4. On Android, open INFINITY CONNECT, enter the Android device ID, and export its CSR.
+5. Transfer only the CSR file to Windows. It contains the public key and proof-of-possession signature, never the private key.
+6. On Windows, run `Infinity.WindowsCompanion.exe --issue-client-csr <csr-file> <chain-output.der> <android-device-id>`. Transfer the generated `.der` chain back to Android.
+7. Review the Android device identity, then run `Infinity.WindowsCompanion.exe --approve-client-cert <chain-output.der.client.cer>` from an elevated console.
+8. On Android, enter the CA pin, import the DER chain, enter the PC private/VPN address, Companion port (7443 by default), server certificate pin and expected Companion GUID. Run the mTLS identity check.
+
+The CSR/chain file exchange is intentionally user-mediated for this first release; no unauthenticated enrollment API is exposed. The Android UI does not report a verified PC until the TLS handshake, certificate pin, hostname validation, and expected device ID checks succeed.
