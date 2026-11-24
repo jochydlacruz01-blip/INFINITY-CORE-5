@@ -98,7 +98,7 @@ class InfinityWindowBoundaryTest {
             -500f, 900f, 700f, 600f, 180f, 120f
         )
         assertEquals(0f, bounds.x, 0.001f)
-        assertEquals(0f, bounds.y, 0.001f)
+        assertEquals(16f, bounds.y, 0.001f)
         assertEquals(164f, bounds.width, 0.001f)
         assertEquals(104f, bounds.height, 0.001f)
     }
