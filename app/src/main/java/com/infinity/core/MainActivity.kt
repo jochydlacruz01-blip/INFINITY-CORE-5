@@ -1069,7 +1069,14 @@ val iconOffsets = remember {
                                 )
                             }
                         },
-                     onFocus = { focusedWindowId = win.id },
+                     onFocus = {
+                         val activeIndex = windows.indexOfFirst { it.id == win.id }
+                         if (activeIndex >= 0) {
+                             val activeWindow = windows.removeAt(activeIndex)
+                             windows.add(activeWindow)
+                         }
+                         focusedWindowId = win.id
+                     },
                         showGeometryControls = infinityWindowGeometryControlsVisible(maxW.value)
                     )
                 }
