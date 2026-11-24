@@ -1820,7 +1820,14 @@ Row(
                                                         orbitOpen = false
                                                     } else {
                                                         windows[index] = windows[index].copy(minimized = true)
-                                                        if (focusedWindowId == win.id) focusedWindowId = null
+                                                        focusedWindowId = infinityResolveFocusAfterWindowDeactivation(
+                                                            win.id,
+                                                            focusedWindowId,
+                                                            windows.map { it.id },
+                                                            windows.associate { it.id to it.workspace },
+                                                            windows.filter { it.minimized }.map { it.id }.toSet(),
+                                                            workspace
+                                                        )
                                                     }
                                                 }
                                             }
