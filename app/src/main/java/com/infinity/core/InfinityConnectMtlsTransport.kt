@@ -1,6 +1,9 @@
 package com.infinity.core
 
 import org.json.JSONObject
+import android.util.Base64
+import java.io.InputStream
+import java.io.OutputStream
 import java.io.ByteArrayOutputStream
 import java.net.URL
 import java.security.KeyStore
@@ -15,7 +18,7 @@ import javax.net.ssl.X509TrustManager
 /**
  * TLS 1.3 mutual-authenticated identity transport.
  * Server trust is pinned to a fingerprint explicitly confirmed by the user.
- * This endpoint is identity-only; it does not expose remote-control operations.
+ * Capability requests are explicit and are constrained by Windows administrator policy.
  */
 internal class InfinityConnectMtlsTransport(
     private val keyStore: KeyStore = KeyStore.getInstance(ANDROID_KEYSTORE).apply { load(null) },
@@ -181,8 +184,9 @@ internal class InfinityConnectMtlsTransport(
                 expiresAt.isBefore(java.time.Instant.now().plusSeconds(20 * 60))) {
                 "La vigencia de sesión devuelta por Windows está fuera del límite."
             }
-            require(capabilities == listOf("identity.read")) {
-                "Windows concedió capacidades distintas de identity.read."
+            require(capabilities.toSet() == requestedCapabilities &&
+                capabilities.size == requestedCapabilities.size) {
+                "Windows concedió un conjunto de capacidades distinto al solicitado."
             }
             require(expectedDeviceId.isNotBlank()) { "El perfil de dispositivo esperado está vacío." }
             return AuthorizedIdentitySession(sessionId, token, expiry, capabilities)
@@ -250,6 +254,230 @@ internal class InfinityConnectMtlsTransport(
             return connection.responseCode == 204
         } finally {
             connection.disconnect()
+        }
+    }
+
+    data class FileTransferReceipt(
+        val fileId: String,
+        val fileName: String,
+        val length: Long,
+        val sha256: String,
+        val createdAtUtc: String
+    )
+
+    fun uploadFile(
+        baseUrl: String,
+        clientKeyAlias: String,
+        trustedServerSha256: String,
+        expectedDeviceId: String,
+        sessionId: String,
+        sessionToken: String,
+        fileName: String,
+        length: Long,
+        expectedFileSha256: String,
+        source: InputStream
+    ): FileTransferReceipt {
+        validateSessionCredentials(sessionId, sessionToken)
+        validateTransferFileName(fileName)
+        require(length in 0..MAX_FILE_BYTES) { "File exceeds the 50 MiB transfer limit." }
+        val expectedPin = normalizePin(expectedFileSha256)
+            ?: throw IllegalArgumentException("A valid file SHA-256 digest is required.")
+        require(fetchWindowsIdentity(baseUrl, clientKeyAlias, trustedServerSha256, expectedDeviceId).deviceId == expectedDeviceId) {
+            "Windows device identity changed before file upload."
+        }
+
+        val connection = openMtlsConnection(
+            baseUrl.trimEnd('/') + "/v1/files",
+            clientKeyAlias,
+            trustedServerSha256
+        )
+        try {
+            connection.requestMethod = "POST"
+            connection.doOutput = true
+            connection.readTimeout = FILE_TRANSFER_TIMEOUT_MS
+            connection.setFixedLengthStreamingMode(length)
+            connection.setRequestProperty("Content-Type", "application/octet-stream")
+            connection.setRequestProperty("Accept", "application/json")
+            connection.setRequestProperty("Authorization", "Bearer $sessionToken")
+            connection.setRequestProperty("X-INFINITY-Session-ID", sessionId)
+            connection.setRequestProperty(
+                "X-INFINITY-File-Name",
+                Base64.encodeToString(
+                    fileName.toByteArray(Charsets.UTF_8),
+                    Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING
+                )
+            )
+            connection.setRequestProperty("X-INFINITY-File-SHA256", expectedPin)
+
+            val digest = MessageDigest.getInstance("SHA-256")
+            var total = 0L
+            connection.outputStream.use { output ->
+                val buffer = ByteArray(64 * 1024)
+                while (true) {
+                    val count = source.read(buffer)
+                    if (count < 0) break
+                    total += count
+                    require(total <= length && total <= MAX_FILE_BYTES) {
+                        "Source stream exceeded its declared length or transfer limit."
+                    }
+                    digest.update(buffer, 0, count)
+                    output.write(buffer, 0, count)
+                }
+            }
+            require(total == length) { "Source stream length changed during upload." }
+            val actualDigest = digest.digest()
+            val expectedDigest = expectedPin.chunked(2).map { it.toInt(16).toByte() }.toByteArray()
+            val digestMatches = MessageDigest.isEqual(actualDigest, expectedDigest)
+            actualDigest.fill(0)
+            expectedDigest.fill(0)
+            require(digestMatches) { "Source file changed or its SHA-256 digest is incorrect." }
+
+            require(connection.responseCode == 200) {
+                "Windows rejected file upload (HTTP ${connection.responseCode})."
+            }
+            val json = JSONObject(readBoundedResponse(connection).toString(Charsets.UTF_8))
+            val receipt = FileTransferReceipt(
+                fileId = json.getString("fileId"),
+                fileName = json.getString("fileName"),
+                length = json.getLong("length"),
+                sha256 = json.getString("sha256"),
+                createdAtUtc = json.getString("createdAtUtc")
+            )
+            require(runCatching { java.util.UUID.fromString(receipt.fileId).toString() == receipt.fileId }.getOrDefault(false) &&
+                receipt.length == length && normalizePin(receipt.sha256) == expectedPin &&
+                receipt.fileName == fileName) {
+                "Windows returned a file receipt that does not match the upload."
+            }
+            return receipt
+        } finally {
+            connection.disconnect()
+        }
+    }
+
+    fun downloadFileTo(
+        baseUrl: String,
+        clientKeyAlias: String,
+        trustedServerSha256: String,
+        expectedDeviceId: String,
+        sessionId: String,
+        sessionToken: String,
+        fileId: String,
+        destination: OutputStream
+    ): FileTransferReceipt {
+        validateSessionCredentials(sessionId, sessionToken)
+        require(runCatching { java.util.UUID.fromString(fileId).toString() == fileId }.getOrDefault(false)) {
+            "File ID is invalid."
+        }
+        require(fetchWindowsIdentity(baseUrl, clientKeyAlias, trustedServerSha256, expectedDeviceId).deviceId == expectedDeviceId) {
+            "Windows device identity changed before file download."
+        }
+
+        val connection = openMtlsConnection(
+            baseUrl.trimEnd('/') + "/v1/files/$fileId",
+            clientKeyAlias,
+            trustedServerSha256
+        )
+        try {
+            connection.requestMethod = "GET"
+            connection.readTimeout = FILE_TRANSFER_TIMEOUT_MS
+            connection.setRequestProperty("Accept", "application/octet-stream")
+            connection.setRequestProperty("Authorization", "Bearer $sessionToken")
+            connection.setRequestProperty("X-INFINITY-Session-ID", sessionId)
+            require(connection.responseCode == 200) {
+                "Windows rejected file download (HTTP ${connection.responseCode})."
+            }
+            val length = connection.contentLengthLong
+            require(length in 0..MAX_FILE_BYTES) { "Downloaded file size is invalid." }
+            val expectedPin = normalizePin(connection.getHeaderField("X-INFINITY-File-SHA256"))
+                ?: throw IllegalStateException("Windows did not provide a valid file digest.")
+            val encodedName = connection.getHeaderField("X-INFINITY-File-Name")
+                ?: throw IllegalStateException("Windows did not provide a file name.")
+            val fileNameBytes = Base64.decode(encodedName, Base64.URL_SAFE or Base64.NO_WRAP)
+            val fileName = try { fileNameBytes.toString(Charsets.UTF_8) } finally { fileNameBytes.fill(0) }
+            validateTransferFileName(fileName)
+
+            val digest = MessageDigest.getInstance("SHA-256")
+            var total = 0L
+            connection.inputStream.use { input ->
+                val buffer = ByteArray(64 * 1024)
+                while (true) {
+                    val count = input.read(buffer)
+                    if (count < 0) break
+                    total += count
+                    require(total <= length && total <= MAX_FILE_BYTES) {
+                        "Windows sent more bytes than declared."
+                    }
+                    digest.update(buffer, 0, count)
+                    destination.write(buffer, 0, count)
+                }
+            }
+            destination.flush()
+            require(total == length) { "Downloaded file length does not match Content-Length." }
+            val actualDigest = digest.digest()
+            val expectedDigest = expectedPin.chunked(2).map { it.toInt(16).toByte() }.toByteArray()
+            val digestMatches = MessageDigest.isEqual(actualDigest, expectedDigest)
+            actualDigest.fill(0)
+            expectedDigest.fill(0)
+            require(digestMatches) { "Downloaded file failed SHA-256 integrity verification." }
+
+            return FileTransferReceipt(fileId, fileName, length, expectedPin, "")
+        } finally {
+            connection.disconnect()
+        }
+    }
+
+    fun deleteRemoteFile(
+        baseUrl: String,
+        clientKeyAlias: String,
+        trustedServerSha256: String,
+        expectedDeviceId: String,
+        sessionId: String,
+        sessionToken: String,
+        fileId: String
+    ): Boolean {
+        validateSessionCredentials(sessionId, sessionToken)
+        require(runCatching { java.util.UUID.fromString(fileId).toString() == fileId }.getOrDefault(false)) {
+            "File ID is invalid."
+        }
+        require(fetchWindowsIdentity(baseUrl, clientKeyAlias, trustedServerSha256, expectedDeviceId).deviceId == expectedDeviceId) {
+            "Windows device identity changed before file deletion."
+        }
+        val connection = openMtlsConnection(
+            baseUrl.trimEnd('/') + "/v1/files/$fileId",
+            clientKeyAlias,
+            trustedServerSha256
+        )
+        try {
+            connection.requestMethod = "DELETE"
+            connection.setRequestProperty("Authorization", "Bearer $sessionToken")
+            connection.setRequestProperty("X-INFINITY-Session-ID", sessionId)
+            return connection.responseCode == 204
+        } finally {
+            connection.disconnect()
+        }
+    }
+
+    private fun validateSessionCredentials(sessionId: String, sessionToken: String) {
+        require(runCatching { java.util.UUID.fromString(sessionId).toString() == sessionId }.getOrDefault(false)) {
+            "Session ID is invalid."
+        }
+        require(sessionToken.matches(Regex("[A-Za-z0-9_-]{43}"))) {
+            "Session bearer token is invalid."
+        }
+    }
+
+    private fun validateTransferFileName(fileName: String) {
+        require(fileName.isNotBlank() && fileName.length <= 128 &&
+            fileName != "." && fileName != ".." &&
+            fileName.none { it.isISOControl() || it in charArrayOf('/', '\\', ':', '<', '>', '"', '|', '?', '*') } &&
+            !fileName.endsWith(' ') && !fileName.endsWith('.')) {
+            "File name is invalid."
+        }
+        val stem = fileName.substringBefore('.').trimEnd(' ', '.')
+        require(stem.uppercase() !in setOf("CON", "PRN", "AUX", "NUL") &&
+            !(stem.length == 4 && (stem.startsWith("COM", true) || stem.startsWith("LPT", true)) &&
+                stem[3] in '1'..'9')) {
+            "File name is reserved by Windows."
         }
     }
 
@@ -376,6 +604,8 @@ internal class InfinityConnectMtlsTransport(
         private const val MAX_TIMEOUT_MS = 30_000
         private const val MAX_RESPONSE_BYTES = 8 * 1024
         private const val MAX_CHAIN_CERTIFICATES = 4
+        private const val MAX_FILE_BYTES = 50L * 1024 * 1024
+        private const val FILE_TRANSFER_TIMEOUT_MS = 60_000
         private val KNOWN_CAPABILITIES = setOf("identity.read", "remote.display", "remote.input", "file.transfer")
     }
 }
