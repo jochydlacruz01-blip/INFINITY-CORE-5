@@ -150,7 +150,7 @@ app.MapPost("/v1/sessions", async (HttpContext context, SessionCreateRequest req
     if (!request.Consent)
     {
         auditLog.Write("session.consent-denied", fingerprint, null, "denied");
-        return Results.Forbid();
+        return Results.StatusCode(StatusCodes.Status403Forbidden);
     }
 
     try
@@ -206,7 +206,7 @@ app.Run();
 
 static string? ReadBearerToken(HttpContext context)
 {
-    var header = context.Request.Headers.Authorization.ToString();
+    var header = context.Request.Headers["Authorization"].ToString();
     return header.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)
         ? header["Bearer ".Length..].Trim()
         : null;
