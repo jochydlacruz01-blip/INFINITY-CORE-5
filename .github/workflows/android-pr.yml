@@ -117,7 +117,7 @@ jobs:
           fi
 
       - name: Build and verify FreeRDP native libraries (no APK)
-        if: steps.freedrp_changes.outputs.changed == 'true'
+        if: steps.freerdp_changes.outputs.changed == 'true'
         run: |
           set -euo pipefail
           gradle -PINFINITY_BUILD_FREERDP_NATIVE=true :freerdpCore:externalNativeBuildDebug --no-daemon --max-workers=2 --stacktrace
