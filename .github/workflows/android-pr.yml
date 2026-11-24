@@ -53,6 +53,8 @@ jobs:
     steps:
       - name: Checkout pull request
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Configure Java 17
         uses: actions/setup-java@v4
