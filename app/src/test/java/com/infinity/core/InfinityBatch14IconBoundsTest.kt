@@ -107,4 +107,15 @@ class InfinityBatch14IconBoundsTest {
         assertEquals(2, result.size)
         result.forEach { assertEquals(true, it.x.isFinite() && it.y.isFinite()) }
     }
+
+    @Test fun iconBoundsSanitizeNonFiniteCoordinatesAndDimensions() {
+        assertEquals(
+            Offset(0f, 0f),
+            infinityBoundIconOffset(
+                Offset(20f, 20f), Offset.Zero,
+                Float.NaN, Float.POSITIVE_INFINITY,
+                Float.NaN, Float.POSITIVE_INFINITY
+            )
+        )
+    }
 }
