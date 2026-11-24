@@ -11,12 +11,16 @@ internal fun infinityBoundIconOffset(
     itemWidth: Float = 110f,
     itemHeight: Float = 150f
 ): Offset {
-    val maxX = (viewportWidth - itemWidth).coerceAtLeast(0f)
-    val maxY = (viewportHeight - itemHeight).coerceAtLeast(0f)
-    return Offset(
-        (current.x + delta.x).coerceIn(0f, maxX),
-        (current.y + delta.y).coerceIn(0f, maxY)
-    )
+    fun safe(value: Float, fallback: Float = 0f) = value.takeIf { it.isFinite() } ?: fallback
+    val width = safe(viewportWidth).coerceAtLeast(0f)
+    val height = safe(viewportHeight).coerceAtLeast(0f)
+    val iconWidth = safe(itemWidth, 110f).coerceAtLeast(0f)
+    val iconHeight = safe(itemHeight, 150f).coerceAtLeast(0f)
+    val maxX = (width - iconWidth).coerceAtLeast(0f)
+    val maxY = (height - iconHeight).coerceAtLeast(0f)
+    val x = safe(current.x) + safe(delta.x)
+    val y = safe(current.y) + safe(delta.y)
+    return Offset(x.coerceIn(0f, maxX), y.coerceIn(0f, maxY))
 }
 
 

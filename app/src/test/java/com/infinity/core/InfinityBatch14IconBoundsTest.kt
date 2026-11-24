@@ -5,6 +5,16 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class InfinityBatch14IconBoundsTest {
+    @Test fun nonFiniteDragAndViewportValuesRecoverToFiniteCoordinates() {
+        val result = infinityBoundIconOffset(Offset(Float.NaN, Float.POSITIVE_INFINITY), Offset(Float.NaN, -5f), Float.NaN, Float.NEGATIVE_INFINITY)
+        assertEquals(Offset(0f, 0f), result)
+    }
+
+    @Test fun invalidItemMetricsAreSanitizedAndFinite() {
+        val result = infinityBoundIconOffset(Offset(40f, 50f), Offset(10f, 10f), 200f, 300f, Float.NaN, Float.POSITIVE_INFINITY)
+        assertEquals(Offset(50f, 60f), result)
+    }
+
     @Test fun iconDragClampsToDesktopEdges() {
         assertEquals(Offset(0f, 0f), infinityBoundIconOffset(Offset(20f, 30f), Offset(-50f, -60f), 500f, 600f))
         assertEquals(Offset(390f, 450f), infinityBoundIconOffset(Offset(390f, 450f), Offset(40f, 60f), 500f, 600f))
