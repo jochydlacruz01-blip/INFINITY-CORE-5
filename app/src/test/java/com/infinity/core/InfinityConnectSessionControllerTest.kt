@@ -111,6 +111,7 @@ class InfinityConnectSessionControllerTest {
         }
         assertTrue(propagated)
         assertArrayEquals(CharArray(secret.size) { '\u0000' }, secret)
+        assertEquals(InfinityConnectSessionState.IDLE, controller.lifecycle.state)
     }
 
     @Test fun disconnectCancellationIsPropagatedAndLifecycleReturnsToIdle() = runBlocking {
