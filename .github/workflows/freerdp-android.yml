@@ -81,6 +81,6 @@ jobs:
             test -s "$JNI_LIBS/$library"
             ls -lh "$JNI_LIBS/$library"
           done
-          ANDROID_JNI="$(find freerdp-core/.cxx -type f -name 'libfreerdp-android.so' -print -quit)"
+          ANDROID_JNI="$(find freerdp-core external/FreeRDP/client/Android/Studio/freeRDPCore/src/main/jniLibs -type f -name 'libfreerdp-android.so' -print -quit)"
           test -n "$ANDROID_JNI"
           ls -lh "$ANDROID_JNI"
