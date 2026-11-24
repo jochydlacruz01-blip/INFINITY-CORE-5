@@ -25,6 +25,13 @@ class InfinityWorkspaceRulesTest {
         assertEquals("orbit_1", infinitySafeWindowIdentity(" ORBIT ", 0))
         assertEquals("file_manager_3", infinitySafeWindowIdentity("File_Manager", 9))
     }
+
+    @Test fun restoredWindowIdsAlwaysMatchCanonicalKindAndWorkspace() {
+        assertEquals("files_1", infinityNormalizeRestoredWindowId("files_1", "files", 1))
+        assertEquals("files_2", infinityNormalizeRestoredWindowId("legacy-window-42", "files", 2))
+        assertEquals("notes_3", infinityNormalizeRestoredWindowId(null, "notes", 3))
+        assertEquals("connect_1", infinityNormalizeRestoredWindowId("files_1", "connect", 1))
+    }
     @Test fun focusResolverKeepsValidFocusOrFallsBackToMostRecent() {
         assertEquals("b", infinityResolveFocusedWindow("b", listOf("a", "b")))
         assertEquals("c", infinityResolveFocusedWindow("missing", listOf("a", "c")))
