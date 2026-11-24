@@ -71,3 +71,16 @@ jobs:
 
       - name: Build native FreeRDP library only (no APK)
         run: gradle -PINFINITY_BUILD_FREERDP_NATIVE=true :freerdpCore:externalNativeBuildDebug --no-daemon --max-workers=2 --stacktrace
+
+      - name: Verify required arm64-v8a shared libraries
+        shell: bash
+        run: |
+          set -euo pipefail
+          JNI_LIBS="external/FreeRDP/client/Android/Studio/freeRDPCore/src/main/jniLibs/arm64-v8a"
+          for library in libfreerdp3.so libfreerdp-client3.so libwinpr3.so libssl.so libcrypto.so liburiparser.so; do
+            test -s "$JNI_LIBS/$library"
+            ls -lh "$JNI_LIBS/$library"
+          done
+          ANDROID_JNI="$(find freerdp-core/.cxx -type f -name 'libfreerdp-android.so' -print -quit)"
+          test -n "$ANDROID_JNI"
+          ls -lh "$ANDROID_JNI"
