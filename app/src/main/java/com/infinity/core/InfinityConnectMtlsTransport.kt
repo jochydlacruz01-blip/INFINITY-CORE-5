@@ -212,31 +212,18 @@ internal class InfinityConnectMtlsTransport(
         clientKeyAlias: String,
         trustedServerSha256: String
     ): HttpsURLConnection {
-        require(InfinityConnectIdentityKeyStore.isValidAlias(clientKeyAlias)) {
-            "Identity key alias is invalid."
-        }
-        val serverPin = normalizePin(trustedServerSha256)
-            ?: throw IllegalArgumentException("A valid Windows server SHA-256 fingerprint is required.")
-        require(keyStore.getKey(clientKeyAlias, null) != null &&
-            keyStore.getCertificateChain(clientKeyAlias)?.isNotEmpty() == true) {
-            "The Android client certificate has not been installed."
-        }
         val url = URL(endpoint)
         require(url.protocol.equals("https", ignoreCase = true) &&
             !url.host.isNullOrBlank() && url.userInfo == null && url.query == null && url.ref == null) {
             "Only a direct HTTPS Companion URL is accepted."
         }
-        val keyManagers = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm()).apply {
-            init(keyStore, null)
-        }
-        val sslContext = SSLContext.getInstance("TLSv1.3")
-        sslContext.init(keyManagers.keyManagers, arrayOf<TrustManager>(PinnedServerTrustManager(serverPin)), null)
+        val tls = createPinnedTls13Context(clientKeyAlias, trustedServerSha256)
         val connection = url.openConnection() as? HttpsURLConnection
             ?: throw IllegalArgumentException("The Companion endpoint must use HTTPS.")
         connection.connectTimeout = connectTimeoutMs.coerceIn(1_000, MAX_TIMEOUT_MS)
         connection.readTimeout = readTimeoutMs.coerceIn(1_000, MAX_TIMEOUT_MS)
         connection.instanceFollowRedirects = false
-        connection.sslSocketFactory = sslContext.socketFactory
+        connection.sslSocketFactory = tls.first.socketFactory
         return connection
     }
 
@@ -254,6 +241,28 @@ internal class InfinityConnectMtlsTransport(
             }
             output.toByteArray()
         }
+
+    internal fun createPinnedTls13Context(
+        clientKeyAlias: String,
+        trustedServerSha256: String
+    ): Pair<SSLContext, X509TrustManager> {
+        require(InfinityConnectIdentityKeyStore.isValidAlias(clientKeyAlias)) {
+            "Identity key alias is invalid."
+        }
+        val serverPin = normalizePin(trustedServerSha256)
+            ?: throw IllegalArgumentException("A valid Windows server SHA-256 fingerprint is required.")
+        require(keyStore.getKey(clientKeyAlias, null) != null &&
+            keyStore.getCertificateChain(clientKeyAlias)?.isNotEmpty() == true) {
+            "The Android client certificate has not been installed."
+        }
+        val keyManagers = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm()).apply {
+            init(keyStore, null)
+        }
+        val trustManager = PinnedServerTrustManager(serverPin)
+        val sslContext = SSLContext.getInstance("TLSv1.3")
+        sslContext.init(keyManagers.keyManagers, arrayOf<TrustManager>(trustManager), null)
+        return sslContext to trustManager
+    }
 
     private class PinnedServerTrustManager(private val expectedPin: String) : X509TrustManager {
         override fun checkClientTrusted(chain: Array<out X509Certificate>?, authType: String?) {
