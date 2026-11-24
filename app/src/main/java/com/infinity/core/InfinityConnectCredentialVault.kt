@@ -31,22 +31,24 @@ class InfinityConnectCredentialVault(context: Context) {
         Base64.NO_WRAP
     )
 
-    fun save(endpoint: String, secret: String) {
-        if (endpoint.isBlank()) return
-        if (secret.isEmpty()) { delete(endpoint); return }
+    fun save(endpoint: String, secret: String): Boolean {
+        if (endpoint.isBlank()) return false
+        if (secret.isEmpty()) { delete(endpoint); return true }
         val secretBytes = secret.toByteArray(Charsets.UTF_8)
         if (secretBytes.size > MAX_SECRET_LENGTH) {
             secretBytes.fill(0)
-            return
+            return false
         }
-        try {
+        return try {
             val cipher = Cipher.getInstance("AES/GCM/NoPadding")
             cipher.init(Cipher.ENCRYPT_MODE, key())
             val payload = cipher.iv + cipher.doFinal(secretBytes)
             prefs.edit().putString(id(endpoint), Base64.encodeToString(payload, Base64.NO_WRAP)).apply()
+            true
         } catch (_: Exception) {
             // Keystore failures must not crash the CONNECT profile editor.
             delete(endpoint)
+            false
         } finally {
             secretBytes.fill(0)
         }
