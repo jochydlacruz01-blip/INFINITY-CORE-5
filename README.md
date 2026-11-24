@@ -9,7 +9,7 @@ Aplicación Android nativa desarrollada con Kotlin y Jetpack Compose. INFINITY o
 - **Acceso a archivos:** utiliza el Storage Access Framework (SAF) oficial de Android. El usuario elige explícitamente las ubicaciones; INFINITY no intenta eludir las restricciones de almacenamiento de Android.
 - **INFINITY ORBIT:** indicadores de batería, memoria, almacenamiento y estado térmico, con actualización periódica.
 - **INFINITY ADVANCED:** ajustes rápidos y centro de notificaciones. El acceso requiere autorización especial del usuario en los ajustes de Android. La acción LIMPIAR borra la lista local de INFINITY; DESCARTAR solicita a Android retirar la notificación seleccionada. El feed limita su tamaño y sanitiza texto de notificaciones; el modo privacidad oculta títulos y mensajes.
-- **INFINITY CONNECT:** administración de perfiles, validación local y diagnóstico TCP. **La sesión RDP real aún no está implementada**; un perfil guardado o un puerto accesible no demuestran identidad verificada ni escritorio remoto activo.
+- **INFINITY CONNECT:** perfiles y diagnóstico TCP; enrolamiento CSR/certificados, cliente TLS 1.3 mTLS, sesiones con capacidades explícitas, túnel WebSocket autenticado hacia RDP local, adaptador FreeRDP, visualización/entrada remota y transferencia de archivos con SHA-256. Las capacidades remotas permanecen bloqueadas por defecto hasta completar la validación física Android–Windows. Un perfil guardado o un puerto accesible no demuestran identidad ni sesión activa.
 
 ## Requisitos técnicos
 
@@ -46,9 +46,9 @@ Durante esta etapa el repositorio utiliza verificación de código fuente sin ge
 - El workflow actual verifica código fuente, pruebas unitarias y lint; no genera ni valida APK.
 - Las operaciones de copiar/mover dependen de que el proveedor SAF elegido por Android las admita. Algunos proveedores pueden rechazarlas.
 - La apertura de documentos se delega a aplicaciones Android compatibles; no todos los formatos tienen vista previa integrada.
-- INFINITY CONNECT administra perfiles y realiza diagnósticos limitados; todavía no establece sesiones RDP reales.
-- El Windows Companion disponible en esta línea proporciona identidad, no captura de pantalla ni control remoto.
-- El pipeline de frames es una base de procesamiento de datos, no una transmisión remota completa.
+- El código de CONNECT ya incluye enrolamiento de certificados, mTLS, autorización de sesiones, túnel RDP, cliente FreeRDP y transferencia de archivos; la interoperabilidad real en hardware todavía no está certificada.
+- Windows Companion conecta únicamente con el servicio RDP local `127.0.0.1:3389`; las capacidades `remote.display`, `remote.input` y `file.transfer` están deshabilitadas por defecto y requieren autorización administrativa explícita.
+- El mailbox de frames es una frontera acotada de latencia/memoria; no sustituye el decodificador ni el motor RDP. La validación nativa arm64-v8a es un paso separado.
 - Antes de publicar una versión definitiva se deben completar las pruebas funcionales en teléfono/tablet, validar los flujos de permisos y probar la conexión real con Windows en dispositivos físicos.
 
 ## Arquitectura
