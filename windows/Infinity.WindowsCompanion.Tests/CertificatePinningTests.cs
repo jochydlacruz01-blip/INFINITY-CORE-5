@@ -1,5 +1,7 @@
-using Xunit;
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using Infinity.WindowsCompanion.Security;
+using Xunit;
 
 namespace Infinity.WindowsCompanion.Tests;
 
@@ -20,5 +22,46 @@ public sealed class CertificatePinningTests
     public void RejectsMalformedFingerprints(string value)
     {
         Assert.False(CertificatePinning.IsValidSha256Pin(value));
+    }
+
+    [Fact]
+    public void AcceptsOnlyCurrentClientAuthenticationCertificateWithMatchingPin()
+    {
+        using var certificate = CreateCertificate(CertificatePinning.ClientAuthenticationOid,
+            DateTimeOffset.UtcNow.AddMinutes(-1), DateTimeOffset.UtcNow.AddHours(1));
+        var pin = CertificatePinning.ComputeSha256Pin(certificate);
+        Assert.True(CertificatePinning.MatchesSha256Pin(certificate, pin));
+        Assert.False(CertificatePinning.MatchesSha256Pin(certificate, new string('0', 64)));
+    }
+
+    [Fact]
+    public void RejectsServerCertificateWhenPresentedAsClient()
+    {
+        using var certificate = CreateCertificate(CertificatePinning.ServerAuthenticationOid,
+            DateTimeOffset.UtcNow.AddMinutes(-1), DateTimeOffset.UtcNow.AddHours(1));
+        Assert.False(CertificatePinning.MatchesSha256Pin(
+            certificate, CertificatePinning.ComputeSha256Pin(certificate)));
+    }
+
+    [Fact]
+    public void RejectsExpiredClientCertificate()
+    {
+        using var certificate = CreateCertificate(CertificatePinning.ClientAuthenticationOid,
+            DateTimeOffset.UtcNow.AddHours(-2), DateTimeOffset.UtcNow.AddHours(-1));
+        Assert.False(CertificatePinning.MatchesSha256Pin(
+            certificate, CertificatePinning.ComputeSha256Pin(certificate)));
+    }
+
+    private static X509Certificate2 CreateCertificate(
+        string usageOid,
+        DateTimeOffset notBefore,
+        DateTimeOffset notAfter)
+    {
+        using var key = RSA.Create(2048);
+        var request = new CertificateRequest("CN=INFINITY test certificate", key,
+            HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+        var usages = new OidCollection { new Oid(usageOid) };
+        request.CertificateExtensions.Add(new X509EnhancedKeyUsageExtension(usages, critical: true));
+        return request.CreateSelfSigned(notBefore, notAfter);
     }
 }
