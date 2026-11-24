@@ -90,9 +90,9 @@ internal fun InfinityFilesPreviewDialog(
                 if (imagePreview) {
                     previewBitmap = withContext(Dispatchers.IO) {
                         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-                        context.contentResolver.openInputStream(uri)?.use {
-                            BitmapFactory.decodeStream(it, null, bounds)
-                        } ?: throw IllegalStateException("No se pudo abrir la imagen.")
+                        val boundsStream = context.contentResolver.openInputStream(uri)
+                            ?: throw IllegalStateException("No se pudo abrir la imagen.")
+                        boundsStream.use { BitmapFactory.decodeStream(it, null, bounds) }
                         if (bounds.outWidth <= 0 || bounds.outHeight <= 0) {
                             throw IllegalArgumentException("El archivo de imagen no es válido.")
                         }
