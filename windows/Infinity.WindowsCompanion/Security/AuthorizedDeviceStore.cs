@@ -11,7 +11,7 @@ namespace Infinity.WindowsCompanion.Security;
 /// </summary>
 public sealed class AuthorizedDeviceStore
 {
-    private const string RegistryPath = @"SOFTWARE\\INFINITY\\WindowsCompanion\\AuthorizedDevices";
+    private const string RegistryPath = @"SOFTWARE\INFINITY\WindowsCompanion\AuthorizedDevices";
 
     public bool IsAuthorized(X509Certificate certificate)
     {
@@ -31,6 +31,7 @@ public sealed class AuthorizedDeviceStore
 
     public static string ApproveFromLocalConsole(string certificatePath)
     {
+        if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException("Windows is required.");
         EnsureElevatedWindowsAdministrator();
         using var certificate = new X509Certificate2(
             Path.GetFullPath(certificatePath),
@@ -52,6 +53,7 @@ public sealed class AuthorizedDeviceStore
 
     public static bool RevokeFromLocalConsole(string fingerprint)
     {
+        if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException("Windows is required.");
         EnsureElevatedWindowsAdministrator();
         var pin = CertificatePinning.NormalizeSha256Pin(fingerprint)
             ?? throw new ArgumentException("A SHA-256 certificate fingerprint is required.", nameof(fingerprint));
