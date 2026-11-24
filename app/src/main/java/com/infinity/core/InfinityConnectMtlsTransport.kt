@@ -117,6 +117,14 @@ internal class InfinityConnectMtlsTransport(
         trustedServerSha256: String,
         expectedDeviceId: String
     ): AuthorizedIdentitySession {
+        require(fetchWindowsIdentity(
+            baseUrl,
+            clientKeyAlias,
+            trustedServerSha256,
+            expectedDeviceId
+        ).deviceId == expectedDeviceId) {
+            "The authenticated Windows identity changed before session authorization."
+        }
         val connection = openMtlsConnection(
             baseUrl.trimEnd('/') + "/v1/sessions",
             clientKeyAlias,
@@ -142,7 +150,7 @@ internal class InfinityConnectMtlsTransport(
             val expiry = json.getString("expiresAtUtc")
             val capabilitiesJson = json.getJSONArray("capabilities")
             val capabilities = (0 until capabilitiesJson.length()).map { capabilitiesJson.getString(it) }
-            require(runCatching { java.util.UUID.fromString(sessionId) }.isSuccess) {
+            require(runCatching { java.util.UUID.fromString(sessionId).toString() == sessionId }.getOrDefault(false)) {
                 "Windows devolvió un ID de sesión inválido."
             }
             require(token.matches(Regex("[A-Za-z0-9_-]{43}"))) {
