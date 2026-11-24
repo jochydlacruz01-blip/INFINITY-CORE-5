@@ -44,6 +44,32 @@ public sealed class CertificatePinningTests
     }
 
     [Fact]
+    public void RejectsClientCertificateWhenKeyUsageForbidsDigitalSignature()
+    {
+        using var certificate = CreateCertificate(
+            CertificatePinning.ClientAuthenticationOid,
+            DateTimeOffset.UtcNow.AddMinutes(-1),
+            DateTimeOffset.UtcNow.AddHours(1),
+            includeKeyUsage: true,
+            keyUsage: X509KeyUsageFlags.KeyEncipherment);
+        Assert.False(CertificatePinning.MatchesSha256Pin(
+            certificate, CertificatePinning.ComputeSha256Pin(certificate)));
+    }
+
+    [Fact]
+    public void AcceptsClientCertificateWhenKeyUsageAllowsDigitalSignature()
+    {
+        using var certificate = CreateCertificate(
+            CertificatePinning.ClientAuthenticationOid,
+            DateTimeOffset.UtcNow.AddMinutes(-1),
+            DateTimeOffset.UtcNow.AddHours(1),
+            includeKeyUsage: true,
+            keyUsage: X509KeyUsageFlags.DigitalSignature);
+        Assert.True(CertificatePinning.MatchesSha256Pin(
+            certificate, CertificatePinning.ComputeSha256Pin(certificate)));
+    }
+
+    [Fact]
     public void RejectsExpiredClientCertificate()
     {
         using var certificate = CreateCertificate(CertificatePinning.ClientAuthenticationOid,
@@ -55,13 +81,17 @@ public sealed class CertificatePinningTests
     private static X509Certificate2 CreateCertificate(
         string usageOid,
         DateTimeOffset notBefore,
-        DateTimeOffset notAfter)
+        DateTimeOffset notAfter,
+        bool includeKeyUsage = false,
+        X509KeyUsageFlags keyUsage = X509KeyUsageFlags.DigitalSignature)
     {
         using var key = RSA.Create(2048);
         var request = new CertificateRequest("CN=INFINITY test certificate", key,
             HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
         var usages = new OidCollection { new Oid(usageOid) };
         request.CertificateExtensions.Add(new X509EnhancedKeyUsageExtension(usages, critical: true));
+        if (includeKeyUsage)
+            request.CertificateExtensions.Add(new X509KeyUsageExtension(keyUsage, critical: true));
         return request.CreateSelfSigned(notBefore, notAfter);
     }
 }
