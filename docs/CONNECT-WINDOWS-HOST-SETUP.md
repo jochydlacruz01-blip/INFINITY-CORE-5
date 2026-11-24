@@ -55,7 +55,7 @@ File transfer is independently controlled by:
 
 All are disabled unless explicitly set to the literal value `true`. Changing them requires restarting the Companion. Android also has hard-coded feature gates for remote desktop and file transfer; both remain false until the physical interoperability/security checklist passes. Do not enable either side before the tests are complete.
 
-File transfer is limited to 50 MiB per file and a bounded per-device storage quota. Files are stored in the Companion-managed `ProgramData\INFINITY\WindowsCompanion\Transfers` area, not written to arbitrary Windows folders. Android uses SAF for user-selected source and destination documents.
+File transfer is limited to 50 MiB per file and a bounded per-device storage quota. Files are stored in the Companion-managed `ProgramData\INFINITY\WindowsCompanion\Transfers` area, not written to arbitrary Windows folders. The transfer root and per-device folders use protected NTFS ACLs limited to SYSTEM, Administrators and the service identity; broad Users/Everyone access is not granted. Android uses SAF for user-selected source and destination documents.
 
 ## 5. Network model
 
