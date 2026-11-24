@@ -617,6 +617,12 @@ val iconOffsets = remember {
                 Box(Modifier.fillMaxSize().background(Color(0x66081729)))
             }
 
+            // PACK13: render a true layered futuristic scene when no personal wallpaper is selected.
+            // The scene is decorative only; all desktop controls remain live Compose elements above it.
+            if (currentWallpaperBitmap == null && maxW >= 600.dp && !dashboardOpen && futuristicDesktop) {
+                InfinityFuturisticScene(modifier = Modifier.fillMaxSize())
+            }
+
             // Cabecera de marca para tablet; no sustituye los accesos ni el fondo elegido.
             if (maxW >= 600.dp && !dashboardOpen && futuristicDesktop) {
                 InfinityDesktopMasthead(
