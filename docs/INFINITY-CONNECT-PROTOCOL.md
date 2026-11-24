@@ -224,3 +224,14 @@ The Windows Companion now exposes a narrowly scoped session authorization API af
 Android CONNECT now has a separate explicit consent step for an identity-only session. It stores the returned bearer token encrypted through the existing Android Keystore AES-GCM credential vault and offers a session-revoke action.
 
 **Important capability boundary:** the only session capability granted in this pack is `identity.read`. `remote.display`, `remote.input`, `file.transfer`, clipboard, shell and RDP proxy capabilities remain denied and are not mapped to endpoints. Session authorization is not remote desktop functionality.
+
+
+## 16. PACK31 native RDP engine dependency
+
+The Android native engine is pinned as a Git submodule to the verified FreeRDP 3.33.1 release commit `65bcca1913a28cbdd7eb913599f692bd2b707991`. The module builds only `arm64-v8a`, matching the INFINITY tablet target. Native dependencies are configured with OpenSSL enabled and optional audio/video/image codec bundles disabled for the initial secure transport build.
+
+A separate GitHub Actions workflow builds `:freerdpCore:externalNativeBuildDebug` only. It does not run assemble, package or upload an APK. The app's existing visual layer is not replaced by the FreeRDP sample UI; only the native library and Java client core are included.
+
+**RDP security integration rule:** the upstream `LibFreeRDP.setConnectionInfo(Context, instance, BookmarkBase)` path appends `/cert:ignore` and must not be used by INFINITY. The adapter must use a controlled argument path with certificate verification enabled and accept the RDP server certificate only when its fingerprint matches an explicitly trusted pin. No RDP connection is enabled by this dependency integration alone.
+
+The native library is not yet considered a functioning INFINITY remote session. It must pass native compilation, runtime loading on the Samsung tablet, pinned RDP certificate validation, screen update tests, input gating and the mTLS-authorized loopback tunnel before remote capabilities are granted.
