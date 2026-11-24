@@ -6,9 +6,12 @@ import android.graphics.drawable.BitmapDrawable
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
+import android.view.KeyEvent
 import com.freerdp.freerdpcore.application.GlobalApp
 import com.freerdp.freerdpcore.application.SessionState
 import com.freerdp.freerdpcore.services.LibFreeRDP
+import com.freerdp.freerdpcore.utils.KeyboardMapper
+import com.freerdp.freerdpcore.utils.Mouse
 import java.security.MessageDigest
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.Dispatchers
@@ -40,7 +43,7 @@ internal class InfinityFreeRdpClient(
         val domain: String,
         password: CharArray
     ) {
-        private val secret = password.copyOf()
+        private val secret = password
         private val consumed = AtomicBoolean(false)
 
         fun consume(into: StringBuilder): Boolean {
@@ -62,7 +65,8 @@ internal class InfinityFreeRdpClient(
     private val instanceLock = Any()
     private val mainHandler = Handler(Looper.getMainLooper())
     private val closed = AtomicBoolean(false)
-    private var session: SessionState? = null
+    @Volatile private var session: SessionState? = null
+    private val keyboardMapper = KeyboardMapper()
     private var frameBitmap: Bitmap? = null
     @Volatile private var connected = false
 
@@ -73,6 +77,33 @@ internal class InfinityFreeRdpClient(
         require(tunnel.localHost == "127.0.0.1" && tunnel.localPort in 1024..65535) {
             "FreeRDP must use the authenticated loopback tunnel."
         }
+        keyboardMapper.init(context)
+        keyboardMapper.reset(object : KeyboardMapper.KeyProcessingListener {
+            override fun processVirtualKey(virtualKeyCode: Int, down: Boolean) {
+                if (canSendInput()) session?.let {
+                    LibFreeRDP.sendKeyEvent(it.instance, virtualKeyCode, down)
+                }
+            }
+
+            override fun processUnicodeKey(unicodeKey: Int) {
+                if (canSendInput()) session?.let {
+                    LibFreeRDP.sendUnicodeKeyEvent(it.instance, unicodeKey, true)
+                    LibFreeRDP.sendUnicodeKeyEvent(it.instance, unicodeKey, false)
+                }
+            }
+
+            override fun isUnicodeInputSupported(): Boolean = true
+
+            override fun processKeyAsUnicode(virtualKeyCode: Int, unicodeKey: Int, modmask: Int) {
+                if (canSendInput()) session?.let {
+                    LibFreeRDP.sendKeyAsUnicodeEvent(it.instance, virtualKeyCode, unicodeKey, modmask, true)
+                    LibFreeRDP.sendKeyAsUnicodeEvent(it.instance, virtualKeyCode, unicodeKey, modmask, false)
+                }
+            }
+
+            override fun switchKeyboard(keyboardType: Int) = Unit
+            override fun modifiersChanged() = Unit
+        })
     }
 
     suspend fun connect() = withContext(Dispatchers.IO) {
@@ -254,12 +285,22 @@ internal class InfinityFreeRdpClient(
         return LibFreeRDP.sendCursorEvent(current.instance, boundedX, boundedY, flags)
     }
 
-    /** scanCode must be a FreeRDP/Windows scan code, not an Android keyCode. */
-    fun sendScanCode(scanCode: Int, down: Boolean): Boolean {
-        if (!canSendInput()) return false
-        val current = session ?: return false
-        return LibFreeRDP.sendKeyEvent(current.instance, scanCode, down)
+    /** Processes Android hardware/soft-keyboard events through FreeRDP's layout-aware mapper. */
+    fun processAndroidKeyEvent(event: KeyEvent): Boolean =
+        canSendInput() && keyboardMapper.processAndroidKeyEvent(event)
+
+    fun sendMouseButton(x: Int, y: Int, button: Int, down: Boolean): Boolean {
+        val flags = when (button) {
+            1 -> Mouse.getLeftButtonEvent(context, down)
+            2 -> Mouse.getMiddleButtonEvent(down)
+            3 -> Mouse.getRightButtonEvent(context, down)
+            else -> return false
+        }
+        return sendPointer(x, y, flags)
     }
+
+    fun sendMouseWheel(x: Int, y: Int, amount: Int): Boolean =
+        sendPointer(x, y, Mouse.getScrollEvent(context, amount))
 
     fun sendUnicode(scanCode: Int, codePoint: Int, modifierMask: Int, down: Boolean): Boolean {
         if (!canSendInput()) return false
@@ -279,6 +320,7 @@ internal class InfinityFreeRdpClient(
     suspend fun closeSession() = withContext(Dispatchers.IO) {
         if (!closed.compareAndSet(false, true)) return@withContext
         credentials.clear()
+        keyboardMapper.clearlAllModifiers()
         val current = session
         session = null
         tunnel.close()
