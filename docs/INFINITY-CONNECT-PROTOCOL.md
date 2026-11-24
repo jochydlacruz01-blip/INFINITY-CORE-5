@@ -145,7 +145,8 @@ Each capability needs its own threat model, explicit session consent, permission
 | Android one-time challenge registry | bounded process-local registry with consume-once semantics | Implemented and unit tests added; not wired to network enrollment |
 | Android certificate fingerprint comparison | strict SHA-256 format and constant-time comparison | Implemented local primitive |
 | Android X.509 trust policy | bounded DER parsing, SHA-256 pin, validity, EKU and digital-signature key-usage checks | Implemented helper; not yet wired into TLS transport |
-| Android client certificate provisioning | no enrollment/key lifecycle integration verified | Not implemented |
+| Android identity signing key | non-exportable EC P-256 key generated/stored in Android Keystore; domain-separated transcript signing | Key primitive implemented; no certificate issuance/enrollment |
+| Android client certificate provisioning | no issued client certificate or chain installation verified | Not implemented |
 | Android TLS 1.3 mTLS client | no live client transport verified | Not implemented |
 | Windows TLS 1.3 mTLS endpoint | Kestrel identity-only endpoint | Implemented in source; interoperability test still required |
 | Windows certificate pin and EKU checks | CertificatePinning.cs | Implemented in source with unit tests |
