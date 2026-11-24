@@ -46,8 +46,8 @@ def audit_manifest(path: str | Path) -> list[str]:
             continue
 
         has_launcher = any(
-            intent.find("action[@%s='android.intent.action.MAIN']" % (ANDROID + "name")) is not None
-            and intent.find("category[@%s='android.intent.category.LAUNCHER']" % (ANDROID + "name")) is not None
+            any(attr(action, "name") == "android.intent.action.MAIN" for action in intent.findall("action"))
+            and any(attr(category, "name") == "android.intent.category.LAUNCHER" for category in intent.findall("category"))
             for intent in component.findall("intent-filter")
         )
         if component.tag == "activity" and has_launcher:
