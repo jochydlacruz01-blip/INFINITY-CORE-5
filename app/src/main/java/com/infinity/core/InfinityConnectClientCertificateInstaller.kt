@@ -65,10 +65,21 @@ internal class InfinityConnectClientCertificateInstaller(
             }
             child.verify(issuer.publicKey)
         }
-        require(root.basicConstraints >= 0) { "The trust anchor is not a CA certificate." }
-        require(currentTime >= root.notBefore && currentTime <= root.notAfter) {
-            "Trusted CA certificate is outside its validity period."
+        for (index in 1 until chain.size) {
+            val issuer = chain[index]
+            require(issuer.basicConstraints >= 0) { "An issuer certificate is not a CA certificate." }
+            val issuerUsage = issuer.keyUsage
+            require(issuerUsage == null || issuerUsage.size > 5 && issuerUsage[5]) {
+                "An issuer certificate does not permit certificate signing."
+            }
+            require(currentTime >= issuer.notBefore && currentTime <= issuer.notAfter) {
+                "An issuer certificate is outside its validity period."
+            }
         }
+        require(root.subjectX500Principal == root.issuerX500Principal) {
+            "The trusted CA certificate is not self-issued."
+        }
+        root.verify(root.publicKey)
 
         keyStore.setKeyEntry(alias, privateKey, null, chain)
     }
