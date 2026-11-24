@@ -110,7 +110,7 @@ jobs:
           else
             BASE_SHA="${{ github.event.before }}"
           fi
-          if git diff --name-only "$BASE_SHA"...HEAD | grep -Eq '^(freerdp-core/|external/FreeRDP/|\\.gitmodules$)'; then
+          if git diff --name-only "$BASE_SHA"...HEAD | grep -Eq '^(freerdp-core/|external/FreeRDP/|\.gitmodules$)'; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
           else
             echo "changed=false" >> "$GITHUB_OUTPUT"
