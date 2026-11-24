@@ -9,6 +9,11 @@ class InfinityBatch48AdaptiveWindowSizeTest {
         assertEquals(296f to 90f, infinityInitialWindowSize(320f, 240f))
     }
 
+    @Test fun windowSizeSanitizesNonFiniteValues() {
+        assertEquals(1f to 1f, infinityInitialWindowSize(Float.NaN, Float.POSITIVE_INFINITY))
+        assertEquals(1f to 1f, infinityInitialWindowSize(100f, 100f, Float.NaN, Float.NEGATIVE_INFINITY, Float.NaN, Float.NaN))
+    }
+
     @Test fun desktopKeepsEstablishedWindowDimensions() {
         assertEquals(370f to 330f, infinityInitialWindowSize(1200f, 900f))
     }
