@@ -207,7 +207,7 @@ fun InfinityConnectEnrollmentPanel() {
             Button(
                 enabled = !busy &&
                     companionHost.isNotBlank() &&
-                    companionPort.toIntOrNull() in 1024..65535 &&
+                    companionPort.toIntOrNull()?.let { it in 1024..65535 } == true &&
                     serverPin.replace(":", "").replace(" ", "").matches(Regex("[A-Fa-f0-9]{64}")) &&
                     runCatching { UUID.fromString(expectedServerId) }.isSuccess,
                 onClick = {
