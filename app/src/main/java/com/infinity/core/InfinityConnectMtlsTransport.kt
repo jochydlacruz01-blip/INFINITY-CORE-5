@@ -27,7 +27,8 @@ internal class InfinityConnectMtlsTransport(
         val product: String,
         val version: String,
         val transportSecurity: String,
-        val capability: String
+        val capability: String,
+        val allowedCapabilities: Set<String>
     )
 
     fun fetchWindowsIdentity(
@@ -90,7 +91,10 @@ internal class InfinityConnectMtlsTransport(
                 product = json.getString("product"),
                 version = json.getString("version"),
                 transportSecurity = json.getString("transportSecurity"),
-                capability = json.getString("capability")
+                capability = json.getString("capability"),
+                allowedCapabilities = json.optJSONArray("allowedCapabilities")?.let { values ->
+                    (0 until values.length()).map { values.getString(it) }.toSet()
+                } ?: setOf("identity.read")
             )
             require(identity.deviceId.isNotBlank() && identity.deviceId.length <= 128) {
                 "Windows returned an invalid device identity."
@@ -115,15 +119,29 @@ internal class InfinityConnectMtlsTransport(
         baseUrl: String,
         clientKeyAlias: String,
         trustedServerSha256: String,
-        expectedDeviceId: String
+        expectedDeviceId: String,
+        requestedCapabilities: Set<String> = setOf("identity.read")
     ): AuthorizedIdentitySession {
-        require(fetchWindowsIdentity(
+        require(requestedCapabilities.contains("identity.read") &&
+            requestedCapabilities.size in 1..4 &&
+            requestedCapabilities.all { it in KNOWN_CAPABILITIES }) {
+            "Requested session capabilities are invalid."
+        }
+        require(requestedCapabilities.contains("remote.display") ==
+            requestedCapabilities.contains("remote.input")) {
+            "Remote display and input must be requested together."
+        }
+        val windowsIdentity = fetchWindowsIdentity(
             baseUrl,
             clientKeyAlias,
             trustedServerSha256,
             expectedDeviceId
-        ).deviceId == expectedDeviceId) {
+        )
+        require(windowsIdentity.deviceId == expectedDeviceId) {
             "The authenticated Windows identity changed before session authorization."
+        }
+        require(windowsIdentity.allowedCapabilities.containsAll(requestedCapabilities)) {
+            "Windows administrator policy does not allow all requested capabilities."
         }
         val connection = openMtlsConnection(
             baseUrl.trimEnd('/') + "/v1/sessions",
@@ -137,7 +155,9 @@ internal class InfinityConnectMtlsTransport(
             connection.setRequestProperty("Accept", "application/json")
             val request = JSONObject()
                 .put("consent", true)
-                .put("requestedCapabilities", org.json.JSONArray().put("identity.read"))
+                .put("requestedCapabilities", org.json.JSONArray().apply {
+                    requestedCapabilities.sorted().forEach(::put)
+                })
                 .toString()
                 .toByteArray(Charsets.UTF_8)
             connection.outputStream.use { it.write(request) }
@@ -170,6 +190,32 @@ internal class InfinityConnectMtlsTransport(
             connection.disconnect()
         }
     }
+
+    fun createRemoteSession(
+        baseUrl: String,
+        clientKeyAlias: String,
+        trustedServerSha256: String,
+        expectedDeviceId: String
+    ): AuthorizedIdentitySession = createIdentitySession(
+        baseUrl,
+        clientKeyAlias,
+        trustedServerSha256,
+        expectedDeviceId,
+        setOf("identity.read", "remote.display", "remote.input")
+    )
+
+    fun createFileTransferSession(
+        baseUrl: String,
+        clientKeyAlias: String,
+        trustedServerSha256: String,
+        expectedDeviceId: String
+    ): AuthorizedIdentitySession = createIdentitySession(
+        baseUrl,
+        clientKeyAlias,
+        trustedServerSha256,
+        expectedDeviceId,
+        setOf("identity.read", "file.transfer")
+    )
 
     fun revokeIdentitySession(
         baseUrl: String,
@@ -330,5 +376,6 @@ internal class InfinityConnectMtlsTransport(
         private const val MAX_TIMEOUT_MS = 30_000
         private const val MAX_RESPONSE_BYTES = 8 * 1024
         private const val MAX_CHAIN_CERTIFICATES = 4
+        private val KNOWN_CAPABILITIES = setOf("identity.read", "remote.display", "remote.input", "file.transfer")
     }
 }
