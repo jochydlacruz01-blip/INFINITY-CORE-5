@@ -1,0 +1,70 @@
+name: INFINITY FreeRDP Android Native Verification
+
+on:
+  pull_request:
+    branches:
+      - INFINITY-PACK-14-REMOTE-FRAME-PIPELINE
+    paths:
+      - ".gitmodules"
+      - "external/FreeRDP"
+      - "freerdp-core/**"
+      - "app/build.gradle.kts"
+      - "settings.gradle.kts"
+      - "build.gradle.kts"
+      - ".github/workflows/freerdp-android.yml"
+  push:
+    branches:
+      - INFINITY-PACK-14-REMOTE-FRAME-PIPELINE
+    paths:
+      - ".gitmodules"
+      - "external/FreeRDP"
+      - "freerdp-core/**"
+      - "app/build.gradle.kts"
+      - "settings.gradle.kts"
+      - "build.gradle.kts"
+      - ".github/workflows/freerdp-android.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: infinity-freerdp-native-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  android-arm64-native:
+    name: Build FreeRDP native libraries (arm64-v8a; no APK)
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout pinned sources
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Configure Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install Android SDK, NDK and CMake
+        uses: android-actions/setup-android@v3
+        with:
+          packages: "platforms;android-35,build-tools;35.0.0,ndk;29.0.13113456,cmake;3.22.1"
+
+      - name: Configure Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+
+      - name: Verify pinned FreeRDP source
+        run: |
+          set -euo pipefail
+          test -f external/FreeRDP/client/Android/Studio/freeRDPCore/src/main/cpp/CMakeLists.txt
+          git -C external/FreeRDP describe --tags --exact-match
+          test "$(git -C external/FreeRDP rev-parse HEAD)" = "65bcca1913a28cbdd7eb913599f692bd2b707991"
+
+      - name: Build native FreeRDP library only (no APK)
+        run: gradle :freerdpCore:externalNativeBuildDebug --no-daemon --max-workers=2 --stacktrace
