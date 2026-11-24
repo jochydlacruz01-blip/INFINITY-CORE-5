@@ -67,6 +67,7 @@ internal class InfinityFreeRdpClient(
     private val closed = AtomicBoolean(false)
     @Volatile private var session: SessionState? = null
     private val keyboardMapper = KeyboardMapper()
+    private val pendingFrames = InfinityLatestFrameMailbox<Bitmap>()
     private var frameBitmap: Bitmap? = null
     @Volatile private var connected = false
 
@@ -226,7 +227,7 @@ internal class InfinityFreeRdpClient(
                 val bitmap = frameBitmap ?: return
                 if (closed.get()) return
                 if (LibFreeRDP.updateGraphics(owner.instance, bitmap, x, y, width, height)) {
-                    mainHandler.post { if (!closed.get()) listener.onFrame(bitmap) }
+                    dispatchLatestFrame(bitmap)
                 }
             }
         }
@@ -263,14 +264,23 @@ internal class InfinityFreeRdpClient(
                 return
             }
             val old = frameBitmap
+            pendingFrames.clear()
             frameBitmap = replacement
             owner.surface = BitmapDrawable(context.resources, replacement)
             old?.recycle()
         }
         mainHandler.post {
-            if (!closed.get()) {
-                listener.onResolutionChanged(width, height)
-                listener.onFrame(replacement)
+            if (!closed.get()) listener.onResolutionChanged(width, height)
+        }
+        dispatchLatestFrame(replacement)
+    }
+
+    private fun dispatchLatestFrame(bitmap: Bitmap) {
+        if (closed.get()) return
+        if (pendingFrames.offer(bitmap)) {
+            mainHandler.post {
+                val latest = pendingFrames.takeLatest()
+                if (!closed.get() && latest != null) listener.onFrame(latest)
             }
         }
     }
@@ -341,6 +351,7 @@ internal class InfinityFreeRdpClient(
             GlobalApp.freeSession(current.instance)
         }
         synchronized(instanceLock) {
+            pendingFrames.clear()
             frameBitmap?.recycle()
             frameBitmap = null
         }
