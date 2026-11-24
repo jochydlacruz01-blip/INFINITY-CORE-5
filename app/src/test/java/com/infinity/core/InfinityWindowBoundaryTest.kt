@@ -78,4 +78,17 @@ class InfinityWindowBoundaryTest {
         assertTrue(bounds.width.isFinite() && bounds.height.isFinite())
         assertTrue(bounds.x >= 0f && bounds.y >= 0f)
     }
+    @Test fun gestureDeltaConvertsPixelsToDpAtDifferentDensities() {
+        assertEquals(10f, infinityGestureDeltaToDp(20f, 2f), 0.001f)
+        assertEquals(20f, infinityGestureDeltaToDp(30f, 1.5f), 0.001f)
+        assertEquals(40f, infinityGestureDeltaToDp(40f, 1f), 0.001f)
+    }
+
+    @Test fun gestureDeltaRecoversFromInvalidInputs() {
+        assertEquals(0f, infinityGestureDeltaToDp(Float.NaN, 2f), 0.001f)
+        assertEquals(0f, infinityGestureDeltaToDp(Float.POSITIVE_INFINITY, 2f), 0.001f)
+        assertEquals(12f, infinityGestureDeltaToDp(12f, Float.NaN), 0.001f)
+        assertEquals(12f, infinityGestureDeltaToDp(12f, 0f), 0.001f)
+    }
+
 }
