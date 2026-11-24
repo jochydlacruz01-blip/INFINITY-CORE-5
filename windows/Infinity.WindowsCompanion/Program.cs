@@ -294,6 +294,10 @@ app.MapGet("/v1/files/{fileId}", async (HttpContext context, string fileId) =>
     context.Response.StatusCode = StatusCodes.Status200OK;
     context.Response.ContentType = "application/octet-stream";
     context.Response.ContentLength = metadata.Length;
+    context.Response.Headers["X-INFINITY-File-SHA256"] = metadata.Sha256;
+    context.Response.Headers["X-INFINITY-File-Name"] =
+        Convert.ToBase64String(Encoding.UTF8.GetBytes(metadata.FileName))
+            .TrimEnd('=').Replace('+', '-').Replace('/', '_');
     context.Response.Headers["Content-Disposition"] =
         $"attachment; filename*=UTF-8''{Uri.EscapeDataString(metadata.FileName)}";
     await file.CopyToAsync(context.Response.Body, 64 * 1024, context.RequestAborted);
