@@ -46,8 +46,8 @@ class InfinityConnectCredentialVault(context: Context) {
             prefs.edit().putString(id(endpoint), Base64.encodeToString(payload, Base64.NO_WRAP)).apply()
             true
         } catch (_: Exception) {
-            // Keystore failures must not crash the CONNECT profile editor.
-            delete(endpoint)
+            // Keep any previously saved credential if encrypting the replacement fails.
+            // The caller receives false and can warn the user without destroying valid data.
             false
         } finally {
             secretBytes.fill(0)
