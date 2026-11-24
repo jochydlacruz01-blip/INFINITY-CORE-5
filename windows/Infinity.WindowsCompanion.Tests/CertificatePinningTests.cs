@@ -1,3 +1,4 @@
+using Xunit;
 using Infinity.WindowsCompanion.Security;
 
 namespace Infinity.WindowsCompanion.Tests;
