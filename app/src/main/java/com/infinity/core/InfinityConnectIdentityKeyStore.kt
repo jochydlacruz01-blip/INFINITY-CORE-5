@@ -64,7 +64,7 @@ internal class InfinityConnectIdentityKeyStore(
         return signature.sign()
     }
 
-    /** Signs the exact PKCS##10 CertificationRequestInfo bytes using the non-exportable key. */
+    /** Signs the exact PKCS#10 CertificationRequestInfo bytes using the non-exportable key. */
     fun signCertificationRequestInfo(alias: String, certificationRequestInfo: ByteArray): ByteArray {
         require(isValidAlias(alias)) { "Identity key alias is invalid." }
         require(certificationRequestInfo.isNotEmpty() && certificationRequestInfo.size <= MAX_TRANSCRIPT_BYTES) {
