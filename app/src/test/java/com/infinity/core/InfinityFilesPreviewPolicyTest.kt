@@ -34,6 +34,27 @@ class InfinityFilesPreviewPolicyTest {
     }
 
     @Test
+    fun supportsCommonImageFormats() {
+        listOf("photo.png", "photo.jpg", "photo.jpeg", "photo.webp", "photo.bmp")
+            .forEach { name ->
+                assertTrue("$name should be previewable", InfinityFilesPreviewPolicy.supportsImagePreview(name, null))
+            }
+    }
+
+    @Test
+    fun supportsImageMimeTypesRegardlessOfExtension() {
+        assertTrue(InfinityFilesPreviewPolicy.supportsImagePreview("unknown.bin", "image/png"))
+        assertTrue(InfinityFilesPreviewPolicy.supportsImagePreview("unknown.bin", "image/jpeg"))
+    }
+
+    @Test
+    fun rejectsUnsupportedImageMimeTypesAndExtensions() {
+        assertFalse(InfinityFilesPreviewPolicy.supportsImagePreview("photo.gif", null))
+        assertFalse(InfinityFilesPreviewPolicy.supportsImagePreview("photo.heic", "image/heic"))
+        assertFalse(InfinityFilesPreviewPolicy.supportsImagePreview("photo.png", "application/octet-stream"))
+    }
+
+    @Test
     fun supportsExtensionFallbackWhenProviderOmitsMimeType() {
         assertTrue(InfinityFilesPreviewPolicy.supportsTextPreview("NOTES.TXT", null))
     }
