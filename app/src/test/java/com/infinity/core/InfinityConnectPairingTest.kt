@@ -6,6 +6,7 @@ import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class InfinityConnectPairingTest {
@@ -54,6 +55,44 @@ class InfinityConnectPairingTest {
         assertTrue(InfinityConnectPairing.matchesCertificateFingerprint(fingerprint, fingerprint.lowercase()))
         assertFalse(InfinityConnectPairing.matchesCertificateFingerprint(fingerprint, "F".repeat(64)))
         assertFalse(InfinityConnectPairing.matchesCertificateFingerprint(fingerprint, "invalid"))
+    }
+
+    @Test fun registryConsumesChallengeOnlyOnce() {
+        val registry = InfinityPairingChallengeRegistry()
+        val challenge = InfinityConnectPairing.createChallenge(10_000L)
+        assertTrue(registry.register(challenge, 10_001L))
+        assertTrue(registry.consume(challenge.requestId, challenge.nonce, 10_002L))
+        assertFalse(registry.consume(challenge.requestId, challenge.nonce, 10_003L))
+        assertEquals(0, registry.outstandingCount(10_003L))
+    }
+
+    @Test fun registryRejectsWrongNonceWithoutConsumingValidChallenge() {
+        val registry = InfinityPairingChallengeRegistry()
+        val challenge = InfinityConnectPairing.createChallenge(20_000L)
+        assertTrue(registry.register(challenge, 20_001L))
+        val wrongNonce = InfinityConnectPairing.createChallenge(20_000L).nonce
+        assertFalse(registry.consume(challenge.requestId, wrongNonce, 20_002L))
+        assertTrue(registry.consume(challenge.requestId, challenge.nonce, 20_003L))
+    }
+
+    @Test fun registryRejectsExpiredAndDuplicateChallenges() {
+        val registry = InfinityPairingChallengeRegistry()
+        val challenge = InfinityConnectPairing.createChallenge(30_000L)
+        assertTrue(registry.register(challenge, 30_001L))
+        assertFalse(registry.register(challenge, 30_002L))
+        assertFalse(registry.consume(challenge.requestId, challenge.nonce, challenge.expiresAtEpochMillis))
+        assertEquals(0, registry.outstandingCount(challenge.expiresAtEpochMillis))
+    }
+
+    @Test fun registryEnforcesCapacityAndCanBeCleared() {
+        val registry = InfinityPairingChallengeRegistry(maxOutstanding = 1)
+        val first = InfinityConnectPairing.createChallenge(40_000L)
+        val second = InfinityConnectPairing.createChallenge(40_000L)
+        assertTrue(registry.register(first, 40_001L))
+        assertFalse(registry.register(second, 40_002L))
+        registry.clear()
+        assertEquals(0, registry.outstandingCount(40_003L))
+        assertTrue(registry.register(second, 40_004L))
     }
 
     @Test fun rejectsNegativeClockAndAlteredLifetime() {
