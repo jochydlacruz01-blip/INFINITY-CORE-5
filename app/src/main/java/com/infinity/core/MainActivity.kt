@@ -198,6 +198,7 @@ private fun Infinity08App() {
         )
     }
     var search by remember { mutableStateOf("") }
+    var startCategory by remember { mutableStateOf("all") }
     var selectedFolder by remember {
         mutableStateOf(prefs.getString("selected_folder_uri", null)?.let(Uri::parse))
     }
@@ -1317,9 +1318,28 @@ DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED"
                                 }
                             }
                         }
+                        Row(
+                            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            listOf(
+                                "all" to "Todas",
+                                "productivity" to "Productividad",
+                                "communication" to "Comunicación",
+                                "media" to "Multimedia",
+                                "games" to "Juegos",
+                                "system" to "Sistema"
+                            ).forEach { (key, label) ->
+                                FilterChip(
+                                    selected = startCategory == key,
+                                    onClick = { startCategory = key },
+                                    label = { Text(label, maxLines = 1) }
+                                )
+                            }
+                        }
                         Text(
                             "APLICACIONES ANDROID (${installedApps.count {
-                                it.label.contains(search, true) || it.packageName.contains(search, true)
+                                InfinityStartCatalogPolicy.matches(it.label, it.packageName, search, startCategory)
                             }})",
                             color = accent,
                             fontSize = 10.sp,
@@ -1329,8 +1349,9 @@ DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED"
                         LazyColumn(Modifier.weight(1f, fill = false).heightIn(max = 230.dp)) {
                             items(
                                 installedApps.filter {
-                                    it.label.contains(search, true) ||
-                                        it.packageName.contains(search, true)
+                                    InfinityStartCatalogPolicy.matches(
+                                        it.label, it.packageName, search, startCategory
+                                    )
                                 },
                                 key = { it.packageName }
                             ) { app ->
