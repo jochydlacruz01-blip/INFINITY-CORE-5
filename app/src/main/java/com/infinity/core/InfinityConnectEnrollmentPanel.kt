@@ -7,12 +7,14 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -20,8 +22,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.padding
 import java.util.UUID
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -51,6 +55,7 @@ fun InfinityConnectEnrollmentPanel() {
     var pendingCsr by remember { mutableStateOf<ByteArray?>(null) }
     var status by remember { mutableStateOf("Enrolamiento pendiente. Todavía no hay una identidad Windows verificada.") }
     var busy by remember { mutableStateOf(false) }
+    var confirmForget by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
     val createCsrLauncher = rememberLauncherForActivityResult(
@@ -102,12 +107,15 @@ fun InfinityConnectEnrollmentPanel() {
                             }
                             output.toByteArray()
                         } ?: error("No se pudo abrir la cadena de certificados.")
-                        InfinityConnectClientCertificateInstaller().install(
-                            CONNECT_CLIENT_KEY_ALIAS,
-                            bytes,
-                            caPin
-                        )
-                        bytes.fill(0)
+                        try {
+                            InfinityConnectClientCertificateInstaller().install(
+                                CONNECT_CLIENT_KEY_ALIAS,
+                                bytes,
+                                caPin
+                            )
+                        } finally {
+                            bytes.fill(0)
+                        }
                     }
                 }
                 busy = false
@@ -123,7 +131,7 @@ fun InfinityConnectEnrollmentPanel() {
 
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Text("EMPAREJAMIENTO SEGURO ANDROID–WINDOWS", style = MaterialTheme.typography.titleMedium)
@@ -244,6 +252,11 @@ fun InfinityConnectEnrollmentPanel() {
                 "El CSR y la cadena son archivos públicos, pero la clave privada nunca se exporta. La emisión y aprobación siguen siendo operaciones locales del administrador de Windows. Esta verificación no habilita escritorio remoto.",
                 style = MaterialTheme.typography.bodySmall
             )
+            OutlinedButton(
+                enabled = !busy,
+                onClick = { confirmForget = true },
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("Eliminar identidad y confianza de esta tablet") }
         }
     }
 }
