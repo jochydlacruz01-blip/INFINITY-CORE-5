@@ -26,7 +26,9 @@ public sealed class AuthorizedSessionStore
         lock (gate)
         {
             PurgeExpired(DateTimeOffset.UtcNow);
-            if (sessions.Count >= MaximumSessions)
+            if (sessions.Count >= MaximumSessions ||
+                sessions.Values.Count(session => string.Equals(
+                    session.ClientFingerprint, fingerprint, StringComparison.Ordinal)) >= 4)
                 throw new InvalidOperationException("The active session limit has been reached.");
 
             var sessionId = Guid.NewGuid();
@@ -57,7 +59,9 @@ public sealed class AuthorizedSessionStore
         byte[] suppliedHash;
         try
         {
-            suppliedHash = SHA256.HashData(Base64UrlDecode(bearerToken));
+            var suppliedTokenBytes = Base64UrlDecode(bearerToken);
+            try { suppliedHash = SHA256.HashData(suppliedTokenBytes); }
+            finally { CryptographicOperations.ZeroMemory(suppliedTokenBytes); }
         }
         catch (FormatException)
         {
@@ -143,7 +147,7 @@ public sealed class AuthorizedSessionStore
 
     private static byte[] Base64UrlDecode(string value)
     {
-        if (value.Length is < 40 or > 64 ||
+        if (value.Length != 43 ||
             value.Any(character => !(character is >= 'A' and <= 'Z' or >= 'a' and <= 'z' or >= '0' and <= '9' or '-' or '_')))
             throw new FormatException("Malformed session token.");
         var normalized = value.Replace('-', '+').Replace('_', '/');
