@@ -7,8 +7,7 @@ public sealed record CompanionSettings(
     int Port,
     string DeviceId,
     string ServerCertificatePath,
-    string ServerCertificatePassword,
-    string AllowedAndroidCertificateSha256)
+    string ServerCertificatePassword)
 {
     public static CompanionSettings LoadFromEnvironment()
     {
@@ -39,19 +38,12 @@ public sealed record CompanionSettings(
         }
 
         var certificatePassword = Required("INFINITY_SERVER_CERTIFICATE_PASSWORD");
-        var clientPin = Required("INFINITY_ANDROID_CLIENT_CERT_SHA256");
-        if (!CertificatePinning.IsValidSha256Pin(clientPin))
-        {
-            throw new InvalidOperationException("INFINITY_ANDROID_CLIENT_CERT_SHA256 must be a 64-character SHA-256 hex fingerprint.");
-        }
-
         return new CompanionSettings(
             bindAddress,
             port,
             parsedDeviceId.ToString("D"),
             certificatePath,
-            certificatePassword,
-            CertificatePinning.NormalizeSha256Pin(clientPin)!);
+            certificatePassword);
     }
 
     private static string Required(string name)
