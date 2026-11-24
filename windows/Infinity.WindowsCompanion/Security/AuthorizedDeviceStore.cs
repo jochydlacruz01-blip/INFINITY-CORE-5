@@ -1,4 +1,5 @@
 using System.Security.Cryptography.X509Certificates;
+using System.Security.AccessControl;
 using System.Runtime.Versioning;
 using Microsoft.Win32;
 using System.Security.Principal;
@@ -6,8 +7,8 @@ using System.Security.Principal;
 namespace Infinity.WindowsCompanion.Security;
 
 /// <summary>
-/// Machine-wide authorization registry. HKLM inherits administrator/System write
-/// permissions; the service reads the registry on every new TLS client handshake,
+/// Machine-wide authorization registry. Its ACL is explicitly protected: SYSTEM and
+/// Administrators can write; built-in Users can read only. The service reads on every handshake,
 /// so revocation affects the next connection without restarting the service.
 /// </summary>
 [SupportedOSPlatform("windows")]
@@ -46,8 +47,7 @@ public sealed class AuthorizedDeviceStore
             throw new InvalidOperationException("The certificate is not a currently valid Android client-auth certificate.");
 
         var pin = CertificatePinning.ComputeSha256Pin(certificate);
-        using var key = Registry.LocalMachine.CreateSubKey(RegistryPath, writable: true)
-            ?? throw new InvalidOperationException("Could not open the machine authorization registry.");
+        using var key = OpenWritableAuthorizationKey();
         key.SetValue(pin, "approved", RegistryValueKind.String);
         key.Flush();
         return pin;
@@ -59,12 +59,38 @@ public sealed class AuthorizedDeviceStore
         EnsureElevatedWindowsAdministrator();
         var pin = CertificatePinning.NormalizeSha256Pin(fingerprint)
             ?? throw new ArgumentException("A SHA-256 certificate fingerprint is required.", nameof(fingerprint));
-        using var key = Registry.LocalMachine.OpenSubKey(RegistryPath, writable: true);
+        using var key = OpenWritableAuthorizationKey();
         if (key is null || !key.GetValueNames().Contains(pin, StringComparer.Ordinal))
             return false;
         key.DeleteValue(pin, throwOnMissingValue: false);
         key.Flush();
         return true;
+    }
+
+    private static RegistryKey OpenWritableAuthorizationKey()
+    {
+        var security = new RegistrySecurity();
+        security.SetAccessRuleProtection(isProtected: true, preserveInheritance: false);
+        security.AddAccessRule(new RegistryAccessRule(
+            new SecurityIdentifier(WellKnownSidType.LocalSystemSid, null),
+            RegistryRights.FullControl,
+            AccessControlType.Allow));
+        security.AddAccessRule(new RegistryAccessRule(
+            new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null),
+            RegistryRights.FullControl,
+            AccessControlType.Allow));
+        security.AddAccessRule(new RegistryAccessRule(
+            new SecurityIdentifier(WellKnownSidType.BuiltinUsersSid, null),
+            RegistryRights.ReadKey,
+            AccessControlType.Allow));
+
+        var key = Registry.LocalMachine.CreateSubKey(
+            RegistryPath,
+            RegistryKeyPermissionCheck.ReadWriteSubTree,
+            RegistryOptions.None,
+            security) ?? throw new InvalidOperationException("Could not open the machine authorization registry.");
+        key.SetAccessControl(security);
+        return key;
     }
 
     private static void EnsureElevatedWindowsAdministrator()
