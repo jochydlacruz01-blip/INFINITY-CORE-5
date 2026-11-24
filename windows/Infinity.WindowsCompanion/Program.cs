@@ -1,6 +1,8 @@
 using System.Net;
 using System.Net.Sockets;
 using System.Net.WebSockets;
+using System.Security.Cryptography;
+using System.Text;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 using Infinity.WindowsCompanion.Security;
@@ -112,6 +114,7 @@ app.UseWebSockets();
 var rdpTunnelGate = new SemaphoreSlim(1, 1);
 var authorizedSessions = new AuthorizedSessionStore();
 var auditLog = new InfinityAuditLog();
+var fileTransferStore = new SecureFileTransferStore();
 
 // Re-check authorization on every HTTP request, not only at the TLS handshake.
 // This makes certificate revocation effective on the next request of an existing TLS connection.
@@ -214,6 +217,104 @@ app.MapDelete("/v1/sessions/{sessionId}", async (HttpContext context, string ses
     return revoked ? Results.NoContent() : Results.NotFound();
 });
 
+app.MapPost("/v1/files", async (HttpContext context) =>
+{
+    var clientCertificate = await context.Connection.GetClientCertificateAsync();
+    if (clientCertificate is null) return Results.Unauthorized();
+    var fingerprint = CertificatePinning.ComputeSha256Pin(clientCertificate);
+    var sessionId = context.Request.Headers["X-INFINITY-Session-ID"].ToString();
+    var token = ReadBearerToken(context);
+    if (token is null || !authorizedSessions.IsAuthorized(sessionId, token, fingerprint, "file.transfer"))
+    {
+        auditLog.Write("file.upload-denied", fingerprint, null, "denied");
+        return Results.StatusCode(StatusCodes.Status403Forbidden);
+    }
+
+    if (context.Request.ContentLength is not long length ||
+        length < 0 || length > SecureFileTransferStore.MaximumFileBytes)
+        return Results.StatusCode(StatusCodes.Status413PayloadTooLarge);
+
+    var fileName = ReadEncodedFileName(context);
+    var expectedHash = context.Request.Headers["X-INFINITY-File-SHA256"].ToString();
+    if (fileName is null || CertificatePinning.NormalizeSha256Pin(expectedHash) is null)
+        return Results.BadRequest("A valid filename and SHA-256 digest are required.");
+
+    try
+    {
+        var receipt = await fileTransferStore.SaveAsync(
+            context.Request.Body,
+            fingerprint,
+            fileName,
+            length,
+            expectedHash,
+            context.RequestAborted);
+        try
+        {
+            auditLog.Write("file.uploaded", fingerprint, sessionId, "allowed");
+        }
+        catch
+        {
+            fileTransferStore.Delete(receipt.FileId, fingerprint);
+            throw;
+        }
+        return Results.Ok(receipt);
+    }
+    catch (InvalidDataException)
+    {
+        auditLog.Write("file.upload-failed", fingerprint, sessionId, "failed");
+        return Results.BadRequest("The file failed filename, size or content validation.");
+    }
+    catch (CryptographicException)
+    {
+        auditLog.Write("file.upload-failed", fingerprint, sessionId, "failed");
+        return Results.BadRequest("The uploaded file digest is invalid.");
+    }
+});
+
+app.MapGet("/v1/files/{fileId}", async (HttpContext context, string fileId) =>
+{
+    var clientCertificate = await context.Connection.GetClientCertificateAsync();
+    if (clientCertificate is null) return Results.Unauthorized();
+    var fingerprint = CertificatePinning.ComputeSha256Pin(clientCertificate);
+    var sessionId = context.Request.Headers["X-INFINITY-Session-ID"].ToString();
+    var token = ReadBearerToken(context);
+    if (token is null || !authorizedSessions.IsAuthorized(sessionId, token, fingerprint, "file.transfer"))
+    {
+        auditLog.Write("file.download-denied", fingerprint, null, "denied");
+        return Results.StatusCode(StatusCodes.Status403Forbidden);
+    }
+
+    var metadata = fileTransferStore.Find(fileId, fingerprint);
+    if (metadata is null) return Results.NotFound();
+    await using var file = await fileTransferStore.OpenReadVerifiedAsync(metadata, context.RequestAborted);
+    if (file is null) return Results.NotFound();
+    context.Response.StatusCode = StatusCodes.Status200OK;
+    context.Response.ContentType = "application/octet-stream";
+    context.Response.ContentLength = metadata.Length;
+    context.Response.Headers["Content-Disposition"] =
+        $"attachment; filename*=UTF-8''{Uri.EscapeDataString(metadata.FileName)}";
+    await file.CopyToAsync(context.Response.Body, 64 * 1024, context.RequestAborted);
+    auditLog.Write("file.downloaded", fingerprint, sessionId, "allowed");
+});
+
+app.MapDelete("/v1/files/{fileId}", async (HttpContext context, string fileId) =>
+{
+    var clientCertificate = await context.Connection.GetClientCertificateAsync();
+    if (clientCertificate is null) return Results.Unauthorized();
+    var fingerprint = CertificatePinning.ComputeSha256Pin(clientCertificate);
+    var sessionId = context.Request.Headers["X-INFINITY-Session-ID"].ToString();
+    var token = ReadBearerToken(context);
+    if (token is null || !authorizedSessions.IsAuthorized(sessionId, token, fingerprint, "file.transfer"))
+    {
+        auditLog.Write("file.delete-denied", fingerprint, null, "denied");
+        return Results.StatusCode(StatusCodes.Status403Forbidden);
+    }
+
+    var deleted = fileTransferStore.Delete(fileId, fingerprint);
+    auditLog.Write("file.deleted", fingerprint, sessionId, deleted ? "revoked" : "failed");
+    return deleted ? Results.NoContent() : Results.NotFound();
+});
+
 app.MapGet("/v1/tunnel/rdp", async (HttpContext context) =>
 {
     if (!context.WebSockets.IsWebSocketRequest)
@@ -307,6 +408,30 @@ static string? ReadBearerToken(HttpContext context)
     return header.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)
         ? header["Bearer ".Length..].Trim()
         : null;
+}
+
+static string? ReadEncodedFileName(HttpContext context)
+{
+    var encoded = context.Request.Headers["X-INFINITY-File-Name"].ToString();
+    if (encoded.Length is < 1 or > 684 ||
+        encoded.Any(character => !(character is >= 'A' and <= 'Z' or >= 'a' and <= 'z' or >= '0' and <= '9' or '-' or '_')))
+        return null;
+    try
+    {
+        var normalized = encoded.Replace('-', '+').Replace('_', '/');
+        normalized += new string('=', (4 - normalized.Length % 4) % 4);
+        var bytes = Convert.FromBase64String(normalized);
+        try { return new UTF8Encoding(false, true).GetString(bytes); }
+        finally { CryptographicOperations.ZeroMemory(bytes); }
+    }
+    catch (FormatException)
+    {
+        return null;
+    }
+    catch (DecoderFallbackException)
+    {
+        return null;
+    }
 }
 
 static async Task PumpWebSocketToRdpAsync(
