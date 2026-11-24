@@ -77,6 +77,11 @@ jobs:
           grep -q 'android:allowBackup="false"' app/src/main/AndroidManifest.xml
           grep -q 'android:usesCleartextTraffic="false"' app/src/main/AndroidManifest.xml
 
+      - name: Enforce source-only development policy
+        run: |
+          set -euo pipefail
+          python3 scripts/verify_no_apk_builds.py .github/workflows/android-pr.yml
+
       - name: Verify integrated INFINITY package inventory
         run: |
           set -euo pipefail
