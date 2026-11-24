@@ -169,3 +169,28 @@ The current approval operation is local-console only. It does not expose an unau
 2. Add an Android TLS 1.3 client transport that validates the pinned Windows server certificate and presents the enrolled client certificate.
 3. Complete Android CSR/certificate issuance and secure certificate delivery; the Windows local approval store is now present but does not issue certificates.
 4. Add interoperability tests against the real Windows service before adding remote display or input capabilities.
+
+## 14. PACK26-PACK27 local enrollment implementation
+
+The Windows Companion now includes a strict PKCS#10 validation path for ECDSA P-256 / SHA-256:
+- DER is bounded to 16 KiB.
+- Only ECDSA-with-SHA256 and an exact P-256 subject public key are accepted.
+- The CertificationRequestInfo signature is verified as proof of possession.
+- CSR attributes are rejected by this initial profile.
+- The device ID must match the exact locally confirmed subject CN.
+
+A local Windows enrollment CA can be initialized from an elevated console:
+- `Infinity.WindowsCompanion.exe --initialize-enrollment-ca`
+- `Infinity.WindowsCompanion.exe --export-enrollment-ca C:\\path\\infinity-enrollment-ca.cer`
+- `Infinity.WindowsCompanion.exe --issue-client-csr C:\\path\\android.csr C:\\path\\android-chain.der infinity-device-01`
+- Review the printed SHA-256 pins. The command writes the leaf certificate to `android-chain.der.client.cer` and the concatenated leaf + CA chain to `android-chain.der`.
+- Only after reviewing the identity, run the existing elevated `--approve-client-cert` command with the leaf `.cer`.
+
+The CA private key is imported into the Windows LocalMachine personal certificate store as a non-exportable machine key. Initialization and issuance require an elevated local administrator. The issuance command is local-console only; it does not expose a network CSR endpoint. The CSR proof-of-possession signature is checked before signing. Client certificates are limited to 90 days and contain clientAuth EKU, digitalSignature key usage, and CA:false basic constraints.
+
+Android additions:
+- `InfinityConnectIdentityKeyStore.createCertificateSigningRequest` builds a PKCS#10 request from the existing non-exportable Android Keystore P-256 key.
+- `InfinityConnectClientCertificateInstaller` validates the returned client certificate public key against the Keystore key, clientAuth EKU, validity, digitalSignature usage, issuer chain signatures, CA constraints, and a user-supplied CA SHA-256 pin before installing the chain onto the existing key alias.
+- `InfinityConnectMtlsTransport` creates a TLS 1.3 client context using Android Keystore key managers, pins the Windows server leaf certificate, validates serverAuth/validity/chain signatures/CA constraints, relies on HTTPS hostname verification, and calls only `/v1/identity`. Redirects are disabled and the response is bounded to 8 KiB.
+
+These source modules are not yet equivalent to a proven physical-device enrollment. Android Keystore chain replacement behavior, live TLS 1.3 client-certificate presentation, server hostname validation, and Samsung tablet ↔ Windows PC interoperability must pass on the actual devices before this stage is marked complete. Remote display, input, and file transfer remain disabled.
