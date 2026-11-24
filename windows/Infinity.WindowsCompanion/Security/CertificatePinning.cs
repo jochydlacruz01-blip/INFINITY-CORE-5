@@ -58,6 +58,16 @@ public static class CertificatePinning
         }
     }
 
+    public static bool IsUsableServerCertificate(X509Certificate2 certificate)
+    {
+        var now = DateTime.UtcNow;
+        return certificate.HasPrivateKey &&
+               now >= certificate.NotBefore.ToUniversalTime() &&
+               now <= certificate.NotAfter.ToUniversalTime() &&
+               HasEnhancedKeyUsage(certificate, ServerAuthenticationOid) &&
+               AllowsDigitalSignature(certificate);
+    }
+
     public static bool MatchesSha256Pin(X509Certificate certificate, string expectedPin)
     {
         var normalizedExpected = NormalizeSha256Pin(expectedPin);
