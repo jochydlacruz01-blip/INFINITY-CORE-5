@@ -144,6 +144,7 @@ fun InfinityConnectPanel() {
     }
 
     val probeResults = remember { mutableStateMapOf<String, InfinityProbeStatus>() }
+    val preflightResults = remember { mutableStateMapOf<String, List<InfinityPreflightItem>>() }
     val probeScope = rememberCoroutineScope()
 
     val showEditor = remember { mutableStateOf(false) }
@@ -364,12 +365,22 @@ fun InfinityConnectPanel() {
                     OutlinedButton(
                         onClick = {
                             val endpoint = profile.address
-                            probeResults[endpoint] = InfinityProbeStatus.CHECKING
-                            probeScope.launch {
-                                probeResults[endpoint] = probeInfinityTcpEndpoint(
-                                    profile.host,
-                                    profile.port
-                                )
+                            val preflight = runInfinityConnectPreflight(
+                                profile.host,
+                                profile.port,
+                                profile.username
+                            )
+                            preflightResults[endpoint] = preflight
+                            if (!isInfinityPreflightReady(preflight)) {
+                                probeResults[endpoint] = InfinityProbeStatus.INVALID_ENDPOINT
+                            } else {
+                                probeResults[endpoint] = InfinityProbeStatus.CHECKING
+                                probeScope.launch {
+                                    probeResults[endpoint] = probeInfinityTcpEndpoint(
+                                        profile.host,
+                                        profile.port
+                                    )
+                                }
                             }
                         },
                         modifier = Modifier.fillMaxWidth()
@@ -385,6 +396,18 @@ fun InfinityConnectPanel() {
                                 MaterialTheme.colorScheme.primary
                             } else {
                                 MaterialTheme.colorScheme.secondary
+                            }
+                        )
+                    }
+
+                    preflightResults[profile.address]?.forEach { item ->
+                        Text(
+                            text = item.message,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = when (item.severity) {
+                                InfinityPreflightSeverity.BLOCKED -> MaterialTheme.colorScheme.error
+                                InfinityPreflightSeverity.WARNING -> MaterialTheme.colorScheme.tertiary
+                                InfinityPreflightSeverity.INFO -> MaterialTheme.colorScheme.secondary
                             }
                         )
                     }
