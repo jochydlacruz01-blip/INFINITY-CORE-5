@@ -25,6 +25,7 @@ import okhttp3.Response
 import okhttp3.WebSocket
 import okhttp3.WebSocketListener
 import okio.ByteString
+import okio.ByteString.Companion.toByteString
 
 /**
  * Bridges a loopback-only FreeRDP TCP socket through the authenticated Windows WebSocket tunnel.
@@ -177,7 +178,7 @@ internal class InfinityConnectRdpTunnel(
                         if (webSocket.queueSize() > MAX_QUEUED_BYTES) {
                             throw IOException("RDP tunnel send queue exceeded its safety limit.")
                         }
-                        if (!webSocket.send(ByteString.of(buffer, 0, count))) {
+                        if (!webSocket.send(buffer.toByteString(0, count))) {
                             throw IOException("Windows WebSocket tunnel is no longer accepting data.")
                         }
                     }
