@@ -263,3 +263,31 @@ Remote capabilities are server-side default-deny and are read when the Companion
 - Changing the environment requires restarting the Windows Companion service.
 
 Do not enable these variables until the matching Android/Windows integration tests and physical-device checks pass. The current Android enrollment panel requests only `identity.read`, so no remote capability is silently requested.
+
+
+## 19. PACK37–38 Android remote client and safety gates
+
+The Android client now contains:
+- FreeRDP 3.33.1 adapter over the mTLS WebSocket-to-loopback tunnel.
+- NLA authentication, SHA-256 RDP certificate pinning, no `/cert:ignore`, and clipboard redirection disabled.
+- Frame rendering, pointer click/drag translation, FreeRDP keyboard layout mapping and Unicode text input.
+- A SAF file-transfer panel using the mTLS file API, per-file SHA-256 verification and per-device file listing.
+
+These client features are **not enabled yet**. `InfinityConnectFeatureGates.REMOTE_DESKTOP_VALIDATED` and `FILE_TRANSFER_VALIDATED` are both hard-coded false until a real Samsung tablet ↔ Windows PC test is completed. Windows also defaults all remote capability environment switches to false. Do not change either layer to true before the interoperability and revocation checklist passes.
+
+The RDP certificate pin field expects the SHA-256 digest of the exact certificate Windows RDP presents. On Windows, inspect the local Remote Desktop certificate store with PowerShell:
+
+```powershell
+Get-ChildItem 'Cert:\\LocalMachine\\Remote Desktop' |
+  Where-Object { $_.HasPrivateKey } |
+  ForEach-Object {
+    [pscustomobject]@{
+      Subject = $_.Subject
+      SHA256 = [Convert]::ToHexString(
+        [System.Security.Cryptography.SHA256]::HashData($_.RawData)
+      )
+    }
+  }
+```
+
+Use the digest only after confirming that the certificate is the one bound to the RDP listener. The Companion tunnel remains loopback-only and does not expose TCP/3389 to the network.
