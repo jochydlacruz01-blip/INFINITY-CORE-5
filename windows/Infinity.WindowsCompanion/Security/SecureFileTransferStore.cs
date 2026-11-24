@@ -1,4 +1,6 @@
+using System.Security.AccessControl;
 using System.Security.Cryptography;
+using System.Security.Principal;
 using System.Text;
 using System.Text.Json;
 
@@ -18,11 +20,14 @@ public sealed class SecureFileTransferStore
 
     public SecureFileTransferStore(string? storageRoot = null)
     {
-        rootPath = storageRoot ?? Path.Combine(
+        if (!OperatingSystem.IsWindows())
+            throw new PlatformNotSupportedException("Secure transfer storage requires Windows filesystem ACLs.");
+        rootPath = Path.GetFullPath(storageRoot ?? Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
             "INFINITY",
             "WindowsCompanion",
-            "Transfers");
+            "Transfers"));
+        EnsurePrivateDirectory(rootPath);
     }
 
     public async Task<FileReceipt> SaveAsync(
@@ -63,7 +68,7 @@ public sealed class SecureFileTransferStore
             ?? throw new ArgumentException("A valid SHA-256 file digest is required.");
 
         var deviceDirectory = Path.Combine(rootPath, fingerprint);
-        Directory.CreateDirectory(deviceDirectory);
+        EnsurePrivateDirectory(deviceDirectory);
         var existingFiles = Directory.EnumerateFiles(deviceDirectory, "*.bin").Take(MaximumFilesPerDevice + 1).ToArray();
         if (existingFiles.Length >= MaximumFilesPerDevice ||
             existingFiles.Sum(path => new FileInfo(path).Length) > MaximumBytesPerDevice - contentLength)
@@ -259,6 +264,37 @@ public sealed class SecureFileTransferStore
         TryDelete(Path.Combine(directory, id + ".bin"));
         TryDelete(Path.Combine(directory, id + ".json"));
         return true;
+    }
+
+    private static void EnsurePrivateDirectory(string path)
+    {
+        Directory.CreateDirectory(path);
+
+        var security = new DirectorySecurity();
+        security.SetAccessRuleProtection(isProtected: true, preserveInheritance: false);
+        var inheritance = InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit;
+        var principals = new Dictionary<string, SecurityIdentifier>(StringComparer.Ordinal)
+        {
+            [new SecurityIdentifier(WellKnownSidType.LocalSystemSid, null).Value] =
+                new SecurityIdentifier(WellKnownSidType.LocalSystemSid, null),
+            [new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null).Value] =
+                new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null)
+        };
+
+        var currentUser = WindowsIdentity.GetCurrent().User;
+        if (currentUser is not null) principals[currentUser.Value] = currentUser;
+
+        foreach (var principal in principals.Values)
+        {
+            security.AddAccessRule(new FileSystemAccessRule(
+                principal,
+                FileSystemRights.FullControl,
+                inheritance,
+                PropagationFlags.None,
+                AccessControlType.Allow));
+        }
+
+        new DirectoryInfo(path).SetAccessControl(security);
     }
 
     private static void ValidateFileName(string fileName)
