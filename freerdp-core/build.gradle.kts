@@ -36,8 +36,6 @@ android {
     sourceSets {
         getByName("main") {
             manifest.srcFile("src/main/AndroidManifest.xml")
-            java.srcDir("$freeRdpRoot/src/main/java")
-            java.setExcludes(setOf("**/GlobalApp.java"))
             res.srcDir("$freeRdpRoot/src/main/res")
             assets.srcDir("$freeRdpRoot/src/main/assets")
             jniLibs.srcDir("$freeRdpRoot/src/main/jniLibs")
@@ -66,6 +64,23 @@ android {
         jniLibs {
             useLegacyPackaging = false
         }
+    }
+}
+
+val prepareFreeRdpJavaSources = tasks.register<Sync>("prepareFreeRdpJavaSources") {
+    from("$freeRdpRoot/src/main/java")
+    exclude("**/GlobalApp.java")
+    into(layout.buildDirectory.dir("generated/freerdp/java"))
+}
+
+android.sourceSets.getByName("main").java.srcDir(
+    layout.buildDirectory.dir("generated/freerdp/java")
+)
+
+tasks.configureEach {
+    if (name.startsWith("compile") &&
+        (name.endsWith("Kotlin") || name.endsWith("JavaWithJavac"))) {
+        dependsOn(prepareFreeRdpJavaSources)
     }
 }
 
