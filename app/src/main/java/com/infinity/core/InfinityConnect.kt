@@ -200,6 +200,8 @@ fun InfinityConnectPanel() {
             style = MaterialTheme.typography.titleMedium
         )
 
+        InfinityConnectEnrollmentPanel()
+
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(
