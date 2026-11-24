@@ -20,6 +20,7 @@ on:
       - INFINITY-PACK-06-CONNECT-SECURITY
       - INFINITY-PACK-07-CONTROL-CENTER
       - INFINITY-PACK-08-ORBIT-SPACES
+      - INFINITY-PACK-09-SECURITY-AUDIT
   workflow_dispatch:
 
 permissions:
@@ -61,6 +62,12 @@ jobs:
           test -f app/src/main/AndroidManifest.xml
           grep -q 'android:allowBackup="false"' app/src/main/AndroidManifest.xml
           grep -q 'android:usesCleartextTraffic="false"' app/src/main/AndroidManifest.xml
+
+      - name: Audit Android manifest security boundaries
+        run: |
+          set -euo pipefail
+          python3 scripts/verify_android_security_manifest.py app/src/main/AndroidManifest.xml
+          python3 -m unittest discover -s scripts/tests -p 'test_*.py' -v
 
       - name: Restore existing INFINITY signing key
         env:
