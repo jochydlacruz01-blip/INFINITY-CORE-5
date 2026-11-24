@@ -112,4 +112,28 @@ class InfinityConnectSessionControllerTest {
         assertTrue(propagated)
         assertArrayEquals(CharArray(secret.size) { '\u0000' }, secret)
     }
+
+    @Test fun disconnectCancellationIsPropagatedAndLifecycleReturnsToIdle() = runBlocking {
+        val engine = object : InfinityConnectEngine {
+            override val isConnected = true
+            override suspend fun connect(target: InfinityConnectTarget, eventSink: (InfinityConnectEngineEvent) -> Unit) {
+                eventSink(InfinityConnectEngineEvent.Connected)
+            }
+            override suspend fun disconnect() {
+                throw CancellationException("disconnect cancelled")
+            }
+        }
+        val controller = InfinityConnectSessionController(engine)
+        controller.connect(InfinityConnectTarget("host", username = "user"))
+
+        var propagated = false
+        try {
+            controller.disconnect()
+        } catch (_: CancellationException) {
+            propagated = true
+        }
+
+        assertTrue(propagated)
+        assertEquals(InfinityConnectSessionState.IDLE, controller.lifecycle.state)
+    }
 }
