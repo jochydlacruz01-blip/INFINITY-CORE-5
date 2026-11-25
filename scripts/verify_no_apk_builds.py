@@ -6,7 +6,7 @@ import re
 import sys
 from pathlib import Path
 
-GRADLE_INVOKED = re.compile(r"(?i)(?:^|[\s;&|])(?:\.\\/)?(?:gradlew|gradle)(?:\.bat)?(?:\s|$)")
+GRADLE_INVOKED = re.compile(r"(?i)(?:^|[\s;&|])(?:\./)?(?:gradlew|gradle)(?:\.bat)?(?:\s|$)")
 FORBIDDEN_GRADLE_TASK = re.compile(
     r"(?i)\b(?:assemble\w*|package\w*|bundle\w*|install\w*|build(?:Debug|Release)?|publish\w*)\b"
 )
