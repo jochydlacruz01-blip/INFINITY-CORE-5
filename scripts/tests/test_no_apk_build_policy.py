@@ -14,26 +14,20 @@ def audit_text(content: str) -> list[str]:
         return audit_workflow(path)
 
 
+def audit_named_workflow(name: str, content: str) -> list[str]:
+    with tempfile.TemporaryDirectory() as directory:
+        path = Path(directory) / name
+        path.write_text(content, encoding="utf-8")
+        return audit_workflow(path)
+
+
 class NoApkBuildPolicyTest(unittest.TestCase):
     def test_source_only_workflow_is_accepted(self):
-        content = """
-steps:
-  - run: gradle compileDebugKotlin testDebugUnitTest lintDebug
-"""
-        self.assertEqual(audit_text(content), [])
+        self.assertEqual(audit_text("steps:\n  - run: gradle compileDebugKotlin testDebugUnitTest lintDebug\n"), [])
 
-    def test_debug_apk_task_is_rejected(self):
+    def test_debug_and_release_apk_tasks_are_rejected(self):
         self.assertTrue(audit_text("run: gradle assembleDebug"))
-
-    def test_release_apk_task_is_rejected(self):
         self.assertTrue(audit_text("run: gradle assembleRelease"))
-
-    def test_package_and_bundle_tasks_are_rejected(self):
-        self.assertTrue(audit_text("run: gradle packageDebug"))
-        self.assertTrue(audit_text("run: gradle bundleRelease"))
-
-    def test_signing_configuration_is_rejected(self):
-        self.assertTrue(audit_text("signingConfig = signingConfigs.release"))
 
     def test_gradle_wrapper_apk_tasks_are_rejected(self):
         self.assertTrue(audit_text("run: ./gradlew assembleDebug"))
@@ -43,24 +37,12 @@ steps:
         self.assertTrue(audit_text("run: gradle :app:installDebug"))
         self.assertTrue(audit_text("run: gradle build"))
 
-    def test_release_asset_publication_is_rejected(self):
-        content = """steps:
-  - name: Publish release assets
-    uses: softprops/action-gh-release@v3
-    with:
-      files: app-release.apk
-"""
-        self.assertTrue(audit_text(content))
+    def test_package_and_bundle_tasks_are_rejected(self):
+        self.assertTrue(audit_text("run: gradle packageDebug"))
+        self.assertTrue(audit_text("run: gradle bundleRelease"))
 
-    def test_indirect_generic_output_directory_is_rejected(self):
-        content = """steps:
-  - name: Upload
-    uses: actions/upload-artifact@v7
-    with:
-      name: build
-      path: ${{ env.OUTPUT_DIRECTORY }}
-"""
-        self.assertTrue(audit_text(content))
+    def test_signing_configuration_is_rejected(self):
+        self.assertTrue(audit_text("signingConfig = signingConfigs.release"))
 
     def test_apk_artifact_name_and_path_are_rejected(self):
         content = """steps:
@@ -112,6 +94,25 @@ steps:
 """
         self.assertTrue(audit_text(content))
 
+    def test_indirect_generic_output_directory_is_rejected(self):
+        content = """steps:
+  - name: Upload
+    uses: actions/upload-artifact@v7
+    with:
+      name: build
+      path: ${{ env.OUTPUT_DIRECTORY }}
+"""
+        self.assertTrue(audit_text(content))
+
+    def test_release_asset_publication_is_rejected(self):
+        content = """steps:
+  - name: Publish release assets
+    uses: softprops/action-gh-release@v3
+    with:
+      files: app-release.apk
+"""
+        self.assertTrue(audit_text(content))
+
     def test_xml_html_test_reports_are_allowed(self):
         content = """steps:
   - name: Upload reports
@@ -135,6 +136,44 @@ steps:
       path: app/build/test-results/testDebugUnitTest/TEST-result.xml
 """
         self.assertEqual(audit_text(content), [])
+
+    def test_manual_apk_workflow_requires_every_job_disabled(self):
+        content = """name: legacy release
+on:
+  workflow_dispatch:
+jobs:
+  build:
+    if: false # temporary release hold
+    steps:
+      - run: gradle assembleRelease
+"""
+        self.assertEqual(audit_named_workflow("android.yml", content), [])
+
+    def test_manual_apk_workflow_without_job_gate_is_rejected(self):
+        content = """name: legacy release
+on:
+  workflow_dispatch:
+jobs:
+  build:
+    steps:
+      - run: gradle assembleRelease
+"""
+        self.assertTrue(audit_named_workflow("android.yml", content))
+
+    def test_manual_apk_workflow_with_an_ungated_second_job_is_rejected(self):
+        content = """name: legacy release
+on:
+  workflow_dispatch:
+jobs:
+  build:
+    if: false
+    steps:
+      - run: gradle assembleRelease
+  publish:
+    steps:
+      - uses: softprops/action-gh-release@v3
+"""
+        self.assertTrue(audit_named_workflow("publish-release.yml", content))
 
 
 if __name__ == "__main__":
