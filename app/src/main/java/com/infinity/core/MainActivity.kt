@@ -1346,7 +1346,9 @@ DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED"
                                 key = { it.id }
                             ) { item ->
                                 Row(
-                                    Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
+                                    Modifier.fillMaxWidth()
+                                        .testTag("infinity-start-app-${item.id}")
+                                        .clip(RoundedCornerShape(10.dp))
                                         .clickable {
                                             if (item.id == "orbit") {
                                                 orbitOpen = true
@@ -2161,6 +2163,7 @@ private fun DockAction(
         Modifier
             // Tablet reference dock keeps every primary action comfortably touchable.
             .widthIn(min = if (referenceStyle) 48.dp else if (compact) 40.dp else 48.dp)
+            .testTag("infinity-dock-${description.lowercase()}")
             .semantics(mergeDescendants = true) {
                 contentDescription = description
             }
