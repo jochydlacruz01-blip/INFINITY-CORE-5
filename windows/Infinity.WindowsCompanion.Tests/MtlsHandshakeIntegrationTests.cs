@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Http;
 using System.Net.Security;
@@ -55,16 +56,27 @@ public sealed class MtlsHandshakeIntegrationTests
         {
             CertificatePinning.ComputeSha256Pin(validClient)
         };
-        var (app, port) = CreateMtlsServer(serverCertificate, root, approvedPins);
+        var (app, port, serverDiagnostics) = CreateMtlsServer(serverCertificate, root, approvedPins);
+        var clientDiagnostics = new ConcurrentQueue<string>();
         await app.StartAsync();
         try
         {
             var endpoint = $"https://localhost:{port}/";
-            using (var valid = CreateClient(validClient, root, serverCertificate))
+            using (var valid = CreateClient(validClient, root, serverCertificate, diagnostics: clientDiagnostics))
             {
-                using var response = await valid.GetAsync(endpoint);
-                Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-                Assert.Equal("mTLS-ok", await response.Content.ReadAsStringAsync());
+                try
+                {
+                    using var response = await valid.GetAsync(endpoint);
+                    Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+                    Assert.Equal("mTLS-ok", await response.Content.ReadAsStringAsync());
+                }
+                catch (HttpRequestException error)
+                {
+                    throw new InvalidOperationException(
+                        $"Valid mTLS request failed. Server callback: {string.Join(" | ", serverDiagnostics)}; " +
+                        $"client callback: {string.Join(" | ", clientDiagnostics)}.",
+                        error);
+                }
             }
 
             using (var wrongPin = CreateClient(
@@ -93,7 +105,7 @@ public sealed class MtlsHandshakeIntegrationTests
         using var expiredServer = CreateLeaf(
             root, "localhost", CertificatePinning.ServerAuthenticationOid,
             DateTimeOffset.UtcNow.AddHours(-2), DateTimeOffset.UtcNow.AddHours(-1), "localhost");
-        var (expiredServerApp, expiredPort) = CreateMtlsServer(expiredServer, root, approvedPins);
+        var (expiredServerApp, expiredPort, _) = CreateMtlsServer(expiredServer, root, approvedPins);
         await expiredServerApp.StartAsync();
         try
         {
@@ -108,12 +120,13 @@ public sealed class MtlsHandshakeIntegrationTests
         }
     }
 
-    private static (WebApplication App, int Port) CreateMtlsServer(
+    private static (WebApplication App, int Port, ConcurrentQueue<string> Diagnostics) CreateMtlsServer(
         X509Certificate2 serverCertificate,
         X509Certificate2 trustedClientRoot,
         IReadOnlySet<string> approvedClientPins)
     {
         var port = ReservePort();
+        var diagnostics = new ConcurrentQueue<string>();
         var builder = WebApplication.CreateBuilder();
         builder.Logging.ClearProviders();
         builder.WebHost.ConfigureKestrel(options =>
@@ -125,27 +138,32 @@ public sealed class MtlsHandshakeIntegrationTests
                 https.ClientCertificateMode = ClientCertificateMode.RequireCertificate;
                 https.ClientCertificateValidation = (certificate, _, _) =>
                 {
-                    if (certificate is null) return false;
+                    if (certificate is null)
+                    {
+                        diagnostics.Enqueue("client-certificate:null");
+                        return false;
+                    }
                     using var clientCertificate = new X509Certificate2(certificate);
                     var pin = CertificatePinning.ComputeSha256Pin(clientCertificate);
-                    return CertificatePinning.ValidatePkixChain(
-                               clientCertificate,
-                               trustedClientRoot,
-                               CertificatePinning.ClientAuthenticationOid) &&
-                           approvedClientPins.Contains(pin);
+                    var pkixValid = CertificatePinning.ValidatePkixChain(
+                        clientCertificate, trustedClientRoot, CertificatePinning.ClientAuthenticationOid);
+                    var approved = approvedClientPins.Contains(pin);
+                    diagnostics.Enqueue($"client:pkix={pkixValid};approved={approved};eku={CertificatePinning.HasEnhancedKeyUsage(clientCertificate, CertificatePinning.ClientAuthenticationOid)}");
+                    return pkixValid && approved;
                 };
             }));
         });
         var app = builder.Build();
         app.MapGet("/", () => Results.Text("mTLS-ok"));
-        return (app, port);
+        return (app, port, diagnostics);
     }
 
     private static HttpClient CreateClient(
         X509Certificate2 clientCertificate,
         X509Certificate2 trustedServerRoot,
         X509Certificate2 expectedServerCertificate,
-        string? expectedServerPin = null)
+        string? expectedServerPin = null,
+        ConcurrentQueue<string>? diagnostics = null)
     {
         var pin = expectedServerPin ?? CertificatePinning.ComputeSha256Pin(expectedServerCertificate);
         var handler = new HttpClientHandler();
@@ -155,16 +173,20 @@ public sealed class MtlsHandshakeIntegrationTests
             if (certificate is null ||
                 (errors & (SslPolicyErrors.RemoteCertificateNameMismatch |
                            SslPolicyErrors.RemoteCertificateNotAvailable)) != 0)
+            {
+                diagnostics?.Enqueue($"server:certificate-missing-or-name-error:{errors}");
                 return false;
+            }
 
             using var serverLeaf = new X509Certificate2(certificate);
             var actualPin = CertificatePinning.ComputeSha256Pin(serverLeaf);
             var expected = CertificatePinning.NormalizeSha256Pin(pin);
-            return expected is not null &&
-                   CertificatePinning.ValidatePkixChain(
-                       serverLeaf, trustedServerRoot, CertificatePinning.ServerAuthenticationOid) &&
-                   CryptographicOperations.FixedTimeEquals(
-                       Convert.FromHexString(actualPin), Convert.FromHexString(expected));
+            var pkixValid = CertificatePinning.ValidatePkixChain(
+                serverLeaf, trustedServerRoot, CertificatePinning.ServerAuthenticationOid);
+            var pinMatches = expected is not null && CryptographicOperations.FixedTimeEquals(
+                Convert.FromHexString(actualPin), Convert.FromHexString(expected));
+            diagnostics?.Enqueue($"server:errors={errors};pkix={pkixValid};pin={pinMatches}");
+            return pkixValid && pinMatches;
         };
         return new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(8) };
     }
