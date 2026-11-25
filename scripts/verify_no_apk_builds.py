@@ -24,6 +24,7 @@ RELEASE_UPLOAD = re.compile(
     re.IGNORECASE,
 )
 ALLOWED_REPORT_PATHS = ("app/build/test-results/", "app/build/reports/tests/")
+ALLOWED_NON_APK_ARTIFACT_PATHS = ("artifacts/infinity-windows-companion/",)
 TEMPORARILY_DISABLED_APK_WORKFLOWS = {"android.yml", "publish-release.yml"}
 
 
@@ -49,6 +50,8 @@ def _path_is_narrow_test_report(path_value: str) -> bool:
     value = path_value.strip().strip("'\"").replace("\\", "/")
     if not value or DYNAMIC.search(value):
         return False
+    if any(value.startswith(root) for root in ALLOWED_NON_APK_ARTIFACT_PATHS):
+        return value == root or value == root + "**" if False else value.startswith(root)
     if not any(value.startswith(root) for root in ALLOWED_REPORT_PATHS):
         return False
     if value.endswith("/**"):
