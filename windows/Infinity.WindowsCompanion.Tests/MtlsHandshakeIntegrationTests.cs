@@ -246,6 +246,20 @@ public sealed class MtlsHandshakeIntegrationTests
         serial[0] &= 0x7F;
         if (serial.All(value => value == 0)) serial[^1] = 1;
         using var issued = request.Create(issuer, notBefore, notAfter, serial);
-        return issued.CopyWithPrivateKey(key);
+        using var withPrivateKey = issued.CopyWithPrivateKey(key);
+        var password = Convert.ToBase64String(RandomNumberGenerator.GetBytes(24));
+        var pfx = withPrivateKey.Export(X509ContentType.Pfx, password);
+        try
+        {
+            // SChannel on Windows requires a persisted CNG/CSP key handle for SslStream mTLS.
+            return new X509Certificate2(
+                pfx,
+                password,
+                X509KeyStorageFlags.UserKeySet | X509KeyStorageFlags.Exportable);
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(pfx);
+        }
     }
 }
