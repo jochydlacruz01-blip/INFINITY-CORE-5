@@ -26,6 +26,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
@@ -157,7 +158,7 @@ fun InfinityConnectPanel() {
         onDispose { editingPassword.value = "" }
     }
     val credentialVault = remember(context) { InfinityConnectCredentialVault(context) }
-    val editingIndex = remember { mutableStateOf(-1) }
+    val editingIndex = remember { mutableIntStateOf(-1) }
 
     fun notifyUser(message: String) {
         Toast.makeText(
