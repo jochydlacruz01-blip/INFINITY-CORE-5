@@ -94,7 +94,7 @@ def _audit_file(workflow: Path) -> list[str]:
     disabled_apk_workflow = _is_temporarily_disabled_apk_workflow(workflow, content)
 
     findings: list[str] = []
-    normalized_shell = re.sub(r"\\\\\\s*\\n", " ", content)
+    normalized_shell = content.replace("\\\n", " ")
     gradle_build = any(
         GRADLE_INVOKED.search(line) and FORBIDDEN_GRADLE_TASK.search(line)
         for line in normalized_shell.splitlines()
