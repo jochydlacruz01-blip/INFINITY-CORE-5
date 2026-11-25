@@ -102,3 +102,14 @@ jobs:
       - name: Run Android lint (no APK)
         run: gradle lintDebug lintRelease --stacktrace
 
+      - name: Preserve Android unit test reports (no APK)
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: INFINITY-ANDROID-TEST-REPORTS-${{ github.sha }}
+          path: |
+            app/build/test-results/**
+            app/build/reports/tests/**
+          if-no-files-found: warn
+          retention-days: 14
+
