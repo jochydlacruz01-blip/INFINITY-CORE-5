@@ -857,13 +857,23 @@ val iconOffsets = remember {
                     onShowDesktop = { dashboardOpen = false }
                 )
             } else if (desktopIconsVisible) {
+                val referenceRail = maxW >= 600.dp && futuristicDesktop
+                val railLayout = if (referenceRail) infinityReferenceRailLayout(maxW.value, maxH.value, desktopItems.size) else null
                 desktopItems.forEach { item ->
-                    val offset = iconOffsets[item.id] ?: Offset(22f, 90f)
+                    val itemIndex = desktopItems.indexOf(item)
+                    val offset = if (railLayout != null) {
+                        with(density) {
+                            Offset(
+                                railLayout.leftDp.dp.toPx(),
+                                (railLayout.topDp + itemIndex * railLayout.slotHeightDp).dp.toPx()
+                            )
+                        }
+                    } else iconOffsets[item.id] ?: Offset(22f, 90f)
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier
                             .offset { IntOffset(offset.x.roundToInt(), offset.y.roundToInt()) }
-                            .width(108.dp)
+                            .width((railLayout?.itemWidthDp ?: 108f).dp)
                             .clip(RoundedCornerShape(if (iconPack == "windows11") 12.dp else 18.dp))
                             .background(
                                 if (maxW >= 600.dp && futuristicDesktop) Brush.verticalGradient(listOf(Color.Transparent, Color.Transparent))
@@ -884,8 +894,8 @@ val iconOffsets = remember {
                                 RoundedCornerShape(if (iconPack == "windows11") 12.dp else 18.dp)
                             )
                             .padding(8.dp)
-                            .pointerInput(item.id) {
-                                detectDragGestures { change, drag ->
+                            .pointerInput(item.id, referenceRail) {
+                                if (!referenceRail) detectDragGestures { change, drag ->
                                     change.consume()
                                     val viewportWidth = with(density) { maxW.toPx() }
                                     val safeDesktopHeight = with(density) {
@@ -939,17 +949,25 @@ val iconOffsets = remember {
                             }
                             .padding(6.dp)
                     ) {
-                        InfinityAppBadge(item, (iconSize + 14f).dp, accent, iconPack)
-                        Spacer(Modifier.height(7.dp))
+                        InfinityAppBadge(
+                            item,
+                            (railLayout?.iconSizeDp ?: (iconSize + 14f)).dp,
+                            accent,
+                            iconPack
+                        )
+                        Spacer(Modifier.height(if (referenceRail) 3.dp else 7.dp))
                         Text(
                             item.label,
                             modifier = Modifier
                                 .shadow(10.dp, RoundedCornerShape(12.dp))
                                 .background(if (iconPack == "windows11") Color(0xCC173653) else Color(0xDD101D30), RoundedCornerShape(if (iconPack == "windows11") 8.dp else 12.dp))
                                 .border(1.dp, if (iconPack == "windows11") Color(0xFF8BCBFA).copy(alpha = 0.38f) else accent.copy(alpha = 0.38f), RoundedCornerShape(if (iconPack == "windows11") 8.dp else 12.dp))
-                                .padding(horizontal = 9.dp, vertical = 6.dp),
+                                .padding(
+                                    horizontal = if (referenceRail) 4.dp else 9.dp,
+                                    vertical = if (referenceRail) 3.dp else 6.dp
+                                ),
                             color = Color.White,
-                            fontSize = 10.sp,
+                            fontSize = if (referenceRail) 8.sp else 10.sp,
                             fontWeight = FontWeight.SemiBold,
                             maxLines = 2,
                             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
