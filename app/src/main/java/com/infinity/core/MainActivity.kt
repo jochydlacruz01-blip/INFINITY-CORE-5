@@ -1708,6 +1708,13 @@ Row(
             modifier = Modifier
                 .weight(1f)
                 .height(58.dp)
+                .semantics {
+                    contentDescription = "Espacio $number, " + when (number) {
+                        1 -> "Principal"
+                        2 -> "Trabajo"
+                        else -> "Personal"
+                    }
+                }
                 .border(
                     1.5.dp,
                     if (selected) accent else Color(0xFF52789C),
