@@ -137,6 +137,15 @@ class NoApkBuildPolicyTest(unittest.TestCase):
 """
         self.assertEqual(audit_text(content), [])
 
+    def test_windows_companion_non_apk_artifact_is_allowed(self):
+        content = """steps:
+  - uses: actions/upload-artifact@v7
+    with:
+      name: INFINITY-WINDOWS-COMPANION-win-x64
+      path: artifacts/infinity-windows-companion/
+"""
+        self.assertEqual(audit_text(content), [])
+
     def test_manual_apk_workflow_requires_every_job_disabled(self):
         content = """name: legacy release
 on:
