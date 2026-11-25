@@ -91,7 +91,7 @@ jobs:
           python3 -m unittest discover -s scripts/tests -p 'test_*.py' -v
 
       - name: Run source compilation and unit tests (no APK)
-        run: gradle compileDebugKotlin testDebugUnitTest testReleaseUnitTest --stacktrace
+        run: gradle compileDebugKotlin compileDebugAndroidTestKotlin testDebugUnitTest testReleaseUnitTest --stacktrace
 
       - name: Verify pinned FreeRDP source revision
         run: |
