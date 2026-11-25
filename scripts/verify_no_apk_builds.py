@@ -98,27 +98,27 @@ def _is_safe_manual_debug_apk_workflow(path: Path, content: str) -> bool:
     if path.name != MANUAL_DEBUG_APK_WORKFLOW:
         return False
     required = (
-        re.search(r"(?m)^on:\\s*\\n\\s+workflow_dispatch:\\s*$", content),
+        re.search(r"(?m)^on:\s*\n\s+workflow_dispatch:\s*$", content),
         re.search(
-            r"(?m)^    if:\\s*\\$\\{\\{\\s*github\\.event_name\\s*==\\s*'workflow_dispatch'\\s*&&\\s*github\\.ref\\s*==\\s*'refs/heads/"
+            r"(?m)^    if:\s*\$\{\{\s*github\.event_name\s*==\s*'workflow_dispatch'\s*&&\s*github\.ref\s*==\s*'refs/heads/"
             + re.escape(AUTHORIZED_DEBUG_BRANCH)
-            + r"'\\s*\\}\\}\\s*$",
+            + r"'\s*\}\}\s*$",
             content,
         ),
-        re.search(r"(?m)^permissions:\\s*\\n\\s+contents:\\s*read\\s*$", content),
-        re.search(r"(?m)^\\s+ref:\\s*" + re.escape(AUTHORIZED_DEBUG_BRANCH) + r"\\s*$", content),
-        re.search(r"(?m)^\\s+gradle compileDebugKotlin testDebugUnitTest lintDebug assembleDebug --stacktrace\\s*$", content),
-        re.search(r"(?m)^\\s*\\"?\\$\\{APKSIGNER\\}\\"? verify --verbose --print-certs", content),
-        re.search(r"(?m)^\\s+path: app/build/outputs/apk/debug/app-debug\\.apk\\s*$", content),
+        re.search(r"(?m)^permissions:\s*\n\s+contents:\s*read\s*$", content),
+        re.search(r"(?m)^\s+ref:\s*" + re.escape(AUTHORIZED_DEBUG_BRANCH) + r"\s*$", content),
+        re.search(r"(?m)^\s+gradle compileDebugKotlin testDebugUnitTest lintDebug assembleDebug --stacktrace\s*$", content),
+        re.search(r"(?m)^\s*\"?\$\{APKSIGNER\}\"? verify --verbose --print-certs", content),
+        re.search(r"(?m)^\s+path: app/build/outputs/apk/debug/app-debug\.apk\s*$", content),
     )
     if not all(required):
         return False
 
     forbidden = (
-        r"(?i)assembleRelease|bundleRelease|packageRelease|publish\\w*|softprops/action-gh-release|"
-        r"gh\\s+release|contents:\\s*write|packages:\\s*write|"
+        r"(?i)assembleRelease|bundleRelease|packageRelease|publish\w*|softprops/action-gh-release|"
+        r"gh\s+release|contents:\s*write|packages:\s*write|"
         r"INFINITY_KEYSTORE_BASE64|INFINITY_KEYSTORE_PASSWORD|INFINITY_KEY_ALIAS|INFINITY_KEY_PASSWORD|"
-        r"signingConfig|signingConfigs\\.release"
+        r"signingConfig|signingConfigs\.release"
     )
     if re.search(forbidden, content) or "secrets." in content:
         return False
@@ -130,8 +130,8 @@ def _is_safe_manual_debug_apk_workflow(path: Path, content: str) -> bool:
     evidence_block = next((block for block in artifact_blocks if "app-debug-sha256.txt" in block), "")
     return bool(
         apk_block
-        and re.search(r"(?m)^\\s+name:\\s*PROJECT-INFINITY-0\\.10-DEBUG-TEST-APK\\s*$", apk_block)
-        and re.search(r"(?m)^\\s+name:\\s*PROJECT-INFINITY-0\\.10-DEBUG-APK-EVIDENCE\\s*$", evidence_block)
+        and re.search(r"(?m)^\s+name:\s*PROJECT-INFINITY-0\.10-DEBUG-TEST-APK\s*$", apk_block)
+        and re.search(r"(?m)^\s+name:\s*PROJECT-INFINITY-0\.10-DEBUG-APK-EVIDENCE\s*$", evidence_block)
         and "app-debug-signature.txt" in evidence_block
         and "app-debug-size.txt" in evidence_block
     )
