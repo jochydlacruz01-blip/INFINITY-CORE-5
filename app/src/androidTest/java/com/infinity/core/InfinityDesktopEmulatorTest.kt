@@ -215,11 +215,7 @@ class InfinityDesktopEmulatorTest {
         val orbitPanel = compose.onNodeWithTag("infinity-orbit-panel")
         repeat(4) {
             orbitPanel.performTouchInput {
-                swipe(
-                    start = Offset(center.x, size.height * 0.82f),
-                    end = Offset(center.x, size.height * 0.18f),
-                    durationMillis = 450
-                )
+                swipeUp()
             }
             settleComposeFrame()
         }
