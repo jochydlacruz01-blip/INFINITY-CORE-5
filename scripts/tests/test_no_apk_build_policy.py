@@ -135,6 +135,17 @@ class NoApkBuildPolicyTest(unittest.TestCase):
 """
         self.assertEqual(audit_text(content), [])
 
+    def test_android_and_freerdp_lint_html_reports_are_allowed(self):
+        content = """steps:
+  - uses: actions/upload-artifact@v7
+    with:
+      name: lint
+      path: |
+        app/build/reports/lint-results*.html
+        freerdp-core/build/reports/lint-results*.html
+"""
+        self.assertEqual(audit_text(content), [])
+
     def test_single_xml_report_is_allowed(self):
         content = """steps:
   - uses: actions/upload-artifact@v7
