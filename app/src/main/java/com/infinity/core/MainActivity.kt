@@ -234,7 +234,7 @@ private fun Infinity08App() {
         while (true) {
             val now = Date()
             clockText = SimpleDateFormat("h:mm a", Locale.getDefault()).format(now)
-            dateText = SimpleDateFormat("EEE, dd MMMM", Locale.getDefault()).format(now)
+            dateText = SimpleDateFormat("EEE, dd MMM yyyy", Locale.getDefault()).format(now)
             delay(30_000)
         }
     }
