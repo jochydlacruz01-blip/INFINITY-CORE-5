@@ -170,7 +170,8 @@ public sealed class DeviceOperationRegistryTests
         await Task.WhenAll(workers);
 
         Assert.True(alreadyActive.Token.IsCancellationRequested);
-        Assert.False(registry.BeginOperation(DevicePin, OtherSessionId).Token.IsCancellationRequested);
+        using (var unaffected = registry.BeginOperation(DevicePin, OtherSessionId))
+            Assert.False(unaffected.Token.IsCancellationRequested);
         alreadyActive.Dispose();
         Assert.Equal(0, registry.Snapshot.ActiveOperations);
         Assert.Throws<OperationCanceledException>(() =>
