@@ -169,15 +169,13 @@ jobs:
           # Keep the runner's maintained emulator flags; custom camera options can prevent AVD boot.
           # Keep this as one command: android-emulator-runner invokes its script through sh -c.
           # Capture the real test exit code and preserve screenshots without masking failures.
-          script: mkdir -p artifacts/emulator-screenshots/${{ matrix.device }} artifacts/emulator-diagnostics/${{ matrix.device }}; gradle connectedDebugAndroidTest --stacktrace; test_exit=$?; adb logcat -d -v threadtime ComposeTest:D INFINITY_DEBUG:D INFINITY_TEST_DIAGNOSTIC:D AndroidRuntime:E '*:S' > artifacts/emulator-diagnostics/${{ matrix.device }}/logcat-diagnostics.txt || true; adb pull /sdcard/Android/data/com.infinity.core/files/Pictures/infinity-ui-captures artifacts/emulator-screenshots/${{ matrix.device }} || true; exit $test_exit
+          script: mkdir -p artifacts/emulator-screenshots/${{ matrix.device }}; gradle connectedDebugAndroidTest --stacktrace; test_exit=$?; adb logcat -d -v threadtime ComposeTest:D INFINITY_DEBUG:D INFINITY_TEST_DIAGNOSTIC:D AndroidRuntime:E '*:S' > artifacts/emulator-screenshots/${{ matrix.device }}/logcat-diagnostics.txt || true; adb pull /sdcard/Android/data/com.infinity.core/files/Pictures/infinity-ui-captures artifacts/emulator-screenshots/${{ matrix.device }} || true; exit $test_exit
 
       - name: Upload real emulator screenshots
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: INFINITY-EMULATOR-SCREENSHOTS-${{ matrix.device }}-${{ github.sha }}
-          path: |
-            artifacts/emulator-screenshots/
-            artifacts/emulator-diagnostics/
+          path: artifacts/emulator-screenshots/
           if-no-files-found: warn
           retention-days: 14
