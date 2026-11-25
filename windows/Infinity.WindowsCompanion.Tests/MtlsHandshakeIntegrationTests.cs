@@ -55,8 +55,10 @@ public sealed class MtlsHandshakeIntegrationTests
         };
         var serverPin = CertificatePinning.ComputeSha256Pin(serverCertificate);
 
+        var validDiagnostics = new System.Collections.Concurrent.ConcurrentQueue<string>();
         Assert.True(await ExchangeAsync(
-            serverCertificate, validClient, root, root, approvedPins, "localhost", serverPin));
+            serverCertificate, validClient, root, root, approvedPins, "localhost", serverPin, validDiagnostics),
+            string.Join(" | ", validDiagnostics));
         Assert.False(await ExchangeAsync(
             serverCertificate, validClient, root, root, approvedPins, "localhost", new string('0', 64)));
         Assert.False(await ExchangeAsync(
@@ -82,7 +84,8 @@ public sealed class MtlsHandshakeIntegrationTests
         X509Certificate2 trustedClientRoot,
         IReadOnlySet<string> approvedClientPins,
         string targetHost,
-        string expectedServerPin)
+        string expectedServerPin,
+        System.Collections.Concurrent.ConcurrentQueue<string>? diagnostics = null)
     {
         var listener = new TcpListener(IPAddress.Loopback, 0);
         listener.Start();
@@ -97,12 +100,18 @@ public sealed class MtlsHandshakeIntegrationTests
                 using var tls = new SslStream(tcp.GetStream(), leaveInnerStreamOpen: false,
                     (_, certificate, _, _) =>
                     {
-                        if (certificate is null) return false;
+                        if (certificate is null)
+                        {
+                            diagnostics?.Enqueue("server-client-cert:null");
+                            return false;
+                        }
                         using var presentedClient = new X509Certificate2(certificate);
                         var fingerprint = CertificatePinning.ComputeSha256Pin(presentedClient);
-                        return CertificatePinning.ValidatePkixChain(
-                                   presentedClient, trustedClientRoot, CertificatePinning.ClientAuthenticationOid) &&
-                               approvedClientPins.Contains(fingerprint);
+                        var pkix = CertificatePinning.ValidatePkixChain(
+                            presentedClient, trustedClientRoot, CertificatePinning.ClientAuthenticationOid);
+                        var approved = approvedClientPins.Contains(fingerprint);
+                        diagnostics?.Enqueue($"server-client:pkix={pkix};approved={approved};subject={presentedClient.Subject}");
+                        return pkix && approved;
                     });
 
                 await tls.AuthenticateAsServerAsync(new SslServerAuthenticationOptions
@@ -125,6 +134,7 @@ public sealed class MtlsHandshakeIntegrationTests
             catch (Exception error) when (error is AuthenticationException or IOException or
                                            SocketException or OperationCanceledException or CryptographicException)
             {
+                diagnostics?.Enqueue($"server-exception:{error.GetType().Name}:{error.Message}");
                 return false;
             }
         });
@@ -139,16 +149,20 @@ public sealed class MtlsHandshakeIntegrationTests
                     if (certificate is null ||
                         (errors & (SslPolicyErrors.RemoteCertificateNameMismatch |
                                    SslPolicyErrors.RemoteCertificateNotAvailable)) != 0)
+                    {
+                        diagnostics?.Enqueue($"client-server-cert:missing-or-hostname:{errors}");
                         return false;
+                    }
 
                     using var presentedServer = new X509Certificate2(certificate);
                     var actualPin = CertificatePinning.ComputeSha256Pin(presentedServer);
                     var expectedPin = CertificatePinning.NormalizeSha256Pin(expectedServerPin);
-                    return expectedPin is not null &&
-                           CertificatePinning.ValidatePkixChain(
-                               presentedServer, trustedServerRoot, CertificatePinning.ServerAuthenticationOid) &&
-                           CryptographicOperations.FixedTimeEquals(
-                               Convert.FromHexString(actualPin), Convert.FromHexString(expectedPin));
+                    var pkix = CertificatePinning.ValidatePkixChain(
+                        presentedServer, trustedServerRoot, CertificatePinning.ServerAuthenticationOid);
+                    var pin = expectedPin is not null && CryptographicOperations.FixedTimeEquals(
+                        Convert.FromHexString(actualPin), Convert.FromHexString(expectedPin));
+                    diagnostics?.Enqueue($"client-server:errors={errors};pkix={pkix};pin={pin}");
+                    return pkix && pin;
                 });
 
             await tls.AuthenticateAsClientAsync(new SslClientAuthenticationOptions
@@ -178,6 +192,7 @@ public sealed class MtlsHandshakeIntegrationTests
         catch (Exception error) when (error is AuthenticationException or IOException or
                                        SocketException or OperationCanceledException or HttpRequestException)
         {
+            diagnostics?.Enqueue($"client-exception:{error.GetType().Name}:{error.Message}");
             try { await serverTask.WaitAsync(TimeSpan.FromSeconds(8)); }
             catch (TimeoutException) { }
             return false;
