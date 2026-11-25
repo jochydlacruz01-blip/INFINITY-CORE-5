@@ -57,6 +57,10 @@ class InfinityDesktopEmulatorTest {
             listOf(2, 3, 1).forEach { targetWorkspace ->
                 compose.onNodeWithTag("infinity-orbit-panel").assertDoesNotExist()
                 compose.onNodeWithTag("infinity-dock-orbit").performClick()
+                // The test clock is deliberately frozen in this suite. A click updates
+                // Compose state, but the conditional ORBIT subtree is not committed until
+                // the next frame; waitForIdle alone does not advance a frozen clock.
+                compose.mainClock.advanceTimeBy(100)
                 compose.waitForIdle()
                 compose.onNodeWithTag("infinity-orbit-panel").assertExists()
                 val workspaceSelector = compose.onNodeWithTag(
