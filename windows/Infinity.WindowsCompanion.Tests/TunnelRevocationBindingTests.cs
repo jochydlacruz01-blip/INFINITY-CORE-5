@@ -19,6 +19,7 @@ public sealed class TunnelRevocationBindingTests
             new CancellationTokenSource(TimeSpan.FromSeconds(5)).Token);
         listener.Stop();
 
+        var localSocket = local.Client;
         using var cancellation = new CancellationTokenSource();
         using var webSocket = new RecordingWebSocket();
         using var binding = TunnelRevocationBinding.Bind(cancellation.Token, webSocket, local);
@@ -26,7 +27,7 @@ public sealed class TunnelRevocationBindingTests
         cancellation.Cancel();
 
         Assert.Equal(WebSocketState.Aborted, webSocket.State);
-        Assert.True(local.Client.SafeHandle.IsClosed);
+        Assert.True(localSocket.SafeHandle.IsClosed);
         using var readTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
         var read = await remote.GetStream().ReadAsync(new byte[1], readTimeout.Token);
         Assert.Equal(0, read);
