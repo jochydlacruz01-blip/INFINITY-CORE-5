@@ -108,25 +108,21 @@ def _is_safe_manual_debug_apk_workflow(path: Path, content: str) -> bool:
         re.search(r"(?m)^permissions:\\s*\\n\\s+contents:\\s*read\\s*$", content),
         re.search(r"(?m)^\\s+ref:\\s*" + re.escape(AUTHORIZED_DEBUG_BRANCH) + r"\\s*$", content),
         re.search(r"(?m)^\\s+gradle compileDebugKotlin testDebugUnitTest lintDebug assembleDebug --stacktrace\\s*$", content),
-        re.search(r"(?m)^\\s+\\$\\{APKSIGNER\\} verify --verbose --print-certs", content),
+        re.search(r"(?m)^\\s*\\"?\\$\\{APKSIGNER\\}\\"? verify --verbose --print-certs", content),
         re.search(r"(?m)^\\s+path: app/build/outputs/apk/debug/app-debug\\.apk\\s*$", content),
     )
     if not all(required):
         return False
 
-    # Reject any route to Release, publication, write permissions, or commercial signing secrets.
     forbidden = (
         r"(?i)assembleRelease|bundleRelease|packageRelease|publish\\w*|softprops/action-gh-release|"
         r"gh\\s+release|contents:\\s*write|packages:\\s*write|"
         r"INFINITY_KEYSTORE_BASE64|INFINITY_KEYSTORE_PASSWORD|INFINITY_KEY_ALIAS|INFINITY_KEY_PASSWORD|"
         r"signingConfig|signingConfigs\\.release"
     )
-    if re.search(forbidden, content):
-        return False
-    if "secrets." in content:
+    if re.search(forbidden, content) or "secrets." in content:
         return False
 
-    # Only the one exact APK and the explicit checksum/signature evidence may be uploaded.
     artifact_blocks = _artifact_steps(content)
     if len(artifact_blocks) != 2:
         return False
@@ -139,6 +135,7 @@ def _is_safe_manual_debug_apk_workflow(path: Path, content: str) -> bool:
         and "app-debug-signature.txt" in evidence_block
         and "app-debug-size.txt" in evidence_block
     )
+
 
 def _audit_file(workflow: Path) -> list[str]:
     try:
