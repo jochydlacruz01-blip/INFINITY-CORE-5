@@ -37,6 +37,10 @@ public sealed class MtlsHandshakeIntegrationTests
         using var untrustedClient = CreateLeaf(
             unrelatedRoot, "android-untrusted", CertificatePinning.ClientAuthenticationOid,
             DateTimeOffset.UtcNow.AddMinutes(-5), DateTimeOffset.UtcNow.AddHours(2));
+        using var intermediate = CreateIntermediate(root, "INFINITY intermediate CA");
+        using var incompleteChainClient = CreateLeaf(
+            intermediate, "android-incomplete-chain", CertificatePinning.ClientAuthenticationOid,
+            DateTimeOffset.UtcNow.AddMinutes(-5), DateTimeOffset.UtcNow.AddHours(2));
         using var untrustedServer = CreateLeaf(
             unrelatedRoot, "localhost", CertificatePinning.ServerAuthenticationOid,
             DateTimeOffset.UtcNow.AddMinutes(-5), DateTimeOffset.UtcNow.AddHours(2), "localhost");
@@ -69,6 +73,8 @@ public sealed class MtlsHandshakeIntegrationTests
             serverCertificate, unauthorizedClient, root, root, approvedPins, "localhost", serverPin));
         Assert.False(await ExchangeAsync(
             serverCertificate, untrustedClient, root, root, approvedPins, "localhost", serverPin));
+        Assert.False(await ExchangeAsync(
+            serverCertificate, incompleteChainClient, root, root, approvedPins, "localhost", serverPin));
         Assert.False(await ExchangeAsync(
             untrustedServer, validClient, root, root, approvedPins, "localhost",
             CertificatePinning.ComputeSha256Pin(untrustedServer)));
@@ -216,6 +222,25 @@ public sealed class MtlsHandshakeIntegrationTests
         return request.CreateSelfSigned(
             DateTimeOffset.UtcNow.AddDays(-10),
             DateTimeOffset.UtcNow.AddDays(2));
+    }
+
+    private static X509Certificate2 CreateIntermediate(X509Certificate2 issuer, string commonName)
+    {
+        using var key = RSA.Create(2048);
+        var request = new CertificateRequest(
+            $"CN={commonName}", key, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+        request.CertificateExtensions.Add(new X509BasicConstraintsExtension(true, false, 0, true));
+        request.CertificateExtensions.Add(new X509KeyUsageExtension(
+            X509KeyUsageFlags.KeyCertSign | X509KeyUsageFlags.CrlSign, true));
+        request.CertificateExtensions.Add(new X509SubjectKeyIdentifierExtension(request.PublicKey, false));
+        var serial = RandomNumberGenerator.GetBytes(16);
+        serial[0] &= 0x7F;
+        if (serial.All(value => value == 0)) serial[^1] = 1;
+        return request.Create(
+            issuer,
+            DateTimeOffset.UtcNow.AddMinutes(-5),
+            DateTimeOffset.UtcNow.AddHours(2),
+            serial);
     }
 
     private static X509Certificate2 CreateLeaf(

@@ -73,6 +73,25 @@ public sealed class DeviceOperationRegistryTests
     }
 
     [Fact]
+    public async Task RevocationDuringPendingTunnelEstablishmentCancelsSetupBeforeSocketAcceptance()
+    {
+        var registry = CreateRegistry();
+        using var operation = registry.BeginOperation(DevicePin, SessionId);
+        var setupStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        var pendingSetup = Task.Run(async () =>
+        {
+            setupStarted.TrySetResult();
+            await Task.Delay(Timeout.InfiniteTimeSpan, operation.Token);
+        });
+
+        await setupStarted.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        Assert.True(registry.RevokeDevice(DevicePin));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => pendingSetup);
+        Assert.Equal(0, registry.Snapshot.ActiveOperations);
+    }
+
+    [Fact]
     public void RevocationOfDisconnectedDeviceInvalidatesItsGenerationWithoutClientRequest()
     {
         var registry = new DeviceOperationRegistry();
