@@ -132,6 +132,55 @@ public sealed class SecureFileTransferStoreTests : IDisposable
                 CancellationToken.None));
     }
 
+    [Fact]
+    public async Task DeviceRevocationCancelsActiveUploadAndRemovesPartialFiles()
+    {
+        var registry = new DeviceOperationRegistry();
+        registry.ActivateDevice(DevicePin);
+        const string sessionId = "33333333-3333-4333-8333-333333333333";
+        registry.ActivateSession(DevicePin, sessionId);
+        using var operation = registry.BeginOperation(DevicePin, sessionId);
+        using var source = new BlockingReadStream();
+        var digest = Convert.ToHexString(SHA256.HashData(new byte[] { 1 }));
+
+        var upload = store.SaveAsync(
+            source, DevicePin, "cancelled.bin", 1, digest, operation.Token);
+        await source.ReadStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        Assert.True(registry.RevokeDevice(DevicePin));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => upload);
+
+        var deviceDirectory = Path.Combine(root, DevicePin);
+        Assert.Empty(Directory.Exists(deviceDirectory)
+            ? Directory.EnumerateFiles(deviceDirectory, "*", SearchOption.AllDirectories)
+            : Array.Empty<string>());
+        Assert.True(operation.Token.IsCancellationRequested);
+    }
+
+    private sealed class BlockingReadStream : Stream
+    {
+        public TaskCompletionSource ReadStarted { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
+        {
+            ReadStarted.TrySetResult();
+            await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+            return 0;
+        }
+
+        public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+        public override void Flush() => throw new NotSupportedException();
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+        public override bool CanRead => true;
+        public override bool CanSeek => false;
+        public override bool CanWrite => false;
+        public override long Length => throw new NotSupportedException();
+        public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(root)) Directory.Delete(root, recursive: true);

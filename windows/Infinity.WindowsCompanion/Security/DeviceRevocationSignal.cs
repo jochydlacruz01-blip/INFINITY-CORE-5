@@ -9,7 +9,7 @@ namespace Infinity.WindowsCompanion.Security;
 /// </summary>
 public static class DeviceRevocationSignal
 {
-    private const string EventName = @"Global\\INFINITY.WindowsCompanion.DeviceRevocation";
+    private const string EventName = @"Global\INFINITY.WindowsCompanion.DeviceRevocation";
 
     public static EventWaitHandle CreateListener()
     {

@@ -118,8 +118,8 @@ var auditLog = new InfinityAuditLog();
 var fileTransferStore = new SecureFileTransferStore();
 var operationRegistry = new DeviceOperationRegistry();
 using var deviceRevocationSignal = DeviceRevocationSignal.CreateListener();
-using var stopRevocationMonitor = app.Lifetime.ApplicationStopping.Register(deviceRevocationSignal.Set);
-_ = Task.Run(() =>
+using var stopRevocationMonitor = app.Lifetime.ApplicationStopping.Register(() => deviceRevocationSignal.Set());
+var revocationMonitor = Task.Run(() =>
 {
     while (!app.Lifetime.ApplicationStopping.IsCancellationRequested)
     {
@@ -488,8 +488,10 @@ app.MapGet("/v1/tunnel/rdp", async (HttpContext context) =>
         }
     }
 
+});
 
-app.Run();
+await app.RunAsync();
+await revocationMonitor;
 
 static string? ReadBearerToken(HttpContext context)
 {
