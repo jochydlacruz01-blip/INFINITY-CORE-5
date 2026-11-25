@@ -207,12 +207,22 @@ class InfinityDesktopEmulatorTest {
         compose.onNodeWithText("CERRAR ORBIT").assertExists()
         compose.onNodeWithContentDescription("START").assertExists()
         capture("03-orbit-open")
-        // The ORBIT card is vertically scrollable and its close action is below
-        // the initial viewport on both compact-phone and tablet AVDs. Bring the
-        // actual button into view before dispatching the click; performClick alone
-        // targets its off-screen bounds and can leave orbitOpen unchanged.
+        // ORBIT is a real vertically scrollable panel. Avoid Compose's
+        // performScrollTo synchronization here: with autoAdvance disabled it
+        // can wait indefinitely for a scroll/idle condition. Drive the panel
+        // with real touch gestures, then verify the close action is on-screen.
         val closeOrbit = compose.onNodeWithText("CERRAR ORBIT")
-        closeOrbit.performScrollTo()
+        val orbitPanel = compose.onNodeWithTag("infinity-orbit-panel")
+        repeat(4) {
+            orbitPanel.performTouchInput {
+                swipe(
+                    start = Offset(center.x, size.height * 0.82f),
+                    end = Offset(center.x, size.height * 0.18f),
+                    durationMillis = 450
+                )
+            }
+            settleComposeFrame()
+        }
         closeOrbit.assertIsDisplayed()
         closeOrbit.performClick()
         settleComposeFrame()
