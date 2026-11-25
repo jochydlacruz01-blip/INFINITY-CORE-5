@@ -1,0 +1,85 @@
+using Infinity.WindowsCompanion.Security;
+using Xunit;
+
+namespace Infinity.WindowsCompanion.Tests;
+
+public sealed class DeviceOperationRegistryTests
+{
+    private const string DevicePin = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+    private const string OtherDevicePin = "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB";
+    private const string SessionId = "11111111-1111-4111-8111-111111111111";
+    private const string OtherSessionId = "22222222-2222-4222-8222-222222222222";
+
+    [Fact]
+    public async Task DeviceRevocationCancelsEveryActiveOperationAndIsIdempotent()
+    {
+        var registry = CreateRegistry();
+        using var first = registry.BeginOperation(DevicePin, SessionId);
+        using var second = registry.BeginOperation(DevicePin, OtherSessionId);
+
+        Assert.True(registry.RevokeDevice(DevicePin));
+        Assert.False(registry.RevokeDevice(DevicePin));
+        Assert.True(first.Token.IsCancellationRequested);
+        Assert.True(second.Token.IsCancellationRequested);
+        Assert.Throws<OperationCanceledException>(() => registry.BeginOperation(DevicePin, SessionId));
+
+        first.Dispose();
+        second.Dispose();
+        Assert.Equal(0, registry.Snapshot.ActiveOperations);
+    }
+
+    [Fact]
+    public async Task ConcurrentRepeatedRevocationSignalsAllLeasesWithoutAffectingOtherDevice()
+    {
+        var registry = CreateRegistry();
+        using var deviceOperation = registry.BeginOperation(DevicePin, SessionId);
+        using var otherOperation = registry.BeginOperation(OtherDevicePin, SessionId);
+
+        await Task.WhenAll(Enumerable.Range(0, 16).Select(_ => Task.Run(() => registry.RevokeDevice(DevicePin))));
+
+        Assert.True(deviceOperation.Token.IsCancellationRequested);
+        Assert.False(otherOperation.Token.IsCancellationRequested);
+        Assert.Throws<OperationCanceledException>(() => registry.BeginOperation(DevicePin, SessionId));
+        using var unaffected = registry.BeginOperation(OtherDevicePin, SessionId);
+        Assert.False(unaffected.Token.IsCancellationRequested);
+    }
+
+    [Fact]
+    public void SessionRevocationCancelsOnlyThatSessionsOperations()
+    {
+        var registry = CreateRegistry();
+        using var revoked = registry.BeginOperation(DevicePin, SessionId);
+        using var retained = registry.BeginOperation(DevicePin, OtherSessionId);
+
+        Assert.True(registry.RevokeSession(DevicePin, SessionId));
+        Assert.False(registry.RevokeSession(DevicePin, SessionId));
+        Assert.True(revoked.Token.IsCancellationRequested);
+        Assert.False(retained.Token.IsCancellationRequested);
+        Assert.Throws<OperationCanceledException>(() => registry.BeginOperation(DevicePin, SessionId));
+    }
+
+    [Fact]
+    public async Task RequestDisconnectCancelsLeaseAndReleasesOperationCount()
+    {
+        var registry = CreateRegistry();
+        using var request = new CancellationTokenSource();
+        var lease = registry.BeginOperation(DevicePin, SessionId, request.Token);
+
+        request.Cancel();
+        Assert.True(lease.Token.IsCancellationRequested);
+        lease.Dispose();
+        Assert.Equal(0, registry.Snapshot.ActiveOperations);
+        await Task.CompletedTask;
+    }
+
+    private static DeviceOperationRegistry CreateRegistry()
+    {
+        var registry = new DeviceOperationRegistry();
+        registry.ActivateDevice(DevicePin);
+        registry.ActivateDevice(OtherDevicePin);
+        registry.ActivateSession(DevicePin, SessionId);
+        registry.ActivateSession(DevicePin, OtherSessionId);
+        registry.ActivateSession(OtherDevicePin, SessionId);
+        return registry;
+    }
+}

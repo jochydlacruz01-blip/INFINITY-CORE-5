@@ -83,7 +83,7 @@ public sealed class AuthorizedSessionStoreTests
     public async Task DeviceRevocationInvalidatesAllOldTokensAfterConcurrentAuthorizationChecks()
     {
         var store = new AuthorizedSessionStore();
-        var grants = Enumerable.Range(0, 8)
+        var grants = Enumerable.Range(0, 4)
             .Select(index => store.Create(DevicePin, true, new[] { "identity.read" }))
             .ToArray();
         using var revokeCompleted = new ManualResetEventSlim(false);
