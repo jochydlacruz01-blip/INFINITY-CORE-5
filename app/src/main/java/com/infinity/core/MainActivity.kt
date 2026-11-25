@@ -58,6 +58,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
@@ -2810,6 +2811,7 @@ private fun Infinity08Window(
             .zIndex(if (isFocused) 10f else 0f)
             .width(win.width.dp)
             .height(win.height.dp)
+            .testTag("infinity-window-${win.kind}")
             .animateContentSize()
              .shadow(26.dp, RoundedCornerShape(windowRadius))
             .background(windowSurface, RoundedCornerShape(windowRadius))
@@ -2836,6 +2838,7 @@ private fun Infinity08Window(
                     }
                 }
                 .heightIn(min = 48.dp)
+                .testTag("infinity-window-title-${win.kind}")
                 .padding(horizontal = 10.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -3090,6 +3093,7 @@ private fun Infinity08Window(
                 .align(Alignment.End)
                 .padding(end = 8.dp, bottom = 8.dp)
                 .size(38.dp)
+                .testTag("infinity-window-resize-${win.kind}")
                 .background(
                     accent.copy(alpha = 0.18f),
                     RoundedCornerShape(14.dp)

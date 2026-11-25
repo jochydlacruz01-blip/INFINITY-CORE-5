@@ -25,7 +25,10 @@ RELEASE_UPLOAD = re.compile(
 )
 ALLOWED_REPORT_PATHS = ("app/build/test-results/", "app/build/reports/tests/")
 ALLOWED_LINT_REPORTS = ("app/build/reports/lint-results", "freerdp-core/build/reports/lint-results")
-ALLOWED_NON_APK_ARTIFACT_PATHS = ("artifacts/infinity-windows-companion/",)
+ALLOWED_NON_APK_ARTIFACT_PATHS = (
+    "artifacts/infinity-windows-companion/",
+    "artifacts/emulator-screenshots/",
+)
 TEMPORARILY_DISABLED_APK_WORKFLOWS = {"android.yml", "publish-release.yml"}
 
 
