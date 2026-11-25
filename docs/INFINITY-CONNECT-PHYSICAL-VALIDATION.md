@@ -109,3 +109,59 @@ Attach sanitized logs, screenshot filenames, test results and the two device bui
 5. the test record is reviewed and tied to the exact source SHAs.
 
 Current state for this document: all physical tests are **NOT RUN**. No claim of end-to-end CONNECT interoperability is made.
+
+
+## Automated coverage boundary (source audit)
+
+The current Android unit tests exercise **translation and policy logic**, not a live Windows input/display session:
+- Keyboard: `InfinityConnectKeyboardRulesTest` verifies key down/up ordering, modifier chords and invalid chords.
+- Mouse: `InfinityConnectMouseRulesTest` verifies click, drag, double-click and scroll event construction.
+- Touch: `InfinityConnectTouchRulesTest` verifies tap, long-press, drag, cancel-release and scroll translation.
+- Viewport: `InfinityConnectViewportRulesTest` verifies aspect-ratio fitting and pointer coordinate mapping.
+- RDP tunnel: `InfinityConnectRdpTunnelTest` currently verifies capability rejection for identity-only and display-without-input grants. It does **not** prove a successful live tunnel, frame delivery, input reaching Windows, reconnect, or real disconnect cleanup.
+- FreeRDP client: `InfinityFreeRdpClientTest` currently verifies certificate fingerprint normalization. It does **not** prove native RDP interoperability with a Windows host.
+- Session controller tests use a fake engine; they verify lifecycle/cancellation contracts, not network authentication against the Companion.
+- Windows Companion CI currently runs its .NET security/unit test project, but the CI success and published x64 folder are not evidence of a signed production installer or physical tablet interoperability.
+
+Therefore the current automated suite does not yet demonstrate end-to-end screen frames, keyboard events, mouse events, or file transfer across the Android ↔ Windows boundary. Mark those physical tests NOT RUN until tested on the actual devices.
+
+## Installation and controlled physical-test procedure
+
+### 1. Prepare Windows 10 Pro (test machine only)
+1. Install the supported .NET 8 runtime if it is not already present.
+2. Download the Windows Companion CI artifact from the exact successful Actions run and verify its SHA-256 locally.
+3. Do not treat the CI publish folder as an installer. Run the Companion only in a controlled test session after reviewing its configuration and service/listener requirements.
+4. Create a dedicated standard Windows test account; do not use a daily administrator account for remote sessions.
+5. Keep Remote Desktop disabled for LAN exposure. If the Companion needs the Windows RDP service, bind/allow it only on loopback and confirm from a second LAN device that TCP 3389 is not reachable.
+6. Configure the Companion bind address to a reviewed private LAN/VPN interface, a unique device GUID, and a server certificate PFX. Store the PFX password using a protected local secret mechanism; never pass it on a command line, commit it, or attach it to CI.
+7. Export only the public CA certificate. Record and compare its SHA-256 fingerprint through a separate trusted channel.
+8. Apply a narrowly scoped Windows Firewall rule for the Companion port on the private profile only. Do not create router port forwarding or public firewall rules.
+
+### 2. Prepare Samsung Galaxy Tab S7 FE
+1. Record Android version/build, app SHA, screen density and device model.
+2. Install only a test build produced from the reviewed PR branch using a controlled local developer workflow; this phase must not publish an APK artifact.
+3. Generate the device key and CSR inside the app. Confirm the private key remains in Android Keystore.
+4. Compare the CSR/device identity on the Windows console and approve it explicitly. Install the signed certificate chain and verify the CA/server fingerprint before creating a session.
+5. Start with identity-only permission. Grant remote display/input or file-transfer capability only as a separate explicit administrator approval for the corresponding test.
+
+### 3. Execute and record
+1. Follow sections A–E above in order. Do not proceed to RDP/input/transfer until certificate, identity and authorization checks pass.
+2. For screen/input, use a non-production Windows desktop and verify each action at the host, not merely that Android callbacks fired.
+3. For transfer, use disposable test files and compare SHA-256 at source and destination; attempt traversal and symlink attacks.
+4. Disconnect manually, revoke the certificate, stop the Companion and interrupt the network in separate runs. Confirm no session, token, socket, pressed key or temporary file remains usable.
+5. Capture actual tablet screenshots for section F and store them privately until identifiers and host information are redacted.
+6. Record every case PASS/FAIL/NOT RUN with timestamp, exact Android SHA, exact Windows Companion SHA, Windows build, Android build, and sanitized logs.
+
+### 4. Rollback
+- Stop the Companion and remove its narrowly scoped firewall rule.
+- Revoke the test client certificate and remove the test device authorization.
+- Delete the test PFX/private key and temporary transfer directory using the approved local secure-storage process.
+- Confirm RDP is not reachable from the LAN and no router port forwarding was introduced.
+- Keep both Android feature gates false after the test unless the entire acceptance gate is reviewed and formally approved.
+
+## CI artifact retention policy
+
+- Android unit-test XML and HTML reports: 14 days; reports only, no APK.
+- Windows Companion CI publish artifact: 14 days; not a production installer.
+- FreeRDP native build outputs: no upload by default; the run logs retain the build verification. Add a native-library artifact only if a reproducible device-test need is approved.
+- Keep source commit SHAs and Actions run URLs in the validation record so the evidence can be traced after artifact expiry.
