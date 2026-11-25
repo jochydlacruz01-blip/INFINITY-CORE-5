@@ -13,6 +13,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateContentSize
@@ -86,8 +87,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        window.statusBarColor = android.graphics.Color.rgb(13, 22, 37)
-        window.navigationBarColor = android.graphics.Color.rgb(13, 22, 37)
+        enableEdgeToEdge()
         setContent { Infinity08App() }
     }
 }
