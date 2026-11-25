@@ -957,7 +957,7 @@ val iconOffsets = remember {
                             iconPack
                         )
                         Spacer(Modifier.height(if (referenceRail) 2.dp else 7.dp))
-                        Text(
+                        if (railLayout?.showLabels != false) Text(
                             item.label,
                             modifier = Modifier
                                 .shadow(10.dp, RoundedCornerShape(12.dp))
