@@ -37,8 +37,12 @@ class InfinityDesktopEmulatorTest {
 
     @Before
     fun resetDesktopState() {
+        // The desktop includes ambient/infinite Compose animations; freeze the test clock
+        // so UI idleness is deterministic while gestures and state transitions are exercised.
+        compose.mainClock.autoAdvance = false
         context.getSharedPreferences("infinity_desktop", 0).edit().clear().commit()
         compose.activityRule.scenario.recreate()
+        compose.mainClock.advanceTimeBy(1_000)
         compose.waitForIdle()
         device.setOrientationNatural()
         device.waitForIdle()
@@ -150,6 +154,7 @@ class InfinityDesktopEmulatorTest {
     }
 
     private fun capture(name: String) {
+        compose.mainClock.advanceTimeBy(250)
         compose.waitForIdle()
         device.waitForIdle()
         val bitmap = instrumentation.uiAutomation.takeScreenshot()
