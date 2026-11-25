@@ -35,6 +35,33 @@ steps:
     def test_signing_configuration_is_rejected(self):
         self.assertTrue(audit_text("signingConfig = signingConfigs.release"))
 
+    def test_gradle_wrapper_apk_tasks_are_rejected(self):
+        self.assertTrue(audit_text("run: ./gradlew assembleDebug"))
+        self.assertTrue(audit_text("run: gradlew.bat bundleRelease"))
+
+    def test_install_and_build_tasks_are_rejected(self):
+        self.assertTrue(audit_text("run: gradle :app:installDebug"))
+        self.assertTrue(audit_text("run: gradle build"))
+
+    def test_release_asset_publication_is_rejected(self):
+        content = """steps:
+  - name: Publish release assets
+    uses: softprops/action-gh-release@v3
+    with:
+      files: app-release.apk
+"""
+        self.assertTrue(audit_text(content))
+
+    def test_indirect_generic_output_directory_is_rejected(self):
+        content = """steps:
+  - name: Upload
+    uses: actions/upload-artifact@v7
+    with:
+      name: build
+      path: ${{ env.OUTPUT_DIRECTORY }}
+"""
+        self.assertTrue(audit_text(content))
+
     def test_apk_artifact_name_and_path_are_rejected(self):
         content = """steps:
   - name: Upload
