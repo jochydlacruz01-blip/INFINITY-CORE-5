@@ -625,7 +625,7 @@ val iconOffsets = remember {
 
             // Cabecera de marca para tablet; no sustituye los accesos ni el fondo elegido.
             if (maxW >= 600.dp && !dashboardOpen && futuristicDesktop) {
-                InfinityDesktopMasthead(
+                InfinityReferenceMasthead(
                     modifier = Modifier.align(Alignment.Center)
                         .offset(y = maxH * 0.035f)
                 )
@@ -1103,7 +1103,7 @@ val iconOffsets = remember {
                     .zIndex(20f)
                     // On narrow screens, keep every Dock action reachable instead of clipping
                     // the trailing controls and task buttons beyond the viewport.
-                    .then(if (infinityDockRequiresHorizontalScroll(maxW.value)) Modifier.horizontalScroll(rememberScrollState()) else Modifier)
+                    .horizontalScroll(rememberScrollState())
                     .then(if (iconPack == "windows11" || (maxW >= 600.dp && futuristicDesktop)) Modifier.fillMaxWidth() else Modifier)
                     .padding(
                         horizontal = if (iconPack == "windows11" || (maxW >= 600.dp && futuristicDesktop)) 0.dp else 12.dp,
@@ -1132,7 +1132,9 @@ val iconOffsets = remember {
                         vertical = if (maxW >= 600.dp && futuristicDesktop) 8.dp else if (iconPack == "windows11") 7.dp else 10.dp
                     ),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = if (iconPack == "windows11") Arrangement.Center else Arrangement.spacedBy(
+                horizontalArrangement = if (maxW >= 600.dp && futuristicDesktop) Arrangement.SpaceEvenly
+                else if (iconPack == "windows11") Arrangement.Center
+                else Arrangement.spacedBy(
                     when {
                         maxW < 380.dp -> 5.dp
                         maxW < 600.dp -> 8.dp
