@@ -2,11 +2,13 @@ package com.infinity.core
 
 import android.graphics.Bitmap
 import android.os.Environment
+import android.util.Log
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -23,6 +25,8 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.junit.rules.TestWatcher
+import org.junit.runner.Description
 import java.io.File
 import java.io.FileOutputStream
 
@@ -30,6 +34,15 @@ import java.io.FileOutputStream
 class InfinityDesktopEmulatorTest {
     @get:Rule
     val compose = createAndroidComposeRule<MainActivity>()
+
+    @get:Rule
+    val diagnostics = object : TestWatcher() {
+        override fun failed(e: Throwable, description: Description) {
+            Log.e("INFINITY_TEST_DIAGNOSTIC", "FAILED " + description.methodName + ": " + e.stackTraceToString())
+            runCatching { compose.onRoot(useUnmergedTree = true).printToLog("INFINITY_DEBUG") }
+                .onFailure { Log.e("INFINITY_TEST_DIAGNOSTIC", "Semantics dump failed", it) }
+        }
+    }
 
     private val instrumentation get() = InstrumentationRegistry.getInstrumentation()
     private val context get() = instrumentation.targetContext
@@ -60,15 +73,23 @@ class InfinityDesktopEmulatorTest {
                 // The test clock is deliberately frozen in this suite. A click updates
                 // Compose state, but the conditional ORBIT subtree is not committed until
                 // the next frame; waitForIdle alone does not advance a frozen clock.
-                compose.mainClock.advanceTimeBy(100)
+                compose.mainClock.advanceTimeByFrame()
                 compose.waitForIdle()
+                waitForTag("infinity-orbit-panel")
                 compose.onNodeWithTag("infinity-orbit-panel").assertExists()
                 val workspaceSelector = compose.onNodeWithTag(
                     "infinity-orbit-workspace-$targetWorkspace"
                 )
                 workspaceSelector.performScrollTo()
+                Log.i("INFINITY_TEST_DIAGNOSTIC", "ORBIT click workspace " + targetWorkspace)
                 workspaceSelector.performClick()
-                compose.waitForIdle()
+                settleComposeFrame()
+                val label = when (targetWorkspace) {
+                    1 -> "Espacio 1, Principal"
+                    2 -> "Espacio 2, Trabajo"
+                    else -> "Espacio 3, Personal"
+                }
+                compose.onNodeWithContentDescription(label).assertExists()
                 val persistedWorkspace = context.getSharedPreferences("infinity_desktop", 0)
                     .getInt("active_workspace", -1)
                 assert(persistedWorkspace == targetWorkspace) {
@@ -81,18 +102,23 @@ class InfinityDesktopEmulatorTest {
 
         // START: open, search, launch a real desktop tool.
         compose.onNodeWithContentDescription("START").performScrollTo()
+        Log.i("INFINITY_TEST_DIAGNOSTIC", "START click")
         compose.onNodeWithContentDescription("START").performClick()
+        settleComposeFrame()
         compose.onNodeWithText("INFINITY START").assertExists()
         capture("02-start-open")
         compose.onNode(hasSetTextAction()).performTextInput("Mis")
+        settleComposeFrame()
         // Search can expose both the desktop icon and the matching result.
         compose.onNodeWithTag("infinity-start-app-notes").assertExists()
         // Launch the filtered result before clearing the query. With the emulator
         // clock frozen, clearing the LazyColumn filter first can leave a stale
         // semantics node for one frame and make the subsequent click a no-op.
+        Log.i("INFINITY_TEST_DIAGNOSTIC", "START click notes catalog item")
         compose.onNodeWithTag("infinity-start-app-notes").performClick()
-        compose.waitForIdle()
-        compose.onNodeWithContentDescription("Ventana Notas rápidas").assertExists()
+        settleComposeFrame()
+        waitForContentDescription("Ventana Notas rápidas")
+        compose.onNodeWithTag("infinity-window-notes").assertExists()
         compose.onNodeWithText("Bloc de ideas").assertExists()
         capture("07-aurora-single-window")
 
@@ -192,6 +218,25 @@ class InfinityDesktopEmulatorTest {
             capture("01-desktop-tablet-portrait-after-rotation")
         } else {
             capture("10-desktop-compact-phone-landscape")
+        }
+    }
+
+    private fun settleComposeFrame() {
+        // This suite freezes Compose's clock; explicitly commit the UI state transition.
+        compose.mainClock.advanceTimeByFrame()
+        compose.waitForIdle()
+        device.waitForIdle()
+    }
+
+    private fun waitForTag(tag: String) {
+        compose.waitUntil(timeoutMillis = 10_000) {
+            compose.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty()
+        }
+    }
+
+    private fun waitForContentDescription(description: String) {
+        compose.waitUntil(timeoutMillis = 10_000) {
+            compose.onAllNodesWithContentDescription(description).fetchSemanticsNodes().isNotEmpty()
         }
     }
 
