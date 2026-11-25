@@ -13,6 +13,18 @@ import android.os.StatFs
 import android.provider.Settings
 import android.net.Uri
 
+private fun readMediaVolumePercent(context: Context): Int? {
+    val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+        ?: return null
+    return runCatching {
+        val max = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+        if (max <= 0) null
+        else (audioManager.getStreamVolume(AudioManager.STREAM_MUSIC) * 100f / max)
+            .toInt()
+            .coerceIn(0, 100)
+    }.getOrNull()
+}
+
 /**
  * Read-only snapshot of device information used by the INFINITY Control Center.
  *
@@ -169,18 +181,6 @@ internal object InfinityControlCenterActions {
             )
             true
         }.getOrDefault(false)
-    }
-
-    private fun readMediaVolumePercent(context: Context): Int? {
-        val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
-            ?: return null
-        return runCatching {
-            val max = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
-            if (max <= 0) null
-            else (audioManager.getStreamVolume(AudioManager.STREAM_MUSIC) * 100f / max)
-                .toInt()
-                .coerceIn(0, 100)
-        }.getOrNull()
     }
 
     private fun launch(context: Context, intent: Intent): Boolean {

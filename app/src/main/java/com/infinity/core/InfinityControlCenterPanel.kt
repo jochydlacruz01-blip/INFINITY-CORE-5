@@ -278,7 +278,7 @@ private fun ControlSlider(
             Slider(
                 value = sliderValue,
                 onValueChange = { sliderValue = it },
-                onValueChangeFinished = { onValueChange(sliderValue.roundToInt()) },
+                onValueChangeFinished = { onValueChange(sliderValue) },
                 valueRange = valueRange,
                 enabled = value != null && enabled
             )
