@@ -122,6 +122,8 @@ jobs:
     timeout-minutes: 50
     strategy:
       fail-fast: false
+      # Avoid simultaneous emulator jobs flooding Maven Central with identical UTP dependencies.
+      max-parallel: 1
       matrix:
         include:
           - device: tablet
@@ -167,8 +169,24 @@ jobs:
           # Keep the runner's maintained emulator flags; custom camera options can prevent AVD boot.
           script: |
             set +e
-            gradle connectedDebugAndroidTest --stacktrace
-            test_exit=$?
+            test_exit=1
+            attempt=1
+            while [ "$attempt" -le 3 ]; do
+              gradle connectedDebugAndroidTest --stacktrace > /tmp/infinity-connected-tests.log 2>&1
+              test_exit=$?
+              cat /tmp/infinity-connected-tests.log
+              if [ "$test_exit" -eq 0 ]; then
+                break
+              fi
+              # Retry only transient Maven Central throttling; never retry a real test failure.
+              if grep -Eqi 'status code 429|Too Many Requests|HTTP 429' /tmp/infinity-connected-tests.log && [ "$attempt" -lt 3 ]; then
+                echo "Maven Central rate limit detected; retrying dependency resolution (attempt $((attempt + 1))/3)."
+                sleep $((attempt * 20))
+                attempt=$((attempt + 1))
+              else
+                break
+              fi
+            done
             mkdir -p artifacts/emulator-screenshots/${{ matrix.device }}
             adb pull /sdcard/Android/data/com.infinity.core/files/Pictures/infinity-ui-captures artifacts/emulator-screenshots/${{ matrix.device }} || true
             exit $test_exit
