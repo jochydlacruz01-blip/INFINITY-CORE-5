@@ -216,8 +216,12 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: INFINITY-PACK-14-REMOTE-FRAME-PIPELINE
-      - run: gradle compileDebugKotlin testDebugUnitTest lintDebug assembleDebug --stacktrace
-      - run: "${APKSIGNER}" verify --verbose --print-certs "${APK}"
+      - name: Compile and assemble DEBUG only
+        run: |
+          gradle compileDebugKotlin testDebugUnitTest lintDebug assembleDebug --stacktrace
+      - name: Verify debug certificate
+        run: |
+          "${APKSIGNER}" verify --verbose --print-certs "${APK}"
       - uses: actions/upload-artifact@v7
         with:
           name: PROJECT-INFINITY-0.10-DEBUG-TEST-APK
