@@ -23,7 +23,7 @@ internal fun infinityReferenceRailLayout(
     val dockAndBottomReserve = if (viewportHeightDp < 560f) 112f else 148f
     val available = (viewportHeightDp - dockAndBottomReserve - 54f).coerceAtLeast(itemCount * 52f)
     val slot = (available / itemCount).coerceIn(52f, 88f)
-    val icon = (slot * .48f).coerceIn(26f, 40f)
+    val icon = (slot * .48f).coerceIn(28f, 40f)
     val width = if (viewportWidthDp < 720f) 78f else 88f
     return InfinityReferenceRailLayout(
         leftDp = 7f,
