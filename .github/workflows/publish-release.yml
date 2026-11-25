@@ -81,7 +81,7 @@ jobs:
           cp app/build/outputs/apk/release/app-release.apk release-files/INFINITY-CORE-release-signed.apk
 
       - name: Publish APKs to GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ inputs.tag_name }}
           name: ${{ inputs.release_name }}
