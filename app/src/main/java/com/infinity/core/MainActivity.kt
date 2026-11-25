@@ -2166,15 +2166,16 @@ private fun DockAction(
         Modifier
             // Tablet reference dock keeps every primary action comfortably touchable.
             .widthIn(min = if (referenceStyle) 48.dp else if (compact) 40.dp else 48.dp)
-            .testTag("infinity-dock-${description.lowercase()}")
-            .semantics(mergeDescendants = true) {
-                contentDescription = description
-            }
             .clip(RoundedCornerShape(actionRadius))
             .background(actionSurface, RoundedCornerShape(actionRadius))
             .then(if (referenceStyle) Modifier else Modifier.border(1.dp, tint.copy(alpha = .22f), RoundedCornerShape(actionRadius)))
             .clickable(role = Role.Button, onClick = onClick)
-            .padding(horizontal = if (referenceStyle) 4.dp else if (compact) 2.dp else 5.dp, vertical = if (referenceStyle) 4.dp else if (compact) 4.dp else 6.dp),
+            .padding(horizontal = if (referenceStyle) 4.dp else if (compact) 2.dp else 5.dp, vertical = if (referenceStyle) 4.dp else if (compact) 4.dp else 6.dp)
+            // Keep the test/accessibility identity on the same node that owns the real click action.
+            .testTag("infinity-dock-${description.lowercase()}")
+            .semantics(mergeDescendants = true) {
+                contentDescription = description
+            },
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
@@ -2886,6 +2887,9 @@ private fun Infinity08Window(
             ) {
                 Text(
                     win.title,
+                    modifier = Modifier.semantics {
+                        contentDescription = "Ventana ${win.title}"
+                    },
                     color = foreground,
                     fontWeight = FontWeight.Bold,
                     fontSize = 12.sp,
