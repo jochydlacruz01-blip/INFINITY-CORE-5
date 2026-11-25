@@ -4,6 +4,7 @@ using System.Net.WebSockets;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using Infinity.WindowsCompanion.Security;
 using Xunit;
 
@@ -66,7 +67,8 @@ public sealed class TunnelRevocationBindingTests
         portProbe.Stop();
 
         var accepted = new TaskCompletionSource<WebSocket>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var ended = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var ended = new TaskCompletionSource<WebSocketState>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var localRdpSocket = rdpClient.Client;
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
         var builder = WebApplication.CreateBuilder();
         builder.Logging.ClearProviders();
@@ -80,13 +82,13 @@ public sealed class TunnelRevocationBindingTests
             accepted.TrySetResult(serverSocket);
             try
             {
-                await serverSocket.ReceiveAsync(new byte[32], timeout.Token);
+                await serverSocket.ReceiveAsync(new byte[32].AsMemory(), timeout.Token);
             }
             catch (WebSocketException) { }
             catch (OperationCanceledException) { }
             finally
             {
-                ended.TrySetResult();
+                ended.TrySetResult(serverSocket.State);
             }
         });
 
@@ -100,14 +102,14 @@ public sealed class TunnelRevocationBindingTests
             Assert.Equal(WebSocketState.Open, serverSocket.State);
 
             Assert.True(registry.RevokeDevice(devicePin));
-            await ended.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            var terminalState = await ended.Task.WaitAsync(TimeSpan.FromSeconds(5));
 
-            Assert.Equal(WebSocketState.Aborted, serverSocket.State);
-            Assert.True(rdpClient.Client.SafeHandle.IsClosed);
+            Assert.Equal(WebSocketState.Aborted, terminalState);
+            Assert.True(localRdpSocket.SafeHandle.IsClosed);
             using var peerTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
             Assert.Equal(0, await rdpPeer.GetStream().ReadAsync(new byte[1], peerTimeout.Token));
             await Assert.ThrowsAnyAsync<WebSocketException>(async () =>
-                await clientSocket.ReceiveAsync(new byte[1], timeout.Token));
+                await clientSocket.ReceiveAsync(new byte[1].AsMemory(), timeout.Token));
         }
         finally
         {
