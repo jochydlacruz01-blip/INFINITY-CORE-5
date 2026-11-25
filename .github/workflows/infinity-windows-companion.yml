@@ -44,4 +44,4 @@ jobs:
           name: INFINITY-WINDOWS-COMPANION-win-x64
           path: artifacts/infinity-windows-companion/
           if-no-files-found: error
-          retention-days: 1
+          retention-days: 14
