@@ -118,6 +118,43 @@ public sealed class TunnelRevocationBindingTests
         }
     }
 
+    [Fact]
+    public async Task RevocationAfterRdpConnectButBeforeWebSocketAcceptanceClosesPendingTunnelSocket()
+    {
+        const string devicePin = "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD";
+        const string sessionId = "66666666-6666-4666-8666-666666666666";
+        var registry = new DeviceOperationRegistry();
+        registry.ActivateDevice(devicePin);
+        registry.ActivateSession(devicePin, sessionId);
+        using var operation = registry.BeginOperation(devicePin, sessionId);
+
+        var listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+        using var acceptTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        var acceptedPeer = listener.AcceptTcpClientAsync(acceptTimeout.Token);
+        var socketReady = new TaskCompletionSource<Socket>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+
+        var tunnelSetup = Task.Run(async () =>
+        {
+            using var rdpClient = new TcpClient(AddressFamily.InterNetwork) { NoDelay = true };
+            await rdpClient.ConnectAsync((IPEndPoint)listener.LocalEndpoint, operation.Token);
+            socketReady.TrySetResult(rdpClient.Client);
+            // Mirrors the post-RDP-connect wait before WebSocket acceptance in Program.cs.
+            await Task.Delay(Timeout.InfiniteTimeSpan, operation.Token);
+        });
+
+        var localSocket = await socketReady.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        using var remotePeer = await acceptedPeer;
+        listener.Stop();
+
+        Assert.True(registry.RevokeDevice(devicePin));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => tunnelSetup);
+        Assert.True(localSocket.SafeHandle.IsClosed);
+        using var peerTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        Assert.Equal(0, await remotePeer.GetStream().ReadAsync(new byte[1], peerTimeout.Token));
+    }
+
     private sealed class RecordingWebSocket : WebSocket
     {
         public override WebSocketCloseStatus? CloseStatus => null;
