@@ -5,6 +5,7 @@ import android.os.Environment
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -73,7 +74,7 @@ class InfinityDesktopEmulatorTest {
         // Move, resize, minimize, maximize and restore on the wide tablet viewport.
         if (isTablet) {
             compose.onAllNodesWithContentDescription("Maximizar o restaurar").get(0).performClick()
-            compose.onNodeWithContentDescription("Maximizar o restaurar").performClick()
+            compose.onAllNodesWithContentDescription("Maximizar o restaurar").get(0).performClick()
             compose.onNodeWithTag("infinity-window-title-notes")
                 .performTouchInput { swipe(center, center + Offset(44f, 30f), durationMillis = 420) }
             compose.onNodeWithTag("infinity-window-resize-notes")
@@ -81,7 +82,7 @@ class InfinityDesktopEmulatorTest {
         }
         compose.onNodeWithContentDescription("Minimizar").performClick()
         compose.onNodeWithContentDescription("START").performClick()
-        compose.onAllNodesWithText("Mis Archivos").onLast().performClick()
+        compose.onAllNodesWithText("Mis Archivos").get(1).performClick()
         compose.onNodeWithText("Notas rápidas").assertExists()
 
         // Open a second independent window and retain both in the desktop task stack.
@@ -91,7 +92,7 @@ class InfinityDesktopEmulatorTest {
         capture("08-aurora-multiple-windows")
         if (isTablet) {
             compose.onNodeWithContentDescription("Maximizar o restaurar").performClick()
-            compose.onNodeWithContentDescription("Maximizar o restaurar").onFirst().performClick()
+            compose.onAllNodesWithContentDescription("Maximizar o restaurar").get(0).performClick()
         }
         compose.onAllNodesWithContentDescription("Cerrar").get(0).performClick()
 
@@ -141,6 +142,7 @@ class InfinityDesktopEmulatorTest {
         capture("04-dock-operational")
 
         // Rotate with START open; validate recovery of the main shell and Dock.
+        compose.onNodeWithContentDescription("START").performScrollTo()
         compose.onNodeWithContentDescription("START").performClick()
         device.setOrientationLeft()
         device.waitForIdle()
