@@ -174,7 +174,7 @@ jobs:
     steps:
       - run: gradle assembleRelease
 """
-        self.assertEqual(audit_named_workflow("android.yml", content), [])
+        self.assertEqual(audit_named_workflow("publish-release.yml", content), [])
 
     def test_manual_apk_workflow_without_job_gate_is_rejected(self):
         content = """name: legacy release
@@ -201,6 +201,64 @@ jobs:
       - uses: softprops/action-gh-release@v3
 """
         self.assertTrue(audit_named_workflow("publish-release.yml", content))
+
+
+    def test_authorized_manual_debug_workflow_is_allowed(self):
+        content = """name: PROJECT INFINITY 0.10 - DEBUG TEST APK
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build-debug-test-apk:
+    if: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/INFINITY-PACK-14-REMOTE-FRAME-PIPELINE' }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: INFINITY-PACK-14-REMOTE-FRAME-PIPELINE
+      - run: gradle compileDebugKotlin testDebugUnitTest lintDebug assembleDebug --stacktrace
+      - run: "${APKSIGNER}" verify --verbose --print-certs "${APK}"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: PROJECT-INFINITY-0.10-DEBUG-TEST-APK
+          path: app/build/outputs/apk/debug/app-debug.apk
+      - uses: actions/upload-artifact@v7
+        with:
+          name: PROJECT-INFINITY-0.10-DEBUG-APK-EVIDENCE
+          path: |
+            app-debug-sha256.txt
+            app-debug-size.txt
+            app-debug-signature.txt
+"""
+        self.assertEqual(audit_named_workflow("android.yml", content), [])
+
+    def test_manual_debug_workflow_wrong_branch_is_rejected(self):
+        content = """on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    if: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' }}
+    steps:
+      - run: gradle assembleDebug
+"""
+        self.assertTrue(audit_named_workflow("android.yml", content))
+
+    def test_manual_debug_workflow_with_commercial_signing_is_rejected(self):
+        content = """on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    if: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/INFINITY-PACK-14-REMOTE-FRAME-PIPELINE' }}
+    steps:
+      - run: gradle assembleDebug
+      - run: echo ${{ secrets.INFINITY_KEYSTORE_PASSWORD }}
+"""
+        self.assertTrue(audit_named_workflow("android.yml", content))
+
 
 
 if __name__ == "__main__":
