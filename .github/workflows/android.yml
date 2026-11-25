@@ -2,6 +2,9 @@ name: PROJECT INFINITY 0.10 - DEBUG TEST APK
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - INFINITY-PACK-14-REMOTE-FRAME-PIPELINE
 
 permissions:
   contents: read
