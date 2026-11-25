@@ -33,6 +33,13 @@ class NoApkBuildPolicyTest(unittest.TestCase):
         self.assertTrue(audit_text("run: ./gradlew assembleDebug"))
         self.assertTrue(audit_text("run: gradlew.bat bundleRelease"))
 
+    def test_gradle_wrapper_continuation_cannot_hide_apk_task(self):
+        content = "run: ./gradlew \\\\\n  assembleDebug"
+        self.assertTrue(audit_text(content))
+
+    def test_apk_output_variable_reference_is_rejected(self):
+        self.assertTrue(audit_text('run: cp "$APK_OUTPUT_PATH" ./dist/'))
+
     def test_install_and_build_tasks_are_rejected(self):
         self.assertTrue(audit_text("run: gradle :app:installDebug"))
         self.assertTrue(audit_text("run: gradle build"))
