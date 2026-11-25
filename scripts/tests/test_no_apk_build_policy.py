@@ -28,8 +28,11 @@ steps:
     def test_release_apk_task_is_rejected(self):
         self.assertTrue(audit_text("run: gradle assembleRelease"))
 
-    def test_artifact_upload_is_rejected(self):
-        self.assertTrue(audit_text("uses: actions/upload-artifact@v4"))
+    def test_test_report_artifact_is_allowed(self):
+        self.assertEqual(audit_text("uses: actions/upload-artifact@v7\\nwith:\\n  name: ANDROID-TEST-REPORTS\\n  path: app/build/test-results/**"), [])
+
+    def test_apk_artifact_is_rejected(self):
+        self.assertTrue(audit_text("uses: actions/upload-artifact@v7\\nwith:\\n  name: app-debug.apk\\n  path: app/build/outputs/apk/debug/app-debug.apk"))
 
     def test_signing_configuration_is_rejected(self):
         self.assertTrue(audit_text("signingConfig = signingConfigs.release"))
