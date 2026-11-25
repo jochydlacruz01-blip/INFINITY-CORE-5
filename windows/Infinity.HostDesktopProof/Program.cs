@@ -1,6 +1,6 @@
+using System.ComponentModel;
 using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
-using System.Text;
 
 namespace Infinity.HostDesktopProof;
 
@@ -32,12 +32,11 @@ internal sealed class ProofForm : Form
         BackColor = Color.FromArgb(22, 26, 34)
     };
     private readonly Label _status = new() { AutoSize = true, Dock = DockStyle.Fill };
-    private readonly NumericUpDown _x = new() { Minimum = 0, Maximum = 100000, Width = 90 };
-    private readonly NumericUpDown _y = new() { Minimum = 0, Maximum = 100000, Width = 90 };
+    private readonly NumericUpDown _x = new() { Minimum = -100000, Maximum = 100000, Width = 90 };
+    private readonly NumericUpDown _y = new() { Minimum = -100000, Maximum = 100000, Width = 90 };
     private readonly TextBox _text = new() { Width = 220, PlaceholderText = "Texto de prueba" };
     private readonly System.Windows.Forms.Timer _timer = new() { Interval = 500 };
     private bool _captureRunning;
-    private Rectangle _virtualBounds;
 
     internal ProofForm()
     {
@@ -49,7 +48,7 @@ internal sealed class ProofForm : Form
         var start = new Button { Text = "Iniciar captura", AutoSize = true };
         var stop = new Button { Text = "Detener captura", AutoSize = true, Enabled = false };
         var click = new Button { Text = "Enviar clic", AutoSize = true };
-        var type = new Button { Text = "Enviar texto", AutoSize = true };
+        var type = new Button { Text = "Enviar texto (3 s)", AutoSize = true };
         var coordinates = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, WrapContents = true };
         coordinates.Controls.AddRange(new Control[]
         {
@@ -70,7 +69,7 @@ internal sealed class ProofForm : Form
         start.Click += (_, _) => StartCapture(stop, start);
         stop.Click += (_, _) => StopCapture(stop, start);
         click.Click += (_, _) => SendClick();
-        type.Click += (_, _) => SendText();
+        type.Click += async (_, _) => await SendTextAsync();
         _timer.Tick += (_, _) => CaptureFrame();
         FormClosing += (_, _) => StopCapture(stop, start);
         _status.Text = "Inactivo. Sin conexiones de red; requiere consentimiento local.";
@@ -84,15 +83,17 @@ internal sealed class ProofForm : Form
             return;
         }
 
-        _virtualBounds = SystemInformation.VirtualScreen;
-        if (_virtualBounds.Width <= 0 || _virtualBounds.Height <= 0)
+        var bounds = SystemInformation.VirtualScreen;
+        if (bounds.Width <= 0 || bounds.Height <= 0)
         {
             _status.Text = "No se pudo determinar el área de escritorio.";
             return;
         }
 
-        _x.Maximum = Math.Max(0, _virtualBounds.Right - 1);
-        _y.Maximum = Math.Max(0, _virtualBounds.Bottom - 1);
+        _x.Minimum = bounds.Left;
+        _x.Maximum = bounds.Right - 1;
+        _y.Minimum = bounds.Top;
+        _y.Maximum = bounds.Bottom - 1;
         _captureRunning = true;
         start.Enabled = false;
         stop.Enabled = true;
@@ -104,8 +105,8 @@ internal sealed class ProofForm : Form
     {
         _timer.Stop();
         _captureRunning = false;
-        start.Enabled = true;
-        stop.Enabled = false;
+        if (!start.IsDisposed) start.Enabled = true;
+        if (!stop.IsDisposed) stop.Enabled = false;
         _status.Text = "Captura detenida. No hay sesión remota ni listener de red.";
     }
 
@@ -127,7 +128,8 @@ internal sealed class ProofForm : Form
         }
         catch (Exception ex) when (ex is Win32Exception or ArgumentException)
         {
-            StopCapture(new Button(), new Button());
+            _timer.Stop();
+            _captureRunning = false;
             _status.Text = $"Captura bloqueada o no disponible: {ex.Message}";
         }
     }
@@ -152,31 +154,45 @@ internal sealed class ProofForm : Form
             Input.MouseButton(MouseEvent.LeftDown),
             Input.MouseButton(MouseEvent.LeftUp)
         };
-        if (Native.SendInput((uint)inputs.Length, inputs, Marshal.SizeOf<Input>()) != inputs.Length)
+        if (Native.SendInput((uint)inputs.Length, inputs, Marshal.SizeOf<Input>()) != (uint)inputs.Length)
             _status.Text = $"SendInput no completó el clic. Win32={Marshal.GetLastWin32Error()}";
         else
             _status.Text = $"Clic local enviado a ({screenX}, {screenY}).";
     }
 
-    private void SendText()
+    private async Task SendTextAsync()
     {
         if (!RequireConsentAndCapture()) return;
-        if (string.IsNullOrEmpty(_text.Text))
+        var value = _text.Text;
+        if (string.IsNullOrEmpty(value))
         {
             _status.Text = "Escribe un texto de prueba primero.";
             return;
         }
 
-        var inputs = new List<Input>();
-        foreach (var character in _text.Text)
+        _status.Text = "La ventana se ocultará durante 3 segundos. Selecciona el campo de prueba en otra aplicación.";
+        Hide();
+        await Task.Delay(TimeSpan.FromSeconds(3));
+        try
         {
-            inputs.Add(Input.Unicode(character, KeyEvent.None));
-            inputs.Add(Input.Unicode(character, KeyEvent.KeyUp));
+            var inputs = new List<Input>();
+            foreach (var character in value)
+            {
+                inputs.Add(Input.Unicode(character, KeyEvent.None));
+                inputs.Add(Input.Unicode(character, KeyEvent.KeyUp));
+            }
+            var sent = Native.SendInput((uint)inputs.Count, inputs.ToArray(), Marshal.SizeOf<Input>());
+            Show();
+            Activate();
+            _status.Text = sent == (uint)inputs.Count
+                ? "Eventos Unicode enviados. Comprueba el campo de prueba seleccionado."
+                : $"Entrada de teclado incompleta. Win32={Marshal.GetLastWin32Error()}";
         }
-        var sent = Native.SendInput((uint)inputs.Count, inputs.ToArray(), Marshal.SizeOf<Input>());
-        _status.Text = sent == inputs.Count
-            ? "Texto enviado al control que tenga el foco en Windows."
-            : $"Entrada de teclado incompleta. Win32={Marshal.GetLastWin32Error()}";
+        catch
+        {
+            Show();
+            throw;
+        }
     }
 
     private bool RequireConsentAndCapture()
