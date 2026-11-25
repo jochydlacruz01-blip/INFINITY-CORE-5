@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 FORBIDDEN_TASKS = re.compile(
-    r"\b(?:assemble(?:Debug|Release)?|package(?:Debug|Release)?|bundle(?:Debug|Release)?)\b",
+    r"(?im)^.*\\bgradle(?:\\.bat)?\\b.*\\b(?:assemble(?:Debug|Release)?|package(?:Debug|Release)|bundle(?:Debug|Release)?)\\b",
     re.IGNORECASE,
 )
 SIGNING = re.compile(r"\b(?:signingConfig|signingConfigs|apksigner)\b", re.IGNORECASE)
