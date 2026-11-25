@@ -1481,7 +1481,6 @@ DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED"
                 Card(
                  Modifier.align(Alignment.TopCenter)
     .zIndex(15f)
-    .testTag("infinity-orbit-panel")
     .padding(start = 12.dp, end = 12.dp, top = 72.dp)
     .widthIn(max = 430.dp)
     // Reserve a fixed safe zone for the Dock; constrain the card itself,
@@ -1498,6 +1497,8 @@ DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED"
     Modifier
         .fillMaxWidth()
         .verticalScroll(rememberScrollState())
+        .testTag("infinity-orbit-panel")
+        .semantics { contentDescription = "Panel ORBIT" }
         .padding(16.dp),
     horizontalAlignment = Alignment.CenterHorizontally
 ) {
@@ -2824,12 +2825,16 @@ private fun Infinity08Window(
             .width(win.width.dp)
             .height(win.height.dp)
             .testTag("infinity-window-${win.kind}")
-            .semantics { contentDescription = "Ventana ${win.title}" }
             .animateContentSize()
              .shadow(26.dp, RoundedCornerShape(windowRadius))
             .background(windowSurface, RoundedCornerShape(windowRadius))
-            .border(1.dp, windowBorder, RoundedCornerShape(windowRadius)) 
+            .border(1.dp, windowBorder, RoundedCornerShape(windowRadius))
             .clickable { onFocus() }
+            // Keep the window name as an explicit accessible node outside the
+            // clickable's descendant-merging semantics.
+            .semantics(mergeDescendants = false) {
+                contentDescription = "Ventana ${win.title}"
+            }
     ) {
         
         // INFINITY SMART WINDOWS 0.11 — BARRA DE CONTROLES
