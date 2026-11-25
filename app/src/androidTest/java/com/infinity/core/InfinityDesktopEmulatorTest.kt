@@ -14,6 +14,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipe
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -60,6 +61,7 @@ class InfinityDesktopEmulatorTest {
         capture(if (isTablet) "01-desktop-tablet-portrait" else "10-desktop-compact-phone")
 
         // START: open, search, launch a real desktop tool.
+        compose.onNodeWithContentDescription("START").performScrollTo()
         compose.onNodeWithContentDescription("START").performClick()
         compose.onNodeWithText("INFINITY START").assertExists()
         capture("02-start-open")
@@ -96,6 +98,7 @@ class InfinityDesktopEmulatorTest {
         compose.onNodeWithContentDescription("Cerrar").onFirst().performClick()
 
         // ORBIT open/close and Dock accessibility while a panel is open.
+        compose.onNodeWithContentDescription("ORBIT").performScrollTo()
         compose.onNodeWithContentDescription("ORBIT").performClick()
         compose.onNodeWithText("CERRAR ORBIT").assertExists()
         compose.onNodeWithContentDescription("START").assertExists()
@@ -103,6 +106,7 @@ class InfinityDesktopEmulatorTest {
         compose.onNodeWithText("CERRAR ORBIT").performClick()
 
         // CONTROL: interact with a real theme option and capture the resulting panel.
+        compose.onNodeWithContentDescription("CONTROL").performScrollTo()
         compose.onNodeWithContentDescription("CONTROL").performClick()
         compose.onNodeWithText("CONTROL CENTER").assertExists()
         compose.onNodeWithContentDescription("Tema ocean").performClick()
@@ -124,6 +128,7 @@ class InfinityDesktopEmulatorTest {
         )
         compose.waitForIdle()
 
+        compose.onNodeWithContentDescription("ADVANCED").performScrollTo()
         compose.onNodeWithContentDescription("ADVANCED").performClick()
         compose.onNodeWithText("INFINITY ADVANCED").assertExists()
         compose.onNodeWithText("NOTIFICACIONES").assertExists()
@@ -133,6 +138,7 @@ class InfinityDesktopEmulatorTest {
         compose.onNodeWithText("Todavía no hay notificaciones disponibles.").assertExists()
 
         // Dock stays reachable after opening and closing the desktop panels.
+        compose.onNodeWithContentDescription("HOME").performScrollTo()
         compose.onNodeWithContentDescription("HOME").performClick()
         capture("04-dock-operational")
 
