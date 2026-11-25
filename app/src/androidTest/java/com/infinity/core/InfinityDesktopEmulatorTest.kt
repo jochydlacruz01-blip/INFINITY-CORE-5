@@ -47,6 +47,12 @@ class InfinityDesktopEmulatorTest {
     @Test
     fun exerciseDesktopCaptureRealScreensAcrossOrientations() {
         val isTablet = context.resources.configuration.smallestScreenWidthDp >= 600
+        if (isTablet) {
+            compose.onNodeWithContentDescription("Espacio 1, Principal").performClick()
+            compose.onNodeWithContentDescription("Espacio 2, Trabajo").performClick()
+            compose.onNodeWithContentDescription("Espacio 3, Personal").performClick()
+            compose.onNodeWithContentDescription("Espacio 1, Principal").performClick()
+        }
         capture(if (isTablet) "01-desktop-tablet-portrait" else "10-desktop-compact-phone")
 
         // START: open, search, launch a real desktop tool.
@@ -98,11 +104,29 @@ class InfinityDesktopEmulatorTest {
         compose.onNodeWithContentDescription("Tema ocean").performClick()
         capture("05-control-center")
 
-        // ADVANCED: verify notification area and its empty-state presentation.
+        // Seed an in-app notification model item and clear it through the actual panel UI.
+        InfinityNotificationStore.update(
+            InfinityNotification(
+                key = "emulator-ui-notification",
+                packageName = context.packageName,
+                appName = "INFINITY UI TEST",
+                title = "Emulator notification",
+                message = "Notification feed interaction test",
+                timestamp = System.currentTimeMillis(),
+                ongoing = false,
+                clearable = true,
+                contentIntent = null
+            )
+        )
+        compose.waitForIdle()
+
         compose.onNodeWithContentDescription("ADVANCED").performClick()
         compose.onNodeWithText("INFINITY ADVANCED").assertExists()
         compose.onNodeWithText("NOTIFICACIONES").assertExists()
+        compose.onNodeWithText("INFINITY UI TEST").assertExists()
         capture("06-advanced-notifications")
+        compose.onNodeWithText("LIMPIAR").performClick()
+        compose.onNodeWithText("Todavía no hay notificaciones disponibles.").assertExists()
 
         // Dock stays reachable after opening and closing the desktop panels.
         compose.onNodeWithContentDescription("HOME").performClick()
