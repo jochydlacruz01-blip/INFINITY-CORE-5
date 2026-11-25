@@ -22,10 +22,10 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup .NET 8
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 8.0.x
 
@@ -39,7 +39,7 @@ jobs:
         run: dotnet publish .\windows\Infinity.WindowsCompanion\Infinity.WindowsCompanion.csproj --configuration Release --runtime win-x64 --self-contained false --output .\artifacts\infinity-windows-companion
 
       - name: Upload Windows companion
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: INFINITY-WINDOWS-COMPANION-win-x64
           path: artifacts/infinity-windows-companion/
