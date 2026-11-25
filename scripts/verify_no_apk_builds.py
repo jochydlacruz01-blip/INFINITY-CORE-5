@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
-"""Fail CI closed if the source-only verification workflow can build or publish APKs.
-
-The policy intentionally permits narrowly scoped Android XML/HTML test reports.
-It rejects direct APK paths, generic build-output directories, wildcard artifact
-paths, and unresolved dynamic artifact paths that could conceal APK outputs.
-"""
+"""Fail CI closed if the source-only verification workflow can build or publish APKs."""
 from __future__ import annotations
 
 import re
@@ -12,56 +7,48 @@ import sys
 from pathlib import Path
 
 FORBIDDEN_TASKS = re.compile(
-    r"\\b(?:assemble(?:Debug|Release)?|package(?:Debug|Release)?|"
-    r"bundle(?:Debug|Release)?)\\b",
+    r"\b(?:assemble(?:Debug|Release)?|package(?:Debug|Release)?|bundle(?:Debug|Release)?)\b",
     re.IGNORECASE,
 )
-SIGNING = re.compile(r"\\b(?:signingConfig|signingConfigs|apksigner)\\b", re.IGNORECASE)
+SIGNING = re.compile(r"\b(?:signingConfig|signingConfigs|apksigner)\b", re.IGNORECASE)
 APK_REFERENCE = re.compile(
-    r"(?:\\.apk\\b|app[-_](?:debug|release)|(?:^|[/\\\\])outputs[/\\\\](?:apk|"
-    r"(?=[^\\s]*\\.apk))|\\bAPK_(?:PATH|FILE|OUTPUT)\\b|\\b(?:apkPath|apkFile)\\b)",
+    r"(?:\.apk\b|app[-_](?:debug|release)|(?:^|[/\\])outputs[/\\](?:apk|(?=[^\s]*\.apk))|"
+    r"\bAPK_(?:PATH|FILE|OUTPUT)\b|\b(?:apkPath|apkFile)\b)",
     re.IGNORECASE,
 )
-GENERIC_OUTPUT = re.compile(r"(?:^|[/\\\\])(?:app/)?build[/\\\\]outputs(?:[/\\\\]|$)", re.IGNORECASE)
-DYNAMIC = re.compile(r"\\$\\{\\{.*?\\}\\}|\\$[A-Z_][A-Z0-9_]*", re.IGNORECASE)
-WILDCARD = re.compile(r"[*?\\[\\]{}]")
+GENERIC_OUTPUT = re.compile(r"(?:^|[/\\])(?:app/)?build[/\\]outputs(?:[/\\]|$)", re.IGNORECASE)
+DYNAMIC = re.compile(r"\$\{\{.*?\}\}|\$[A-Z_][A-Z0-9_]*", re.IGNORECASE)
 
-ALLOWED_REPORT_PATHS = (
-    "app/build/test-results/",
-    "app/build/reports/tests/",
-)
-ALLOWED_REPORT_SUFFIXES = (".xml", ".html")
+ALLOWED_REPORT_PATHS = ("app/build/test-results/", "app/build/reports/tests/")
 
 
 def _artifact_steps(content: str) -> list[str]:
-    """Return upload-artifact step blocks without requiring a YAML dependency."""
     lines = content.splitlines()
     blocks: list[str] = []
     index = 0
     while index < len(lines):
-        if re.search(r"uses\\s*:\\s*actions/upload-artifact@", lines[index], re.IGNORECASE):
+        if re.search(r"uses\s*:\s*actions/upload-artifact@", lines[index], re.IGNORECASE):
             start = index
             index += 1
             while index < len(lines):
-                if re.match(r"\\s*-\\s+(?:name|uses|run)\\s*:", lines[index]):
+                if re.match(r"\s*-\s+(?:name|uses|run)\s*:", lines[index]):
                     break
                 index += 1
-            blocks.append("\\n".join(lines[start:index]))
+            blocks.append("\n".join(lines[start:index]))
         else:
             index += 1
     return blocks
 
 
 def _path_is_narrow_test_report(path_value: str) -> bool:
-    value = path_value.strip().strip("'\\\"").replace("\\\\", "/")
+    value = path_value.strip().strip("'\"").replace("\\", "/")
     if not value or DYNAMIC.search(value):
         return False
     if not any(root in value for root in ALLOWED_REPORT_PATHS):
         return False
-    # Only report extensions or a report directory's recursive contents are safe.
     if value.endswith("/**"):
         return any(value.startswith(root) for root in ALLOWED_REPORT_PATHS)
-    return value.lower().endswith(ALLOWED_REPORT_SUFFIXES)
+    return value.lower().endswith((".xml", ".html"))
 
 
 def audit_workflow(path: str | Path) -> list[str]:
@@ -78,13 +65,11 @@ def audit_workflow(path: str | Path) -> list[str]:
         findings.append("Development workflow contains APK signing configuration or tooling")
 
     for block in _artifact_steps(content):
-        # Inspect the complete upload step so YAML block scalars and folded paths
-        # cannot evade the check by placing values on following lines.
         path_match = re.search(
-            r"(?ims)^\\s*path\\s*:\\s*(.*?)(?=^\\s*[a-zA-Z_-]+\\s*:|\\Z)",
+            r"(?ims)^\s*path\s*:\s*(.*?)(?=^\s*[a-zA-Z_-]+\s*:|\Z)",
             block,
         )
-        name_match = re.search(r"(?im)^\\s*name\\s*:\\s*(.*?)\\s*$", block)
+        name_match = re.search(r"(?im)^\s*name\s*:\s*(.*?)\s*$", block)
         path_value = path_match.group(1).strip() if path_match else ""
         name_value = name_match.group(1).strip() if name_match else ""
 
@@ -93,17 +78,16 @@ def audit_workflow(path: str | Path) -> list[str]:
         elif GENERIC_OUTPUT.search(path_value):
             findings.append("Artifact upload references a generic build/outputs directory")
         elif path_value:
-            path_entries = [
-                item.strip().strip("'\\\"")
-                for item in re.split(r"[\\n,]", path_value)
-                if item.strip() and item.strip() not in ("|", ">")
+            entries = [
+                line.strip().strip("'\"")
+                for line in path_value.splitlines()
+                if line.strip() and line.strip() not in ("|", ">")
             ]
-            if not path_entries or any(not _path_is_narrow_test_report(item) for item in path_entries):
+            if not entries or any(not _path_is_narrow_test_report(item) for item in entries):
                 findings.append("Artifact upload path is broad, wildcarded, dynamic, or not an allowlisted test report path")
         else:
             findings.append("Artifact upload has no explicit, narrowly scoped test-report path")
 
-    # Also catch indirect outputs/APK references used outside artifact metadata.
     if GENERIC_OUTPUT.search(content) and not _artifact_steps(content):
         findings.append("Development workflow references a generic build/outputs directory")
     return sorted(set(findings))
@@ -113,6 +97,6 @@ if __name__ == "__main__":
     target = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(".github/workflows/android-pr.yml")
     errors = audit_workflow(target)
     if errors:
-        print("\\n".join("FAIL: " + error for error in errors))
+        print("\n".join("FAIL: " + error for error in errors))
         raise SystemExit(1)
     print("Source-only workflow policy passed: no APK build, signing, or publication steps")
