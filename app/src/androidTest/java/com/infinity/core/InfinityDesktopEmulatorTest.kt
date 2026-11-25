@@ -63,7 +63,7 @@ class InfinityDesktopEmulatorTest {
         device.waitForIdle()
     }
 
-    @Test
+    @Test(timeout = 360_000)
     fun exerciseDesktopCaptureRealScreensAcrossOrientations() {
         val isTablet = context.resources.configuration.smallestScreenWidthDp >= 600
         if (isTablet) {
@@ -107,7 +107,7 @@ class InfinityDesktopEmulatorTest {
         Log.i("INFINITY_TEST_DIAGNOSTIC", "START click")
         compose.onNodeWithContentDescription("START").performClick()
         settleComposeFrame()
-        compose.onNodeWithText("INFINITY START").assertExists()
+        waitForText("INFINITY START")
         capture("02-start-open")
         compose.onNode(hasSetTextAction()).performTextInput("Mis")
         settleComposeFrame()
@@ -257,6 +257,12 @@ class InfinityDesktopEmulatorTest {
         compose.mainClock.advanceTimeByFrame()
         compose.waitForIdle()
         device.waitForIdle()
+    }
+
+    private fun waitForText(text: String) {
+        compose.waitUntil(timeoutMillis = 10_000) {
+            compose.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty()
+        }
     }
 
     private fun waitForTag(tag: String) {
