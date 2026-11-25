@@ -13,10 +13,10 @@ public sealed class TunnelRevocationBindingTests
     {
         var listener = new TcpListener(IPAddress.Loopback, 0);
         listener.Start();
-        using var remote = await listener.AcceptTcpClientAsync(
-            new CancellationTokenSource(TimeSpan.FromSeconds(5)).Token);
         using var local = new TcpClient();
         await local.ConnectAsync((IPEndPoint)listener.LocalEndpoint);
+        using var remote = await listener.AcceptTcpClientAsync(
+            new CancellationTokenSource(TimeSpan.FromSeconds(5)).Token);
         listener.Stop();
 
         using var cancellation = new CancellationTokenSource();
@@ -48,7 +48,7 @@ public sealed class TunnelRevocationBindingTests
         }
         public override Task CloseOutputAsync(WebSocketCloseStatus closeStatus, string? statusDescription, CancellationToken cancellationToken)
         {
-            State = WebSocketState.Closed;
+            state = WebSocketState.Closed;
             return Task.CompletedTask;
         }
         public override Task<WebSocketReceiveResult> ReceiveAsync(ArraySegment<byte> buffer, CancellationToken cancellationToken) =>
