@@ -185,6 +185,8 @@ private fun Infinity08App() {
     var startOpen by remember { mutableStateOf(false) }
     var orbitOpen by remember { mutableStateOf(false) }
     var controlOpen by remember { mutableStateOf(false) }
+    var controlMode by remember { mutableStateOf("personalization") }
+    var controlSnapshot by remember { mutableStateOf(InfinityControlCenterSnapshot.unavailable()) }
     var advancedOpen by remember { mutableStateOf(false) }
     var contextMenuExpanded by remember { mutableStateOf(false) }
     var desktopIconsVisible by remember { mutableStateOf(prefs.getBoolean("desktop_icons_visible", true)) }
@@ -1214,6 +1216,7 @@ val iconOffsets = remember {
 
                 DockAction(if (futuristicDesktop && maxW >= 600.dp) "⬡" else "☷", "CONTROL", Color(0xFFFFC27A), iconPack, compact = maxW < 390.dp, referenceStyle = futuristicDesktop && maxW >= 600.dp) {
                     controlOpen = !controlOpen
+                    if (controlOpen) controlMode = "personalization"
                     startOpen = false
                     orbitOpen = false
                     advancedOpen = false
@@ -1281,6 +1284,7 @@ DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED"
                         .clip(RoundedCornerShape(10.dp))
                         .clickable(role = Role.Button) {
                             controlOpen = !controlOpen
+                            if (controlOpen) controlMode = "personalization"
                             startOpen = false
                             orbitOpen = false
                             advancedOpen = false
@@ -1998,8 +2002,71 @@ Spacer(Modifier.height(14.dp))
             }
  
 
-            // CONTROL CENTER: personalización, sin accesos de lanzamiento repetidos.
-            if (controlOpen) {
+            // INFINITY CONTROL CENTER: personalización nativa y controles Android reales.
+            if (controlOpen && controlMode == "device") {
+                LaunchedEffect(controlOpen, controlMode) {
+                    controlSnapshot = InfinityControlCenterSnapshot.read(context)
+                }
+                Box(
+                    Modifier.align(Alignment.TopEnd)
+                        .zIndex(16f)
+                        .padding(end = 14.dp, top = 76.dp, bottom = 112.dp)
+                        .widthIn(max = infinityControlDevicePanelMaxWidthDp(maxW.value).dp)
+                        .fillMaxWidth()
+                        .heightIn(max = infinityControlPanelMaxHeightDp(maxH.value).dp)
+                ) {
+                    InfinityControlCenterPanel(
+                        snapshot = controlSnapshot,
+                        onDestinationClick = { destination ->
+                            if (destination == InfinityControlDestination.PERSONALIZATION) {
+                                controlMode = "personalization"
+                            } else {
+                                val opened = InfinityControlCenterActions.openSettings(context, destination)
+                                if (opened) {
+                                    controlOpen = false
+                                } else {
+                                    Toast.makeText(
+                                        context,
+                                        "No se pudieron abrir los ajustes de Android.",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                            }
+                        },
+                        onBrightnessChange = { value ->
+                            val updated = InfinityControlCenterActions.setBrightness(context, value)
+                            if (updated) {
+                                controlSnapshot = InfinityControlCenterSnapshot.read(context)
+                            } else {
+                                Toast.makeText(
+                                    context,
+                                    "Android no permitió cambiar el brillo.",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        },
+                        onRequestBrightnessAccess = {
+                            val opened = InfinityControlCenterActions.requestBrightnessAccess(context)
+                            if (opened) controlOpen = false
+                            else Toast.makeText(context, "No se pudo abrir el permiso de brillo de Android.", Toast.LENGTH_LONG).show()
+                        },
+                        onVolumeChange = { value ->
+                            val updated = InfinityControlCenterActions.setMediaVolumePercent(context, value)
+                            if (updated) {
+                                controlSnapshot = InfinityControlCenterSnapshot.read(context)
+                            } else {
+                                Toast.makeText(
+                                    context,
+                                    "Android no permitió cambiar el volumen multimedia.",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        },
+                        onClose = { controlOpen = false },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            } else if (controlOpen) {
                 val controlRadius = if (iconPack == "windows11") 16.dp else 24.dp
                 val controlSurface = when (iconPack) {
                     "windows11" -> Color(0xF0273D58)
@@ -2027,6 +2094,12 @@ Spacer(Modifier.height(14.dp))
                     ) {
                         Text("CONTROL CENTER", color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.Black)
                         Text("Personaliza tu espacio", color = InfinityMuted, fontSize = 10.sp)
+                        OutlinedButton(
+                            onClick = {
+                                controlMode = "device"
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) { Text("Controles del dispositivo") }
                         Spacer(Modifier.height(12.dp))
                         Text("TEMAS", color = accent, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                         Row(

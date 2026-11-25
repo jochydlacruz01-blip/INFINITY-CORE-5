@@ -4,10 +4,11 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class InfinityControlCenterPolicyTest {
-    @Test fun panelWidthFitsCompactViewportAndKeepsDesktopCap() {
-        assertEquals(280f, infinityControlPanelMaxWidthDp(240f), 0f)
+    @Test fun panelWidthNeverExceedsCompactViewportAndKeepsDesktopCap() {
+        assertEquals(216f, infinityControlPanelMaxWidthDp(240f), 0f)
         assertEquals(336f, infinityControlPanelMaxWidthDp(360f), 0f)
         assertEquals(350f, infinityControlPanelMaxWidthDp(600f), 0f)
+        assertEquals(1f, infinityControlPanelMaxWidthDp(12f), 0f)
     }
 
     @Test fun invalidViewportWidthUsesSafeFallback() {
@@ -20,6 +21,15 @@ class InfinityControlCenterPolicyTest {
         assertEquals(220f, infinityControlPanelMaxHeightDp(300f), 0f)
         assertEquals(612f, infinityControlPanelMaxHeightDp(800f), 0f)
         assertEquals(220f, infinityControlPanelMaxHeightDp(Float.NaN), 0f)
+    }
+
+    @Test fun devicePanelFitsCompactViewportAndExpandsForTablet() {
+        assertEquals(216f, infinityControlDevicePanelMaxWidthDp(240f), 0f)
+        assertEquals(336f, infinityControlDevicePanelMaxWidthDp(360f), 0f)
+        assertEquals(476f, infinityControlDevicePanelMaxWidthDp(500f), 0f)
+        assertEquals(560f, infinityControlDevicePanelMaxWidthDp(800f), 0f)
+        assertEquals(1f, infinityControlDevicePanelMaxWidthDp(12f), 0f)
+        assertEquals(280f, infinityControlDevicePanelMaxWidthDp(Float.NaN), 0f)
     }
 
     @Test fun compactAndExpandedLayoutsChooseAppropriateColumns() {
