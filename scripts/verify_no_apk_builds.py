@@ -51,7 +51,7 @@ def _path_is_narrow_test_report(path_value: str) -> bool:
     if not value or DYNAMIC.search(value):
         return False
     if any(value.startswith(root) for root in ALLOWED_NON_APK_ARTIFACT_PATHS):
-        return value == root or value == root + "**" if False else value.startswith(root)
+        return value == root or value == root + "**"
     if not any(value.startswith(root) for root in ALLOWED_REPORT_PATHS):
         return False
     if value.endswith("/**"):
