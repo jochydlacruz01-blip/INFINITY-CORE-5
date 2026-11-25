@@ -36,13 +36,14 @@ public sealed class TunnelRevocationBindingTests
     {
         public override WebSocketCloseStatus? CloseStatus => null;
         public override string? CloseStatusDescription => null;
-        public override WebSocketState State { get; private set; } = WebSocketState.Open;
+        private WebSocketState state = WebSocketState.Open;
+        public override WebSocketState State => state;
         public override string? SubProtocol => null;
-        public override void Abort() => State = WebSocketState.Aborted;
-        public override void Dispose() => State = WebSocketState.Closed;
+        public override void Abort() => state = WebSocketState.Aborted;
+        public override void Dispose() => state = WebSocketState.Closed;
         public override Task CloseAsync(WebSocketCloseStatus closeStatus, string? statusDescription, CancellationToken cancellationToken)
         {
-            State = WebSocketState.Closed;
+            state = WebSocketState.Closed;
             return Task.CompletedTask;
         }
         public override Task CloseOutputAsync(WebSocketCloseStatus closeStatus, string? statusDescription, CancellationToken cancellationToken)
