@@ -79,10 +79,11 @@ class InfinityDesktopEmulatorTest {
                 compose.waitForIdle()
                 waitForTag("infinity-orbit-panel")
                 compose.onNodeWithTag("infinity-orbit-panel").assertExists()
+                Log.i("INFINITY_TEST_DIAGNOSTIC", "ORBIT workspace selector visible " + targetWorkspace)
                 val workspaceSelector = compose.onNodeWithTag(
                     "infinity-orbit-workspace-$targetWorkspace"
                 )
-                workspaceSelector.performScrollTo()
+                workspaceSelector.assertExists()
                 val label = when (targetWorkspace) {
                     1 -> "Espacio 1, Principal"
                     2 -> "Espacio 2, Trabajo"
