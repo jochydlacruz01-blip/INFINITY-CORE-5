@@ -170,7 +170,7 @@ public sealed class MtlsHandshakeIntegrationTests
             X509KeyUsageFlags.KeyCertSign | X509KeyUsageFlags.CrlSign, true));
         request.CertificateExtensions.Add(new X509SubjectKeyIdentifierExtension(request.PublicKey, false));
         return request.CreateSelfSigned(
-            DateTimeOffset.UtcNow.AddMinutes(-10),
+            DateTimeOffset.UtcNow.AddDays(-10),
             DateTimeOffset.UtcNow.AddDays(2));
     }
 
