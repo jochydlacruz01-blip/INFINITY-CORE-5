@@ -81,15 +81,15 @@ class InfinityDesktopEmulatorTest {
                     "infinity-orbit-workspace-$targetWorkspace"
                 )
                 workspaceSelector.performScrollTo()
-                Log.i("INFINITY_TEST_DIAGNOSTIC", "ORBIT click workspace " + targetWorkspace)
-                workspaceSelector.performClick()
-                settleComposeFrame()
                 val label = when (targetWorkspace) {
                     1 -> "Espacio 1, Principal"
                     2 -> "Espacio 2, Trabajo"
                     else -> "Espacio 3, Personal"
                 }
                 compose.onNodeWithContentDescription(label).assertExists()
+                Log.i("INFINITY_TEST_DIAGNOSTIC", "ORBIT click workspace " + targetWorkspace)
+                workspaceSelector.performClick()
+                settleComposeFrame()
                 val persistedWorkspace = context.getSharedPreferences("infinity_desktop", 0)
                     .getInt("active_workspace", -1)
                 assert(persistedWorkspace == targetWorkspace) {
@@ -125,7 +125,9 @@ class InfinityDesktopEmulatorTest {
         // Move, resize, minimize, maximize and restore on the wide tablet viewport.
         if (isTablet) {
             compose.onAllNodesWithContentDescription("Maximizar o restaurar").get(0).performClick()
+            settleComposeFrame()
             compose.onAllNodesWithContentDescription("Maximizar o restaurar").get(0).performClick()
+            settleComposeFrame()
             compose.onNodeWithTag("infinity-window-title-notes")
                 .performTouchInput { swipe(center, center + Offset(44f, 30f), durationMillis = 420) }
             compose.onNodeWithTag("infinity-window-resize-notes")
@@ -147,9 +149,11 @@ class InfinityDesktopEmulatorTest {
         settleComposeFrame()
         compose.onNodeWithContentDescription("Ventana Notas rápidas").assertDoesNotExist()
         compose.onNodeWithContentDescription("START").performClick()
+        settleComposeFrame()
         compose.onNodeWithTag("infinity-start-app-notes").performClick()
-        compose.waitForIdle()
-        compose.onNodeWithContentDescription("Ventana Notas rápidas").assertExists()
+        settleComposeFrame()
+        waitForContentDescription("Ventana Notas rápidas")
+        compose.onNodeWithTag("infinity-window-notes").assertExists()
 
         // Open a second independent window and retain both in the desktop task stack.
         compose.onNodeWithContentDescription("START").performClick()
@@ -162,6 +166,7 @@ class InfinityDesktopEmulatorTest {
             compose.onAllNodesWithContentDescription("Maximizar o restaurar").get(0).performClick()
         }
         compose.onAllNodesWithContentDescription("Cerrar").get(0).performClick()
+        settleComposeFrame()
         compose.onNodeWithText("Explorador de archivos").assertDoesNotExist()
 
         // ORBIT open/close and Dock accessibility while a panel is open.
@@ -182,6 +187,7 @@ class InfinityDesktopEmulatorTest {
         settleComposeFrame()
         compose.onNodeWithText("CONTROL CENTER").assertExists()
         compose.onNodeWithContentDescription("Tema ocean").performClick()
+        settleComposeFrame()
         capture("05-control-center")
 
         // Seed an in-app notification model item and clear it through the actual panel UI.
@@ -208,6 +214,7 @@ class InfinityDesktopEmulatorTest {
         compose.onNodeWithText("INFINITY UI TEST").assertExists()
         capture("06-advanced-notifications")
         compose.onNodeWithText("LIMPIAR").performClick()
+        settleComposeFrame()
         compose.onNodeWithText("Todavía no hay notificaciones disponibles.").assertExists()
 
         // Dock stays reachable after opening and closing the desktop panels.
