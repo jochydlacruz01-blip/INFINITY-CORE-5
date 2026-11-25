@@ -52,10 +52,19 @@ class InfinityDesktopEmulatorTest {
     fun exerciseDesktopCaptureRealScreensAcrossOrientations() {
         val isTablet = context.resources.configuration.smallestScreenWidthDp >= 600
         if (isTablet) {
-            compose.onNodeWithContentDescription("Espacio 1, Principal").performClick()
-            compose.onNodeWithContentDescription("Espacio 2, Trabajo").performClick()
-            compose.onNodeWithContentDescription("Espacio 3, Personal").performClick()
-            compose.onNodeWithContentDescription("Espacio 1, Principal").performClick()
+            // Workspace changes intentionally close ORBIT; reopen it for each selection.
+            val workspaces = listOf(
+                "Espacio 1, Principal",
+                "Espacio 2, Trabajo",
+                "Espacio 3, Personal",
+                "Espacio 1, Principal"
+            )
+            workspaces.forEach { description ->
+                compose.onNodeWithContentDescription("ORBIT").performScrollTo()
+                compose.onNodeWithContentDescription("ORBIT").performClick()
+                compose.onNodeWithContentDescription(description).performScrollTo()
+                compose.onNodeWithContentDescription(description).performClick()
+            }
         }
         capture(if (isTablet) "01-desktop-tablet-portrait" else "10-desktop-compact-phone")
 
@@ -65,7 +74,8 @@ class InfinityDesktopEmulatorTest {
         compose.onNodeWithText("INFINITY START").assertExists()
         capture("02-start-open")
         compose.onNode(hasSetTextAction()).performTextInput("Mis")
-        compose.onNodeWithText("Mis Archivos").assertExists()
+        // Search can expose both the desktop icon and the matching result.
+        compose.onAllNodesWithText("Mis Archivos").get(1).assertExists()
         compose.onNode(hasSetTextAction()).performTextClearance()
         compose.onAllNodesWithText("Mis Archivos").get(1).performClick()
         compose.onNodeWithText("Notas rápidas").assertExists()
