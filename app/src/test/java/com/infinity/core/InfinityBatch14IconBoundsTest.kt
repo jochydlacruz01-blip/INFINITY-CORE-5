@@ -5,6 +5,16 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class InfinityBatch14IconBoundsTest {
+    @Test fun nonFiniteDragAndViewportValuesRecoverToFiniteCoordinates() {
+        val result = infinityBoundIconOffset(Offset(Float.NaN, Float.POSITIVE_INFINITY), Offset(Float.NaN, -5f), Float.NaN, Float.NEGATIVE_INFINITY)
+        assertEquals(Offset(0f, 0f), result)
+    }
+
+    @Test fun invalidItemMetricsAreSanitizedAndFinite() {
+        val result = infinityBoundIconOffset(Offset(40f, 50f), Offset(10f, 10f), 200f, 300f, Float.NaN, Float.POSITIVE_INFINITY)
+        assertEquals(Offset(50f, 60f), result)
+    }
+
     @Test fun iconDragClampsToDesktopEdges() {
         assertEquals(Offset(0f, 0f), infinityBoundIconOffset(Offset(20f, 30f), Offset(-50f, -60f), 500f, 600f))
         assertEquals(Offset(390f, 450f), infinityBoundIconOffset(Offset(390f, 450f), Offset(40f, 60f), 500f, 600f))
@@ -21,15 +31,91 @@ class InfinityBatch14IconBoundsTest {
         )
     }
 
-    @Test fun iconBoundsSanitizeNonFiniteCoordinatesAndDimensions() {
-        assertEquals(Offset(0f, 0f), infinityBoundIconOffset(Offset(Float.NaN, Float.POSITIVE_INFINITY), Offset(Float.NaN, Float.NEGATIVE_INFINITY), 500f, 600f))
-        assertEquals(Offset(0f, 0f), infinityBoundIconOffset(Offset(20f, 20f), Offset.Zero, Float.NaN, Float.POSITIVE_INFINITY, Float.NaN, Float.POSITIVE_INFINITY))
-    }
-
     @Test fun restoredIconPositionIsPreservedWhenStillVisible() {
         assertEquals(
             Offset(120f, 160f),
             infinityBoundIconOffset(Offset(120f, 160f), Offset.Zero, 500f, 600f)
+        )
+    }
+    @Test fun iconGridStartsInColumnsAndMovesDownByRows() {
+        assertEquals(Offset(12f, 24f), infinityDesktopIconGridOffset(0, 400f, 100f, 120f))
+        assertEquals(Offset(124f, 24f), infinityDesktopIconGridOffset(1, 400f, 100f, 120f))
+        assertEquals(Offset(236f, 24f), infinityDesktopIconGridOffset(2, 400f, 100f, 120f))
+        assertEquals(Offset(12f, 158f), infinityDesktopIconGridOffset(3, 400f, 100f, 120f))
+    }
+
+    @Test fun gridIconPlacementLimitsColumnOnNarrowScreen() {
+        assertEquals(Offset(0f, 158f), infinityDesktopIconGridOffset(1, 90f, 100f, 120f, horizontalGap = 12f))
+    }
+    @Test fun dockSafeZoneSubtractsDockInsetsAndGap() {
+        assertEquals(432f, infinityDesktopHeightAboveDock(600f), 0.001f)
+    }
+
+    @Test fun dockSafeZoneNeverReturnsNegativeHeight() {
+        assertEquals(0f, infinityDesktopHeightAboveDock(80f, 100f, 30f, 50f), 0.001f)
+    }
+    @Test fun resolverMovesOverlappingIconsIntoSeparateSlots() {
+        val result = infinityResolveIconOverlaps(
+            listOf(Offset(10f, 10f), Offset(10f, 10f)),
+            500f, 600f
+        )
+        assertEquals(Offset(10f, 10f), result[0])
+        assertEquals(false, result[0] == result[1])
+    }
+
+    @Test fun resolverPreservesNonOverlappingPositions() {
+        val result = infinityResolveIconOverlaps(
+            listOf(Offset(10f, 10f), Offset(150f, 10f)),
+            500f, 600f
+        )
+        assertEquals(Offset(10f, 10f), result[0])
+        assertEquals(Offset(150f, 10f), result[1])
+    }
+
+    @Test fun resolverSeparatesDenseIconsAcrossAvailableGridCells() {
+        val result = infinityResolveIconOverlaps(List(6) { Offset(10f, 10f) }, 280f, 650f, 110f, 120f, topInset = 20f)
+        assertEquals(6, result.distinct().size)
+        for (i in result.indices) for (j in i + 1 until result.size) {
+            val a = result[i]; val b = result[j]
+            assertEquals(false, a.x < b.x + 110f && a.x + 110f > b.x && a.y < b.y + 120f && a.y + 120f > b.y)
+        }
+    }
+    @Test fun gridPlacementRecoversFromNonFiniteAndNegativeMetrics() {
+        val result = infinityDesktopIconGridOffset(
+            2, Float.NaN, Float.NaN, Float.POSITIVE_INFINITY,
+            horizontalGap = Float.NEGATIVE_INFINITY,
+            verticalGap = Float.NaN,
+            topInset = Float.NEGATIVE_INFINITY
+        )
+        assertEquals(true, result.x.isFinite() && result.y.isFinite())
+        assertEquals(true, result.x >= 0f && result.y >= 0f)
+    }
+
+    @Test fun dockSafeZoneRecoversFromNonFiniteMetrics() {
+        assertEquals(0f, infinityDesktopHeightAboveDock(Float.NaN), 0.001f)
+        assertEquals(432f, infinityDesktopHeightAboveDock(600f, Float.POSITIVE_INFINITY), 0.001f)
+    }
+
+    @Test fun overlapResolverReturnsFiniteCoordinatesForInvalidMetrics() {
+        val result = infinityResolveIconOverlaps(
+            listOf(Offset(Float.NaN, Float.POSITIVE_INFINITY), Offset(-20f, Float.NaN)),
+            Float.NaN, Float.NEGATIVE_INFINITY,
+            itemWidth = Float.NaN, itemHeight = Float.POSITIVE_INFINITY,
+            horizontalGap = Float.NaN, verticalGap = Float.NEGATIVE_INFINITY,
+            topInset = Float.NaN
+        )
+        assertEquals(2, result.size)
+        result.forEach { assertEquals(true, it.x.isFinite() && it.y.isFinite()) }
+    }
+
+    @Test fun iconBoundsSanitizeNonFiniteCoordinatesAndDimensions() {
+        assertEquals(
+            Offset(0f, 0f),
+            infinityBoundIconOffset(
+                Offset(20f, 20f), Offset.Zero,
+                Float.NaN, Float.POSITIVE_INFINITY,
+                Float.NaN, Float.POSITIVE_INFINITY
+            )
         )
     }
 }

@@ -22,6 +22,14 @@ class InfinityDesktopSettingsRulesTest {
         assertEquals("midnight", infinityNormalizeThemeChoice(null))
     }
 
+    @Test fun desktopIdentityAllowsOnlyInfinityAndWindows11() {
+        assertEquals("windows11", infinityNormalizeDesktopTheme(" WINDOWS11 "))
+        assertEquals("infinity", infinityNormalizeDesktopTheme("infinity"))
+        assertEquals("infinity", infinityNormalizeDesktopTheme("apple"))
+        assertEquals("infinity", infinityNormalizeDesktopTheme("unsupported"))
+        assertEquals("infinity", infinityNormalizeDesktopTheme(null))
+    }
+
     @Test fun appearanceAcceptsOnlyDarkOrLight() {
         assertEquals("light", infinityNormalizeAppearance(" LIGHT "))
         assertEquals("dark", infinityNormalizeAppearance("invalid"))

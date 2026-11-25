@@ -25,6 +25,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
@@ -150,6 +151,11 @@ fun InfinityConnectPanel() {
     val editingHost = remember { mutableStateOf("") }
     val editingPort = remember { mutableStateOf("3389") }
     val editingUsername = remember { mutableStateOf("") }
+    val editingPassword = remember { mutableStateOf("") }
+    DisposableEffect(Unit) {
+        onDispose { editingPassword.value = "" }
+    }
+    val credentialVault = remember(context) { InfinityConnectCredentialVault(context) }
     val editingIndex = remember { mutableStateOf(-1) }
 
     fun notifyUser(message: String) {
@@ -234,6 +240,7 @@ fun InfinityConnectPanel() {
                 editingHost.value = ""
                 editingPort.value = "3389"
                 editingUsername.value = ""
+                editingPassword.value = ""
                 showEditor.value = true
             },
             modifier = Modifier.fillMaxWidth()
@@ -300,6 +307,7 @@ fun InfinityConnectPanel() {
                                             editingHost.value = profile.host
                                             editingPort.value = profile.port
                                             editingUsername.value = profile.username
+                                            editingPassword.value = credentialVault.retrieve(profile.address) ?: ""
                                             showEditor.value = true
                                         },
                                         modifier = Modifier.weight(1f)
@@ -312,6 +320,7 @@ fun InfinityConnectPanel() {
                                 OutlinedButton(
                                     onClick = {
                                         profiles.remove(profile)
+                                        credentialVault.delete(profile.address)
                                         saveInfinityProfiles(context, profiles)
                                         notifyUser("Perfil eliminado")
                                     },
@@ -330,6 +339,7 @@ fun InfinityConnectPanel() {
                                         editingHost.value = profile.host
                                         editingPort.value = profile.port
                                         editingUsername.value = profile.username
+                                        editingPassword.value = credentialVault.retrieve(profile.address) ?: ""
                                         showEditor.value = true
                                     },
                                     modifier = Modifier.weight(1f)
@@ -341,6 +351,7 @@ fun InfinityConnectPanel() {
                                 OutlinedButton(
                                     onClick = {
                                         profiles.remove(profile)
+                                        credentialVault.delete(profile.address)
                                         saveInfinityProfiles(context, profiles)
                                         notifyUser("Perfil eliminado")
                                     },
@@ -389,10 +400,8 @@ fun InfinityConnectPanel() {
         )
 
         Text(
-            text = "INFINITY CONNECT no almacena contraseñas. " +
-                "Utiliza una conexión segura y evita exponer el puerto " +
-                "3389 directamente a Internet. Para conexiones externas, " +
-                "se recomienda utilizar una VPN como Tailscale."
+            text = "Las contraseñas opcionales se guardan cifradas con AES-GCM y una clave de Android Keystore. " +
+                "Evita exponer el puerto 3389 directamente a Internet; utiliza VPN para conexiones externas."
         )
 
         Text(
@@ -404,6 +413,7 @@ fun InfinityConnectPanel() {
     if (showEditor.value) {
         AlertDialog(
             onDismissRequest = {
+                editingPassword.value = ""
                 showEditor.value = false
             },
             title = {
@@ -465,6 +475,15 @@ fun InfinityConnectPanel() {
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
+                    
+                    OutlinedTextField(
+                        value = editingPassword.value,
+                        onValueChange = { editingPassword.value = it.take(256) },
+                        label = { Text("Contraseña (opcional)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation()
+                    )
                 }
             },
             confirmButton = {
@@ -496,16 +515,26 @@ fun InfinityConnectPanel() {
                                 username = editingUsername.value.trim()
                             )
 
+                            // Remove the old encrypted credential when an edited profile changes endpoint.
+                            val previousProfile = profiles.getOrNull(editingIndex.value)
+                            if (previousProfile != null && previousProfile.address != profile.address) {
+                                credentialVault.delete(previousProfile.address)
+                            }
                             if (editingIndex.value in profiles.indices) {
                                 profiles[editingIndex.value] = profile
                             } else {
                                 profiles.add(profile)
                             }
                             saveInfinityProfiles(context, profiles)
+                            val credentialSaved = credentialVault.save(profile.address, editingPassword.value)
 
+                            editingPassword.value = ""
                             showEditor.value = false
                             editingIndex.value = -1
-                            notifyUser("Computadora guardada")
+                            notifyUser(
+                                if (credentialSaved) "Computadora guardada"
+                                else "Perfil guardado; no se pudo proteger la contraseña. Inténtalo de nuevo."
+                            )
                         }
                     }
                 ) {
@@ -515,6 +544,7 @@ fun InfinityConnectPanel() {
             dismissButton = {
                 TextButton(
                     onClick = {
+                        editingPassword.value = ""
                         showEditor.value = false
                     }
                 ) {
