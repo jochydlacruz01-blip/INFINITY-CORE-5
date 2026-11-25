@@ -15,6 +15,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
@@ -1307,6 +1308,7 @@ DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED"
                         .widthIn(max = 420.dp)
                         .padding(bottom = 84.dp)
                         .heightIn(max = (maxH - 116.dp).coerceAtLeast(220.dp))
+                        .animateContentSize()
                         .shadow(28.dp, RoundedCornerShape(28.dp)),
                     shape = RoundedCornerShape(if (iconPack == "windows11") 16.dp else 28.dp),
                     colors = CardDefaults.cardColors(containerColor = when (iconPack) {
@@ -2171,7 +2173,23 @@ private fun DockAction(
                 .border(1.dp, tint.copy(alpha = .58f), RoundedCornerShape(if (desktopTheme == "windows11") 8.dp else 12.dp)),
             contentAlignment = Alignment.Center
         ) {
-            Text(glyph, color = tint, fontSize = if (referenceStyle) 29.sp else 22.sp, fontWeight = FontWeight.Bold)
+            val dockIcon = if (referenceStyle) when (description) {
+                "HOME" -> Icons.Filled.Apps
+                "START" -> Icons.Filled.Search
+                "CONTROL" -> Icons.Filled.Computer
+                "ADVANCED" -> Icons.Filled.Palette
+                else -> null
+            } else null
+            if (dockIcon != null) {
+                Icon(
+                    imageVector = dockIcon,
+                    contentDescription = description,
+                    tint = tint,
+                    modifier = Modifier.size(23.dp)
+                )
+            } else {
+                Text(glyph, color = tint, fontSize = if (referenceStyle) 29.sp else 22.sp, fontWeight = FontWeight.Bold)
+            }
         }
         if (!compact && !referenceStyle) {
             Text(
@@ -2792,6 +2810,7 @@ private fun Infinity08Window(
             .zIndex(if (isFocused) 10f else 0f)
             .width(win.width.dp)
             .height(win.height.dp)
+            .animateContentSize()
              .shadow(26.dp, RoundedCornerShape(windowRadius))
             .background(windowSurface, RoundedCornerShape(windowRadius))
             .border(1.dp, windowBorder, RoundedCornerShape(windowRadius)) 
