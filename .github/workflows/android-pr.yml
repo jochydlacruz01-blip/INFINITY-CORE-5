@@ -76,7 +76,7 @@ jobs:
       - name: Enforce source-only development policy
         run: |
           set -euo pipefail
-          python3 scripts/verify_no_apk_builds.py .github/workflows/android-pr.yml
+          python3 scripts/verify_no_apk_builds.py .github/workflows
 
       - name: Verify integrated INFINITY package inventory
         run: |
