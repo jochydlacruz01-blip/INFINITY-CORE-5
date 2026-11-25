@@ -30,7 +30,9 @@ ALLOWED_NON_APK_ARTIFACT_PATHS = (
     "artifacts/emulator-screenshots/",
     "artifacts/test-results/",
 )
-TEMPORARILY_DISABLED_APK_WORKFLOWS = {"android.yml", "publish-release.yml"}
+TEMPORARILY_DISABLED_APK_WORKFLOWS = {"publish-release.yml"}
+MANUAL_DEBUG_APK_WORKFLOW = "android.yml"
+AUTHORIZED_DEBUG_BRANCH = "INFINITY-PACK-14-REMOTE-FRAME-PIPELINE"
 
 
 def _artifact_steps(content: str) -> list[str]:
@@ -90,15 +92,66 @@ def _is_temporarily_disabled_apk_workflow(path: Path, content: str) -> bool:
     )
 
 
+
+def _is_safe_manual_debug_apk_workflow(path: Path, content: str) -> bool:
+    """Allow only the explicitly authorized, manual, debug-only PR #87 APK workflow."""
+    if path.name != MANUAL_DEBUG_APK_WORKFLOW:
+        return False
+    required = (
+        re.search(r"(?m)^on:\\s*\\n\\s+workflow_dispatch:\\s*$", content),
+        re.search(
+            r"(?m)^    if:\\s*\\$\\{\\{\\s*github\\.event_name\\s*==\\s*'workflow_dispatch'\\s*&&\\s*github\\.ref\\s*==\\s*'refs/heads/"
+            + re.escape(AUTHORIZED_DEBUG_BRANCH)
+            + r"'\\s*\\}\\}\\s*$",
+            content,
+        ),
+        re.search(r"(?m)^permissions:\\s*\\n\\s+contents:\\s*read\\s*$", content),
+        re.search(r"(?m)^\\s+ref:\\s*" + re.escape(AUTHORIZED_DEBUG_BRANCH) + r"\\s*$", content),
+        re.search(r"(?m)^\\s+gradle compileDebugKotlin testDebugUnitTest lintDebug assembleDebug --stacktrace\\s*$", content),
+        re.search(r"(?m)^\\s+\\$\\{APKSIGNER\\} verify --verbose --print-certs", content),
+        re.search(r"(?m)^\\s+path: app/build/outputs/apk/debug/app-debug\\.apk\\s*$", content),
+    )
+    if not all(required):
+        return False
+
+    # Reject any route to Release, publication, write permissions, or commercial signing secrets.
+    forbidden = (
+        r"(?i)assembleRelease|bundleRelease|packageRelease|publish\\w*|softprops/action-gh-release|"
+        r"gh\\s+release|contents:\\s*write|packages:\\s*write|"
+        r"INFINITY_KEYSTORE_BASE64|INFINITY_KEYSTORE_PASSWORD|INFINITY_KEY_ALIAS|INFINITY_KEY_PASSWORD|"
+        r"signingConfig|signingConfigs\\.release"
+    )
+    if re.search(forbidden, content):
+        return False
+    if "secrets." in content:
+        return False
+
+    # Only the one exact APK and the explicit checksum/signature evidence may be uploaded.
+    artifact_blocks = _artifact_steps(content)
+    if len(artifact_blocks) != 2:
+        return False
+    apk_block = next((block for block in artifact_blocks if "app/build/outputs/apk/debug/app-debug.apk" in block), "")
+    evidence_block = next((block for block in artifact_blocks if "app-debug-sha256.txt" in block), "")
+    return bool(
+        apk_block
+        and re.search(r"(?m)^\\s+name:\\s*PROJECT-INFINITY-0\\.10-DEBUG-TEST-APK\\s*$", apk_block)
+        and re.search(r"(?m)^\\s+name:\\s*PROJECT-INFINITY-0\\.10-DEBUG-APK-EVIDENCE\\s*$", evidence_block)
+        and "app-debug-signature.txt" in evidence_block
+        and "app-debug-size.txt" in evidence_block
+    )
+
 def _audit_file(workflow: Path) -> list[str]:
     try:
         content = workflow.read_text(encoding="utf-8")
     except OSError as exc:
         return [f"{workflow}: cannot read workflow: {exc}"]
 
-    # These two legacy release workflows retain their source but every job is
-    # explicitly disabled until a later, separately authorized release phase.
+    # Release remains disabled; the sole APK exception is a manually dispatched,
+    # branch-pinned DEBUG-only workflow with no commercial signing or publication.
     disabled_apk_workflow = _is_temporarily_disabled_apk_workflow(workflow, content)
+    safe_debug_workflow = _is_safe_manual_debug_apk_workflow(workflow, content)
+    if workflow.name == MANUAL_DEBUG_APK_WORKFLOW and not safe_debug_workflow:
+        return [f"{workflow}: manual DEBUG APK workflow does not satisfy the strict PR #87 allowlist"]
 
     findings: list[str] = []
     normalized_shell = content.replace("\\\n", " ")
@@ -110,10 +163,10 @@ def _audit_file(workflow: Path) -> list[str]:
         pattern.search(content)
         for pattern in (APK_REFERENCE, GENERIC_OUTPUT, SIGNING, RELEASE_UPLOAD)
     )
-    if (gradle_build or has_apk_output) and not disabled_apk_workflow:
+    if (gradle_build or has_apk_output) and not (disabled_apk_workflow or safe_debug_workflow):
         findings.append(f"{workflow}: APK build, signing, or publication route is not disabled")
 
-    if not disabled_apk_workflow:
+    if not (disabled_apk_workflow or safe_debug_workflow):
         for block in _artifact_steps(content):
             path_match = re.search(
                 r"(?ims)^\s*path\s*:\s*(.*?)(?=^\s*[a-zA-Z_-]+\s*:|\Z)",
@@ -161,4 +214,4 @@ if __name__ == "__main__":
     if errors:
         print("\n".join("FAIL: " + error for error in errors))
         raise SystemExit(1)
-    print("Source-only workflow policy passed: all APK build/release workflows are disabled; only scoped test reports may be uploaded")
+    print("Workflow policy passed: only the branch-pinned manual DEBUG APK allowlist is enabled; Release/publication and all other APK routes remain blocked")
