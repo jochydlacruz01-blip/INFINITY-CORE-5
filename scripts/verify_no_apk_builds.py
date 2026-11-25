@@ -1,24 +1,28 @@
 #!/usr/bin/env python3
-"""Fail CI closed if the source-only verification workflow can build or publish APKs."""
+"""Fail closed when a source-only workflow can build, sign, or publish APKs."""
 from __future__ import annotations
 
 import re
 import sys
 from pathlib import Path
 
-FORBIDDEN_TASKS = re.compile(
-    r"(?im)^.*\bgradle(?:\.bat)?\b.*\b(?:assemble(?:Debug|Release)?|package(?:Debug|Release)|bundle(?:Debug|Release)?)\b",
-    re.IGNORECASE,
+GRADLE_INVOKED = re.compile(r"(?i)(?:^|[\s;&|])(?:\.\\/)?(?:gradlew|gradle)(?:\.bat)?(?:\s|$)")
+FORBIDDEN_GRADLE_TASK = re.compile(
+    r"(?i)\b(?:assemble\w*|package\w*|bundle\w*|install\w*|build(?:Debug|Release)?|publish\w*)\b"
 )
-SIGNING = re.compile(r"\b(?:signingConfig|signingConfigs|apksigner)\b", re.IGNORECASE)
+SIGNING = re.compile(r"\b(?:signingConfig|signingConfigs|apksigner|jarsigner)\b", re.IGNORECASE)
 APK_REFERENCE = re.compile(
     r"(?:\.apk\b|app[-_](?:debug|release)|(?:^|[/\\])outputs[/\\](?:apk|(?=[^\s]*\.apk))|"
-    r"\bAPK_(?:PATH|FILE|OUTPUT)\b|\b(?:apkPath|apkFile)\b)",
+    r"\bAPK(?:_[A-Z0-9]+|Path|File)\b)",
     re.IGNORECASE,
 )
 GENERIC_OUTPUT = re.compile(r"(?:^|[/\\])(?:app/)?build[/\\]outputs(?:[/\\]|$)", re.IGNORECASE)
 DYNAMIC = re.compile(r"\$\{\{.*?\}\}|\$[A-Z_][A-Z0-9_]*", re.IGNORECASE)
-
+UPLOAD_ACTION = re.compile(r"uses\s*:\s*actions/upload-artifact@", re.IGNORECASE)
+RELEASE_UPLOAD = re.compile(
+    r"(?:softprops/action-gh-release|gh\s+release\s+upload|actions/upload-release-asset)",
+    re.IGNORECASE,
+)
 ALLOWED_REPORT_PATHS = ("app/build/test-results/", "app/build/reports/tests/")
 
 
@@ -27,7 +31,7 @@ def _artifact_steps(content: str) -> list[str]:
     blocks: list[str] = []
     index = 0
     while index < len(lines):
-        if re.search(r"uses\s*:\s*actions/upload-artifact@", lines[index], re.IGNORECASE):
+        if UPLOAD_ACTION.search(lines[index]):
             start = index
             index += 1
             while index < len(lines):
@@ -44,10 +48,10 @@ def _path_is_narrow_test_report(path_value: str) -> bool:
     value = path_value.strip().strip("'\"").replace("\\", "/")
     if not value or DYNAMIC.search(value):
         return False
-    if not any(root in value for root in ALLOWED_REPORT_PATHS):
+    if not any(value.startswith(root) for root in ALLOWED_REPORT_PATHS):
         return False
     if value.endswith("/**"):
-        return any(value.startswith(root) for root in ALLOWED_REPORT_PATHS)
+        return True
     return value.lower().endswith((".xml", ".html"))
 
 
@@ -59,10 +63,20 @@ def audit_workflow(path: str | Path) -> list[str]:
         return [f"Cannot read workflow: {exc}"]
 
     findings: list[str] = []
-    if FORBIDDEN_TASKS.search(content):
-        findings.append("Development workflow contains an APK-producing Gradle task")
+    # Inspect the complete workflow, not only artifact metadata. This catches
+    # paths copied/renamed indirectly and non-upload-artifact release publishers.
+    if APK_REFERENCE.search(content):
+        findings.append("Workflow contains a direct or indirect APK/output reference")
+    if GENERIC_OUTPUT.search(content):
+        findings.append("Workflow references a generic build/outputs directory")
     if SIGNING.search(content):
-        findings.append("Development workflow contains APK signing configuration or tooling")
+        findings.append("Workflow contains APK signing configuration or tooling")
+    if RELEASE_UPLOAD.search(content):
+        findings.append("Workflow contains a release-asset publication mechanism")
+
+    for line in content.splitlines():
+        if GRADLE_INVOKED.search(line) and FORBIDDEN_GRADLE_TASK.search(line):
+            findings.append("Workflow invokes a Gradle task capable of building or publishing APKs")
 
     for block in _artifact_steps(content):
         path_match = re.search(
@@ -88,8 +102,6 @@ def audit_workflow(path: str | Path) -> list[str]:
         else:
             findings.append("Artifact upload has no explicit, narrowly scoped test-report path")
 
-    if GENERIC_OUTPUT.search(content) and not _artifact_steps(content):
-        findings.append("Development workflow references a generic build/outputs directory")
     return sorted(set(findings))
 
 
