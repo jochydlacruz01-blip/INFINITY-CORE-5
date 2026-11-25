@@ -72,7 +72,7 @@ class InfinityDesktopEmulatorTest {
 
         // Move, resize, minimize, maximize and restore on the wide tablet viewport.
         if (isTablet) {
-            compose.onNodeWithContentDescription("Maximizar o restaurar").performClick()
+            compose.onAllNodesWithContentDescription("Maximizar o restaurar").get(0).performClick()
             compose.onNodeWithContentDescription("Maximizar o restaurar").performClick()
             compose.onNodeWithTag("infinity-window-title-notes")
                 .performTouchInput { swipe(center, center + Offset(44f, 30f), durationMillis = 420) }
@@ -93,7 +93,7 @@ class InfinityDesktopEmulatorTest {
             compose.onNodeWithContentDescription("Maximizar o restaurar").performClick()
             compose.onNodeWithContentDescription("Maximizar o restaurar").onFirst().performClick()
         }
-        compose.onNodeWithContentDescription("Cerrar").performClick()
+        compose.onAllNodesWithContentDescription("Cerrar").get(0).performClick()
 
         // ORBIT open/close and Dock accessibility while a panel is open.
         compose.onNodeWithContentDescription("ORBIT").performScrollTo()
