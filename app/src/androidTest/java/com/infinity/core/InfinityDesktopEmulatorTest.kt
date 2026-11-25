@@ -75,8 +75,12 @@ class InfinityDesktopEmulatorTest {
         compose.onNode(hasSetTextAction()).performTextInput("Mis")
         // Search can expose both the desktop icon and the matching result.
         compose.onNodeWithTag("infinity-start-app-notes").assertExists()
-        compose.onNode(hasSetTextAction()).performTextClearance()
+        // Launch the filtered result before clearing the query. With the emulator
+        // clock frozen, clearing the LazyColumn filter first can leave a stale
+        // semantics node for one frame and make the subsequent click a no-op.
         compose.onNodeWithTag("infinity-start-app-notes").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithTag("infinity-window-notes").assertExists()
         compose.onNodeWithText("Notas rápidas").assertExists()
         capture("07-aurora-single-window")
 
