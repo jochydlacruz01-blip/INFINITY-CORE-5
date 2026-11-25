@@ -1481,6 +1481,7 @@ DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED"
                 Card(
                  Modifier.align(Alignment.TopCenter)
     .zIndex(15f)
+    .testTag("infinity-orbit-panel")
     .padding(start = 12.dp, end = 12.dp, top = 72.dp)
     .widthIn(max = 430.dp)
     // Reserve a fixed safe zone for the Dock; constrain the card itself,
@@ -1710,7 +1711,8 @@ Row(
             modifier = Modifier
                 .weight(1f)
                 .height(58.dp)
-                .semantics {
+                .testTag("infinity-orbit-workspace-$number")
+                .semantics(mergeDescendants = true) {
                     contentDescription = "Espacio $number, " + when (number) {
                         1 -> "Principal"
                         2 -> "Trabajo"
@@ -2822,6 +2824,7 @@ private fun Infinity08Window(
             .width(win.width.dp)
             .height(win.height.dp)
             .testTag("infinity-window-${win.kind}")
+            .semantics { contentDescription = "Ventana ${win.title}" }
             .animateContentSize()
              .shadow(26.dp, RoundedCornerShape(windowRadius))
             .background(windowSurface, RoundedCornerShape(windowRadius))
