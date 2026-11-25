@@ -12,6 +12,7 @@ concurrency:
 
 jobs:
   build:
+    if: false # APK creation disabled during PR #87 source-only validation
     name: PROJECT-INFINITY-0.10-APK
     runs-on: ubuntu-latest
 
