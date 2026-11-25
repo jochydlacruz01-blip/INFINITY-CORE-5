@@ -55,7 +55,9 @@ class InfinityDesktopEmulatorTest {
             // Workspace changes intentionally close ORBIT; reopen it for each selection.
             // Exercise real workspace transitions through ORBIT, not only its labels.
             listOf(2, 3, 1).forEach { targetWorkspace ->
+                compose.onNodeWithTag("infinity-orbit-panel").assertDoesNotExist()
                 compose.onNodeWithTag("infinity-dock-orbit").performClick()
+                compose.waitForIdle()
                 compose.onNodeWithTag("infinity-orbit-panel").assertExists()
                 val workspaceSelector = compose.onNodeWithTag(
                     "infinity-orbit-workspace-$targetWorkspace"
