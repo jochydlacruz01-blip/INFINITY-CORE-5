@@ -88,6 +88,7 @@ public sealed class DeviceOperationRegistryTests
         await setupStarted.Task.WaitAsync(TimeSpan.FromSeconds(2));
         Assert.True(registry.RevokeDevice(DevicePin));
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => pendingSetup);
+        operation.Dispose();
         Assert.Equal(0, registry.Snapshot.ActiveOperations);
     }
 

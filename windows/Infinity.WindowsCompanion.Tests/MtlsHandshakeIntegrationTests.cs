@@ -236,11 +236,12 @@ public sealed class MtlsHandshakeIntegrationTests
         var serial = RandomNumberGenerator.GetBytes(16);
         serial[0] &= 0x7F;
         if (serial.All(value => value == 0)) serial[^1] = 1;
-        return request.Create(
+        using var issued = request.Create(
             issuer,
             DateTimeOffset.UtcNow.AddMinutes(-5),
             DateTimeOffset.UtcNow.AddHours(2),
             serial);
+        return issued.CopyWithPrivateKey(key);
     }
 
     private static X509Certificate2 CreateLeaf(
