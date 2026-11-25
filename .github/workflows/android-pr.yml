@@ -1,10 +1,8 @@
 name: PROJECT INFINITY - Pull Request Verification
 
 on:
-  pull_request:
+  push:
     branches:
-      - INFINITY-AURORA-NEXT-INTEGRATED
-      - INFINITY-0.9
       - INFINITY-PACK-01-FILES-REVIEWED
       - INFINITY-PACK-02-ORBIT-WORKSPACES
       - INFINITY-PACK-03-DOCK-RESPONSIVE

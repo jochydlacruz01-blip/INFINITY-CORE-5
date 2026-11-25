@@ -1,7 +1,10 @@
 name: INFINITY Windows Companion
 
 on:
-  pull_request:
+  push:
+    branches:
+      - INFINITY-PACK-12-WINDOWS-COMPANION
+      - INFINITY-PACK-14-REMOTE-FRAME-PIPELINE
     paths:
       - "windows/**"
       - ".github/workflows/infinity-windows-companion.yml"
