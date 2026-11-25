@@ -52,6 +52,11 @@ public sealed class MtlsHandshakeIntegrationTests
             serverCertificate, root, CertificatePinning.ServerAuthenticationOid),
             "The generated server certificate must pass PKIX validation.");
 
+        using var testRootStore = new X509Store(StoreName.Root, StoreLocation.CurrentUser);
+        testRootStore.Open(OpenFlags.ReadWrite);
+        testRootStore.Add(root);
+        testRootStore.Add(unrelatedRoot);
+
         var approvedPins = new HashSet<string>(StringComparer.Ordinal)
         {
             CertificatePinning.ComputeSha256Pin(validClient)
@@ -100,6 +105,8 @@ public sealed class MtlsHandshakeIntegrationTests
         {
             await app.StopAsync();
             await app.DisposeAsync();
+            testRootStore.Remove(root);
+            testRootStore.Remove(unrelatedRoot);
         }
 
         using var expiredServer = CreateLeaf(
