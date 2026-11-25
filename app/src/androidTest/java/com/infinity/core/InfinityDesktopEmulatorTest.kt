@@ -3,9 +3,7 @@ package com.infinity.core
 import android.graphics.Bitmap
 import android.os.Environment
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.test.assertExists
 import androidx.compose.ui.test.hasSetTextAction
-import androidx.compose.ui.test.onNode
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -68,7 +66,7 @@ class InfinityDesktopEmulatorTest {
         compose.onNode(hasSetTextAction()).performTextInput("Mis")
         compose.onNodeWithText("Mis Archivos").assertExists()
         compose.onNode(hasSetTextAction()).performTextClearance()
-        compose.onAllNodesWithText("Mis Archivos").onLast().performClick()
+        compose.onAllNodesWithText("Mis Archivos").get(1).performClick()
         compose.onNodeWithText("Notas rápidas").assertExists()
         capture("07-aurora-single-window")
 
@@ -88,14 +86,14 @@ class InfinityDesktopEmulatorTest {
 
         // Open a second independent window and retain both in the desktop task stack.
         compose.onNodeWithContentDescription("START").performClick()
-        compose.onAllNodesWithText("Este Equipo").onLast().performClick()
+        compose.onAllNodesWithText("Este Equipo").get(1).performClick()
         compose.onNodeWithText("Explorador de archivos").assertExists()
         capture("08-aurora-multiple-windows")
         if (isTablet) {
-            compose.onNodeWithContentDescription("Maximizar o restaurar").onFirst().performClick()
+            compose.onNodeWithContentDescription("Maximizar o restaurar").performClick()
             compose.onNodeWithContentDescription("Maximizar o restaurar").onFirst().performClick()
         }
-        compose.onNodeWithContentDescription("Cerrar").onFirst().performClick()
+        compose.onNodeWithContentDescription("Cerrar").performClick()
 
         // ORBIT open/close and Dock accessibility while a panel is open.
         compose.onNodeWithContentDescription("ORBIT").performScrollTo()
