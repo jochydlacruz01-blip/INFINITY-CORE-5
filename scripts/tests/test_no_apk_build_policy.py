@@ -28,14 +28,86 @@ steps:
     def test_release_apk_task_is_rejected(self):
         self.assertTrue(audit_text("run: gradle assembleRelease"))
 
-    def test_test_report_artifact_is_allowed(self):
-        self.assertEqual(audit_text("uses: actions/upload-artifact@v7\\nwith:\\n  name: ANDROID-TEST-REPORTS\\n  path: app/build/test-results/**"), [])
-
-    def test_apk_artifact_is_rejected(self):
-        self.assertTrue(audit_text("uses: actions/upload-artifact@v7\\nwith:\\n  name: app-debug.apk\\n  path: app/build/outputs/apk/debug/app-debug.apk"))
+    def test_package_and_bundle_tasks_are_rejected(self):
+        self.assertTrue(audit_text("run: gradle packageDebug"))
+        self.assertTrue(audit_text("run: gradle bundleRelease"))
 
     def test_signing_configuration_is_rejected(self):
         self.assertTrue(audit_text("signingConfig = signingConfigs.release"))
+
+    def test_apk_artifact_name_and_path_are_rejected(self):
+        content = """steps:
+  - name: Upload
+    uses: actions/upload-artifact@v7
+    with:
+      name: app-debug.apk
+      path: app/build/outputs/apk/debug/app-debug.apk
+"""
+        self.assertTrue(audit_text(content))
+
+    def test_generic_outputs_directory_is_rejected(self):
+        content = """steps:
+  - name: Upload
+    uses: actions/upload-artifact@v7
+    with:
+      name: build-files
+      path: app/build/outputs/**
+"""
+        self.assertTrue(audit_text(content))
+
+    def test_wildcard_apk_path_is_rejected(self):
+        content = """steps:
+  - name: Upload
+    uses: actions/upload-artifact@v7
+    with:
+      name: binaries
+      path: **/*.apk
+"""
+        self.assertTrue(audit_text(content))
+
+    def test_indirect_apk_output_variable_is_rejected(self):
+        content = """steps:
+  - name: Upload
+    uses: actions/upload-artifact@v7
+    with:
+      name: reports
+      path: ${{ env.APK_OUTPUT_PATH }}
+"""
+        self.assertTrue(audit_text(content))
+
+    def test_dynamic_artifact_path_is_rejected_closed(self):
+        content = """steps:
+  - name: Upload
+    uses: actions/upload-artifact@v7
+    with:
+      name: build
+      path: ${{ env.ARTIFACT_PATH }}
+"""
+        self.assertTrue(audit_text(content))
+
+    def test_xml_html_test_reports_are_allowed(self):
+        content = """steps:
+  - name: Upload reports
+    if: always()
+    uses: actions/upload-artifact@v7
+    with:
+      name: ANDROID-TEST-REPORTS-${{ github.sha }}
+      path: |
+        app/build/test-results/**
+        app/build/reports/tests/**
+      if-no-files-found: warn
+      retention-days: 14
+"""
+        self.assertEqual(audit_text(content), [])
+
+    def test_single_xml_report_is_allowed(self):
+        content = """steps:
+  - uses: actions/upload-artifact@v7
+    with:
+      name: junit
+      path: app/build/test-results/testDebugUnitTest/TEST-result.xml
+"""
+        self.assertEqual(audit_text(content), [])
 
 
 if __name__ == "__main__":
