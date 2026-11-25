@@ -53,16 +53,22 @@ class InfinityDesktopEmulatorTest {
         val isTablet = context.resources.configuration.smallestScreenWidthDp >= 600
         if (isTablet) {
             // Workspace changes intentionally close ORBIT; reopen it for each selection.
-            val workspaces = listOf(
-                "Espacio 1, Principal",
-                "Espacio 2, Trabajo",
-                "Espacio 3, Personal",
-                "Espacio 1, Principal"
-            )
-            workspaces.forEach { description ->
+            // Exercise real workspace transitions through ORBIT, not only its labels.
+            listOf(2, 3, 1).forEach { targetWorkspace ->
                 compose.onNodeWithTag("infinity-dock-orbit").performClick()
-                compose.onNodeWithContentDescription(description).performScrollTo()
-                compose.onNodeWithContentDescription(description).performClick()
+                compose.onNodeWithTag("infinity-orbit-panel").assertExists()
+                val workspaceSelector = compose.onNodeWithTag(
+                    "infinity-orbit-workspace-$targetWorkspace"
+                )
+                workspaceSelector.performScrollTo()
+                workspaceSelector.performClick()
+                compose.waitForIdle()
+                val persistedWorkspace = context.getSharedPreferences("infinity_desktop", 0)
+                    .getInt("active_workspace", -1)
+                assert(persistedWorkspace == targetWorkspace) {
+                    "ORBIT selected workspace $targetWorkspace but persisted $persistedWorkspace"
+                }
+                compose.onNodeWithTag("infinity-orbit-panel").assertDoesNotExist()
             }
         }
         capture(if (isTablet) "01-desktop-tablet-portrait" else "10-desktop-compact-phone")
@@ -80,8 +86,8 @@ class InfinityDesktopEmulatorTest {
         // semantics node for one frame and make the subsequent click a no-op.
         compose.onNodeWithTag("infinity-start-app-notes").performClick()
         compose.waitForIdle()
-        compose.onNodeWithTag("infinity-window-notes").assertExists()
-        compose.onNodeWithText("Notas rápidas").assertExists()
+        compose.onNodeWithContentDescription("Ventana Notas rápidas").assertExists()
+        compose.onNodeWithText("Bloc de ideas").assertExists()
         capture("07-aurora-single-window")
 
         // Move, resize, minimize, maximize and restore on the wide tablet viewport.
@@ -94,9 +100,20 @@ class InfinityDesktopEmulatorTest {
                 .performTouchInput { swipe(center, center + Offset(46f, 38f), durationMillis = 420) }
         }
         compose.onNodeWithContentDescription("Minimizar").performClick()
+        compose.onNodeWithContentDescription("Ventana Notas rápidas").assertDoesNotExist()
         compose.onNodeWithContentDescription("START").performClick()
         compose.onNodeWithTag("infinity-start-app-notes").performClick()
-        compose.onNodeWithText("Notas rápidas").assertExists()
+        compose.waitForIdle()
+        compose.onNodeWithContentDescription("Ventana Notas rápidas").assertExists()
+        compose.onNodeWithText("Bloc de ideas").assertExists()
+
+        // Close the real window, verify removal, then reopen it from START.
+        compose.onNodeWithContentDescription("Cerrar").performClick()
+        compose.onNodeWithContentDescription("Ventana Notas rápidas").assertDoesNotExist()
+        compose.onNodeWithContentDescription("START").performClick()
+        compose.onNodeWithTag("infinity-start-app-notes").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithContentDescription("Ventana Notas rápidas").assertExists()
 
         // Open a second independent window and retain both in the desktop task stack.
         compose.onNodeWithContentDescription("START").performClick()
