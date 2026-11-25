@@ -148,6 +148,35 @@ public sealed class DeviceOperationRegistryTests
             registry.BeginOperation(DevicePin, SessionId));
     }
 
+    [Fact]
+    public async Task ConcurrentSessionAdmissionAndRevocationLeavesNoOrphanedLeases()
+    {
+        var registry = CreateRegistry();
+        using var alreadyActive = registry.BeginOperation(DevicePin, SessionId);
+        var start = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var workers = Enumerable.Range(0, 16).Select(_ => Task.Run(async () =>
+        {
+            await start.Task;
+            try
+            {
+                using var lease = registry.BeginOperation(DevicePin, SessionId);
+                await Task.Delay(Timeout.InfiniteTimeSpan, lease.Token);
+            }
+            catch (OperationCanceledException) { }
+        })).ToArray();
+
+        start.TrySetResult();
+        Assert.True(registry.RevokeSession(DevicePin, SessionId));
+        await Task.WhenAll(workers);
+
+        Assert.True(alreadyActive.Token.IsCancellationRequested);
+        Assert.False(registry.BeginOperation(DevicePin, OtherSessionId).Token.IsCancellationRequested);
+        alreadyActive.Dispose();
+        Assert.Equal(0, registry.Snapshot.ActiveOperations);
+        Assert.Throws<OperationCanceledException>(() =>
+            registry.BeginOperation(DevicePin, SessionId));
+    }
+
     private static DeviceOperationRegistry CreateRegistry()
     {
         var registry = new DeviceOperationRegistry();
