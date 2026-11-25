@@ -75,6 +75,7 @@ class InfinityDesktopEmulatorTest {
         compose.onNode(hasSetTextAction()).performTextInput("Mis")
         // Search can expose both the desktop icon and the matching result.
         compose.onNodeWithTag("infinity-start-app-notes").assertExists()
+        compose.onNode(hasSetTextAction()).performTextClearance()
         compose.onNodeWithTag("infinity-start-app-notes").performClick()
         compose.onNodeWithText("Notas rápidas").assertExists()
         capture("07-aurora-single-window")
