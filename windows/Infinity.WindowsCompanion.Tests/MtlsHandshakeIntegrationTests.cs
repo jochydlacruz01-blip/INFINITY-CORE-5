@@ -42,6 +42,15 @@ public sealed class MtlsHandshakeIntegrationTests
             unrelatedRoot, "android-untrusted", CertificatePinning.ClientAuthenticationOid,
             DateTimeOffset.UtcNow.AddMinutes(-5), DateTimeOffset.UtcNow.AddHours(2));
 
+        Assert.True(validClient.HasPrivateKey);
+        Assert.True(serverCertificate.HasPrivateKey);
+        Assert.True(CertificatePinning.ValidatePkixChain(
+            validClient, root, CertificatePinning.ClientAuthenticationOid),
+            "The generated client certificate must pass Windows PKIX validation.");
+        Assert.True(CertificatePinning.ValidatePkixChain(
+            serverCertificate, root, CertificatePinning.ServerAuthenticationOid),
+            "The generated server certificate must pass PKIX validation.");
+
         var approvedPins = new HashSet<string>(StringComparer.Ordinal)
         {
             CertificatePinning.ComputeSha256Pin(validClient)
