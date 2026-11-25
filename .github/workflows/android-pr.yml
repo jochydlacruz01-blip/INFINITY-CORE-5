@@ -155,7 +155,7 @@ jobs:
           profile: ${{ matrix.profile }}
           force-avd-creation: true
           disable-animations: true
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          # Keep the runner's maintained emulator flags; custom camera options can prevent AVD boot.
           script: |
             set +e
             gradle connectedDebugAndroidTest --stacktrace
