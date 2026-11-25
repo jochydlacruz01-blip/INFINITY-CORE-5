@@ -33,7 +33,51 @@ jobs:
         run: dotnet restore .\windows\Infinity.WindowsCompanion.Tests\Infinity.WindowsCompanion.Tests.csproj
 
       - name: Build and run Windows security/unit tests (including transfer ACL)
-        run: dotnet test .\windows\Infinity.WindowsCompanion.Tests\Infinity.WindowsCompanion.Tests.csproj --configuration Release --no-restore
+        id: windows_tests
+        continue-on-error: true
+        run: dotnet test .\\windows\\Infinity.WindowsCompanion.Tests\\Infinity.WindowsCompanion.Tests.csproj --configuration Release --no-restore --logger "trx;LogFileName=windows-companion.trx" --results-directory .\\artifacts\\test-results
+
+      - name: Generate XML/HTML test evidence
+        if: always()
+        shell: pwsh
+        run: |
+          $reportDir = Join-Path $PWD "artifacts/test-results"
+          New-Item -ItemType Directory -Force -Path $reportDir | Out-Null
+          $trxFiles = @(Get-ChildItem -Path $reportDir -Filter "*.trx" -File -ErrorAction SilentlyContinue)
+          if ($trxFiles.Count -eq 0) {
+            "<html><body><h1>INFINITY Windows Companion</h1><p>No TRX report was produced.</p></body></html>" |
+              Set-Content -Path (Join-Path $reportDir "windows-companion-report.html") -Encoding UTF8
+            exit 0
+          }
+          $rows = @()
+          foreach ($trxFile in $trxFiles) {
+            [xml]$trx = Get-Content -Raw $trxFile.FullName
+            $counters = $trx.TestRun.ResultSummary.Counters
+            $rows += [pscustomobject]@{
+              Report = $trxFile.Name
+              Total = $counters.total
+              Passed = $counters.passed
+              Failed = $counters.failed
+              Errors = $counters.error
+              Skipped = $counters.notExecuted
+            }
+          }
+          $table = $rows | ConvertTo-Html -Fragment
+          $html = "<html><head><meta charset='utf-8'><title>INFINITY Windows Companion tests</title></head><body><h1>INFINITY Windows Companion — test evidence</h1>$table</body></html>"
+          $html | Set-Content -Path (Join-Path $reportDir "windows-companion-report.html") -Encoding UTF8
+
+      - name: Upload XML/HTML test evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: INFINITY-WINDOWS-TEST-REPORTS-${{ github.sha }}
+          path: artifacts/test-results/
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Enforce Windows test result
+        if: steps.windows_tests.outcome == 'failure'
+        run: exit 1
 
       - name: Publish Windows x64 companion
         run: dotnet publish .\windows\Infinity.WindowsCompanion\Infinity.WindowsCompanion.csproj --configuration Release --runtime win-x64 --self-contained false --output .\artifacts\infinity-windows-companion

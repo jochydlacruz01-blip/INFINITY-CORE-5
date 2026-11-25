@@ -72,6 +72,20 @@ public sealed class DeviceOperationRegistryTests
         await Task.CompletedTask;
     }
 
+    [Fact]
+    public void RevocationOfDisconnectedDeviceInvalidatesItsGenerationWithoutClientRequest()
+    {
+        var registry = new DeviceOperationRegistry();
+        registry.ActivateDevice(DevicePin);
+        registry.ActivateSession(DevicePin, SessionId);
+
+        Assert.True(registry.RevokeDevice(DevicePin));
+        Assert.False(registry.RevokeDevice(DevicePin));
+        Assert.Equal(0, registry.Snapshot.ActiveOperations);
+        Assert.Throws<OperationCanceledException>(() =>
+            registry.BeginOperation(DevicePin, SessionId));
+    }
+
     private static DeviceOperationRegistry CreateRegistry()
     {
         var registry = new DeviceOperationRegistry();

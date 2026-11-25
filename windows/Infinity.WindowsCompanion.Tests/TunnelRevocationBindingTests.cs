@@ -20,11 +20,16 @@ public sealed class TunnelRevocationBindingTests
         listener.Stop();
 
         var localSocket = local.Client;
-        using var cancellation = new CancellationTokenSource();
+        const string devicePin = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+        var registry = new DeviceOperationRegistry();
+        registry.ActivateDevice(devicePin);
+        const string sessionId = "44444444-4444-4444-8444-444444444444";
+        registry.ActivateSession(devicePin, sessionId);
+        using var operation = registry.BeginOperation(devicePin, sessionId);
         using var webSocket = new RecordingWebSocket();
-        using var binding = TunnelRevocationBinding.Bind(cancellation.Token, webSocket, local);
+        using var binding = TunnelRevocationBinding.Bind(operation.Token, webSocket, local);
 
-        cancellation.Cancel();
+        Assert.True(registry.RevokeDevice(devicePin));
 
         Assert.Equal(WebSocketState.Aborted, webSocket.State);
         Assert.True(localSocket.SafeHandle.IsClosed);
