@@ -6,6 +6,7 @@ import android.util.Log
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.semantics.SemanticsProperties
 import org.junit.Assert.assertTrue
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -206,7 +207,14 @@ class InfinityDesktopEmulatorTest {
         compose.onNodeWithText("CERRAR ORBIT").assertExists()
         compose.onNodeWithContentDescription("START").assertExists()
         capture("03-orbit-open")
-        compose.onNodeWithText("CERRAR ORBIT").performClick()
+        // The ORBIT card is vertically scrollable and its close action is below
+        // the initial viewport on both compact-phone and tablet AVDs. Bring the
+        // actual button into view before dispatching the click; performClick alone
+        // targets its off-screen bounds and can leave orbitOpen unchanged.
+        val closeOrbit = compose.onNodeWithText("CERRAR ORBIT")
+        closeOrbit.performScrollTo()
+        closeOrbit.assertIsDisplayed()
+        closeOrbit.performClick()
         settleComposeFrame()
         compose.onNodeWithTag("infinity-orbit-panel").assertDoesNotExist()
 
