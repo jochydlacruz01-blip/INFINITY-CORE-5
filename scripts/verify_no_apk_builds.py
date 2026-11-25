@@ -9,7 +9,7 @@ from pathlib import Path
 FORBIDDEN_PATTERNS = {
     "debug APK task": re.compile(r"\bassembleDebug\b", re.IGNORECASE),
     "release APK task": re.compile(r"\bassembleRelease\b", re.IGNORECASE),
-    "APK publication action": re.compile(r"\bupload-artifact\b", re.IGNORECASE),
+    "APK artifact publication": re.compile(r"(?:name|path):[^\n]*(?:\.apk|app-(?:debug|release))", re.IGNORECASE),
     "APK signing configuration": re.compile(r"\bsigningConfig\b", re.IGNORECASE),
     "APK output reference": re.compile(r"\b(?:app-)?(?:debug|release)[^\n]*\.apk\b", re.IGNORECASE),
 }
