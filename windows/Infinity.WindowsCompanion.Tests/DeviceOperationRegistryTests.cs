@@ -126,10 +126,10 @@ public sealed class DeviceOperationRegistryTests
     public async Task ConcurrentOperationAdmissionAndRevocationLeavesNoOrphanedLeases()
     {
         var registry = CreateRegistry();
-        using var barrier = new Barrier(9);
+        var start = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var workers = Enumerable.Range(0, 8).Select(_ => Task.Run(async () =>
         {
-            Assert.True(barrier.SignalAndWait(TimeSpan.FromSeconds(5)));
+            await start.Task;
             try
             {
                 using var lease = registry.BeginOperation(DevicePin, SessionId);
@@ -138,7 +138,7 @@ public sealed class DeviceOperationRegistryTests
             catch (OperationCanceledException) { }
         })).ToArray();
 
-        Assert.True(barrier.SignalAndWait(TimeSpan.FromSeconds(5)));
+        start.TrySetResult();
         Assert.True(registry.RevokeDevice(DevicePin));
         await Task.WhenAll(workers);
 

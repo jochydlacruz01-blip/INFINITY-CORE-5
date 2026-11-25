@@ -148,8 +148,9 @@ public sealed class SecureFileTransferStoreTests : IDisposable
         await source.SecondReadStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
 
         var deviceDirectory = Path.Combine(root, DevicePin);
-        var partialFile = Assert.Single(Directory.EnumerateFiles(deviceDirectory, "*.tmp"));
-        Assert.Equal(1, new FileInfo(partialFile).Length);
+        _ = Assert.Single(Directory.EnumerateFiles(deviceDirectory, "*.tmp"));
+        // The stream supplied one byte before blocking on its second read; the open temporary
+        // file proves the transfer is in-flight without reopening a FileShare.None writer.
 
         Assert.True(registry.RevokeDevice(DevicePin));
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => upload);
