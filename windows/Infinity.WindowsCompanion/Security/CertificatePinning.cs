@@ -58,6 +58,43 @@ public static class CertificatePinning
         }
     }
 
+    /// <summary>
+    /// Performs RFC 5280 path validation to an explicitly trusted root, including the requested
+    /// application policy. Revocation is not checked here because this private enrollment CA
+    /// does not publish CRLs/OCSP; device revocation is enforced by the live approval/session layer.
+    /// </summary>
+    public static bool ValidatePkixChain(
+        X509Certificate2 leaf,
+        X509Certificate2 trustedRoot,
+        string requiredEkuOid,
+        DateTime? verificationTime = null)
+    {
+        ArgumentNullException.ThrowIfNull(leaf);
+        ArgumentNullException.ThrowIfNull(trustedRoot);
+        if (!HasEnhancedKeyUsage(leaf, requiredEkuOid) || !AllowsDigitalSignature(leaf))
+            return false;
+
+        using var chain = new X509Chain();
+        var policy = chain.ChainPolicy;
+        policy.TrustMode = X509ChainTrustMode.CustomRootTrust;
+        policy.CustomTrustStore.Add(trustedRoot);
+        policy.ExtraStore.Add(trustedRoot);
+        policy.RevocationMode = X509RevocationMode.NoCheck;
+        policy.RevocationFlag = X509RevocationFlag.ExcludeRoot;
+        policy.VerificationFlags = X509VerificationFlags.NoFlag;
+        policy.VerificationTime = verificationTime ?? DateTime.UtcNow;
+        policy.ApplicationPolicy.Add(new Oid(requiredEkuOid));
+        policy.DisableCertificateDownloads = true;
+
+        if (!chain.Build(leaf) || chain.ChainElements.Count < 2)
+            return false;
+
+        var actualRoot = chain.ChainElements[^1].Certificate;
+        return CryptographicOperations.FixedTimeEquals(
+            SHA256.HashData(actualRoot.RawData),
+            SHA256.HashData(trustedRoot.RawData));
+    }
+
     public static bool IsUsableServerCertificate(X509Certificate2 certificate)
     {
         var now = DateTime.UtcNow;

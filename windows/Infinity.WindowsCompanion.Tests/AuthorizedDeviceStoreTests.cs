@@ -15,7 +15,8 @@ public sealed class AuthorizedDeviceStoreTests
     {
         if (!OperatingSystem.IsWindows()) return;
 
-        using var certificate = CreateClientCertificate();
+        LocalEnrollmentCertificateAuthority.Initialize();
+        using var certificate = CreateIssuedClientCertificate();
         var path = Path.Combine(Path.GetTempPath(), $"infinity-client-{Guid.NewGuid():N}.cer");
         var pin = CertificatePinning.ComputeSha256Pin(certificate);
         try
@@ -78,8 +79,18 @@ public sealed class AuthorizedDeviceStoreTests
         }
     }
 
-    private static X509Certificate2 CreateClientCertificate() =>
-        CreateCertificate(CertificatePinning.ClientAuthenticationOid);
+    private static X509Certificate2 CreateIssuedClientCertificate()
+    {
+        using var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var request = new CertificateRequest(
+            "CN=infinity-authorized-device-test",
+            key,
+            HashAlgorithmName.SHA256);
+        var csr = request.CreateSigningRequest();
+        var issued = LocalEnrollmentCertificateAuthority.IssueClientCertificate(
+            csr, "infinity-authorized-device-test");
+        return new X509Certificate2(issued.ClientCertificateDer);
+    }
 
     private static X509Certificate2 CreateCertificate(string ekuOid)
     {

@@ -63,6 +63,27 @@ public sealed class LocalEnrollmentCertificateAuthority
         }
     }
 
+    /// <summary>Validates a device certificate using PKIX against the local enrollment CA.</summary>
+    public static bool ValidateClientCertificateChain(X509Certificate2 clientCertificate)
+    {
+        try
+        {
+            using var authority = LoadAuthorityPublicCertificate();
+            return CertificatePinning.ValidatePkixChain(
+                clientCertificate,
+                authority,
+                ClientAuthenticationOid);
+        }
+        catch (CryptographicException)
+        {
+            return false;
+        }
+        catch (InvalidOperationException)
+        {
+            return false;
+        }
+    }
+
     public static byte[] ExportAuthorityCertificate()
     {
         using var authority = LoadAuthority();
@@ -121,6 +142,26 @@ public sealed class LocalEnrollmentCertificateAuthority
             chain,
             CertificatePinning.ComputeSha256Pin(issued),
             CertificatePinning.ComputeSha256Pin(authority));
+    }
+
+    private static X509Certificate2 LoadAuthorityPublicCertificate()
+    {
+        using var store = OpenMachinePersonalStore(OpenFlags.ReadOnly);
+        var matches = FindAuthorityCertificates(store);
+        if (matches.Count != 1)
+        {
+            foreach (var certificate in matches) certificate.Dispose();
+            throw new InvalidOperationException("INFINITY enrollment CA is not initialized or is ambiguous.");
+        }
+        try
+        {
+            ValidateAuthority(matches[0], requirePrivateKey: false);
+            return new X509Certificate2(matches[0].RawData);
+        }
+        finally
+        {
+            foreach (var certificate in matches) certificate.Dispose();
+        }
     }
 
     private static X509Certificate2 LoadAuthority()

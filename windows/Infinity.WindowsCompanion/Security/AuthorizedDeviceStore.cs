@@ -23,7 +23,8 @@ public sealed class AuthorizedDeviceStore
         if (!CertificatePinning.HasEnhancedKeyUsage(owned, CertificatePinning.ClientAuthenticationOid) ||
             !CertificatePinning.AllowsDigitalSignature(owned) ||
             DateTime.UtcNow < owned.NotBefore.ToUniversalTime() ||
-            DateTime.UtcNow > owned.NotAfter.ToUniversalTime())
+            DateTime.UtcNow > owned.NotAfter.ToUniversalTime() ||
+            !LocalEnrollmentCertificateAuthority.ValidateClientCertificateChain(owned))
             return false;
 
         var pin = CertificatePinning.ComputeSha256Pin(owned);
