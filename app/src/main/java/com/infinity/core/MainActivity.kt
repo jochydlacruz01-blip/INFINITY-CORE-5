@@ -1173,6 +1173,10 @@ val iconOffsets = remember {
 
                 DockAction(if (futuristicDesktop && maxW >= 600.dp) "⌕" else "✦", "START", accent, iconPack, compact = maxW < 390.dp, referenceStyle = futuristicDesktop && maxW >= 600.dp) {
                     startOpen = !startOpen
+                    if (startOpen) {
+                        search = ""
+                        startCategory = "all"
+                    }
                     orbitOpen = false
                     controlOpen = false
                     advancedOpen = false
@@ -1185,6 +1189,8 @@ val iconOffsets = remember {
                             .border(1.dp, Color(0xFF38C8FF).copy(.55f), RoundedCornerShape(14.dp))
                             .clickable {
                                 startOpen = true
+                                search = ""
+                                startCategory = "all"
                                 orbitOpen = false
                                 controlOpen = false
                                 advancedOpen = false
@@ -1547,6 +1553,79 @@ DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED"
                             }
                         }
 
+                        // SELECTOR ORBIT 0.10 — ESPACIOS DE TRABAJO
+Text(
+    "◈  ESPACIOS DE TRABAJO",
+    color = accent,
+    fontSize = 11.sp,
+    fontWeight = FontWeight.Bold,
+    modifier = Modifier.align(Alignment.Start)
+)
+
+Spacer(Modifier.height(10.dp))
+
+Row(
+    Modifier.fillMaxWidth(),
+    horizontalArrangement = Arrangement.spacedBy(8.dp)
+) {
+    (1..3).forEach { number ->
+        val selected = workspace == number
+        val buttonShape = RoundedCornerShape(14.dp)
+
+        Button(
+            onClick = {
+                switchWorkspace(number)
+            },
+            modifier = Modifier
+                .weight(1f)
+                .height(58.dp)
+                .testTag("infinity-orbit-workspace-$number")
+                .semantics(mergeDescendants = true) {
+                    contentDescription = "Espacio $number, " + when (number) {
+                        1 -> "Principal"
+                        2 -> "Trabajo"
+                        else -> "Personal"
+                    }
+                }
+                .border(
+                    1.5.dp,
+                    if (selected) accent else Color(0xFF52789C),
+                    buttonShape
+                ),
+            shape = buttonShape,
+            contentPadding = PaddingValues(3.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = if (selected)
+                    accent.copy(alpha = 0.24f)
+                else
+                    Color(0xFF13263D)
+            ),
+            elevation = ButtonDefaults.buttonElevation(
+                defaultElevation = if (selected) 5.dp else 1.dp
+            )
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    "ORBIT $number",
+                    color = if (selected) accent else Color.White,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.ExtraBold
+                )
+                Text(
+                    if (selected) "EN USO" else "DISPONIBLE",
+                    color = if (selected) accent else InfinityMuted,
+                    fontSize = 8.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+    }
+}
+
+
                         Spacer(Modifier.height(14.dp))         
     
 OrbitSystemMonitor(
@@ -1688,83 +1767,7 @@ Spacer(Modifier.height(14.dp))
 
                         
 
-// SELECTOR ORBIT 0.10 — ESPACIOS DE TRABAJO
-Text(
-    "◈  ESPACIOS DE TRABAJO",
-    color = accent,
-    fontSize = 11.sp,
-    fontWeight = FontWeight.Bold,
-    modifier = Modifier.align(Alignment.Start)
-)
-
-Spacer(Modifier.height(10.dp))
-
-Row(
-    Modifier.fillMaxWidth(),
-    horizontalArrangement = Arrangement.spacedBy(8.dp)
-) {
-    (1..3).forEach { number ->
-        val selected = workspace == number
-        val buttonShape = RoundedCornerShape(14.dp)
-
-        Button(
-            onClick = {
-                switchWorkspace(number)
-            },
-            modifier = Modifier
-                .weight(1f)
-                .height(58.dp)
-                .testTag("infinity-orbit-workspace-$number")
-                .semantics(mergeDescendants = true) {
-                    contentDescription = "Espacio $number, " + when (number) {
-                        1 -> "Principal"
-                        2 -> "Trabajo"
-                        else -> "Personal"
-                    }
-                }
-                .border(
-                    1.5.dp,
-                    if (selected) accent else Color(0xFF52789C),
-                    buttonShape
-                ),
-            shape = buttonShape,
-            contentPadding = PaddingValues(3.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = if (selected)
-                    accent.copy(alpha = 0.24f)
-                else
-                    Color(0xFF13263D)
-            ),
-            elevation = ButtonDefaults.buttonElevation(
-                defaultElevation = if (selected) 5.dp else 1.dp
-            )
-        ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    "ORBIT $number",
-                    color = if (selected) accent else Color.White,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.ExtraBold
-                )
-                Text(
-                    if (selected) "EN USO" else "DISPONIBLE",
-                    color = if (selected) accent else InfinityMuted,
-                    fontSize = 8.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        }
-    }
-}
-
-
-                        Spacer(Modifier.height(14.dp))
-
-                       
-                        // ORBIT 0.10 — ACCIONES RÁPIDAS
+// ORBIT 0.10 — ACCIONES RÁPIDAS
                         Text(
                             "◈  ACCIONES RÁPIDAS",
                             color = accent,
