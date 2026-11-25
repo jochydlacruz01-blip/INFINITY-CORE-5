@@ -8,6 +8,7 @@ permissions:
 
 jobs:
   build-debug-test-apk:
+    if: false # Disabled by the current no-APK instruction.
     name: Build and verify DEBUG test APK only
     runs-on: ubuntu-latest
     timeout-minutes: 40

@@ -118,7 +118,7 @@ jobs:
 
   emulator-ui:
     name: Instrumented Android UI (${{ matrix.device }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 50
     strategy:
       fail-fast: false
@@ -129,6 +129,12 @@ jobs:
           - device: compact-phone
             profile: pixel_2
     steps:
+      - name: Enable KVM for the Android emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
       - name: Checkout PR branch
         uses: actions/checkout@v7
         with:
@@ -154,6 +160,9 @@ jobs:
           arch: x86_64
           profile: ${{ matrix.profile }}
           force-avd-creation: true
+          emulator-boot-timeout: 900
+          ram-size: 2048M
+          heap-size: 512M
           disable-animations: true
           # Keep the runner's maintained emulator flags; custom camera options can prevent AVD boot.
           script: |

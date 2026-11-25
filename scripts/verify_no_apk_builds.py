@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fail closed on release APKs; allow one tightly scoped manual DEBUG test APK."""
+"""Fail closed if any workflow can build or publish APKs during source-only work."""
 from __future__ import annotations
 
 import re
@@ -31,7 +31,6 @@ ALLOWED_NON_APK_ARTIFACT_PATHS = (
     "artifacts/test-results/",
 )
 TEMPORARILY_DISABLED_APK_WORKFLOWS = {"android.yml", "publish-release.yml"}
-DEBUG_APK_PATH = "app/build/outputs/apk/debug/app-debug.apk"
 
 
 def _artifact_steps(content: str) -> list[str]:
@@ -91,51 +90,15 @@ def _is_temporarily_disabled_apk_workflow(path: Path, content: str) -> bool:
     )
 
 
-def _is_debug_only_test_apk_workflow(path: Path, content: str) -> bool:
-    """Allow only manual DEBUG assembly and two exact, narrowly scoped artifacts."""
-    if path.name != "android.yml":
-        return False
-    required = (
-        re.search(r"(?m)^on:\s*$", content),
-        re.search(r"(?m)^\s+workflow_dispatch:\s*$", content),
-        re.search(r"(?m)^\s+contents:\s*read\s*$", content),
-        re.search(r"(?i)gradle\s+compileDebugKotlin\s+testDebugUnitTest\s+lintDebug\s+assembleDebug", content),
-        re.search(r"(?im)^\s+name:\s*PROJECT-INFINITY-0\.10-DEBUG-TEST-APK\s*$", content),
-        re.search(r"(?im)^\s+path:\s*" + re.escape(DEBUG_APK_PATH) + r"\s*$", content),
-    )
-    if not all(required):
-        return False
-    forbidden = (
-        r"assembleRelease|testReleaseUnitTest|lintRelease|bundleRelease|signingConfig|signingConfigs|"
-        r"INFINITY_KEYSTORE|jarsigner|softprops/action-gh-release|gh\s+release|"
-        r"app/build/outputs/apk/release|app-release\.apk|contents:\s*write"
-    )
-    if re.search(forbidden, content, re.IGNORECASE):
-        return False
-    blocks = _artifact_steps(content)
-    if len(blocks) != 2:
-        return False
-    apk_block_ok = any(
-        re.search(r"(?im)^\s+name:\s*PROJECT-INFINITY-0\.10-DEBUG-TEST-APK\s*$", block)
-        and re.search(r"(?im)^\s+path:\s*" + re.escape(DEBUG_APK_PATH) + r"\s*$", block)
-        for block in blocks
-    )
-    checksum_block_ok = any(
-        re.search(r"(?im)^\s+name:\s*PROJECT-INFINITY-0\.10-DEBUG-APK-CHECKSUM\s*$", block)
-        and re.search(r"(?im)^\s+path:\s*app-debug-sha256\.txt\s*$", block)
-        for block in blocks
-    )
-    return apk_block_ok and checksum_block_ok
-
-
 def _audit_file(workflow: Path) -> list[str]:
     try:
         content = workflow.read_text(encoding="utf-8")
     except OSError as exc:
         return [f"{workflow}: cannot read workflow: {exc}"]
 
+    # These two legacy release workflows retain their source but every job is
+    # explicitly disabled until a later, separately authorized release phase.
     disabled_apk_workflow = _is_temporarily_disabled_apk_workflow(workflow, content)
-    debug_only_test_workflow = _is_debug_only_test_apk_workflow(workflow, content)
 
     findings: list[str] = []
     normalized_shell = content.replace("\\\n", " ")
@@ -147,16 +110,16 @@ def _audit_file(workflow: Path) -> list[str]:
         pattern.search(content)
         for pattern in (APK_REFERENCE, GENERIC_OUTPUT, SIGNING, RELEASE_UPLOAD)
     )
-    if (gradle_build or has_apk_output) and not (disabled_apk_workflow or debug_only_test_workflow):
-        findings.append(f"{workflow}: APK build, signing, or publication route is not disabled or explicitly DEBUG-only")
+    if (gradle_build or has_apk_output) and not disabled_apk_workflow:
+        findings.append(f"{workflow}: APK build, signing, or publication route is not disabled")
 
-    if not (disabled_apk_workflow or debug_only_test_workflow):
+    if not disabled_apk_workflow:
         for block in _artifact_steps(content):
             path_match = re.search(
                 r"(?ims)^\s*path\s*:\s*(.*?)(?=^\s*[a-zA-Z_-]+\s*:|\Z)",
                 block,
             )
-            name_match = re.search(r"(?im)^\s*name:\s*(.*?)\s*$", block)
+            name_match = re.search(r"(?im)^\s*name\s*:\s*(.*?)\s*$", block)
             path_value = path_match.group(1).strip() if path_match else ""
             name_value = name_match.group(1).strip() if name_match else ""
 
@@ -198,4 +161,4 @@ if __name__ == "__main__":
     if errors:
         print("\n".join("FAIL: " + error for error in errors))
         raise SystemExit(1)
-    print("Workflow policy passed: release APKs remain disabled; only the explicitly scoped manual DEBUG test APK is allowed")
+    print("Source-only workflow policy passed: all APK build/release workflows are disabled; only scoped test reports may be uploaded")
