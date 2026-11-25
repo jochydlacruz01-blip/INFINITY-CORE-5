@@ -893,7 +893,7 @@ val iconOffsets = remember {
                                 ),
                                 RoundedCornerShape(if (iconPack == "windows11") 12.dp else 18.dp)
                             )
-                            .padding(8.dp)
+                            .padding(if (referenceRail) 2.dp else 8.dp)
                             .pointerInput(item.id, referenceRail) {
                                 if (!referenceRail) detectDragGestures { change, drag ->
                                     change.consume()
@@ -947,7 +947,7 @@ val iconOffsets = remember {
                                     focusedWindowId = openInfinityWindow(item.id, windows, workspace, maxW.value, maxH.value)
                                 }
                             }
-                            .padding(6.dp)
+                            .padding(if (referenceRail) 2.dp else 6.dp)
                     ) {
                         InfinityAppBadge(
                             item,
@@ -955,7 +955,7 @@ val iconOffsets = remember {
                             accent,
                             iconPack
                         )
-                        Spacer(Modifier.height(if (referenceRail) 3.dp else 7.dp))
+                        Spacer(Modifier.height(if (referenceRail) 2.dp else 7.dp))
                         Text(
                             item.label,
                             modifier = Modifier
@@ -963,11 +963,11 @@ val iconOffsets = remember {
                                 .background(if (iconPack == "windows11") Color(0xCC173653) else Color(0xDD101D30), RoundedCornerShape(if (iconPack == "windows11") 8.dp else 12.dp))
                                 .border(1.dp, if (iconPack == "windows11") Color(0xFF8BCBFA).copy(alpha = 0.38f) else accent.copy(alpha = 0.38f), RoundedCornerShape(if (iconPack == "windows11") 8.dp else 12.dp))
                                 .padding(
-                                    horizontal = if (referenceRail) 4.dp else 9.dp,
-                                    vertical = if (referenceRail) 3.dp else 6.dp
+                                    horizontal = if (referenceRail) 3.dp else 9.dp,
+                                    vertical = if (referenceRail) 1.dp else 6.dp
                                 ),
                             color = Color.White,
-                            fontSize = if (referenceRail) 8.sp else 10.sp,
+                            fontSize = if (referenceRail) 7.sp else 10.sp,
                             fontWeight = FontWeight.SemiBold,
                             maxLines = 2,
                             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
@@ -1148,7 +1148,8 @@ val iconOffsets = remember {
                     .padding(
                         horizontal = if (iconPack == "windows11") 12.dp else if (maxW < 600.dp) 6.dp else 18.dp,
                         vertical = if (maxW >= 600.dp && futuristicDesktop) 8.dp else if (iconPack == "windows11") 7.dp else 10.dp
-                    ),
+                    )
+                    .heightIn(min = if (maxW >= 600.dp && futuristicDesktop) 72.dp else 60.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = if (maxW >= 600.dp && futuristicDesktop) Arrangement.SpaceEvenly
                 else if (iconPack == "windows11") Arrangement.Center
