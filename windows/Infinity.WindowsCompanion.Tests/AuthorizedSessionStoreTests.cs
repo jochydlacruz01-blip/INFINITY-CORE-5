@@ -78,4 +78,38 @@ public sealed class AuthorizedSessionStoreTests
         var grant = store.Create(DevicePin, true, new[] { "identity.read" });
         Assert.False(store.IsAuthorized(grant.SessionId, "!", DevicePin, "identity.read"));
     }
+
+    [Fact]
+    public async Task DeviceRevocationInvalidatesAllOldTokensAfterConcurrentAuthorizationChecks()
+    {
+        var store = new AuthorizedSessionStore();
+        var grants = Enumerable.Range(0, 8)
+            .Select(index => store.Create(DevicePin, true, new[] { "identity.read" }))
+            .ToArray();
+        using var revokeCompleted = new ManualResetEventSlim(false);
+
+        var readers = Enumerable.Range(0, 4).Select(workerIndex => Task.Run(() =>
+        {
+            while (!revokeCompleted.IsSet)
+            {
+                foreach (var grant in grants)
+                    _ = store.IsAuthorized(
+                        grant.SessionId, grant.Token, DevicePin, "identity.read");
+            }
+
+            // Every check begun after RevokeDevice has returned must reject old tokens.
+            foreach (var grant in grants)
+                Assert.False(store.IsAuthorized(
+                    grant.SessionId, grant.Token, DevicePin, "identity.read"));
+        })).ToArray();
+
+        Assert.Equal(grants.Length, store.RevokeDevice(DevicePin));
+        revokeCompleted.Set();
+        await Task.WhenAll(readers);
+
+        Assert.Equal(0, store.ActiveCount);
+        Assert.All(grants, grant => Assert.False(store.IsAuthorized(
+            grant.SessionId, grant.Token, DevicePin, "identity.read")));
+    }
+
 }

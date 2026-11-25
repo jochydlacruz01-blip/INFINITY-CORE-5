@@ -507,8 +507,23 @@ static async Task MonitorRdpAuthorizationAsync(
     while (!cancellation.IsCancellationRequested)
     {
         await Task.Delay(TimeSpan.FromSeconds(2), cancellation.Token);
-        if (authorizedDevices.IsAuthorized(clientCertificate) &&
-            authorizedSessions.IsAuthorized(sessionId, token, fingerprint, "remote.display") &&
+        if (!authorizedDevices.IsAuthorized(clientCertificate))
+        {
+            // Certificate revocation must invalidate every session bound to this device,
+            // not only stop the currently observed tunnel.
+            var revokedSessions = authorizedSessions.RevokeDevice(fingerprint);
+            auditLog.Write(
+                "device.sessions-revoked",
+                fingerprint,
+                sessionId,
+                revokedSessions > 0 ? "revoked" : "none");
+            auditLog.Write("tunnel.revoked", fingerprint, sessionId, "revoked");
+            cancellation.Cancel();
+            webSocket.Abort();
+            return;
+        }
+
+        if (authorizedSessions.IsAuthorized(sessionId, token, fingerprint, "remote.display") &&
             authorizedSessions.IsAuthorized(sessionId, token, fingerprint, "remote.input"))
             continue;
 
