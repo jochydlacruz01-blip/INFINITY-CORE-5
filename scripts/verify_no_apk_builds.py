@@ -13,7 +13,7 @@ FORBIDDEN_GRADLE_TASK = re.compile(
 SIGNING = re.compile(r"\b(?:signingConfig|signingConfigs|apksigner|jarsigner)\b", re.IGNORECASE)
 APK_REFERENCE = re.compile(
     r"(?:\.apk\b|app[-_](?:debug|release)|(?:^|[/\\])outputs[/\\](?:apk|(?=[^\s]*\.apk))|"
-    r"\bAPK(?:_[A-Z0-9]+|Path|File)\b)",
+    r"\bAPK(?:_[A-Z0-9_]+|Path|File)\b)",
     re.IGNORECASE,
 )
 GENERIC_OUTPUT = re.compile(r"(?:^|[/\\])(?:app/)?build[/\\]outputs(?:[/\\]|$)", re.IGNORECASE)
@@ -94,9 +94,10 @@ def _audit_file(workflow: Path) -> list[str]:
     disabled_apk_workflow = _is_temporarily_disabled_apk_workflow(workflow, content)
 
     findings: list[str] = []
+    normalized_shell = re.sub(r"\\\\\\s*\\n", " ", content)
     gradle_build = any(
         GRADLE_INVOKED.search(line) and FORBIDDEN_GRADLE_TASK.search(line)
-        for line in content.splitlines()
+        for line in normalized_shell.splitlines()
     )
     has_apk_output = any(
         pattern.search(content)
