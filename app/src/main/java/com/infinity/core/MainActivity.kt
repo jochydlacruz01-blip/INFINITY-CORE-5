@@ -1079,8 +1079,14 @@ val iconOffsets = remember {
                      onFocus = {
                          val activeIndex = windows.indexOfFirst { it.id == win.id }
                          if (activeIndex >= 0) {
-                             val activeWindow = windows.removeAt(activeIndex)
-                             windows.add(activeWindow)
+                             val orderedWindows = infinityBringItemToFront(
+                                 windows.toList(),
+                                 windows[activeIndex]
+                             ) { it.id }
+                             if (orderedWindows.map { it.id } != windows.map { it.id }) {
+                                 windows.clear()
+                                 windows.addAll(orderedWindows)
+                             }
                          }
                          focusedWindowId = win.id
                      },
