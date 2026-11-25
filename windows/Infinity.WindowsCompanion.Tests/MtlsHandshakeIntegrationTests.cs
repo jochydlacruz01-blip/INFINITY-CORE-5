@@ -8,6 +8,7 @@ using System.Security.Cryptography.X509Certificates;
 using Infinity.WindowsCompanion.Security;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Server.Kestrel.Https;
 using Microsoft.Extensions.Logging;
 using Xunit;
