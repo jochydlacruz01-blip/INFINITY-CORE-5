@@ -28,6 +28,7 @@ ALLOWED_LINT_REPORTS = ("app/build/reports/lint-results", "freerdp-core/build/re
 ALLOWED_NON_APK_ARTIFACT_PATHS = (
     "artifacts/infinity-windows-companion/",
     "artifacts/emulator-screenshots/",
+    "artifacts/test-results/",
 )
 TEMPORARILY_DISABLED_APK_WORKFLOWS = {"android.yml", "publish-release.yml"}
 

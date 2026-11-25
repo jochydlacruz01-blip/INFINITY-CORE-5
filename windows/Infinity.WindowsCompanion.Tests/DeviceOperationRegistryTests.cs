@@ -86,6 +86,21 @@ public sealed class DeviceOperationRegistryTests
             registry.BeginOperation(DevicePin, SessionId));
     }
 
+    [Fact]
+    public void RevokedDeviceRemainsVisibleUntilItsLastOperationLeaseIsReleased()
+    {
+        var registry = CreateRegistry();
+        var operation = registry.BeginOperation(DevicePin, SessionId);
+
+        Assert.True(registry.RevokeDevice(DevicePin));
+        Assert.Contains(DevicePin, registry.ActiveDeviceFingerprints);
+        Assert.Equal(1, registry.Snapshot.ActiveOperations);
+
+        operation.Dispose();
+        Assert.DoesNotContain(DevicePin, registry.ActiveDeviceFingerprints);
+        Assert.Equal(0, registry.Snapshot.ActiveOperations);
+    }
+
     private static DeviceOperationRegistry CreateRegistry()
     {
         var registry = new DeviceOperationRegistry();

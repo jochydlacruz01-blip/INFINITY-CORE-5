@@ -12,6 +12,7 @@ public sealed class DeviceOperationRegistry
 {
     private readonly object gate = new();
     private readonly Dictionary<string, DeviceState> devices = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, DeviceState> drainingDevices = new(StringComparer.Ordinal);
     private readonly HashSet<string> revokedDevices = new(StringComparer.Ordinal);
     private int activeOperations;
 
@@ -101,6 +102,7 @@ public sealed class DeviceOperationRegistry
         var fingerprint = CertificatePinning.NormalizeSha256Pin(certificateSha256);
         if (fingerprint is null) return false;
         DeviceState? device;
+        CancellationTokenSource[] sessionCancellations;
 
         lock (gate)
         {
@@ -108,21 +110,28 @@ public sealed class DeviceOperationRegistry
             revokedDevices.Add(fingerprint);
             devices.Remove(fingerprint, out device);
             if (device is null) return true;
+            if (device.ActiveOperations > 0)
+                drainingDevices[fingerprint] = device;
+            sessionCancellations = device.Sessions.Values
+                .Select(session => session.Cancellation).ToArray();
         }
 
         // Cancel outside the registry lock: callbacks may synchronously dispose leases.
         try { device.Cancellation.Cancel(); }
         catch (ObjectDisposedException) { }
-        foreach (var session in device.Sessions.Values)
+        foreach (var cancellation in sessionCancellations)
         {
-            try { session.Cancellation.Cancel(); }
+            try { cancellation.Cancel(); }
             catch (ObjectDisposedException) { }
         }
 
         lock (gate)
         {
             if (device.ActiveOperations == 0)
+            {
                 DisposeState(device);
+                RemoveDrainingState(device);
+            }
         }
         return true;
     }
@@ -133,12 +142,23 @@ public sealed class DeviceOperationRegistry
         {
             lock (gate)
             {
+                var states = devices.Values.Concat(drainingDevices.Values).Distinct().ToArray();
                 return new OperationSnapshot(
-                    devices.Count,
-                    devices.Values.Sum(device => device.Sessions.Count),
+                    devices.Keys.Concat(drainingDevices.Keys).Distinct(StringComparer.Ordinal).Count(),
+                    states.Sum(device => device.Sessions.Count),
                     activeOperations,
                     revokedDevices.Count);
             }
+        }
+    }
+
+    public IReadOnlyList<string> ActiveDeviceFingerprints
+    {
+        get
+        {
+            lock (gate)
+                return devices.Keys.Concat(drainingDevices.Keys)
+                    .Distinct(StringComparer.Ordinal).ToArray();
         }
     }
 
@@ -158,8 +178,17 @@ public sealed class DeviceOperationRegistry
             }
 
             if (device.ActiveOperations == 0 && device.Cancellation.IsCancellationRequested)
+            {
                 DisposeState(device);
+                RemoveDrainingState(device);
+            }
         }
+    }
+
+    private void RemoveDrainingState(DeviceState device)
+    {
+        foreach (var pair in drainingDevices.Where(pair => ReferenceEquals(pair.Value, device)).ToArray())
+            drainingDevices.Remove(pair.Key);
     }
 
     private static void DisposeState(DeviceState device)

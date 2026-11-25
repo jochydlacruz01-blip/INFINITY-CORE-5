@@ -123,10 +123,14 @@ var revocationMonitor = Task.Run(() =>
 {
     while (!app.Lifetime.ApplicationStopping.IsCancellationRequested)
     {
-        deviceRevocationSignal.WaitOne();
+        // The named event is the fast path. A short timed audit is the fail-safe if the
+        // local-console process cannot open the global event because of Windows object ACLs.
+        deviceRevocationSignal.WaitOne(TimeSpan.FromSeconds(2));
         if (app.Lifetime.ApplicationStopping.IsCancellationRequested) break;
 
-        foreach (var deviceFingerprint in authorizedSessions.ActiveDeviceFingerprints)
+        foreach (var deviceFingerprint in authorizedSessions.ActiveDeviceFingerprints
+                     .Concat(operationRegistry.ActiveDeviceFingerprints)
+                     .Distinct(StringComparer.Ordinal))
         {
             if (authorizedDevices.IsFingerprintAuthorized(deviceFingerprint)) continue;
             var revokedSessions = authorizedSessions.RevokeDevice(deviceFingerprint);
