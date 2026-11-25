@@ -1,17 +1,15 @@
 name: PROJECT INFINITY 0.10 - APK BUILD
 
 on:
-  push:
-    branches:
-      - INFINITY-0.9
+  # APK creation is intentionally manual until the user authorizes a build.
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: infinity-android-build-${{ github.ref }}
-  cancel-in-progress: true
+  group: infinity-android-build-${{ github.run_id }}
+  cancel-in-progress: false
 
 jobs:
   build:
