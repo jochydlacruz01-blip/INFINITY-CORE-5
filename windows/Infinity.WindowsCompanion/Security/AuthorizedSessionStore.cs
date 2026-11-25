@@ -128,6 +128,16 @@ public sealed class AuthorizedSessionStore
         }
     }
 
+    public IReadOnlyList<string> ActiveDeviceFingerprints
+    {
+        get
+        {
+            lock (gate)
+                return sessions.Values.Select(session => session.ClientFingerprint)
+                    .Distinct(StringComparer.Ordinal).ToArray();
+        }
+    }
+
     public int ActiveCount
     {
         get

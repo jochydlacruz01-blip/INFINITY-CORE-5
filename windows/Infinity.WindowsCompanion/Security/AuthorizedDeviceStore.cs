@@ -32,6 +32,16 @@ public sealed class AuthorizedDeviceStore
                string.Equals(status, "approved", StringComparison.Ordinal);
     }
 
+    public bool IsFingerprintAuthorized(string fingerprint)
+    {
+        if (!OperatingSystem.IsWindows()) return false;
+        var pin = CertificatePinning.NormalizeSha256Pin(fingerprint);
+        if (pin is null) return false;
+        using var key = Registry.LocalMachine.OpenSubKey(RegistryPath, writable: false);
+        return key?.GetValue(pin) is string status &&
+               string.Equals(status, "approved", StringComparison.Ordinal);
+    }
+
     public static string ApproveFromLocalConsole(string certificatePath)
     {
         if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException("Windows is required.");
@@ -64,6 +74,7 @@ public sealed class AuthorizedDeviceStore
             return false;
         key.DeleteValue(pin, throwOnMissingValue: false);
         key.Flush();
+        DeviceRevocationSignal.NotifyService();
         return true;
     }
 

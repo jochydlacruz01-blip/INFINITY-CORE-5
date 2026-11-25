@@ -123,7 +123,9 @@ public sealed class SecureFileTransferStore
                 CryptographicOperations.ZeroMemory(expectedBytes);
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
             File.Move(temporaryPath, finalPath);
+            cancellationToken.ThrowIfCancellationRequested();
             var createdAt = DateTimeOffset.UtcNow;
             var metadata = new FileMetadata(
                 fileId.ToString("D"),
@@ -135,7 +137,9 @@ public sealed class SecureFileTransferStore
             var metadataJson = JsonSerializer.Serialize(metadata);
             var metadataTemporaryPath = metadataPath + ".tmp";
             await File.WriteAllTextAsync(metadataTemporaryPath, metadataJson, Encoding.UTF8, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
             File.Move(metadataTemporaryPath, metadataPath);
+            cancellationToken.ThrowIfCancellationRequested();
             return new FileReceipt(metadata.FileId, metadata.FileName, metadata.Length, metadata.Sha256, metadata.CreatedAtUtc);
         }
         catch

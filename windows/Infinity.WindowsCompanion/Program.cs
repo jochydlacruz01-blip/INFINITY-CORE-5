@@ -116,6 +116,29 @@ var authorizedSessions = new AuthorizedSessionStore();
 var capabilityPolicy = RemoteCapabilityPolicy.LoadFromEnvironment();
 var auditLog = new InfinityAuditLog();
 var fileTransferStore = new SecureFileTransferStore();
+var operationRegistry = new DeviceOperationRegistry();
+using var deviceRevocationSignal = DeviceRevocationSignal.CreateListener();
+using var stopRevocationMonitor = app.Lifetime.ApplicationStopping.Register(deviceRevocationSignal.Set);
+_ = Task.Run(() =>
+{
+    while (!app.Lifetime.ApplicationStopping.IsCancellationRequested)
+    {
+        deviceRevocationSignal.WaitOne();
+        if (app.Lifetime.ApplicationStopping.IsCancellationRequested) break;
+
+        foreach (var deviceFingerprint in authorizedSessions.ActiveDeviceFingerprints)
+        {
+            if (authorizedDevices.IsFingerprintAuthorized(deviceFingerprint)) continue;
+            var revokedSessions = authorizedSessions.RevokeDevice(deviceFingerprint);
+            var cancelled = operationRegistry.RevokeDevice(deviceFingerprint);
+            auditLog.Write(
+                "device.revocation-signalled",
+                deviceFingerprint,
+                null,
+                $"sessions={revokedSessions};operations-cancelled={cancelled}");
+        }
+    }
+});
 
 // Re-check authorization on every HTTP request, not only at the TLS handshake.
 // This makes certificate revocation effective on the next request of an existing TLS connection.
@@ -133,11 +156,13 @@ app.Use(async (context, next) =>
     if (!authorizedDevices.IsAuthorized(clientCertificate))
     {
         authorizedSessions.RevokeDevice(fingerprint);
+        operationRegistry.RevokeDevice(fingerprint);
         auditLog.Write("request.device-denied", fingerprint, null, "denied");
         context.Response.StatusCode = StatusCodes.Status401Unauthorized;
         return;
     }
 
+    operationRegistry.ActivateDevice(fingerprint);
     auditLog.Write("request.authenticated", fingerprint, null, "allowed");
     await next();
 });
@@ -171,11 +196,13 @@ app.MapPost("/v1/sessions", async (HttpContext context, SessionCreateRequest req
             capabilityPolicy.GetAllowedCapabilities());
         try
         {
+            operationRegistry.ActivateSession(fingerprint, grant.SessionId);
             auditLog.Write("session.created", fingerprint, grant.SessionId, "allowed");
         }
         catch
         {
             authorizedSessions.Revoke(grant.SessionId, fingerprint);
+            operationRegistry.RevokeSession(fingerprint, grant.SessionId);
             throw;
         }
         return Results.Ok(grant);
@@ -216,6 +243,7 @@ app.MapDelete("/v1/sessions/{sessionId}", async (HttpContext context, string ses
         return Results.Unauthorized();
 
     var revoked = authorizedSessions.Revoke(sessionId, fingerprint);
+    if (revoked) operationRegistry.RevokeSession(fingerprint, sessionId);
     auditLog.Write("session.revoked", fingerprint, sessionId, revoked ? "revoked" : "failed");
     return revoked ? Results.NoContent() : Results.NotFound();
 });
@@ -242,6 +270,11 @@ app.MapPost("/v1/files", async (HttpContext context) =>
     if (fileName is null || CertificatePinning.NormalizeSha256Pin(expectedHash) is null)
         return Results.BadRequest("A valid filename and SHA-256 digest are required.");
 
+    DeviceOperationRegistry.OperationLease uploadOperation;
+    try { uploadOperation = operationRegistry.BeginOperation(fingerprint, sessionId, context.RequestAborted); }
+    catch (OperationCanceledException) { return Results.Unauthorized(); }
+
+    using (uploadOperation)
     try
     {
         var receipt = await fileTransferStore.SaveAsync(
@@ -250,7 +283,7 @@ app.MapPost("/v1/files", async (HttpContext context) =>
             fileName,
             length,
             expectedHash,
-            context.RequestAborted);
+            uploadOperation.Token);
         try
         {
             auditLog.Write("file.uploaded", fingerprint, sessionId, "allowed");
@@ -271,6 +304,11 @@ app.MapPost("/v1/files", async (HttpContext context) =>
     {
         auditLog.Write("file.upload-failed", fingerprint, sessionId, "failed");
         return Results.BadRequest("The uploaded file digest is invalid.");
+    }
+    catch (OperationCanceledException) when (!context.RequestAborted.IsCancellationRequested)
+    {
+        auditLog.Write("file.upload-cancelled", fingerprint, sessionId, "revoked");
+        return Results.Unauthorized();
     }
 });
 
@@ -304,22 +342,29 @@ app.MapGet("/v1/files/{fileId}", async (HttpContext context, string fileId) =>
         return Results.StatusCode(StatusCodes.Status403Forbidden);
     }
 
-    var metadata = fileTransferStore.Find(fileId, fingerprint);
-    if (metadata is null) return Results.NotFound();
-    await using var file = await fileTransferStore.OpenReadVerifiedAsync(metadata, context.RequestAborted);
-    if (file is null) return Results.NotFound();
-    context.Response.StatusCode = StatusCodes.Status200OK;
-    context.Response.ContentType = "application/octet-stream";
-    context.Response.ContentLength = metadata.Length;
-    context.Response.Headers["X-INFINITY-File-SHA256"] = metadata.Sha256;
-    context.Response.Headers["X-INFINITY-File-Name"] =
-        Convert.ToBase64String(Encoding.UTF8.GetBytes(metadata.FileName))
-            .TrimEnd('=').Replace('+', '-').Replace('/', '_');
-    context.Response.Headers["Content-Disposition"] =
-        $"attachment; filename*=UTF-8''{Uri.EscapeDataString(metadata.FileName)}";
-    await file.CopyToAsync(context.Response.Body, 64 * 1024, context.RequestAborted);
-    auditLog.Write("file.downloaded", fingerprint, sessionId, "allowed");
-    return Results.StatusCode(StatusCodes.Status200OK);
+    DeviceOperationRegistry.OperationLease downloadOperation;
+    try { downloadOperation = operationRegistry.BeginOperation(fingerprint, sessionId, context.RequestAborted); }
+    catch (OperationCanceledException) { return Results.Unauthorized(); }
+
+    using (downloadOperation)
+    {
+        var metadata = fileTransferStore.Find(fileId, fingerprint);
+        if (metadata is null) return Results.NotFound();
+        await using var file = await fileTransferStore.OpenReadVerifiedAsync(metadata, downloadOperation.Token);
+        if (file is null) return Results.NotFound();
+        context.Response.StatusCode = StatusCodes.Status200OK;
+        context.Response.ContentType = "application/octet-stream";
+        context.Response.ContentLength = metadata.Length;
+        context.Response.Headers["X-INFINITY-File-SHA256"] = metadata.Sha256;
+        context.Response.Headers["X-INFINITY-File-Name"] =
+            Convert.ToBase64String(Encoding.UTF8.GetBytes(metadata.FileName))
+                .TrimEnd('=').Replace('+', '-').Replace('/', '_');
+        context.Response.Headers["Content-Disposition"] =
+            $"attachment; filename*=UTF-8''{Uri.EscapeDataString(metadata.FileName)}";
+        await file.CopyToAsync(context.Response.Body, 64 * 1024, downloadOperation.Token);
+        auditLog.Write("file.downloaded", fingerprint, sessionId, "allowed");
+        return Results.StatusCode(StatusCodes.Status200OK);
+    }
 });
 
 app.MapDelete("/v1/files/{fileId}", async (HttpContext context, string fileId) =>
@@ -367,63 +412,82 @@ app.MapGet("/v1/tunnel/rdp", async (HttpContext context) =>
         return;
     }
 
-    if (!await rdpTunnelGate.WaitAsync(0, context.RequestAborted))
+    DeviceOperationRegistry.OperationLease tunnelOperation;
+    try { tunnelOperation = operationRegistry.BeginOperation(fingerprint, sessionId, context.RequestAborted); }
+    catch (OperationCanceledException)
     {
-        context.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
         return;
     }
 
-    try
+    using (tunnelOperation)
     {
-        using var rdpClient = new TcpClient(AddressFamily.InterNetwork) { NoDelay = true };
         try
         {
-            await rdpClient.ConnectAsync(IPAddress.Loopback, 3389, context.RequestAborted);
+            if (!await rdpTunnelGate.WaitAsync(0, tunnelOperation.Token))
+            {
+                context.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+                return;
+            }
         }
-        catch (SocketException)
+        catch (OperationCanceledException)
         {
-            auditLog.Write("tunnel.rdp-unavailable", fingerprint, sessionId, "failed");
-            context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
             return;
         }
 
-        using var webSocket = await context.WebSockets.AcceptWebSocketAsync();
-        using var tunnelCancellation = CancellationTokenSource.CreateLinkedTokenSource(context.RequestAborted);
-        var rdpStream = rdpClient.GetStream();
-        auditLog.Write("tunnel.started", fingerprint, sessionId, "allowed");
-
-        var androidToRdp = PumpWebSocketToRdpAsync(webSocket, rdpStream, tunnelCancellation.Token);
-        var rdpToAndroid = PumpRdpToWebSocketAsync(rdpStream, webSocket, tunnelCancellation.Token);
-        var authorizationWatch = MonitorRdpAuthorizationAsync(
-            webSocket,
-            clientCertificate,
-            fingerprint,
-            sessionId,
-            token,
-            authorizedDevices,
-            authorizedSessions,
-            auditLog,
-            tunnelCancellation);
-
-        await Task.WhenAny(androidToRdp, rdpToAndroid, authorizationWatch);
-        tunnelCancellation.Cancel();
-        webSocket.Abort();
-
         try
         {
-            await Task.WhenAll(androidToRdp, rdpToAndroid, authorizationWatch);
-        }
-        catch (OperationCanceledException) { }
-        catch (IOException) { }
-        catch (WebSocketException) { }
+            using var rdpClient = new TcpClient(AddressFamily.InterNetwork) { NoDelay = true };
+            try
+            {
+                await rdpClient.ConnectAsync(IPAddress.Loopback, 3389, tunnelOperation.Token);
+            }
+            catch (SocketException)
+            {
+                auditLog.Write("tunnel.rdp-unavailable", fingerprint, sessionId, "failed");
+                context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+                return;
+            }
 
-        auditLog.Write("tunnel.ended", fingerprint, sessionId, "allowed");
+            tunnelOperation.Token.ThrowIfCancellationRequested();
+            using var webSocket = await context.WebSockets.AcceptWebSocketAsync();
+            using var tunnelCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+                context.RequestAborted, tunnelOperation.Token);
+            using var closeResources = TunnelRevocationBinding.Bind(tunnelCancellation.Token, webSocket, rdpClient);
+            var rdpStream = rdpClient.GetStream();
+            auditLog.Write("tunnel.started", fingerprint, sessionId, "allowed");
+
+            var androidToRdp = PumpWebSocketToRdpAsync(webSocket, rdpStream, tunnelCancellation.Token);
+            var rdpToAndroid = PumpRdpToWebSocketAsync(rdpStream, webSocket, tunnelCancellation.Token);
+            await Task.WhenAny(androidToRdp, rdpToAndroid);
+            tunnelCancellation.Cancel();
+            webSocket.Abort();
+            rdpClient.Close();
+
+            try
+            {
+                await Task.WhenAll(androidToRdp, rdpToAndroid);
+            }
+            catch (OperationCanceledException) { }
+            catch (IOException) { }
+            catch (WebSocketException) { }
+            catch (ObjectDisposedException) { }
+            catch (SocketException) { }
+
+            auditLog.Write("tunnel.ended", fingerprint, sessionId, "allowed");
+        }
+        catch (OperationCanceledException) when (tunnelOperation.Token.IsCancellationRequested)
+        {
+            auditLog.Write("tunnel.revoked", fingerprint, sessionId, "revoked");
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+        }
+        finally
+        {
+            rdpTunnelGate.Release();
+        }
     }
-    finally
-    {
-        rdpTunnelGate.Release();
-    }
-});
+
 
 app.Run();
 
@@ -490,47 +554,6 @@ static async Task PumpRdpToWebSocketAsync(
             WebSocketMessageType.Binary,
             endOfMessage: true,
             cancellationToken);
-    }
-}
-
-static async Task MonitorRdpAuthorizationAsync(
-    WebSocket webSocket,
-    X509Certificate clientCertificate,
-    string fingerprint,
-    string sessionId,
-    string token,
-    AuthorizedDeviceStore authorizedDevices,
-    AuthorizedSessionStore authorizedSessions,
-    InfinityAuditLog auditLog,
-    CancellationTokenSource cancellation)
-{
-    while (!cancellation.IsCancellationRequested)
-    {
-        await Task.Delay(TimeSpan.FromSeconds(2), cancellation.Token);
-        if (!authorizedDevices.IsAuthorized(clientCertificate))
-        {
-            // Certificate revocation must invalidate every session bound to this device,
-            // not only stop the currently observed tunnel.
-            var revokedSessions = authorizedSessions.RevokeDevice(fingerprint);
-            auditLog.Write(
-                "device.sessions-revoked",
-                fingerprint,
-                sessionId,
-                revokedSessions > 0 ? "revoked" : "none");
-            auditLog.Write("tunnel.revoked", fingerprint, sessionId, "revoked");
-            cancellation.Cancel();
-            webSocket.Abort();
-            return;
-        }
-
-        if (authorizedSessions.IsAuthorized(sessionId, token, fingerprint, "remote.display") &&
-            authorizedSessions.IsAuthorized(sessionId, token, fingerprint, "remote.input"))
-            continue;
-
-        auditLog.Write("tunnel.revoked", fingerprint, sessionId, "revoked");
-        cancellation.Cancel();
-        webSocket.Abort();
-        return;
     }
 }
 
