@@ -16,6 +16,18 @@ class InfinityAuroraWindowStackTest {
         assertSame(b, result.last())
     }
 
+    @Test fun focusingWindowDoesNotMutateOriginalSnapshot() {
+        val original = listOf(
+            Window("a", 1),
+            Window("b", 1),
+            Window("c", 2)
+        )
+        val result = infinityBringItemToFront(original, original[1]) { it.id }
+
+        assertEquals(listOf("a", "b", "c"), original.map { it.id })
+        assertEquals(listOf("a", "c", "b"), result.map { it.id })
+    }
+
     @Test fun alreadyTopWindowDoesNotChangeOrder() {
         val a = Window("a", 1)
         val b = Window("b", 1)
