@@ -132,15 +132,19 @@ class InfinityDesktopEmulatorTest {
                 .performTouchInput { swipe(center, center + Offset(46f, 38f), durationMillis = 420) }
         }
         compose.onNodeWithContentDescription("Minimizar").performClick()
+        settleComposeFrame()
         compose.onNodeWithContentDescription("Ventana Notas rápidas").assertDoesNotExist()
         compose.onNodeWithContentDescription("START").performClick()
+        settleComposeFrame()
         compose.onNodeWithTag("infinity-start-app-notes").performClick()
-        compose.waitForIdle()
-        compose.onNodeWithContentDescription("Ventana Notas rápidas").assertExists()
+        settleComposeFrame()
+        waitForContentDescription("Ventana Notas rápidas")
+        compose.onNodeWithTag("infinity-window-notes").assertExists()
         compose.onNodeWithText("Bloc de ideas").assertExists()
 
         // Close the real window, verify removal, then reopen it from START.
         compose.onNodeWithContentDescription("Cerrar").performClick()
+        settleComposeFrame()
         compose.onNodeWithContentDescription("Ventana Notas rápidas").assertDoesNotExist()
         compose.onNodeWithContentDescription("START").performClick()
         compose.onNodeWithTag("infinity-start-app-notes").performClick()
@@ -150,6 +154,7 @@ class InfinityDesktopEmulatorTest {
         // Open a second independent window and retain both in the desktop task stack.
         compose.onNodeWithContentDescription("START").performClick()
         compose.onNodeWithTag("infinity-start-app-files").performClick()
+        settleComposeFrame()
         compose.onNodeWithText("Explorador de archivos").assertExists()
         capture("08-aurora-multiple-windows")
         if (isTablet) {
@@ -160,15 +165,21 @@ class InfinityDesktopEmulatorTest {
         compose.onNodeWithText("Explorador de archivos").assertDoesNotExist()
 
         // ORBIT open/close and Dock accessibility while a panel is open.
+        Log.i("INFINITY_TEST_DIAGNOSTIC", "ORBIT dock click")
         compose.onNodeWithTag("infinity-dock-orbit").performClick()
+        settleComposeFrame()
+        waitForTag("infinity-orbit-panel")
         compose.onNodeWithText("CERRAR ORBIT").assertExists()
         compose.onNodeWithContentDescription("START").assertExists()
         capture("03-orbit-open")
         compose.onNodeWithText("CERRAR ORBIT").performClick()
+        settleComposeFrame()
+        compose.onNodeWithTag("infinity-orbit-panel").assertDoesNotExist()
 
         // CONTROL: interact with a real theme option and capture the resulting panel.
         compose.onNodeWithContentDescription("CONTROL").performScrollTo()
         compose.onNodeWithContentDescription("CONTROL").performClick()
+        settleComposeFrame()
         compose.onNodeWithText("CONTROL CENTER").assertExists()
         compose.onNodeWithContentDescription("Tema ocean").performClick()
         capture("05-control-center")
@@ -191,6 +202,7 @@ class InfinityDesktopEmulatorTest {
 
         compose.onNodeWithContentDescription("ADVANCED").performScrollTo()
         compose.onNodeWithContentDescription("ADVANCED").performClick()
+        settleComposeFrame()
         compose.onNodeWithText("INFINITY ADVANCED").assertExists()
         compose.onNodeWithText("NOTIFICACIONES").assertExists()
         compose.onNodeWithText("INFINITY UI TEST").assertExists()
@@ -201,20 +213,30 @@ class InfinityDesktopEmulatorTest {
         // Dock stays reachable after opening and closing the desktop panels.
         compose.onNodeWithContentDescription("HOME").performScrollTo()
         compose.onNodeWithContentDescription("HOME").performClick()
+        settleComposeFrame()
         capture("04-dock-operational")
 
         // Rotate with START open; validate recovery of the main shell and Dock.
         compose.onNodeWithContentDescription("START").performScrollTo()
         compose.onNodeWithContentDescription("START").performClick()
+        settleComposeFrame()
         device.setOrientationLeft()
         device.waitForIdle()
-        compose.waitForIdle()
+        compose.waitUntil(timeoutMillis = 10_000) {
+            compose.activity.resources.configuration.orientation ==
+                android.content.res.Configuration.ORIENTATION_LANDSCAPE
+        }
+        settleComposeFrame()
         compose.onNodeWithContentDescription("START").assertExists()
         if (isTablet) {
             capture("09-desktop-tablet-landscape")
             device.setOrientationNatural()
             device.waitForIdle()
-            compose.waitForIdle()
+            compose.waitUntil(timeoutMillis = 10_000) {
+                compose.activity.resources.configuration.orientation ==
+                    android.content.res.Configuration.ORIENTATION_PORTRAIT
+            }
+            settleComposeFrame()
             capture("01-desktop-tablet-portrait-after-rotation")
         } else {
             capture("10-desktop-compact-phone-landscape")
