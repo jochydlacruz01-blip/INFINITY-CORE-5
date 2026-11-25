@@ -2,19 +2,6 @@ name: INFINITY FreeRDP Android Native Verification
 
 on:
   pull_request:
-    branches:
-      - INFINITY-PACK-14-REMOTE-FRAME-PIPELINE
-    paths:
-      - ".gitmodules"
-      - "external/FreeRDP"
-      - "freerdp-core/**"
-      - "app/build.gradle.kts"
-      - "settings.gradle.kts"
-      - "build.gradle.kts"
-      - ".github/workflows/freerdp-android.yml"
-  push:
-    branches:
-      - INFINITY-PACK-14-REMOTE-FRAME-PIPELINE
     paths:
       - ".gitmodules"
       - "external/FreeRDP"
@@ -29,7 +16,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: infinity-freerdp-native-${{ github.event.pull_request.number || github.ref }}
+  group: infinity-freerdp-native-${{ github.sha }}
   cancel-in-progress: false
 
 jobs:

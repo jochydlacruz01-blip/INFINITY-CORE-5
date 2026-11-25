@@ -3,6 +3,7 @@ name: PROJECT INFINITY - Pull Request Verification
 on:
   pull_request:
     branches:
+      - INFINITY-AURORA-NEXT-INTEGRATED
       - INFINITY-0.9
       - INFINITY-PACK-01-FILES-REVIEWED
       - INFINITY-PACK-02-ORBIT-WORKSPACES
@@ -18,30 +19,25 @@ on:
       - INFINITY-PACK-12-WINDOWS-COMPANION
       - INFINITY-PACK-13-FUTURISTIC-DESKTOP-VISUAL
       - INFINITY-PACK-14-REMOTE-FRAME-PIPELINE
-  push:
-    branches:
-      - INFINITY-AURORA-NEXT-INTEGRATED
-      - INFINITY-PACK-01-FILES-REVIEWED
-      - INFINITY-PACK-02-ORBIT-WORKSPACES
-      - INFINITY-PACK-03-DOCK-RESPONSIVE
-      - INFINITY-PACK-04-START-CATALOG
-      - INFINITY-PACK-05-AURORA-WINDOWS
-      - INFINITY-PACK-06-CONNECT-SECURITY
-      - INFINITY-PACK-07-CONTROL-CENTER
-      - INFINITY-PACK-08-ORBIT-SPACES
-      - INFINITY-PACK-09-SECURITY-AUDIT
-      - INFINITY-PACK-10-FINAL-INTEGRATION
-      - INFINITY-PACK-11-SECURE-PAIRING
-      - INFINITY-PACK-12-WINDOWS-COMPANION
-      - INFINITY-PACK-13-FUTURISTIC-DESKTOP-VISUAL
-      - INFINITY-PACK-14-REMOTE-FRAME-PIPELINE
+    paths:
+      - "app/**"
+      - "freerdp-core/**"
+      - "external/FreeRDP/**"
+      - "scripts/**"
+      - "gradle/**"
+      - "*.gradle.kts"
+      - "gradle.properties"
+      - "settings.gradle.kts"
+      - ".gitmodules"
+      - ".github/workflows/android-pr.yml"
+      - ".github/workflows/freerdp-android.yml"
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: infinity-pr-${{ github.event.pull_request.number || github.ref }}
+  group: infinity-pr-${{ github.sha }}
   cancel-in-progress: false
 
 jobs:
