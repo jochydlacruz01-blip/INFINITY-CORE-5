@@ -14,6 +14,7 @@ import javax.net.ssl.HttpsURLConnection
 import javax.net.ssl.KeyManagerFactory
 import javax.net.ssl.SSLContext
 import javax.net.ssl.TrustManager
+import javax.net.ssl.TrustManagerFactory
 import javax.net.ssl.X509TrustManager
 
 /**
@@ -588,58 +589,68 @@ internal class InfinityConnectMtlsTransport(
         return sslContext to trustManager
     }
 
+    /**
+     * Platform PKIX validation runs first. The exact leaf pin is an additional identity
+     * constraint, not a replacement for path validation. HttpsURLConnection retains its
+     * default hostname verifier; this trust manager never disables endpoint identification.
+     */
     private class PinnedServerTrustManager(private val expectedPin: String) : X509TrustManager {
+        private val platformTrustManager: X509TrustManager = run {
+            val factory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm())
+            factory.init(null as KeyStore?)
+            factory.trustManagers.filterIsInstance<X509TrustManager>().singleOrNull()
+                ?: throw java.security.cert.CertificateException(
+                    "Android platform X.509 trust manager is unavailable."
+                )
+        }
+
         override fun checkClientTrusted(chain: Array<out X509Certificate>?, authType: String?) {
-            throw java.security.cert.CertificateException("Client certificates are not accepted by this trust manager.")
+            throw java.security.cert.CertificateException(
+                "Client certificates are not accepted by this server-trust manager."
+            )
         }
 
         override fun checkServerTrusted(chain: Array<out X509Certificate>?, authType: String?) {
             if (chain.isNullOrEmpty() || chain.size > MAX_CHAIN_CERTIFICATES) {
-                throw java.security.cert.CertificateException("Windows certificate chain is missing or too large.")
+                throw java.security.cert.CertificateException(
+                    "Windows certificate chain is missing or too large."
+                )
             }
+
+            // Delegates complete PKIX path validation (trust anchor, signatures, constraints,
+            // critical extensions, validity and platform policy) to Android's configured trust store.
+            platformTrustManager.checkServerTrusted(chain, authType)
+
             val leaf = chain[0]
-            val now = System.currentTimeMillis()
-            if (now < leaf.notBefore.time || now > leaf.notAfter.time) {
-                throw java.security.cert.CertificateException("Windows server certificate is expired or not yet valid.")
-            }
             val eku = try { leaf.extendedKeyUsage } catch (error: Exception) {
                 throw java.security.cert.CertificateException("Windows server EKU is malformed.", error)
             }
             if (eku?.contains(SERVER_AUTH_OID) != true) {
-                throw java.security.cert.CertificateException("Windows certificate does not permit server authentication.")
+                throw java.security.cert.CertificateException(
+                    "Windows certificate does not permit server authentication."
+                )
             }
             val keyUsage = leaf.keyUsage
             if (keyUsage != null && (keyUsage.isEmpty() || !keyUsage[0])) {
-                throw java.security.cert.CertificateException("Windows certificate does not permit digital signatures.")
+                throw java.security.cert.CertificateException(
+                    "Windows certificate does not permit digital signatures."
+                )
             }
-            for (index in 0 until chain.lastIndex) {
-                val child = chain[index]
-                val issuer = chain[index + 1]
-                if (child.issuerX500Principal != issuer.subjectX500Principal) {
-                    throw java.security.cert.CertificateException("Windows certificate chain issuer mismatch.")
-                }
-                if (issuer.basicConstraints < 0) {
-                    throw java.security.cert.CertificateException("Windows issuer certificate is not a CA.")
-                }
-                val issuerUsage = issuer.keyUsage
-                if (issuerUsage != null && (issuerUsage.size <= 5 || !issuerUsage[5])) {
-                    throw java.security.cert.CertificateException("Windows issuer cannot sign certificates.")
-                }
-                try { child.verify(issuer.publicKey) } catch (error: Exception) {
-                    throw java.security.cert.CertificateException("Windows certificate chain signature is invalid.", error)
-                }
-                if (now < issuer.notBefore.time || now > issuer.notAfter.time) {
-                    throw java.security.cert.CertificateException("Windows issuer certificate is outside its validity period.")
-                }
-            }
+
             val actual = MessageDigest.getInstance("SHA-256").digest(leaf.encoded)
             val expected = expectedPin.chunked(2).map { it.toInt(16).toByte() }.toByteArray()
-            if (!MessageDigest.isEqual(actual, expected)) {
-                throw java.security.cert.CertificateException("Windows server certificate fingerprint does not match the trusted device.")
+            val matches = MessageDigest.isEqual(actual, expected)
+            actual.fill(0)
+            expected.fill(0)
+            if (!matches) {
+                throw java.security.cert.CertificateException(
+                    "Windows server certificate fingerprint does not match the trusted device."
+                )
             }
         }
 
-        override fun getAcceptedIssuers(): Array<X509Certificate> = emptyArray()
+        override fun getAcceptedIssuers(): Array<X509Certificate> =
+            platformTrustManager.acceptedIssuers
     }
 
     private fun normalizePin(value: String): String? {
