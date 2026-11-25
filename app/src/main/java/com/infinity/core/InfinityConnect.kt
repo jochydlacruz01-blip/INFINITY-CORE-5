@@ -239,7 +239,7 @@ fun InfinityConnectPanel() {
                     notifyUser("Límite alcanzado: máximo 100 computadoras")
                     return@Button
                 }
-                editingIndex.value = -1
+                editingIndex.intValue = -1
                 editingName.value = ""
                 editingHost.value = ""
                 editingPort.value = "3389"
@@ -306,7 +306,7 @@ fun InfinityConnectPanel() {
                                 ) {
                                     OutlinedButton(
                                         onClick = {
-                                            editingIndex.value = profiles.indexOf(profile)
+                                            editingIndex.intValue = profiles.indexOf(profile)
                                             editingName.value = profile.name
                                             editingHost.value = profile.host
                                             editingPort.value = profile.port
@@ -338,7 +338,7 @@ fun InfinityConnectPanel() {
                             ) {
                                 OutlinedButton(
                                     onClick = {
-                                        editingIndex.value = profiles.indexOf(profile)
+                                        editingIndex.intValue = profiles.indexOf(profile)
                                         editingName.value = profile.name
                                         editingHost.value = profile.host
                                         editingPort.value = profile.port
@@ -443,7 +443,7 @@ fun InfinityConnectPanel() {
                 showEditor.value = false
             },
             title = {
-                Text(if (editingIndex.value >= 0) "Editar computadora" else "Agregar computadora")
+                Text(if (editingIndex.intValue >= 0) "Editar computadora" else "Agregar computadora")
             },
             text = {
                 Column(
@@ -521,7 +521,7 @@ fun InfinityConnectPanel() {
                             host = host,
                             port = editingPort.value,
                             savedEndpoints = profiles.map { it.host to it.port },
-                            excludedIndex = editingIndex.value
+                            excludedIndex = editingIndex.intValue
                         )
 
                         if (
@@ -542,12 +542,12 @@ fun InfinityConnectPanel() {
                             )
 
                             // Remove the old encrypted credential when an edited profile changes endpoint.
-                            val previousProfile = profiles.getOrNull(editingIndex.value)
+                            val previousProfile = profiles.getOrNull(editingIndex.intValue)
                             if (previousProfile != null && previousProfile.address != profile.address) {
                                 credentialVault.delete(previousProfile.address)
                             }
-                            if (editingIndex.value in profiles.indices) {
-                                profiles[editingIndex.value] = profile
+                            if (editingIndex.intValue in profiles.indices) {
+                                profiles[editingIndex.intValue] = profile
                             } else {
                                 profiles.add(profile)
                             }
@@ -556,7 +556,7 @@ fun InfinityConnectPanel() {
 
                             editingPassword.value = ""
                             showEditor.value = false
-                            editingIndex.value = -1
+                            editingIndex.intValue = -1
                             notifyUser(
                                 if (credentialSaved) "Computadora guardada"
                                 else "Perfil guardado; no se pudo proteger la contraseña. Inténtalo de nuevo."
@@ -564,7 +564,7 @@ fun InfinityConnectPanel() {
                         }
                     }
                 ) {
-                    Text(if (editingIndex.value >= 0) "Guardar cambios" else "Guardar")
+                    Text(if (editingIndex.intValue >= 0) "Guardar cambios" else "Guardar")
                 }
             },
             dismissButton = {
