@@ -5,6 +5,9 @@ import android.os.Environment
 import android.util.Log
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.semantics.SemanticsProperties
+import org.junit.Assert.assertTrue
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
@@ -133,7 +136,7 @@ class InfinityDesktopEmulatorTest {
             settleComposeFrame()
             compose.onNodeWithTag("infinity-window-title-notes")
                 .performTouchInput { swipe(center, center + Offset(44f, 30f), durationMillis = 420) }
-            compose.onNodeWithTag("infinity-window-resize-notes")
+            compose.onNodeWithTag("infinity-window-resize-notes", useUnmergedTree = true)
                 .performTouchInput { swipe(center, center + Offset(46f, 38f), durationMillis = 420) }
         }
         compose.onNodeWithContentDescription("Minimizar").performClick()
@@ -158,19 +161,42 @@ class InfinityDesktopEmulatorTest {
         waitForContentDescription("Ventana Notas rápidas")
         compose.onNodeWithTag("infinity-window-notes").assertExists()
 
-        // Open a second independent window and retain both in the desktop task stack.
-        compose.onNodeWithContentDescription("START").performClick()
-        compose.onNodeWithTag("infinity-start-app-files").performClick()
+        // Close Notes before exercising START search so its text field cannot
+        // be confused with the START search field in the Compose semantics tree.
+        compose.onNodeWithContentDescription("Cerrar").performClick()
         settleComposeFrame()
-        compose.onNodeWithText("Explorador de archivos").assertExists()
-        capture("08-aurora-multiple-windows")
-        if (isTablet) {
-            compose.onNodeWithContentDescription("Maximizar o restaurar").performClick()
-            compose.onAllNodesWithContentDescription("Maximizar o restaurar").get(0).performClick()
+        compose.onNodeWithTag("infinity-window-notes").assertDoesNotExist()
+
+        // START -> Files -> close -> START search reset. Repeat the real UI cycle
+        // to catch stale LazyColumn results or state leaking between openings.
+        repeat(2) { cycle ->
+            Log.i("INFINITY_TEST_DIAGNOSTIC", "START files cycle ${cycle + 1}: open")
+            compose.onNodeWithContentDescription("START").performClick()
+            settleComposeFrame()
+            waitForTag("infinity-start-app-files")
+            val startSearch = compose.onNode(hasSetTextAction())
+            assertTrue(
+                "START search should be empty when reopened",
+                startSearch.fetchSemanticsNode().config[SemanticsProperties.EditableText].text.isEmpty()
+            )
+            startSearch.performTextInput("Este Equipo")
+            settleComposeFrame()
+            startSearch.assertTextEquals("Este Equipo")
+            waitForTag("infinity-start-app-files")
+            compose.onNodeWithTag("infinity-start-app-files").assertExists()
+            Log.i("INFINITY_TEST_DIAGNOSTIC", "START files cycle ${cycle + 1}: select")
+            compose.onNodeWithTag("infinity-start-app-files").performClick()
+            settleComposeFrame()
+            waitForText("Explorador de archivos")
+            compose.onNodeWithText("Explorador de archivos").assertExists()
+            capture(if (cycle == 0) "08-aurora-files-window-first-cycle" else "08-aurora-files-window-second-cycle")
+
+            compose.onNodeWithContentDescription("Cerrar").performClick()
+            settleComposeFrame()
+            compose.onNodeWithTag("infinity-window-files").assertDoesNotExist()
+            compose.onNodeWithText("Explorador de archivos").assertDoesNotExist()
+            Log.i("INFINITY_TEST_DIAGNOSTIC", "START files cycle ${cycle + 1}: closed")
         }
-        compose.onAllNodesWithContentDescription("Cerrar").get(0).performClick()
-        settleComposeFrame()
-        compose.onNodeWithText("Explorador de archivos").assertDoesNotExist()
 
         // ORBIT open/close and Dock accessibility while a panel is open.
         Log.i("INFINITY_TEST_DIAGNOSTIC", "ORBIT dock click")
