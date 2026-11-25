@@ -95,6 +95,7 @@ class InfinityDesktopEmulatorTest {
             compose.onAllNodesWithContentDescription("Maximizar o restaurar").get(0).performClick()
         }
         compose.onAllNodesWithContentDescription("Cerrar").get(0).performClick()
+        compose.onNodeWithText("Explorador de archivos").assertDoesNotExist()
 
         // ORBIT open/close and Dock accessibility while a panel is open.
         compose.onNodeWithContentDescription("ORBIT").performScrollTo()
