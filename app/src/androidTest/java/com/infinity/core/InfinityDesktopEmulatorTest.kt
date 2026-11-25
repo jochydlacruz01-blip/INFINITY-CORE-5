@@ -60,8 +60,7 @@ class InfinityDesktopEmulatorTest {
                 "Espacio 1, Principal"
             )
             workspaces.forEach { description ->
-                compose.onNodeWithContentDescription("ORBIT").performScrollTo()
-                compose.onNodeWithContentDescription("ORBIT").performClick()
+                compose.onNodeWithTag("infinity-dock-orbit").performClick()
                 compose.onNodeWithContentDescription(description).performScrollTo()
                 compose.onNodeWithContentDescription(description).performClick()
             }
@@ -75,9 +74,8 @@ class InfinityDesktopEmulatorTest {
         capture("02-start-open")
         compose.onNode(hasSetTextAction()).performTextInput("Mis")
         // Search can expose both the desktop icon and the matching result.
-        compose.onAllNodesWithText("Mis Archivos").get(1).assertExists()
-        compose.onNode(hasSetTextAction()).performTextClearance()
-        compose.onAllNodesWithText("Mis Archivos").get(1).performClick()
+        compose.onNodeWithTag("infinity-start-app-notes").assertExists()
+        compose.onNodeWithTag("infinity-start-app-notes").performClick()
         compose.onNodeWithText("Notas rápidas").assertExists()
         capture("07-aurora-single-window")
 
@@ -92,12 +90,12 @@ class InfinityDesktopEmulatorTest {
         }
         compose.onNodeWithContentDescription("Minimizar").performClick()
         compose.onNodeWithContentDescription("START").performClick()
-        compose.onAllNodesWithText("Mis Archivos").get(1).performClick()
+        compose.onNodeWithTag("infinity-start-app-notes").performClick()
         compose.onNodeWithText("Notas rápidas").assertExists()
 
         // Open a second independent window and retain both in the desktop task stack.
         compose.onNodeWithContentDescription("START").performClick()
-        compose.onAllNodesWithText("Este Equipo").get(1).performClick()
+        compose.onNodeWithTag("infinity-start-app-files").performClick()
         compose.onNodeWithText("Explorador de archivos").assertExists()
         capture("08-aurora-multiple-windows")
         if (isTablet) {
@@ -108,8 +106,7 @@ class InfinityDesktopEmulatorTest {
         compose.onNodeWithText("Explorador de archivos").assertDoesNotExist()
 
         // ORBIT open/close and Dock accessibility while a panel is open.
-        compose.onNodeWithContentDescription("ORBIT").performScrollTo()
-        compose.onNodeWithContentDescription("ORBIT").performClick()
+        compose.onNodeWithTag("infinity-dock-orbit").performClick()
         compose.onNodeWithText("CERRAR ORBIT").assertExists()
         compose.onNodeWithContentDescription("START").assertExists()
         capture("03-orbit-open")
