@@ -9,7 +9,8 @@ internal data class InfinityReferenceRailLayout(
     val topDp: Float,
     val itemWidthDp: Float,
     val slotHeightDp: Float,
-    val iconSizeDp: Float
+    val iconSizeDp: Float,
+    val showLabels: Boolean
 )
 
 internal fun infinityReferenceRailLayout(
@@ -20,16 +21,24 @@ internal fun infinityReferenceRailLayout(
     require(viewportWidthDp > 0f)
     require(viewportHeightDp > 0f)
     require(itemCount > 0)
+
     val dockAndBottomReserve = if (viewportHeightDp < 560f) 112f else 148f
-    val available = (viewportHeightDp - dockAndBottomReserve - 54f).coerceAtLeast(itemCount * 52f)
-    val slot = (available / itemCount).coerceIn(52f, 88f)
-    val icon = (slot * .48f).coerceIn(28f, 40f)
+    val top = 54f
+    val dockTop = (viewportHeightDp - dockAndBottomReserve).coerceAtLeast(top)
+    val available = (dockTop - top).coerceAtLeast(1f)
+
+    // Never force a 52dp minimum: that was the source of the 10dp collision at 520dp.
+    // On compact heights, labels collapse before the rail can intrude into the Dock.
+    val slot = (available / itemCount).coerceIn(1f, 88f)
+    val icon = (slot * .38f).coerceIn(12f, 40f)
     val width = if (viewportWidthDp < 720f) 78f else 88f
+
     return InfinityReferenceRailLayout(
         leftDp = 7f,
-        topDp = 54f,
+        topDp = top,
         itemWidthDp = width,
         slotHeightDp = slot,
-        iconSizeDp = icon
+        iconSizeDp = icon,
+        showLabels = slot >= 40f
     )
 }
