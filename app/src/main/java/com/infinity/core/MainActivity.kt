@@ -1198,7 +1198,9 @@ val iconOffsets = remember {
                 }
 
                 DockAction(if (futuristicDesktop && maxW >= 600.dp) "∞" else "◎", "ORBIT", Color(0xFFB69CFF), iconPack, compact = maxW < 390.dp, referenceStyle = futuristicDesktop && maxW >= 600.dp) {
-                    orbitOpen = !orbitOpen
+                    // ORBIT is an explicit launcher command: repeated activation must never
+                    // cancel the opening transition while accessibility dispatch is settling.
+                    orbitOpen = true
                     startOpen = false
                     controlOpen = false
                     advancedOpen = false
