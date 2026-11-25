@@ -15,7 +15,6 @@
     </PackageReference>
   </ItemGroup>
   <ItemGroup>
-    <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <ProjectReference Include="../Infinity.WindowsCompanion/Infinity.WindowsCompanion.csproj" />
   </ItemGroup>
 </Project>
