@@ -34,7 +34,7 @@ class NoApkBuildPolicyTest(unittest.TestCase):
         self.assertTrue(audit_text("run: gradlew.bat bundleRelease"))
 
     def test_gradle_wrapper_continuation_cannot_hide_apk_task(self):
-        content = "run: ./gradlew \\\\\n  assembleDebug"
+        content = "run: ./gradlew \\\n  assembleDebug"
         self.assertTrue(audit_text(content))
 
     def test_apk_output_variable_reference_is_rejected(self):
