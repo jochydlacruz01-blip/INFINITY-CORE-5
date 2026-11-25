@@ -166,7 +166,10 @@ public sealed class MtlsHandshakeIntegrationTests
         ConcurrentQueue<string>? diagnostics = null)
     {
         var pin = expectedServerPin ?? CertificatePinning.ComputeSha256Pin(expectedServerCertificate);
-        var handler = new HttpClientHandler();
+        var handler = new HttpClientHandler
+        {
+            ClientCertificateOptions = ClientCertificateOption.Manual
+        };
         handler.ClientCertificates.Add(clientCertificate);
         handler.ServerCertificateCustomValidationCallback = (_, certificate, _, errors) =>
         {
