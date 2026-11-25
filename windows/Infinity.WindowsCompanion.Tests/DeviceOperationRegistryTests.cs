@@ -121,6 +121,33 @@ public sealed class DeviceOperationRegistryTests
         Assert.Equal(0, registry.Snapshot.ActiveOperations);
     }
 
+
+    [Fact]
+    public async Task ConcurrentOperationAdmissionAndRevocationLeavesNoOrphanedLeases()
+    {
+        var registry = CreateRegistry();
+        using var barrier = new Barrier(9);
+        var workers = Enumerable.Range(0, 8).Select(_ => Task.Run(async () =>
+        {
+            Assert.True(barrier.SignalAndWait(TimeSpan.FromSeconds(5)));
+            try
+            {
+                using var lease = registry.BeginOperation(DevicePin, SessionId);
+                await Task.Delay(Timeout.InfiniteTimeSpan, lease.Token);
+            }
+            catch (OperationCanceledException) { }
+        })).ToArray();
+
+        Assert.True(barrier.SignalAndWait(TimeSpan.FromSeconds(5)));
+        Assert.True(registry.RevokeDevice(DevicePin));
+        await Task.WhenAll(workers);
+
+        Assert.Equal(0, registry.Snapshot.ActiveOperations);
+        Assert.DoesNotContain(DevicePin, registry.ActiveDeviceFingerprints);
+        Assert.Throws<OperationCanceledException>(() =>
+            registry.BeginOperation(DevicePin, SessionId));
+    }
+
     private static DeviceOperationRegistry CreateRegistry()
     {
         var registry = new DeviceOperationRegistry();

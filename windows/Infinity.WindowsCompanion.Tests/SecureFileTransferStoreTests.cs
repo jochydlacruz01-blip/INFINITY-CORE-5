@@ -141,16 +141,19 @@ public sealed class SecureFileTransferStoreTests : IDisposable
         registry.ActivateSession(DevicePin, sessionId);
         using var operation = registry.BeginOperation(DevicePin, sessionId);
         using var source = new BlockingReadStream();
-        var digest = Convert.ToHexString(SHA256.HashData(new byte[] { 1 }));
+        var digest = Convert.ToHexString(SHA256.HashData(new byte[] { 1, 2 }));
 
         var upload = store.SaveAsync(
-            source, DevicePin, "cancelled.bin", 1, digest, operation.Token);
-        await source.ReadStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            source, DevicePin, "cancelled.bin", 2, digest, operation.Token);
+        await source.SecondReadStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        var deviceDirectory = Path.Combine(root, DevicePin);
+        var partialFile = Assert.Single(Directory.EnumerateFiles(deviceDirectory, "*.tmp"));
+        Assert.Equal(1, new FileInfo(partialFile).Length);
 
         Assert.True(registry.RevokeDevice(DevicePin));
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => upload);
 
-        var deviceDirectory = Path.Combine(root, DevicePin);
         Assert.Empty(Directory.Exists(deviceDirectory)
             ? Directory.EnumerateFiles(deviceDirectory, "*", SearchOption.AllDirectories)
             : Array.Empty<string>());
@@ -159,12 +162,18 @@ public sealed class SecureFileTransferStoreTests : IDisposable
 
     private sealed class BlockingReadStream : Stream
     {
-        public TaskCompletionSource ReadStarted { get; } =
+        private int readCount;
+        public TaskCompletionSource SecondReadStarted { get; } =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
         {
-            ReadStarted.TrySetResult();
+            if (Interlocked.Increment(ref readCount) == 1)
+            {
+                buffer.Span[0] = 1;
+                return 1;
+            }
+            SecondReadStarted.TrySetResult();
             await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
             return 0;
         }
