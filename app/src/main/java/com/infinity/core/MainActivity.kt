@@ -1995,13 +1995,16 @@ Spacer(Modifier.height(14.dp))
                         Spacer(Modifier.height(10.dp))
 
 
-                        TextButton(onClick = {
-                            Log.d("INFINITY_ORBIT", "Close action invoked")
-                            orbitOpen = false
-                            startOpen = false
-                            controlOpen = false
-                            advancedOpen = false
-                        }) {
+                        TextButton(
+                            onClick = {
+                                Log.d("INFINITY_TEST_DIAGNOSTIC", "ORBIT close callback invoked; orbitOpen before close=$orbitOpen")
+                                orbitOpen = false
+                                startOpen = false
+                                controlOpen = false
+                                advancedOpen = false
+                            },
+                            modifier = Modifier.testTag("infinity-orbit-close")
+                        ) {
                             Text("CERRAR ORBIT", color = accent, fontSize = 10.sp)
                         }
                     }
