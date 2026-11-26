@@ -128,6 +128,19 @@ var revocationMonitor = Task.Run(() =>
         deviceRevocationSignal.WaitOne(TimeSpan.FromSeconds(2));
         if (app.Lifetime.ApplicationStopping.IsCancellationRequested) break;
 
+        // Expired sessions must revoke their operation leases too; otherwise a WebSocket
+        // established before the 15-minute deadline could outlive its bearer authorization.
+        foreach (var expiredSession in authorizedSessions.DrainExpiredSessions())
+        {
+            var cancelled = operationRegistry.RevokeSession(
+                expiredSession.ClientFingerprint, expiredSession.SessionId);
+            auditLog.Write(
+                "session.expired",
+                expiredSession.ClientFingerprint,
+                expiredSession.SessionId,
+                cancelled ? "active-operations-cancelled" : "expired");
+        }
+
         foreach (var deviceFingerprint in authorizedSessions.ActiveDeviceFingerprints
                      .Concat(operationRegistry.ActiveDeviceFingerprints)
                      .Distinct(StringComparer.Ordinal))
