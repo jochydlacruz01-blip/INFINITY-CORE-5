@@ -18,3 +18,10 @@ internal fun <T> infinityBringItemToFront(
         it.add(active)
     }
 }
+
+/** Shared z-order action used when a window is dragged or resized. */
+internal fun <T> infinityRaiseWindowAfterManipulation(
+    items: List<T>,
+    manipulated: T,
+    key: (T) -> String
+): List<T> = infinityBringItemToFront(items, manipulated, key)

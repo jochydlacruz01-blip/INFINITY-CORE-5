@@ -88,6 +88,22 @@ class InfinityWorkspaceRulesTest {
         assertEquals("", infinityWindowSnapshotKey(emptyList()))
     }
 
+    @Test fun windowGeometryNormalizationIsDisabledOnPhoneAndEnabledOnDesktopWidths() {
+        assertEquals(false, infinityWindowGeometryNormalizationEnabled(599.99f))
+        assertEquals(true, infinityWindowGeometryNormalizationEnabled(600f))
+        assertEquals(true, infinityWindowGeometryNormalizationEnabled(840f))
+        assertEquals(false, infinityWindowGeometryNormalizationEnabled(Float.NaN))
+        assertEquals(false, infinityWindowGeometryNormalizationEnabled(Float.POSITIVE_INFINITY))
+    }
+
+    @Test fun geometryControlsAndManipulationShareTheSameViewportBreakpoint() {
+        assertEquals(false, infinityWindowGeometryControlsVisible(599f))
+        assertEquals(true, infinityWindowGeometryControlsVisible(600f))
+        assertEquals(false, infinityWindowCanManipulateGeometry(false, 599f))
+        assertEquals(true, infinityWindowCanManipulateGeometry(false, 600f))
+        assertEquals(false, infinityWindowCanManipulateGeometry(true, 800f))
+    }
+
     @Test fun dockLabelsNormalizeWhitespaceAndTruncateSafely() {
         assertEquals("ARCHIVOS", infinityDockLabel(" Archivos "))
         assertEquals("INFINITY…", infinityDockLabel("INFINITY CONNECT", 9))

@@ -468,7 +468,7 @@ private fun Infinity08App() {
     fun focusWindowToFront(windowId: String) {
         val index = windows.indexOfFirst { it.id == windowId }
         if (index < 0) return
-        val ordered = infinityBringItemToFront(windows.toList(), windows[index]) { it.id }
+        val ordered = infinityRaiseWindowAfterManipulation(windows.toList(), windows[index]) { it.id }
         if (ordered.map { it.id } != windows.map { it.id }) {
             windows.clear()
             windows.addAll(ordered)
@@ -601,6 +601,9 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
 
             // Normalize persisted windows after screen size, orientation, or density changes.
             LaunchedEffect(maxW, maxH) {
+                // Phone rendering adapts windows visually; never persist phone-sized bounds
+                // over the desktop geometry that must be restored on tablet/desktop.
+                if (!infinityWindowGeometryNormalizationEnabled(maxW.value)) return@LaunchedEffect
                 windows.indices.forEach { index ->
                     val current = windows[index]
                     val bounds = infinityNormalizeWindowBounds(
@@ -2529,7 +2532,7 @@ private fun openInfinityWindow(
     // assigning focusedWindowId alone does not change the draw order of AURORA siblings.
     val activeIndex = windows.indexOfFirst { it.id == windowId }
     if (activeIndex >= 0) {
-        val ordered = infinityBringItemToFront(windows.toList(), windows[activeIndex]) { it.id }
+        val ordered = infinityRaiseWindowAfterManipulation(windows.toList(), windows[activeIndex]) { it.id }
         if (ordered.map { it.id } != windows.map { it.id }) {
             windows.clear()
             windows.addAll(ordered)
@@ -3122,7 +3125,9 @@ private fun Infinity08Window(
                 ) 
                 .clickable { onFocus() }
                 .pointerInput(win.id) {
-                    detectDragGestures { change, drag ->
+                    detectDragGestures(
+                        onDragStart = { onFocus() }
+                    ) { change, drag ->
                         change.consume()
                         onMove(drag.x, drag.y)
                     }
@@ -3397,7 +3402,9 @@ private fun Infinity08Window(
                     RoundedCornerShape(14.dp)
                 )
                 .pointerInput(win.id) {
-                    detectDragGestures { change, drag ->
+                    detectDragGestures(
+                        onDragStart = { onFocus() }
+                    ) { change, drag ->
                         change.consume()
                         onResize(drag.x, drag.y)
                     }

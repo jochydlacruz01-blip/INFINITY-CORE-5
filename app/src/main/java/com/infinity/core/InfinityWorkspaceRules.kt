@@ -84,13 +84,17 @@ internal fun infinityWindowSnapshotKey(entries: List<InfinityWindowSnapshotEntry
 /** Wait for short geometry gestures to settle before committing the window snapshot. */
 internal const val INFINITY_WINDOW_PERSISTENCE_DEBOUNCE_MS = 250L
 
+/** Phone-adapted windows must retain the original desktop geometry for later restoration. */
+internal fun infinityWindowGeometryNormalizationEnabled(availableWidthDp: Float): Boolean =
+    availableWidthDp.isFinite() && availableWidthDp >= 600f
+
 /** Window geometry controls are available only when a desktop/tablet viewport can use them. */
 internal fun infinityWindowGeometryControlsVisible(availableWidthDp: Float): Boolean =
-    availableWidthDp.isFinite() && availableWidthDp >= 600f
+    infinityWindowGeometryNormalizationEnabled(availableWidthDp)
 
 /** Maximized and phone-adapted windows must not mutate their saved desktop geometry. */
 internal fun infinityWindowCanManipulateGeometry(isMaximized: Boolean, availableWidthDp: Float): Boolean =
-    !isMaximized && availableWidthDp.isFinite() && availableWidthDp >= 600f
+    !isMaximized && infinityWindowGeometryNormalizationEnabled(availableWidthDp)
 
 /** Dock tap toggles minimization only for the currently focused, visible task. */
 internal fun infinityDockTapMinimizes(taskId: String, currentFocusId: String?, minimized: Boolean): Boolean =
