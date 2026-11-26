@@ -9,6 +9,13 @@ public sealed class AuthorizedSessionStore
     private static readonly TimeSpan SessionLifetime = TimeSpan.FromMinutes(15);
     private readonly object gate = new();
     private readonly Dictionary<Guid, SessionRecord> sessions = new();
+    private readonly Queue<ExpiredSession> expiredSessions = new();
+    private readonly Func<DateTimeOffset> utcNow;
+
+    public AuthorizedSessionStore(Func<DateTimeOffset>? utcNow = null)
+    {
+        this.utcNow = utcNow ?? (() => DateTimeOffset.UtcNow);
+    }
 
     public SessionGrant Create(
         string clientCertificateSha256,
@@ -34,7 +41,7 @@ public sealed class AuthorizedSessionStore
 
         lock (gate)
         {
-            PurgeExpired(DateTimeOffset.UtcNow);
+            PurgeExpired(utcNow());
             if (sessions.Count >= MaximumSessions ||
                 sessions.Values.Count(session => string.Equals(
                     session.ClientFingerprint, fingerprint, StringComparison.Ordinal)) >= 4)
@@ -45,7 +52,7 @@ public sealed class AuthorizedSessionStore
             var token = Base64UrlEncode(tokenBytes);
             var tokenHash = SHA256.HashData(tokenBytes);
             CryptographicOperations.ZeroMemory(tokenBytes);
-            var expiresAt = DateTimeOffset.UtcNow.Add(SessionLifetime);
+            var expiresAt = utcNow().Add(SessionLifetime);
             sessions.Add(sessionId, new SessionRecord(
                 fingerprint,
                 tokenHash,
@@ -138,13 +145,28 @@ public sealed class AuthorizedSessionStore
         }
     }
 
+    /// <summary>
+    /// Returns sessions that expired since the last drain. The caller must revoke the matching
+    /// DeviceOperationRegistry lease so long-lived tunnels are closed at the session deadline.
+    /// </summary>
+    public IReadOnlyList<ExpiredSession> DrainExpiredSessions()
+    {
+        lock (gate)
+        {
+            PurgeExpired(utcNow());
+            var expired = expiredSessions.ToArray();
+            expiredSessions.Clear();
+            return expired;
+        }
+    }
+
     public int ActiveCount
     {
         get
         {
             lock (gate)
             {
-                PurgeExpired(DateTimeOffset.UtcNow);
+                PurgeExpired(utcNow());
                 return sessions.Count;
             }
         }
@@ -157,6 +179,7 @@ public sealed class AuthorizedSessionStore
         {
             var record = sessions[id];
             sessions.Remove(id);
+            expiredSessions.Enqueue(new ExpiredSession(id.ToString("D"), record.ClientFingerprint));
             record.Clear();
         }
     }
@@ -186,6 +209,8 @@ public sealed class AuthorizedSessionStore
         public HashSet<string> Capabilities { get; } = capabilities;
         public void Clear() => CryptographicOperations.ZeroMemory(TokenHash);
     }
+
+    public sealed record ExpiredSession(string SessionId, string ClientFingerprint);
 
     public sealed record SessionGrant(
         string SessionId,
