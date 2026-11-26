@@ -2,6 +2,7 @@ package com.infinity.core
 
 import android.content.Context
 import android.net.Uri
+import android.os.CancellationSignal
 import android.provider.DocumentsContract
 import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -16,6 +17,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -47,24 +49,42 @@ internal fun InfinityConnectFileTransferPanel(
     var pendingDownload by remember { mutableStateOf<InfinityConnectMtlsTransport.FileTransferReceipt?>(null) }
     var busy by remember { mutableStateOf(false) }
     var status by remember { mutableStateOf("La transferencia está protegida por mTLS y SHA-256.") }
+    var activeTransferCancellation by remember { mutableStateOf<CancellationSignal?>(null) }
+
+    fun finishTransferOperation(cancellation: CancellationSignal) {
+        if (activeTransferCancellation === cancellation) activeTransferCancellation = null
+    }
+
+    DisposableEffect(sessionId) {
+        onDispose {
+            // Disconnect the active HTTPS request before the composition scope is cancelled.
+            activeTransferCancellation?.cancel()
+        }
+    }
 
     fun refreshFiles() {
         scope.launch {
             busy = true
-            val result = runCatching {
-                withContext(Dispatchers.IO) {
-                    transport.listRemoteFiles(
-                        baseUrl, clientKeyAlias, serverPin, expectedServerId,
-                        sessionId, sessionToken
-                    )
+            val cancellation = CancellationSignal()
+            activeTransferCancellation = cancellation
+            try {
+                val result = runCatching {
+                    withContext(Dispatchers.IO) {
+                        transport.listRemoteFiles(
+                            baseUrl, clientKeyAlias, serverPin, expectedServerId,
+                            sessionId, sessionToken, cancellation
+                        )
+                    }
                 }
-            }
-            busy = false
-            if (result.isSuccess) {
-                files = result.getOrThrow()
-                status = "Archivos disponibles: ${files.size}"
-            } else {
-                status = "No se pudo consultar el PC: ${result.exceptionOrNull()?.message ?: "error"}"
+                busy = false
+                if (result.isSuccess) {
+                    files = result.getOrThrow()
+                    status = "Archivos disponibles: ${files.size}"
+                } else {
+                    status = "No se pudo consultar el PC: ${result.exceptionOrNull()?.message ?: "error"}"
+                }
+            } finally {
+                finishTransferOperation(cancellation)
             }
         }
     }
@@ -76,38 +96,46 @@ internal fun InfinityConnectFileTransferPanel(
             scope.launch {
                 busy = true
                 status = "Verificando tamaño y SHA-256 del archivo..."
-                val result = runCatching {
-                    withContext(Dispatchers.IO) {
-                        val metadata = queryTransferMetadata(context, uri)
-                        require(metadata.second in 0..MAX_CONNECT_TRANSFER_BYTES) {
-                            "El archivo supera el límite de 50 MiB o no declara su tamaño."
-                        }
-                        val digest = calculateTransferSha256(context, uri)
-                        val input = context.contentResolver.openInputStream(uri)
-                            ?: error("No se pudo volver a abrir el archivo.")
-                        input.use {
-                            transport.uploadFile(
-                                baseUrl,
-                                clientKeyAlias,
-                                serverPin,
-                                expectedServerId,
-                                sessionId,
-                                sessionToken,
-                                metadata.first,
-                                metadata.second,
-                                digest,
-                                it
-                            )
+                val cancellation = CancellationSignal()
+                activeTransferCancellation = cancellation
+                try {
+                    val result = runCatching {
+                        withContext(Dispatchers.IO) {
+                            val metadata = queryTransferMetadata(context, uri)
+                            require(metadata.second in 0..MAX_CONNECT_TRANSFER_BYTES) {
+                                "El archivo supera el límite de 50 MiB o no declara su tamaño."
+                            }
+                            val digest = calculateTransferSha256(context, uri, cancellation)
+                            cancellation.throwIfCanceled()
+                            val input = context.contentResolver.openInputStream(uri)
+                                ?: error("No se pudo volver a abrir el archivo.")
+                            input.use {
+                                transport.uploadFile(
+                                    baseUrl,
+                                    clientKeyAlias,
+                                    serverPin,
+                                    expectedServerId,
+                                    sessionId,
+                                    sessionToken,
+                                    metadata.first,
+                                    metadata.second,
+                                    digest,
+                                    it,
+                                    cancellation
+                                )
+                            }
                         }
                     }
-                }
-                busy = false
-                if (result.isSuccess) {
-                    val receipt = result.getOrThrow()
-                    status = "Archivo enviado y verificado: ${receipt.fileName} · ID ${receipt.fileId}"
-                    refreshFiles()
-                } else {
-                    status = "Transferencia rechazada: ${result.exceptionOrNull()?.message ?: "error"}"
+                    busy = false
+                    if (result.isSuccess) {
+                        val receipt = result.getOrThrow()
+                        status = "Archivo enviado y verificado: ${receipt.fileName} · ID ${receipt.fileId}"
+                        refreshFiles()
+                    } else {
+                        status = "Transferencia rechazada: ${result.exceptionOrNull()?.message ?: "error"}"
+                    }
+                } finally {
+                    finishTransferOperation(cancellation)
                 }
             }
         }
@@ -124,30 +152,37 @@ internal fun InfinityConnectFileTransferPanel(
             scope.launch {
                 busy = true
                 status = "Descargando y verificando integridad SHA-256..."
-                val result = runCatching {
-                    withContext(Dispatchers.IO) {
-                        val output = context.contentResolver.openOutputStream(uri)
-                            ?: error("No se pudo abrir el destino de descarga.")
-                        output.use {
-                            transport.downloadFileTo(
-                                baseUrl,
-                                clientKeyAlias,
-                                serverPin,
-                                expectedServerId,
-                                sessionId,
-                                sessionToken,
-                                selected.fileId,
-                                it
-                            )
+                val cancellation = CancellationSignal()
+                activeTransferCancellation = cancellation
+                try {
+                    val result = runCatching {
+                        withContext(Dispatchers.IO) {
+                            val output = context.contentResolver.openOutputStream(uri)
+                                ?: error("No se pudo abrir el destino de descarga.")
+                            output.use {
+                                transport.downloadFileTo(
+                                    baseUrl,
+                                    clientKeyAlias,
+                                    serverPin,
+                                    expectedServerId,
+                                    sessionId,
+                                    sessionToken,
+                                    selected.fileId,
+                                    it,
+                                    cancellation
+                                )
+                            }
                         }
                     }
-                }
-                busy = false
-                if (result.isSuccess) {
-                    status = "Archivo descargado y verificado: ${selected.fileName}"
-                } else {
-                    runCatching { DocumentsContract.deleteDocument(context.contentResolver, uri) }
-                    status = "Descarga incompleta eliminada: ${result.exceptionOrNull()?.message ?: "error"}"
+                    busy = false
+                    if (result.isSuccess) {
+                        status = "Archivo descargado y verificado: ${selected.fileName}"
+                    } else {
+                        runCatching { DocumentsContract.deleteDocument(context.contentResolver, uri) }
+                        status = "Descarga incompleta eliminada: ${result.exceptionOrNull()?.message ?: "error"}"
+                    }
+                } finally {
+                    finishTransferOperation(cancellation)
                 }
             }
         }
@@ -192,17 +227,23 @@ internal fun InfinityConnectFileTransferPanel(
                         onClick = {
                             scope.launch {
                                 busy = true
-                                val deleted = runCatching {
-                                    withContext(Dispatchers.IO) {
-                                        transport.deleteRemoteFile(
-                                            baseUrl, clientKeyAlias, serverPin, expectedServerId,
-                                            sessionId, sessionToken, file.fileId
-                                        )
-                                    }
-                                }.getOrDefault(false)
-                                busy = false
-                                status = if (deleted) "Archivo eliminado del PC." else "No se pudo eliminar el archivo."
-                                if (deleted) refreshFiles()
+                                val cancellation = CancellationSignal()
+                                activeTransferCancellation = cancellation
+                                try {
+                                    val deleted = runCatching {
+                                        withContext(Dispatchers.IO) {
+                                            transport.deleteRemoteFile(
+                                                baseUrl, clientKeyAlias, serverPin, expectedServerId,
+                                                sessionId, sessionToken, file.fileId, cancellation
+                                            )
+                                        }
+                                    }.getOrDefault(false)
+                                    busy = false
+                                    status = if (deleted) "Archivo eliminado del PC." else "No se pudo eliminar el archivo."
+                                    if (deleted) refreshFiles()
+                                } finally {
+                                    finishTransferOperation(cancellation)
+                                }
                             }
                         },
                         modifier = Modifier.fillMaxWidth()
@@ -235,7 +276,7 @@ private fun queryTransferMetadata(context: Context, uri: Uri): Pair<String, Long
     error("No se pudo leer la información del documento.")
 }
 
-private fun calculateTransferSha256(context: Context, uri: Uri): String {
+private fun calculateTransferSha256(context: Context, uri: Uri, cancellation: CancellationSignal? = null): String {
     val input = context.contentResolver.openInputStream(uri)
         ?: error("No se pudo abrir el archivo para calcular SHA-256.")
     val digest = MessageDigest.getInstance("SHA-256")
@@ -243,6 +284,7 @@ private fun calculateTransferSha256(context: Context, uri: Uri): String {
     input.use {
         val buffer = ByteArray(64 * 1024)
         while (true) {
+            cancellation?.throwIfCanceled()
             val count = it.read(buffer)
             if (count < 0) break
             total += count
