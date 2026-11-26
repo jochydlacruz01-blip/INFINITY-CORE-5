@@ -4,6 +4,7 @@ import org.json.JSONObject
 import org.json.JSONArray
 import android.util.Base64
 import android.os.CancellationSignal
+import android.annotation.SuppressLint
 import java.io.InputStream
 import java.io.OutputStream
 import java.io.ByteArrayOutputStream
@@ -632,6 +633,7 @@ internal class InfinityConnectMtlsTransport(
      * constraint, not a replacement for path validation. HttpsURLConnection retains its
      * default hostname verifier; this trust manager never disables endpoint identification.
      */
+    @SuppressLint("CustomX509TrustManager") // Intentional pinning wrapper: delegates PKIX to Android before enforcing the user-approved leaf pin.
     private class PinnedServerTrustManager(private val expectedPin: String) : X509TrustManager {
         private val platformTrustManager: X509TrustManager = run {
             val factory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm())
