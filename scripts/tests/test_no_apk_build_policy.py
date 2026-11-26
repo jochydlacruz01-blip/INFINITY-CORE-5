@@ -269,6 +269,12 @@ jobs:
         )
         self.assertTrue(audit_named_workflow("android.yml", content))
 
+    def test_manual_debug_workflow_without_pinned_ndk_is_rejected(self):
+        content = self._authorized_debug_workflow_fixture().replace(
+            "ndk;27.0.12077973", "ndk;latest"
+        )
+        self.assertTrue(audit_named_workflow("android.yml", content))
+
     def _authorized_debug_workflow_fixture(self):
         return """name: PROJECT INFINITY 0.10 - DEBUG TEST APK
 on:
@@ -282,6 +288,8 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: INFINITY-PACK-14-REMOTE-FRAME-PIPELINE
+      - name: Install Android native build toolchain
+        run: sdkmanager --install "platforms;android-35" "build-tools;35.0.0" "ndk;27.0.12077973" "cmake;3.22.1"
       - name: Compile native and DEBUG
         run: |
           gradle -PINFINITY_BUILD_FREERDP_NATIVE=true :freerdpCore:externalNativeBuildDebug compileDebugKotlin testDebugUnitTest lintDebug assembleDebug --stacktrace
