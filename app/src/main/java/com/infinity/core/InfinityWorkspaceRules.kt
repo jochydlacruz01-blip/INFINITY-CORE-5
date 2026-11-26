@@ -72,6 +72,13 @@ internal fun infinityWorkspaceWindowIds(windowIds: List<String>, workspaceById: 
     return windowIds.filter { id -> workspaceById[id]?.let(::infinityNormalizeWorkspace) == target }
 }
 
+/** Counts only windows in one workspace, keeping cascade placement independent across spaces. */
+internal fun infinityWorkspaceWindowCount(
+    windowIds: List<String>,
+    workspaceById: Map<String, Int>,
+    targetWorkspace: Int
+): Int = infinityWorkspaceWindowIds(windowIds, workspaceById, targetWorkspace).size
+
 /** Returns only the windows that a workspace-scoped "minimize all" action may affect. */
 internal fun infinityWorkspaceMinimizeTargets(
     windowIds: List<String>,
