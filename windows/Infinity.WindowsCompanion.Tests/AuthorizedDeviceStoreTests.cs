@@ -61,6 +61,42 @@ public sealed class AuthorizedDeviceStoreTests
     }
 
     [Fact]
+    public void CertificateRotationRevokesOldPinWithoutAffectingNewApprovedCertificate()
+    {
+        if (!OperatingSystem.IsWindows()) return;
+
+        LocalEnrollmentCertificateAuthority.Initialize();
+        using var oldCertificate = CreateIssuedClientCertificate();
+        using var newCertificate = CreateIssuedClientCertificate();
+        var oldPath = Path.Combine(Path.GetTempPath(), $"infinity-old-{Guid.NewGuid():N}.cer");
+        var newPath = Path.Combine(Path.GetTempPath(), $"infinity-new-{Guid.NewGuid():N}.cer");
+        var oldPin = CertificatePinning.ComputeSha256Pin(oldCertificate);
+        var newPin = CertificatePinning.ComputeSha256Pin(newCertificate);
+        try
+        {
+            File.WriteAllBytes(oldPath, oldCertificate.Export(X509ContentType.Cert));
+            File.WriteAllBytes(newPath, newCertificate.Export(X509ContentType.Cert));
+            Assert.Equal(oldPin, AuthorizedDeviceStore.ApproveFromLocalConsole(oldPath));
+            Assert.Equal(newPin, AuthorizedDeviceStore.ApproveFromLocalConsole(newPath));
+
+            var store = new AuthorizedDeviceStore();
+            Assert.True(store.IsAuthorized(oldCertificate));
+            Assert.True(store.IsAuthorized(newCertificate));
+
+            Assert.True(AuthorizedDeviceStore.RevokeFromLocalConsole(oldPin));
+            Assert.False(store.IsAuthorized(oldCertificate));
+            Assert.True(store.IsAuthorized(newCertificate));
+        }
+        finally
+        {
+            AuthorizedDeviceStore.RevokeFromLocalConsole(oldPin);
+            AuthorizedDeviceStore.RevokeFromLocalConsole(newPin);
+            File.Delete(oldPath);
+            File.Delete(newPath);
+        }
+    }
+
+    [Fact]
     public void ApprovalRejectsCertificateWithServerOnlyEku()
     {
         if (!OperatingSystem.IsWindows()) return;
