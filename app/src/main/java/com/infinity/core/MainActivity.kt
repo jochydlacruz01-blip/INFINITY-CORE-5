@@ -854,11 +854,12 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
             Box(Modifier.align(Alignment.TopStart).padding(start = 18.dp, top = 18.dp)) {
                 Box(
                     Modifier
-                        .size(44.dp)
+                        .size(48.dp)
                         .clip(RoundedCornerShape(14.dp))
                         .background(Color(0xCC173653))
                         .border(1.dp, accent.copy(alpha = .55f), RoundedCornerShape(14.dp))
-                        .clickable { contextMenuExpanded = true }
+                        .clickable(role = Role.Button) { contextMenuExpanded = true }
+                        .semantics { contentDescription = "Menú del escritorio" }
                         .padding(8.dp),
                     contentAlignment = Alignment.Center
                 ) {
