@@ -504,9 +504,7 @@ private fun Infinity08App() {
         }
     }
 
-    val windowSnapshot = windows.joinToString("|") {
-        "${it.id},${it.x},${it.y},${it.width},${it.height},${it.minimized},${it.workspace},${it.maximized},${it.zIndex}"
-    }
+    val windowSnapshot = windows.joinToString("||") { infinityAuroraWindowSnapshotToken(it.aurora) }
     LaunchedEffect(windowSnapshot) {
         val array = JSONArray()
         windows.forEach { win ->
@@ -576,11 +574,14 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
     }
 
     fun launchApp(packageName: String) {
-        try {
-            context.packageManager.getLaunchIntentForPackage(packageName)?.let {
-                context.startActivity(it)
-            }
-        } catch (_: Exception) { }
+        val launchIntent = runCatching { context.packageManager.getLaunchIntentForPackage(packageName) }.getOrNull()
+        if (launchIntent == null) {
+            Toast.makeText(context, "La aplicación ya no está disponible.", Toast.LENGTH_SHORT).show()
+            return
+        }
+        runCatching { context.startActivity(launchIntent) }.onFailure {
+            Toast.makeText(context, "No se pudo abrir esta aplicación.", Toast.LENGTH_SHORT).show()
+        }
     }
 
     MaterialTheme(
@@ -1190,6 +1191,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
             val auroraState = InfinityAuroraWindowState(
                 windows = windows.map { it.aurora },
                 activeWindowId = focusedWindowId,
+                activeWindowWorkspace = workspace,
                 nextZIndex = (windows.maxOfOrNull { it.zIndex } ?: 0L)
                     .let { if (it == Long.MAX_VALUE) 1L else it + 1L }
             )
@@ -1198,12 +1200,12 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                 workspace = workspace,
                 bounds = auroraBounds,
                 onFocus = { id ->
-                    val activeIndex = windows.indexOfFirst { it.id == id }
+                    val activeIndex = windows.indexOfFirst { it.id == id && it.workspace == workspace }
                     if (activeIndex >= 0) {
                         val nextZ = (windows.maxOfOrNull { it.zIndex } ?: 0L)
                             .let { if (it == Long.MAX_VALUE) 1L else it + 1L }
                         windows[activeIndex] = windows[activeIndex].copy(zIndex = nextZ)
-                        val ordered = infinityBringItemToFront(windows.toList(), windows[activeIndex]) { it.id }
+                        val ordered = infinityBringItemToFront(windows.toList(), windows[activeIndex]) { "${it.workspace}:${it.id}" }
                         if (ordered.map { it.id } != windows.map { it.id }) {
                             windows.clear()
                             windows.addAll(ordered)
@@ -1213,7 +1215,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                 },
                 onGeometryPreview = { /* Preview stays local to the AURORA container. */ },
                 onGeometryCommit = { committed ->
-                    val index = windows.indexOfFirst { it.id == committed.id }
+                    val index = windows.indexOfFirst { it.id == committed.id && it.workspace == committed.workspace }
                     if (index >= 0) {
                         windows[index] = windows[index].copy(
                             x = committed.x,
@@ -1225,7 +1227,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                 },
                 onGeometryCancel = { /* The container rolls back its transient preview. */ }
             ) { auroraWindow ->
-                val win = windows.firstOrNull { it.id == auroraWindow.id && !it.minimized }
+                val win = windows.firstOrNull { it.id == auroraWindow.id && it.workspace == auroraWindow.workspace && !it.minimized }
                 if (win != null) {
                     key(win.id) {
                         Infinity08Window(
@@ -1261,13 +1263,14 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                                 val current = InfinityAuroraWindowState(
                                     windows = windows.map { it.aurora },
                                     activeWindowId = focusedWindowId,
+                                    activeWindowWorkspace = workspace,
                                     nextZIndex = (windows.maxOfOrNull { it.zIndex } ?: 0L)
                                         .let { if (it == Long.MAX_VALUE) 1L else it + 1L }
                                 ).close(win.id, win.workspace)
-                                val metadata = windows.associateBy { it.id }
+                                val metadata = windows.associateBy { "${it.workspace}:${it.id}" }
                                 windows.clear()
                                 windows.addAll(current.windows.mapNotNull { model ->
-                                    metadata[model.id]?.withAurora(model)
+                                    metadata["${model.workspace}:${model.id}"]?.withAurora(model)
                                 })
                                 focusedWindowId = current.activeWindowId
                             },
@@ -1275,17 +1278,18 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                                 val current = InfinityAuroraWindowState(
                                     windows = windows.map { it.aurora },
                                     activeWindowId = focusedWindowId,
+                                    activeWindowWorkspace = workspace,
                                     nextZIndex = (windows.maxOfOrNull { it.zIndex } ?: 0L)
                                         .let { if (it == Long.MAX_VALUE) 1L else it + 1L }
                                 ).minimize(win.id, win.workspace)
                                 current.windows.forEach { model ->
-                                    val index = windows.indexOfFirst { it.id == model.id }
+                                    val index = windows.indexOfFirst { it.id == model.id && it.workspace == model.workspace }
                                     if (index >= 0) windows[index] = windows[index].withAurora(model)
                                 }
                                 focusedWindowId = current.activeWindowId
                             },
                             onMaximize = {
-                                val index = windows.indexOfFirst { it.id == win.id }
+                                val index = windows.indexOfFirst { it.id == win.id && it.workspace == win.workspace }
                                 if (index >= 0) {
                                     val current = windows[index]
                                     windows[index] = if (current.maximized) current.restore()
@@ -1296,7 +1300,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                             onMove = { _, _ -> },
                             onResize = { _, _ -> },
                             onFocus = {
-                                val index = windows.indexOfFirst { it.id == win.id }
+                                val index = windows.indexOfFirst { it.id == win.id && it.workspace == win.workspace }
                                 if (index >= 0) {
                                     val nextZ = (windows.maxOfOrNull { it.zIndex } ?: 0L)
                                         .let { if (it == Long.MAX_VALUE) 1L else it + 1L }
@@ -3315,7 +3319,11 @@ private fun Infinity08Window(
                             placeholder = { Text("Buscar aplicación…") },
                             leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) }
                         )
-                        LazyColumn(Modifier.fillMaxSize().padding(top = 6.dp)) {
+                        if (filteredApps.isEmpty()) {
+                            Box(Modifier.fillMaxSize().padding(12.dp), contentAlignment = Alignment.Center) {
+                                Text(if (installedApps.isEmpty()) "No hay aplicaciones disponibles." else "No se encontraron aplicaciones.", color = foreground, fontSize = 12.sp)
+                            }
+                        } else LazyColumn(Modifier.fillMaxSize().padding(top = 6.dp)) {
                             items(filteredApps, key = { it.packageName }) { app ->
                                 Row(
                                     Modifier.fillMaxWidth()

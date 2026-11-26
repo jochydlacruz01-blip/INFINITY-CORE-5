@@ -33,6 +33,7 @@ internal data class InfinityAuroraWindowTransaction(
 internal data class InfinityAuroraWindowState(
     val windows: List<InfinityAuroraWindow> = emptyList(),
     val activeWindowId: String? = null,
+    val activeWindowWorkspace: Int? = null,
     val nextZIndex: Long = 1L
 ) {
     fun maximize(windowId: String, workspace: Int, bounds: InfinityAuroraSafeBounds): InfinityAuroraWindowState {
@@ -42,7 +43,7 @@ internal data class InfinityAuroraWindowState(
         if (target.maximized) return this
         val normal = InfinityAuroraWindowGeometry(target.x, target.y, target.width, target.height)
         val maximized = infinityAuroraMaximizedWindow(target, bounds).copy(restoreGeometry = normal)
-        return copy(windows = windows.map { if (it.id == windowId) maximized else it })
+        return copy(windows = windows.map { if (it.id == windowId && it.workspace == targetWorkspace) maximized else it })
     }
 
     fun restore(windowId: String, workspace: Int): InfinityAuroraWindowState {
@@ -54,7 +55,7 @@ internal data class InfinityAuroraWindowState(
             x = normal.x, y = normal.y, width = normal.width, height = normal.height,
             maximized = false, restoreGeometry = null
         )
-        return copy(windows = windows.map { if (it.id == windowId) restored else it })
+        return copy(windows = windows.map { if (it.id == windowId && it.workspace == targetWorkspace) restored else it })
     }
 
     fun visibleWindows(workspace: Int): List<InfinityAuroraWindow> =
@@ -67,8 +68,9 @@ internal data class InfinityAuroraWindowState(
         } ?: return this
         val raised = target.copy(zIndex = nextZIndex)
         return copy(
-            windows = windows.map { if (it.id == windowId) raised else it },
+            windows = windows.map { if (it.id == windowId && it.workspace == targetWorkspace) raised else it },
             activeWindowId = windowId,
+            activeWindowWorkspace = targetWorkspace,
             nextZIndex = if (nextZIndex == Long.MAX_VALUE) 1L else nextZIndex + 1L
         )
     }
@@ -88,7 +90,11 @@ internal data class InfinityAuroraWindowState(
 
     /** Commit once at gesture end. Callers persist only this returned geometry. */
     fun commitGeometry(transaction: InfinityAuroraWindowTransaction, bounds: InfinityAuroraSafeBounds): InfinityAuroraWindowState {
-        if (transaction.workspace != transaction.original.workspace) return this
+        if (transaction.workspace != transaction.original.workspace ||
+            transaction.current.id != transaction.windowId || transaction.current.workspace != transaction.workspace
+        ) return this
+        val target = windows.firstOrNull { it.id == transaction.windowId && it.workspace == transaction.workspace } ?: return this
+        if (target.minimized || target.maximized) return this
         val bounded = infinityAuroraBoundWindow(transaction.current, bounds)
         return copy(windows = windows.map {
             if (it.id == transaction.windowId && it.workspace == transaction.workspace) bounded else it
@@ -103,12 +109,12 @@ internal data class InfinityAuroraWindowState(
         val targetWorkspace = infinityNormalizeWorkspace(workspace)
         val target = windows.firstOrNull { it.id == windowId && it.workspace == targetWorkspace }
             ?: return this
-        val updated = windows.map { if (it.id == windowId) it.copy(minimized = true) else it }
-        val nextActive = if (activeWindowId == windowId) {
+        val updated = windows.map { if (it.id == windowId && it.workspace == targetWorkspace) it.copy(minimized = true) else it }
+        val nextActive = if (activeWindowId == windowId && activeWindowWorkspace == targetWorkspace) {
             updated.filter { it.workspace == targetWorkspace && !it.minimized }
                 .maxByOrNull { it.zIndex }?.id
         } else activeWindowId
-        return copy(windows = updated, activeWindowId = nextActive)
+        return copy(windows = updated, activeWindowId = nextActive, activeWindowWorkspace = if (activeWindowId == windowId && activeWindowWorkspace == targetWorkspace) targetWorkspace.takeIf { nextActive != null } else activeWindowWorkspace)
     }
 
     /** Restore and focus a task, assigning a fresh stacking order. */
@@ -118,8 +124,9 @@ internal data class InfinityAuroraWindowState(
             ?: return this
         val raised = target.copy(minimized = false, zIndex = nextZIndex)
         return copy(
-            windows = windows.map { if (it.id == windowId) raised else it },
+            windows = windows.map { if (it.id == windowId && it.workspace == targetWorkspace) raised else it },
             activeWindowId = windowId,
+            activeWindowWorkspace = targetWorkspace,
             nextZIndex = if (nextZIndex == Long.MAX_VALUE) 1L else nextZIndex + 1L
         )
     }
@@ -128,19 +135,19 @@ internal data class InfinityAuroraWindowState(
     fun close(windowId: String, workspace: Int): InfinityAuroraWindowState {
         val targetWorkspace = infinityNormalizeWorkspace(workspace)
         if (windows.none { it.id == windowId && it.workspace == targetWorkspace }) return this
-        val remaining = windows.filterNot { it.id == windowId }
-        val nextActive = if (activeWindowId == windowId) {
+        val remaining = windows.filterNot { it.id == windowId && it.workspace == targetWorkspace }
+        val nextActive = if (activeWindowId == windowId && activeWindowWorkspace == targetWorkspace) {
             remaining.filter { it.workspace == targetWorkspace && !it.minimized }
                 .maxByOrNull { it.zIndex }?.id
-        } else activeWindowId?.takeIf { id -> remaining.any { it.id == id && !it.minimized } }
-        return copy(windows = remaining, activeWindowId = nextActive)
+        } else activeWindowId?.takeIf { id -> remaining.any { it.id == id && it.workspace == activeWindowWorkspace && !it.minimized } }
+        return copy(windows = remaining, activeWindowId = nextActive, activeWindowWorkspace = activeWindowWorkspace.takeIf { nextActive != null })
     }
 
     fun switchWorkspace(workspace: Int): InfinityAuroraWindowState {
         val target = infinityNormalizeWorkspace(workspace)
         val nextActive = windows.filter { it.workspace == target && !it.minimized }
             .maxByOrNull { it.zIndex }?.id
-        return copy(activeWindowId = nextActive)
+        return copy(activeWindowId = nextActive, activeWindowWorkspace = target.takeIf { nextActive != null })
     }
 }
 
@@ -150,4 +157,15 @@ internal fun infinityAuroraWindowPositionKey(workspace: Int, windowId: String, p
     require(id.isNotBlank())
     require(property in setOf("x", "y", "width", "height", "maximized", "minimized"))
     return "aurora_workspace_${infinityNormalizeWorkspace(workspace)}_${id}_$property"
+}
+
+
+/** Includes restore bounds so maximize/restore-only changes invalidate persistence. */
+internal fun infinityAuroraWindowSnapshotToken(window: InfinityAuroraWindow): String {
+    val restore = window.restoreGeometry
+    return listOf(
+        window.id, window.workspace, window.x, window.y, window.width, window.height,
+        window.minimized, window.maximized, window.zIndex,
+        restore?.x, restore?.y, restore?.width, restore?.height
+    ).joinToString("|")
 }
