@@ -74,6 +74,7 @@ internal fun InfinityConnectRemoteDesktopPanel(
     val listener = remember {
         object : InfinityFreeRdpClient.Listener {
             override fun onConnected() {
+                if (client == null) return
                 lifecycle.transition(InfinityConnectSessionState.CONNECTED)
                 connected = true
                 status = "Escritorio Windows conectado mediante NLA y certificado fijado."
@@ -95,27 +96,32 @@ internal fun InfinityConnectRemoteDesktopPanel(
             }
 
             override fun onReconnecting() {
+                if (client == null) return
                 lifecycle.transition(InfinityConnectSessionState.RECONNECTING)
                 connected = false
                 status = "Windows está intentando restablecer la sesión RDP."
             }
 
             override fun onError(message: String) {
+                if (client == null) return
                 lifecycle.transition(InfinityConnectSessionState.FAILED, message)
                 connected = false
                 status = message
             }
 
             override fun onFrame(frameBitmap: Bitmap) {
+                if (client == null) return
                 frame = frameBitmap
                 frameRevision++
             }
 
             override fun onResolutionChanged(width: Int, height: Int) {
+                if (client == null) return
                 resolution = "${width} × ${height}"
             }
 
             override fun onRdpCertificateRejected(host: String, observedFingerprint: String) {
+                if (client == null) return
                 connected = false
                 val message = "Certificado RDP rechazado. Huella observada: $observedFingerprint"
                 lifecycle.transition(InfinityConnectSessionState.FAILED, message)
