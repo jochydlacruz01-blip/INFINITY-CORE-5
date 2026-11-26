@@ -13,6 +13,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -47,10 +48,7 @@ internal fun InfinityAuroraWindowContainer(
                 var renderedWindow by remember(modelWindow.id, modelWindow.workspace) {
                     mutableStateOf(modelWindow)
                 }
-                if (renderedWindow != modelWindow && renderedWindow.id == modelWindow.id &&
-                    renderedWindow.workspace == modelWindow.workspace &&
-                    renderedWindow == modelWindow.copy()
-                ) renderedWindow = modelWindow
+                LaunchedEffect(modelWindow) { renderedWindow = modelWindow }
                 val active = state.activeWindowId == modelWindow.id
 
                 Surface(
