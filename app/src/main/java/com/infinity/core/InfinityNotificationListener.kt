@@ -65,7 +65,7 @@ object InfinityNotificationStore {
         val wasEnabled = hideContent
         hideContent = enabled
         // Redact once on the false -> true transition; subsequent notifications
-        // are already redacted before they enter the main-thread feed.
+        // are checked again at the main-thread insertion boundary.
         if (enabled && !wasEnabled) {
             mainHandler.post {
                 val redacted = infinityNotificationApplyPrivacy(notifications.toList(), hideContent = true)
@@ -75,14 +75,14 @@ object InfinityNotificationStore {
         }
     }
 
-    internal fun update(notification: InfinityNotification) {
-        val safeNotification = if (hideContent) {
-            notification.copy(title = "", message = "")
-        } else {
-            notification
-        }
+    internal fun shouldHideContent(): Boolean = hideContent
 
+    internal fun update(notification: InfinityNotification) {
         mainHandler.post {
+            // Re-check privacy on the main thread immediately before insertion.
+            // This closes the race where a notification was prepared just before
+            // the user enabled privacy mode.
+            val safeNotification = infinityNotificationApplyPrivacy(notification, hideContent)
             val bounded = infinityNotificationFeedUpdate(notifications.toList(), safeNotification, MAX_NOTIFICATIONS)
             notifications.clear()
             notifications.addAll(bounded)
@@ -208,6 +208,11 @@ class InfinityNotificationListener : NotificationListenerService() {
     override fun onListenerConnected() {
         super.onListenerConnected()
 
+        val hideContent = runCatching {
+            getSharedPreferences("infinity_privacy", Context.MODE_PRIVATE)
+                .getBoolean("hide_notification_content", true)
+        }.getOrDefault(true)
+        InfinityNotificationStore.setHideContent(hideContent)
         InfinityNotificationStore.connected(this)
 
         activeNotifications?.forEach {
@@ -243,12 +248,7 @@ class InfinityNotificationListener : NotificationListenerService() {
                     ?: extras.getCharSequence(Notification.EXTRA_SUB_TEXT)
             )?.toString()
 
-            val hideContent = getSharedPreferences(
-                "infinity_privacy",
-                Context.MODE_PRIVATE
-            ).getBoolean("hide_notification_content", true)
-
-            InfinityNotificationStore.setHideContent(hideContent)
+            val hideContent = InfinityNotificationStore.shouldHideContent()
             val content = infinityNotificationContent(rawTitle, rawMessage, hideContent)
 
             val appName = try {

@@ -94,13 +94,22 @@ internal fun infinityNotificationAccessEnabled(granted: Boolean, connected: Bool
  * not reconstruct text that was deliberately erased.
  */
 internal fun infinityNotificationApplyPrivacy(
+    notification: InfinityNotification,
+    hideContent: Boolean
+): InfinityNotification = if (hideContent) {
+    if (notification.title.isEmpty() && notification.message.isEmpty()) notification
+    else notification.copy(title = "", message = "")
+} else {
+    notification
+}
+
+internal fun infinityNotificationApplyPrivacy(
     feed: List<InfinityNotification>,
     hideContent: Boolean
 ): List<InfinityNotification> = if (!hideContent) {
     feed
 } else {
     feed.map { notification ->
-        if (notification.title.isEmpty() && notification.message.isEmpty()) notification
-        else notification.copy(title = "", message = "")
+        infinityNotificationApplyPrivacy(notification, hideContent = true)
     }
 }

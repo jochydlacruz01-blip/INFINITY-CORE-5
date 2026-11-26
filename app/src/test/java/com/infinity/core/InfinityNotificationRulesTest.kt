@@ -149,6 +149,26 @@ class InfinityNotificationRulesTest {
 
 
     @Test
+    fun privacyIsAppliedToEachNotificationAtTheInsertionBoundary() {
+        val incoming = InfinityNotification(
+            key = "incoming",
+            packageName = "com.example.mail",
+            appName = "Mail",
+            title = "Private subject",
+            message = "Private message",
+            timestamp = 456L,
+            ongoing = false,
+            clearable = true,
+            contentIntent = null
+        )
+
+        val protected = infinityNotificationApplyPrivacy(incoming, hideContent = true)
+        assertEquals("", protected.title)
+        assertEquals("", protected.message)
+        assertEquals(incoming, infinityNotificationApplyPrivacy(incoming, hideContent = false))
+    }
+
+    @Test
     fun enablingPrivacyRedactsExistingFeedAndDisablingCannotRestoreErasedText() {
         val private = InfinityNotification(
             key = "notification-1",
