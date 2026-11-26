@@ -324,20 +324,20 @@ permissions:
   contents: read
 jobs:
   build:
-    if: \${{ github.event_name == 'push' && github.ref == 'refs/heads/INFINITY-BASE-PACKAGES-01-05' }}
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/INFINITY-BASE-PACKAGES-01-05' }}
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: \${{ github.sha }}
+          ref: ${{ github.sha }}
           submodules: recursive
           persist-credentials: false
       - run: |
-          test "$(git rev-parse HEAD)" = "\${GITHUB_SHA}"
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
       - run: sdkmanager --install "platforms;android-35" "build-tools;35.0.0" "ndk;27.0.12077973" "cmake;3.22.1"
       - run: gradle -PINFINITY_BUILD_FREERDP_NATIVE=true :freerdpCore:externalNativeBuildDebug compileDebugKotlin testDebugUnitTest lintDebug assembleDebug --stacktrace
       - run: |
           APK="app/build/outputs/apk/debug/app-debug.apk"
-          "\${APKSIGNER}" verify --verbose --print-certs "\${APK}"
+          "${APKSIGNER}" verify --verbose --print-certs "${APK}"
           grep -Fq 'CN=Android Debug' app-debug-signature.txt
           REQUIRED_FREERDP_LIBRARIES=(
             libfreerdp-android.so
@@ -375,7 +375,7 @@ jobs:
 
     def test_commercial_signing_is_rejected(self):
         self.assertTrue(audit_named_workflow("android-fase2-test-apk.yml",
-            self.fixture().replace("permissions:", "env:\n  KEY: \${{ secrets.INFINITY_KEYSTORE_PASSWORD }}\npermissions:")))
+            self.fixture().replace("permissions:", "env:\n  KEY: ${{ secrets.INFINITY_KEYSTORE_PASSWORD }}\npermissions:")))
 
     def test_broad_artifact_path_is_rejected(self):
         self.assertTrue(audit_named_workflow("android-fase2-test-apk.yml",
