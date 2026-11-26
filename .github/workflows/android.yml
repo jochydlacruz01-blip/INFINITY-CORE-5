@@ -101,7 +101,7 @@ jobs:
               echo "Missing required FreeRDP native library in DEBUG APK: ${entry}" >&2
               exit 1
             fi
-            printf '%s\\n' "${entry}" | tee -a app-debug-freerdp-libraries.txt
+            printf '%s\n' "${entry}" | tee -a app-debug-freerdp-libraries.txt
           done
           sha256sum "${APK}" | tee app-debug-sha256.txt
           stat --format='APK_SIZE_BYTES=%s' "${APK}" | tee app-debug-size.txt
@@ -122,5 +122,6 @@ jobs:
             app-debug-sha256.txt
             app-debug-size.txt
             app-debug-signature.txt
+            app-debug-freerdp-libraries.txt
           if-no-files-found: error
           retention-days: 14
