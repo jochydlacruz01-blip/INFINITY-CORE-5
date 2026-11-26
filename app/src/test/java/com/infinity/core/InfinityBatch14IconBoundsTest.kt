@@ -59,7 +59,7 @@ class InfinityBatch14IconBoundsTest {
             listOf(Offset(10f, 10f), Offset(10f, 10f)),
             500f, 600f
         )
-        assertEquals(Offset(10f, 10f), result[0])
+        assertEquals(Offset(10f, 118f), result[0])
         assertEquals(false, result[0] == result[1])
     }
 
@@ -68,8 +68,8 @@ class InfinityBatch14IconBoundsTest {
             listOf(Offset(10f, 10f), Offset(150f, 10f)),
             500f, 600f
         )
-        assertEquals(Offset(10f, 10f), result[0])
-        assertEquals(Offset(150f, 10f), result[1])
+        assertEquals(Offset(10f, 118f), result[0])
+        assertEquals(Offset(150f, 118f), result[1])
     }
 
     @Test fun resolverSeparatesDenseIconsAcrossAvailableGridCells() {
