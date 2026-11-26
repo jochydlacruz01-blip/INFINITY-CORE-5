@@ -415,7 +415,6 @@ app.MapDelete("/v1/files/{fileId}", async (HttpContext context, string fileId) =
         {
             deleteOperation.Token.ThrowIfCancellationRequested();
             var deleted = await fileTransferStore.DeleteAsync(fileId, fingerprint, deleteOperation.Token);
-            deleteOperation.Token.ThrowIfCancellationRequested();
             auditLog.Write("file.deleted", fingerprint, sessionId, deleted ? "revoked" : "failed");
             return deleted ? Results.NoContent() : Results.NotFound();
         }
