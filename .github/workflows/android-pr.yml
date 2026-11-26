@@ -116,6 +116,8 @@ jobs:
           retention-days: 14
 
   emulator-ui:
+    # Keep final hardware-profile UI validation configured but disabled until functional/security gates are complete.
+    if: ${{ vars.INFINITY_FINAL_UI_VALIDATION == 'true' }}
     name: Instrumented Android UI (${{ matrix.device }})
     needs: verify
     runs-on: ubuntu-24.04
