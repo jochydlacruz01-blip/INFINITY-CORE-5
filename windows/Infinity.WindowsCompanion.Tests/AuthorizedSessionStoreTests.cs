@@ -82,7 +82,7 @@ public sealed class AuthorizedSessionStoreTests
     [Fact]
     public void ExpiredSessionIsRemovedAndReturnedForOperationRevocation()
     {
-        var now = DateTimeOffset.Parse("2026-01-01T00:00:00Z");
+        var now = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
         var store = new AuthorizedSessionStore(() => now);
         var grant = store.Create(DevicePin, true, new[] { "identity.read" });
 
