@@ -93,6 +93,26 @@ public sealed class DeviceOperationRegistryTests
     }
 
     [Fact]
+    public void SessionExpiryCancelsAnAlreadyActiveOperationLease()
+    {
+        var now = DateTimeOffset.Parse("2026-01-01T00:00:00Z");
+        var sessions = new AuthorizedSessionStore(() => now);
+        var grant = sessions.Create(DevicePin, true, new[] { "identity.read" });
+        var registry = new DeviceOperationRegistry();
+        registry.ActivateDevice(DevicePin);
+        registry.ActivateSession(DevicePin, grant.SessionId);
+        using var operation = registry.BeginOperation(DevicePin, grant.SessionId);
+
+        now = now.AddMinutes(16);
+        var expired = Assert.Single(sessions.DrainExpiredSessions());
+        Assert.Equal(grant.SessionId, expired.SessionId);
+        Assert.True(registry.RevokeSession(expired.ClientFingerprint, expired.SessionId));
+
+        Assert.True(operation.Token.IsCancellationRequested);
+        Assert.Equal(0, registry.Snapshot.ActiveOperations);
+    }
+
+    [Fact]
     public void RevocationOfDisconnectedDeviceInvalidatesItsGenerationWithoutClientRequest()
     {
         var registry = new DeviceOperationRegistry();
