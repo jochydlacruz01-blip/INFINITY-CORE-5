@@ -1204,17 +1204,6 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                             }
                         },
                      onFocus = {
-                         val activeIndex = windows.indexOfFirst { it.id == win.id }
-                         if (activeIndex >= 0) {
-                             val orderedWindows = infinityBringItemToFront(
-                                 windows.toList(),
-                                 windows[activeIndex]
-                             ) { it.id }
-                             if (orderedWindows.map { it.id } != windows.map { it.id }) {
-                                 windows.clear()
-                                 windows.addAll(orderedWindows)
-                             }
-                         }
                          focusWindowToFront(win.id)
                      },
                         showGeometryControls = infinityWindowGeometryControlsVisible(maxW.value)
@@ -2494,6 +2483,18 @@ private fun openInfinityWindow(
                 workspace = workspace
             )
         )
+    }
+
+    // Every entry point (desktop shortcut, START, dashboard and context menu) uses this
+    // factory. Restore/open must also raise an existing window in the visual stack;
+    // assigning focusedWindowId alone does not change the draw order of AURORA siblings.
+    val activeIndex = windows.indexOfFirst { it.id == windowId }
+    if (activeIndex >= 0) {
+        val ordered = infinityBringItemToFront(windows.toList(), windows[activeIndex]) { it.id }
+        if (ordered.map { it.id } != windows.map { it.id }) {
+            windows.clear()
+            windows.addAll(ordered)
+        }
     }
     return windowId
 }
