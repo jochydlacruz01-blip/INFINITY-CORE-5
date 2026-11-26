@@ -48,3 +48,7 @@ internal fun infinityAuroraMaximizedWindow(
         maximized = true
     )
 }
+
+/** Maximized and minimized windows are not eligible for direct geometry gestures. */
+internal fun infinityAuroraCanChangeGeometry(window: InfinityAuroraWindow): Boolean =
+    !window.maximized && !window.minimized
