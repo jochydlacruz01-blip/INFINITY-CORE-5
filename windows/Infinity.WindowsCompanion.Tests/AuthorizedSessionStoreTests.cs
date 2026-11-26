@@ -80,6 +80,24 @@ public sealed class AuthorizedSessionStoreTests
     }
 
     [Fact]
+    public void ExpiredSessionIsRemovedAndReturnedForOperationRevocation()
+    {
+        var now = DateTimeOffset.Parse("2026-01-01T00:00:00Z");
+        var store = new AuthorizedSessionStore(() => now);
+        var grant = store.Create(DevicePin, true, new[] { "identity.read" });
+
+        Assert.True(store.IsAuthorized(grant.SessionId, grant.Token, DevicePin, "identity.read"));
+        now = now.AddMinutes(16);
+
+        Assert.False(store.IsAuthorized(grant.SessionId, grant.Token, DevicePin, "identity.read"));
+        var expired = Assert.Single(store.DrainExpiredSessions());
+        Assert.Equal(grant.SessionId, expired.SessionId);
+        Assert.Equal(DevicePin, expired.ClientFingerprint);
+        Assert.Empty(store.DrainExpiredSessions());
+        Assert.Equal(0, store.ActiveCount);
+    }
+
+    [Fact]
     public async Task DeviceRevocationInvalidatesAllOldTokensAfterConcurrentAuthorizationChecks()
     {
         var store = new AuthorizedSessionStore();
