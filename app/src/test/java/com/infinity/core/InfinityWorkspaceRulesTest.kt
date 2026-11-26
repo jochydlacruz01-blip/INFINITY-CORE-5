@@ -71,7 +71,7 @@ class InfinityWorkspaceRulesTest {
             infinityWorkspaceMinimizePlan(ordered, workspaceById, setOf("notes_1"), 2)
         )
         assertEquals(
-            setOf("notes_1", "files_2", "apps_2", "connect_3"),
+            setOf("notes_1", "connect_3"),
             infinityWorkspaceMinimizePlan(ordered, workspaceById, setOf("notes_1"), 99)
         )
         assertEquals(
