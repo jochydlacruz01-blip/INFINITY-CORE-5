@@ -36,3 +36,15 @@ class InfinityDesktopSettingsRulesTest {
         assertEquals("dark", infinityNormalizeAppearance(null))
     }
 }
+
+    @Test fun compactBrandingClearsContextMenuAndTabletLayoutStaysUnchanged() {
+        assertEquals(76f, infinityDesktopBrandingTopInset(320f))
+        assertEquals(76f, infinityDesktopBrandingTopInset(599.9f))
+        assertEquals(18f, infinityDesktopBrandingTopInset(600f))
+        assertEquals(18f, infinityDesktopBrandingTopInset(900f))
+    }
+
+    @Test fun invalidViewportWidthUsesSafeTabletInset() {
+        assertEquals(18f, infinityDesktopBrandingTopInset(Float.NaN))
+        assertEquals(18f, infinityDesktopBrandingTopInset(Float.POSITIVE_INFINITY))
+    }
