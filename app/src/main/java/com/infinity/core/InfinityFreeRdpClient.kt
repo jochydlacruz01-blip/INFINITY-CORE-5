@@ -131,18 +131,23 @@ internal class InfinityFreeRdpClient(
                 created.instance,
                 object : GlobalApp.SessionEventListener {
                     override fun onConnectionSuccess() {
+                        if (closed.get()) return
                         connected = true
-                        mainHandler.post { listener.onConnected() }
+                        mainHandler.post { if (!closed.get()) listener.onConnected() }
                     }
 
                     override fun onConnectionFailure() {
+                        if (closed.get()) return
                         connected = false
-                        mainHandler.post { listener.onError("Windows rechazó o no pudo completar la conexión RDP.") }
+                        mainHandler.post {
+                            if (!closed.get()) listener.onError("Windows rechazó o no pudo completar la conexión RDP.")
+                        }
                     }
 
                     override fun onDisconnected() {
+                        if (closed.get()) return
                         connected = false
-                        mainHandler.post { listener.onDisconnected() }
+                        mainHandler.post { if (!closed.get()) listener.onDisconnected() }
                     }
                 }
             )
@@ -171,7 +176,9 @@ internal class InfinityFreeRdpClient(
         }
 
         override fun OnReconnecting() {
-            mainHandler.post { listener.onReconnecting() }
+            if (!closed.get()) mainHandler.post {
+                if (!closed.get()) listener.onReconnecting()
+            }
         }
 
         override fun OnAuthenticate(
@@ -179,7 +186,8 @@ internal class InfinityFreeRdpClient(
             domain: StringBuilder,
             password: StringBuilder
         ): Boolean {
-            mainHandler.post { listener.onAuthenticating() }
+            if (closed.get()) return false
+            mainHandler.post { if (!closed.get()) listener.onAuthenticating() }
             username.setLength(0)
             username.append(credentials.username)
             domain.setLength(0)
@@ -203,8 +211,8 @@ internal class InfinityFreeRdpClient(
             flags: Long
         ): Int {
             val accepted = normalizeRdpFingerprint(fingerprint) == expectedRdpPin
-            if (!accepted) mainHandler.post {
-                listener.onRdpCertificateRejected(host, fingerprint)
+            if (!accepted && !closed.get()) mainHandler.post {
+                if (!closed.get()) listener.onRdpCertificateRejected(host, fingerprint)
             }
             return if (accepted) 2 else 0 // temporary trust only; persistent pin remains INFINITY-owned
         }
@@ -222,8 +230,8 @@ internal class InfinityFreeRdpClient(
             flags: Long
         ): Int {
             val accepted = normalizeRdpFingerprint(fingerprint) == expectedRdpPin
-            if (!accepted) mainHandler.post {
-                listener.onRdpCertificateRejected(host, fingerprint)
+            if (!accepted && !closed.get()) mainHandler.post {
+                if (!closed.get()) listener.onRdpCertificateRejected(host, fingerprint)
             }
             return if (accepted) 2 else 0
         }
