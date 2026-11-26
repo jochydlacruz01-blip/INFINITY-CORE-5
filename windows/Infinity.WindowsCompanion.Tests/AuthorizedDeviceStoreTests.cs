@@ -79,6 +79,26 @@ public sealed class AuthorizedDeviceStoreTests
         }
     }
 
+    [Fact]
+    public void ApprovalRejectsSelfSignedClientCertificateOutsideEnrollmentAuthority()
+    {
+        if (!OperatingSystem.IsWindows()) return;
+
+        LocalEnrollmentCertificateAuthority.Initialize();
+        using var certificate = CreateCertificate(CertificatePinning.ClientAuthenticationOid);
+        var path = Path.Combine(Path.GetTempPath(), $"infinity-untrusted-{Guid.NewGuid():N}.cer");
+        try
+        {
+            File.WriteAllBytes(path, certificate.Export(X509ContentType.Cert));
+            Assert.Throws<InvalidOperationException>(() =>
+                AuthorizedDeviceStore.ApproveFromLocalConsole(path));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
     private static X509Certificate2 CreateIssuedClientCertificate()
     {
         using var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
