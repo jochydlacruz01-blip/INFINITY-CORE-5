@@ -79,6 +79,11 @@ jobs:
           for library in "${REQUIRED_LIBRARIES[@]}"; do
             path="$JNI_LIBS/$library"
             test -s "$path"
-            readelf -h "$path" | grep -Eq 'Machine:[[:space:]]+AArch64'
+            header="$(readelf -h "$path")"
+            elf_class="$(printf '%s\n' "$header" | awk -F: '/Class:/ { gsub(/^[[:space:]]+/, "", $2); print $2; exit }')"
+            elf_machine="$(printf '%s\n' "$header" | awk -F: '/Machine:/ { gsub(/^[[:space:]]+/, "", $2); print $2; exit }')"
+            printf '%s: class=%s machine=%s\n' "$library" "$elf_class" "$elf_machine"
+            test "$elf_class" = "ELF64"
+            case "$elf_machine" in AArch64*) ;; *) echo "Unexpected ELF architecture for $library: $elf_machine" >&2; exit 1 ;; esac
             ls -lh "$path"
           done
