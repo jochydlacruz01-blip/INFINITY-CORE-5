@@ -13,6 +13,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.semantics.SemanticsProperties
 import org.junit.Assert.assertTrue
+import org.json.JSONArray
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
@@ -210,6 +211,22 @@ class InfinityDesktopEmulatorTest {
         waitForTag("infinity-orbit-panel")
         compose.onNodeWithText("CERRAR ORBIT").assertExists()
         compose.onNodeWithContentDescription("START").assertExists()
+
+        // Opening ADVANCED from inside ORBIT must replace ORBIT, never stack panels.
+        val openAdvancedFromOrbit = compose.onNodeWithText("ABRIR CENTRO DE NOTIFICACIONES")
+        openAdvancedFromOrbit.performScrollTo()
+        openAdvancedFromOrbit.performClick()
+        settleComposeFrame()
+        compose.onNodeWithTag("infinity-orbit-panel").assertDoesNotExist()
+        compose.onNodeWithTag("infinity-advanced-panel").assertExists()
+        compose.onNodeWithTag("infinity-advanced-close").performClick()
+        settleComposeFrame()
+        compose.onNodeWithTag("infinity-advanced-panel").assertDoesNotExist()
+
+        // Reopen ORBIT to continue its independent close/accessibility regression.
+        compose.onNodeWithTag("infinity-dock-orbit").performClick()
+        settleComposeFrame()
+        waitForTag("infinity-orbit-panel")
         capture("03-orbit-open")
         // ORBIT close stays at the top of the panel so it remains reachable on
         // phone and tablet without scrolling a long diagnostics list.
@@ -306,6 +323,54 @@ class InfinityDesktopEmulatorTest {
         } else {
             capture("10-desktop-compact-phone-landscape")
         }
+    }
+
+    @Test(timeout = 180_000)
+    fun orbitMinimizeAllOnlyAffectsTheActiveWorkspace() {
+        // Create one task in workspace 1.
+        compose.onNodeWithContentDescription("START").performClick()
+        settleComposeFrame()
+        compose.onNodeWithTag("infinity-start-app-notes").performClick()
+        settleComposeFrame()
+        waitForTag("infinity-window-notes")
+
+        // Switch to workspace 2 through ORBIT and create a second task there.
+        compose.onNodeWithTag("infinity-dock-orbit").performClick()
+        settleComposeFrame()
+        compose.onNodeWithTag("infinity-orbit-workspace-2").performClick()
+        settleComposeFrame()
+        compose.onNodeWithContentDescription("START").performClick()
+        settleComposeFrame()
+        compose.onNodeWithTag("infinity-start-app-files").performClick()
+        settleComposeFrame()
+        waitForTag("infinity-window-files")
+
+        // Minimize-all in workspace 2 must not alter the task in workspace 1.
+        compose.onNodeWithTag("infinity-dock-orbit").performClick()
+        settleComposeFrame()
+        val minimizeAll = compose.onNodeWithTag("infinity-orbit-minimize-all")
+        minimizeAll.performScrollTo()
+        minimizeAll.performClick()
+        settleComposeFrame()
+
+        val saved = JSONArray(
+            context.getSharedPreferences("infinity_desktop", 0)
+                .getString("saved_windows", "[]")
+        )
+        val states = (0 until saved.length()).mapNotNull { index ->
+            saved.optJSONObject(index)?.let { item ->
+                item.optString("kind") to (
+                    item.optInt("workspace", 1) to item.optBoolean("minimized", false)
+                )
+            }
+        }.toMap()
+        assertTrue("Workspace 1 Notes task must remain visible", states["notes"] == (1 to false))
+        assertTrue("Workspace 2 Files task must be minimized", states["files"] == (2 to true))
+        assertTrue(
+            "Focus must be cleared after minimizing all active workspace windows",
+            context.getSharedPreferences("infinity_desktop", 0)
+                .getString("focused_window_id", null) == null
+        )
     }
 
     private fun settleComposeFrame() {

@@ -121,7 +121,7 @@ jobs:
           retention-days: 14
 
   emulator-ui:
-    if: false # Pausado por solicitud del usuario; reactivar solo con autorización explícita.
+    # Re-enabled for the explicitly requested ORBIT/ADVANCED panel-interaction regression.
     # Final emulator validation runs only after source, unit-test and lint gates pass.
     name: Instrumented Android UI (${{ matrix.device }})
     needs: verify

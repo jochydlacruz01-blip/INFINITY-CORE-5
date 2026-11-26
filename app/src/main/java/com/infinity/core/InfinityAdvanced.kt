@@ -116,7 +116,10 @@ fun InfinityAdvancedPanel(
                     )
                 }
 
-                TextButton(onClick = onClose) {
+                TextButton(
+                    onClick = onClose,
+                    modifier = Modifier.testTag("infinity-advanced-close")
+                ) {
                     Text("CERRAR", color = AdvancedAccent)
                 }
             }
@@ -387,7 +390,8 @@ fun InfinityAdvancedPanel(
                                                     InfinityNotificationStore.dismiss(
                                                         notification.key
                                                     )
-                                                }
+                                                },
+                                                enabled = notification.clearable
                                             ) {
                                                 Text("DESCARTAR", color = AdvancedMuted)
                                             }

@@ -996,18 +996,21 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                         advancedOpen = false
                     },
                     onOpenOrbit = {
+                        dashboardOpen = false
                         orbitOpen = true
                         startOpen = false
                         controlOpen = false
                         advancedOpen = false
                     },
                     onOpenAdvanced = {
+                        dashboardOpen = false
                         advancedOpen = true
                         startOpen = false
                         orbitOpen = false
                         controlOpen = false
                     },
                     onOpenControl = {
+                        dashboardOpen = false
                         controlOpen = true
                         startOpen = false
                         orbitOpen = false
@@ -1161,12 +1164,14 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                             .clickable(interactionSource = shortcutInteraction, indication = null, role = Role.Button) {
                                 when (item.id) {
                                     "orbit" -> {
+                                        dashboardOpen = false
                                         orbitOpen = !orbitOpen
                                         startOpen = false
                                         controlOpen = false
                                         advancedOpen = false
                                     }
                                     "about" -> {
+                                        dashboardOpen = false
                                         startOpen = true
                                         search = ""
                                         startCategory = "all"
@@ -1175,6 +1180,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                                         advancedOpen = false
                                     }
                                     "settings" -> {
+                                        dashboardOpen = false
                                         controlOpen = true
                                         controlMode = "device"
                                         startOpen = false
@@ -1416,6 +1422,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                 }
 
                 DockAction(if (futuristicDesktop && maxW >= 600.dp) "⌕" else "✦", "START", accent, iconPack, compact = infinityDockUsesCompactActions(maxW.value), referenceStyle = futuristicDesktop && maxW >= 600.dp) {
+                    dashboardOpen = false
                     startOpen = !startOpen
                     if (startOpen) {
                         search = ""
@@ -1432,6 +1439,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                             .background(Brush.linearGradient(listOf(Color(0xDD102B49), Color(0xCC101A35), Color(0xDD1A2450))))
                             .border(1.dp, Brush.horizontalGradient(listOf(Color(0xAA38DFFF), Color(0x887E79FF))), RoundedCornerShape(14.dp))
                             .clickable {
+                                dashboardOpen = false
                                 startOpen = true
                                 search = ""
                                 startCategory = "all"
@@ -1450,6 +1458,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                 DockAction(if (futuristicDesktop && maxW >= 600.dp) "∞" else "◎", "ORBIT", Color(0xFFB69CFF), iconPack, compact = infinityDockUsesCompactActions(maxW.value), referenceStyle = futuristicDesktop && maxW >= 600.dp) {
                     // ORBIT is an explicit launcher command: repeated activation must never
                     // cancel the opening transition while accessibility dispatch is settling.
+                    dashboardOpen = false
                     orbitOpen = true
                     startOpen = false
                     controlOpen = false
@@ -1457,6 +1466,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                 }
 
                 DockAction(if (futuristicDesktop && maxW >= 600.dp) "⬡" else "☷", "CONTROL", Color(0xFFFFC27A), iconPack, compact = infinityDockUsesCompactActions(maxW.value), referenceStyle = futuristicDesktop && maxW >= 600.dp) {
+                    dashboardOpen = false
                     controlOpen = !controlOpen
                     if (controlOpen) controlMode = "personalization"
                     startOpen = false
@@ -1464,6 +1474,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                     advancedOpen = false
                 }
 DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED", accent, iconPack, compact = infinityDockUsesCompactActions(maxW.value), referenceStyle = futuristicDesktop && maxW >= 600.dp) {
+    dashboardOpen = false
     advancedOpen = !advancedOpen
     startOpen = false
     orbitOpen = false
@@ -1525,6 +1536,7 @@ DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED"
                     modifier = Modifier
                         .clip(RoundedCornerShape(10.dp))
                         .clickable(role = Role.Button) {
+                            dashboardOpen = false
                             controlOpen = !controlOpen
                             if (controlOpen) controlMode = "personalization"
                             startOpen = false
@@ -1650,13 +1662,21 @@ DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED"
                                             .clip(RoundedCornerShape(10.dp))
                                             .clickable(role = Role.Button) {
                                                 when (item.id) {
-                                                    "orbit" -> orbitOpen = true
+                                                    "orbit" -> {
+                                                        dashboardOpen = false
+                                                        orbitOpen = true
+                                                        controlOpen = false
+                                                        advancedOpen = false
+                                                    }
                                                     "about" -> {
                                                         startOpen = false
                                                         dashboardOpen = true
                                                     }
                                                     "settings" -> {
+                                                        dashboardOpen = false
                                                         startOpen = false
+                                                        orbitOpen = false
+                                                        advancedOpen = false
                                                         controlMode = "device"
                                                         controlOpen = true
                                                     }
@@ -2017,7 +2037,13 @@ Card(
         )
 
         Button(
-            onClick = { advancedOpen = true },
+            onClick = {
+                dashboardOpen = false
+                startOpen = false
+                orbitOpen = false
+                controlOpen = false
+                advancedOpen = true
+            },
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(
                 containerColor = accent
@@ -2113,6 +2139,7 @@ Spacer(Modifier.height(14.dp))
                         ) {
                             Button(
                                 onClick = {
+                                    dashboardOpen = false
                                     focusedWindowId = openInfinityWindow("connect", windows, workspace, maxW.value, maxH.value)
                                     orbitOpen = false
                                 },
@@ -2134,15 +2161,24 @@ Spacer(Modifier.height(14.dp))
 
                             OutlinedButton(
                                 onClick = {
+                                    val activeWorkspaceWindowIds = infinityWorkspaceWindowIds(
+                                        windows.map { it.id },
+                                        windows.associate { it.id to it.workspace },
+                                        workspace
+                                    ).toSet()
                                     windows.indices.forEach { index ->
-                                        windows[index] =
-                                            windows[index].copy(minimized = true)
+                                        if (windows[index].id in activeWorkspaceWindowIds) {
+                                            windows[index] = windows[index].copy(minimized = true)
+                                        }
                                     }
+                                    focusedWindowId = null
+                                    dashboardOpen = false
                                     orbitOpen = false
                                 },
                                 modifier = Modifier
                                     .weight(1f)
-                                    .height(50.dp),
+                                    .height(50.dp)
+                                    .testTag("infinity-orbit-minimize-all"),
                                 shape = RoundedCornerShape(13.dp),
                                 border = androidx.compose.foundation.BorderStroke(
                                     1.dp,
