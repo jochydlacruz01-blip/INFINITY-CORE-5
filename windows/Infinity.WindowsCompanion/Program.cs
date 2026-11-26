@@ -249,7 +249,8 @@ app.MapDelete("/v1/sessions/{sessionId}", async (HttpContext context, string ses
     // Close admission and cancel active operations before removing the bearer grant.
     // A request that raced past IsAuthorized must still fail BeginOperation after this point.
     var operationRevoked = operationRegistry.RevokeSession(fingerprint, sessionId);
-    var revoked = authorizedSessions.Revoke(sessionId, fingerprint);
+    var authorizationRevoked = authorizedSessions.Revoke(sessionId, fingerprint);
+    var revoked = operationRevoked || authorizationRevoked;
     auditLog.Write("session.revoked", fingerprint, sessionId, revoked ? "revoked" : "failed");
     return revoked ? Results.NoContent() : Results.NotFound();
 });
@@ -335,13 +336,21 @@ app.MapGet("/v1/files", async (HttpContext context) =>
     try { listOperation = operationRegistry.BeginOperation(fingerprint, sessionId, context.RequestAborted); }
     catch (OperationCanceledException) { return Results.Unauthorized(); }
 
-    using (listOperation)
+    try
     {
-        listOperation.Token.ThrowIfCancellationRequested();
-        var files = fileTransferStore.List(fingerprint);
-        listOperation.Token.ThrowIfCancellationRequested();
-        auditLog.Write("file.listed", fingerprint, sessionId, "allowed");
-        return Results.Ok(files);
+        using (listOperation)
+        {
+            listOperation.Token.ThrowIfCancellationRequested();
+            var files = fileTransferStore.List(fingerprint);
+            listOperation.Token.ThrowIfCancellationRequested();
+            auditLog.Write("file.listed", fingerprint, sessionId, "allowed");
+            return Results.Ok(files);
+        }
+    }
+    catch (OperationCanceledException) when (!context.RequestAborted.IsCancellationRequested)
+    {
+        auditLog.Write("file.list-cancelled", fingerprint, sessionId, "revoked");
+        return Results.Unauthorized();
     }
 });
 
@@ -400,13 +409,21 @@ app.MapDelete("/v1/files/{fileId}", async (HttpContext context, string fileId) =
     try { deleteOperation = operationRegistry.BeginOperation(fingerprint, sessionId, context.RequestAborted); }
     catch (OperationCanceledException) { return Results.Unauthorized(); }
 
-    using (deleteOperation)
+    try
     {
-        deleteOperation.Token.ThrowIfCancellationRequested();
-        var deleted = fileTransferStore.Delete(fileId, fingerprint);
-        deleteOperation.Token.ThrowIfCancellationRequested();
-        auditLog.Write("file.deleted", fingerprint, sessionId, deleted ? "revoked" : "failed");
-        return deleted ? Results.NoContent() : Results.NotFound();
+        using (deleteOperation)
+        {
+            deleteOperation.Token.ThrowIfCancellationRequested();
+            var deleted = fileTransferStore.Delete(fileId, fingerprint);
+            deleteOperation.Token.ThrowIfCancellationRequested();
+            auditLog.Write("file.deleted", fingerprint, sessionId, deleted ? "revoked" : "failed");
+            return deleted ? Results.NoContent() : Results.NotFound();
+        }
+    }
+    catch (OperationCanceledException) when (!context.RequestAborted.IsCancellationRequested)
+    {
+        auditLog.Write("file.delete-cancelled", fingerprint, sessionId, "revoked");
+        return Results.Unauthorized();
     }
 });
 
