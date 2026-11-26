@@ -415,6 +415,42 @@ private fun Infinity08App() {
         }
     }
 
+    // Geometry transactions keep preview frames out of SharedPreferences until commit.
+    val geometryTransactions = remember { mutableStateMapOf<String, InfinityWindowGeometryTransaction>() }
+
+    fun beginWindowGeometryTransaction(windowId: String) {
+        val window = windows.firstOrNull { it.id == windowId } ?: return
+        geometryTransactions[windowId] = infinityBeginWindowGeometryTransaction(
+            windowId,
+            InfinityWindowGeometry(window.x, window.y, window.width, window.height)
+        )
+    }
+
+    fun commitWindowGeometryTransaction(windowId: String) {
+        val transaction = geometryTransactions.remove(windowId) ?: return
+        val index = windows.indexOfFirst { it.id == windowId }
+        if (index < 0) return
+        val current = windows[index]
+        val committed = infinityCommitWindowGeometryTransaction(
+            transaction,
+            InfinityWindowGeometry(current.x, current.y, current.width, current.height),
+            InfinityWindowBounds(maxW.value, dockSafeBottom, 0f, 0f)
+        )
+        windows[index] = current.copy(
+            x = committed.x, y = committed.y, width = committed.width, height = committed.height
+        )
+    }
+
+    fun cancelWindowGeometryTransaction(windowId: String) {
+        val transaction = geometryTransactions.remove(windowId) ?: return
+        val index = windows.indexOfFirst { it.id == windowId }
+        if (index < 0) return
+        val restored = infinityCancelWindowGeometryTransaction(transaction)
+        windows[index] = windows[index].copy(
+            x = restored.x, y = restored.y, width = restored.width, height = restored.height
+        )
+    }
+
     // Include every persisted field and the list order (AURORA z-order) in the key.
     // Debouncing avoids writing SharedPreferences for every pointer-move frame.
     val windowSnapshot = infinityWindowSnapshotKey(
@@ -433,8 +469,13 @@ private fun Infinity08App() {
             )
         }
     )
-    LaunchedEffect(windowSnapshot) {
+    val activeGeometryTransactionCount = geometryTransactions.size
+    LaunchedEffect(windowSnapshot, activeGeometryTransactionCount) {
+        // Never serialize an in-flight preview. Starting a gesture cancels this effect;
+        // only commit or rollback can make persistence eligible again.
+        if (activeGeometryTransactionCount > 0) return@LaunchedEffect
         delay(INFINITY_WINDOW_PERSISTENCE_DEBOUNCE_MS)
+        if (geometryTransactions.isNotEmpty()) return@LaunchedEffect
         val array = JSONArray()
         windows.forEach { win ->
             array.put(
@@ -610,6 +651,9 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
 
             // Normalize persisted windows after screen size, orientation, or density changes.
             LaunchedEffect(maxW, maxH, dockSafeBottom) {
+                // A viewport/orientation change invalidates active pointer geometry.
+                // Roll back before normalizing the saved desktop geometry to the new area.
+                geometryTransactions.keys.toList().forEach(::cancelWindowGeometryTransaction)
                 // Phone rendering adapts windows visually; never persist phone-sized bounds
                 // over the desktop geometry that must be restored on tablet/desktop.
                 if (!infinityWindowGeometryNormalizationEnabled(maxW.value)) return@LaunchedEffect
@@ -1212,6 +1256,9 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                         },
                         
                         // INFINITY 0.11 — MOVIMIENTO CON LÍMITES
+                        onGeometryStart = { beginWindowGeometryTransaction(win.id) },
+                        onGeometryCommit = { commitWindowGeometryTransaction(win.id) },
+                        onGeometryCancel = { cancelWindowGeometryTransaction(win.id) },
                         onMove = { dx, dy ->
                             val index = windows.indexOfFirst { it.id == win.id }
                             if (index >= 0 && infinityWindowCanManipulateGeometry(windows[index].maximized, maxW.value)) {
@@ -1234,6 +1281,11 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                                     width = bounded.width,
                                     height = bounded.height
                                 )
+                                geometryTransactions[win.id]?.let { transaction ->
+                                    geometryTransactions[win.id] = infinityUpdateWindowGeometryTransaction(
+                                        transaction, InfinityWindowGeometry(bounded.x, bounded.y, bounded.width, bounded.height)
+                                    )
+                                }
                             }
                         },
                         // INFINITY 0.11 — REDIMENSIONAMIENTO ADAPTABLE
@@ -1251,10 +1303,16 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                                 val availableHeight =
                                     (dockSafeBottom - current.y).coerceAtLeast(1f)
 
-                                windows[index] = current.copy(
+                                val resized = current.copy(
                                     width = infinityResizeDimension(current.width, deltaWidthDp, availableWidth, 280f),
                                     height = infinityResizeDimension(current.height, deltaHeightDp, availableHeight, 190f)
                                 )
+                                windows[index] = resized
+                                geometryTransactions[win.id]?.let { transaction ->
+                                    geometryTransactions[win.id] = infinityUpdateWindowGeometryTransaction(
+                                        transaction, InfinityWindowGeometry(resized.x, resized.y, resized.width, resized.height)
+                                    )
+                                }
                             }
                         },
                      onFocus = {
@@ -3094,6 +3152,9 @@ private fun Infinity08Window(
     onClose: () -> Unit,
     onMinimize: () -> Unit,
     onMaximize: () -> Unit,
+    onGeometryStart: () -> Unit,
+    onGeometryCommit: () -> Unit,
+    onGeometryCancel: () -> Unit,
     onMove: (Float, Float) -> Unit,
     onResize: (Float, Float) -> Unit,
     onFocus: () -> Unit,
@@ -3150,7 +3211,12 @@ private fun Infinity08Window(
                 .clickable { onFocus() }
                 .pointerInput(win.id) {
                     detectDragGestures(
-                        onDragStart = { onFocus() }
+                        onDragStart = {
+                            onFocus()
+                            onGeometryStart()
+                        },
+                        onDragEnd = onGeometryCommit,
+                        onDragCancel = onGeometryCancel
                     ) { change, drag ->
                         change.consume()
                         onMove(drag.x, drag.y)
@@ -3427,7 +3493,12 @@ private fun Infinity08Window(
                 )
                 .pointerInput(win.id) {
                     detectDragGestures(
-                        onDragStart = { onFocus() }
+                        onDragStart = {
+                            onFocus()
+                            onGeometryStart()
+                        },
+                        onDragEnd = onGeometryCommit,
+                        onDragCancel = onGeometryCancel
                     ) { change, drag ->
                         change.consume()
                         onResize(drag.x, drag.y)
