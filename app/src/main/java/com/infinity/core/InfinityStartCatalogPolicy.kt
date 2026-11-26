@@ -2,8 +2,8 @@ package com.infinity.core
 
 /**
  * Deterministic filtering for INFINITY START's installed-app catalog.
- * Classification is intentionally heuristic: Android does not expose a
- * reliable cross-version launcher-app category for every installed app.
+ * Classification is heuristic because Android does not expose a reliable
+ * cross-version launcher category for every installed application.
  */
 internal object InfinityStartCatalogPolicy {
     val categories = listOf("all", "productivity", "communication", "media", "games", "system")
@@ -33,7 +33,28 @@ internal object InfinityStartCatalogPolicy {
             label.lowercase().contains(normalized) ||
             packageName.lowercase().contains(normalized)
         val categoryMatches = selectedCategory == "all" ||
-            categoryOf(label, packageName) == selectedCategory
+            (selectedCategory in categories && categoryOf(label, packageName) == selectedCategory)
+        return queryMatches && categoryMatches
+    }
+
+    /** Internal desktop tools use the same search and category contract as Android apps. */
+    fun desktopToolCategory(id: String): String = when (id) {
+        "notes", "apps" -> "productivity"
+        "connect" -> "communication"
+        "files", "about", "settings", "orbit" -> "system"
+        else -> "system"
+    }
+
+    fun matchesDesktopTool(
+        id: String,
+        label: String,
+        query: String,
+        selectedCategory: String
+    ): Boolean {
+        val normalized = normalizeQuery(query)
+        val queryMatches = normalized.isEmpty() || label.lowercase().contains(normalized) || id.lowercase().contains(normalized)
+        val categoryMatches = selectedCategory == "all" ||
+            (selectedCategory in categories && desktopToolCategory(id) == selectedCategory)
         return queryMatches && categoryMatches
     }
 }

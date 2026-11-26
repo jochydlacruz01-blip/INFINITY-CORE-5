@@ -1327,7 +1327,11 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                         vertical = if (maxW >= 600.dp && futuristicDesktop) 12.dp else 0.dp)
                     // On narrow screens, keep every Dock action reachable instead of clipping
                     // the trailing controls and task buttons beyond the viewport.
-                    .horizontalScroll(rememberScrollState())
+                    .then(
+                        if (infinityDockRequiresHorizontalScroll(maxW.value)) {
+                            Modifier.horizontalScroll(rememberScrollState())
+                        } else Modifier
+                    )
                     .then(if (iconPack == "windows11" || (maxW >= 600.dp && futuristicDesktop)) Modifier.fillMaxWidth() else Modifier)
                     .then(if (maxW >= 600.dp && futuristicDesktop) Modifier.widthIn(max = 1500.dp) else Modifier)
                     .padding(
@@ -1558,27 +1562,55 @@ DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED"
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(top = 10.dp, bottom = 5.dp)
                         )
-                        LazyColumn(Modifier.heightIn(max = 150.dp)) {
-                            items(
-                                desktopItems.filter { it.label.contains(search, ignoreCase = true) },
-                                key = { it.id }
-                            ) { item ->
-                                Row(
-                                    Modifier.fillMaxWidth()
-                                        .testTag("infinity-start-app-${item.id}")
-                                        .clip(RoundedCornerShape(10.dp))
-                                        .clickable {
-                                            if (item.id == "orbit") {
-                                                orbitOpen = true
-                                            } else {
-                                                focusedWindowId = openInfinityWindow(item.id, windows, workspace, maxW.value, maxH.value)
-                                            }
-                                            startOpen = false
-                                        }.padding(9.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    InfinityAppBadge(item, 34.dp, accent, iconPack)
-                                    Text(item.label, color = Color.White, modifier = Modifier.padding(start = 12.dp))
+                        val filteredDesktopItems = desktopItems.filter {
+                            InfinityStartCatalogPolicy.matchesDesktopTool(
+                                it.id, it.label, search, startCategory
+                            )
+                        }
+                        if (filteredDesktopItems.isEmpty()) {
+                            Text(
+                                "No hay herramientas INFINITY en esta categoría.",
+                                color = InfinityMuted,
+                                fontSize = 11.sp,
+                                modifier = Modifier.padding(vertical = 8.dp)
+                            )
+                        } else {
+                            LazyColumn(Modifier.heightIn(max = 150.dp)) {
+                                items(filteredDesktopItems, key = { it.id }) { item ->
+                                    Row(
+                                        Modifier.fillMaxWidth()
+                                            .heightIn(min = 48.dp)
+                                            .testTag("infinity-start-app-${item.id}")
+                                            .clip(RoundedCornerShape(10.dp))
+                                            .clickable(role = Role.Button) {
+                                                when (item.id) {
+                                                    "orbit" -> orbitOpen = true
+                                                    "about" -> {
+                                                        startOpen = false
+                                                        dashboardOpen = true
+                                                    }
+                                                    "settings" -> {
+                                                        startOpen = false
+                                                        controlMode = "device"
+                                                        controlOpen = true
+                                                    }
+                                                    else -> focusedWindowId = openInfinityWindow(
+                                                        item.id, windows, workspace, maxW.value, maxH.value
+                                                    )
+                                                }
+                                                startOpen = false
+                                            }.padding(horizontal = 9.dp, vertical = 7.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        InfinityAppBadge(item, 34.dp, accent, iconPack)
+                                        Text(
+                                            item.label,
+                                            color = Color.White,
+                                            modifier = Modifier.padding(start = 12.dp),
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -1610,15 +1642,21 @@ DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED"
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
                         )
-                        LazyColumn(Modifier.weight(1f, fill = false).heightIn(max = 230.dp)) {
-                            items(
-                                installedApps.filter {
-                                    InfinityStartCatalogPolicy.matches(
-                                        it.label, it.packageName, search, startCategory
-                                    )
-                                },
-                                key = { it.packageName }
-                            ) { app ->
+                        val filteredInstalledApps = installedApps.filter {
+                            InfinityStartCatalogPolicy.matches(
+                                it.label, it.packageName, search, startCategory
+                            )
+                        }
+                        if (filteredInstalledApps.isEmpty()) {
+                            Text(
+                                if (installedApps.isEmpty()) "Android no reportó aplicaciones disponibles."
+                                else "No se encontraron aplicaciones para esta búsqueda y categoría.",
+                                color = InfinityMuted,
+                                fontSize = 11.sp,
+                                modifier = Modifier.padding(vertical = 10.dp)
+                            )
+                        } else LazyColumn(Modifier.weight(1f, fill = false).heightIn(max = 230.dp)) {
+                            items(filteredInstalledApps, key = { it.packageName }) { app ->
                                 Row(
                                     Modifier.fillMaxWidth().clickable {
                                         launchApp(app.packageName)

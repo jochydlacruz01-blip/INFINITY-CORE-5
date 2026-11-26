@@ -27,5 +27,15 @@ class InfinityStartCatalogPolicyTest {
 
     @Test fun unknownCategoryDoesNotAccidentallyMatch() {
         assertFalse(InfinityStartCatalogPolicy.matches("Notes", "com.example.notes", "", "unknown"))
+        assertFalse(InfinityStartCatalogPolicy.matchesDesktopTool("notes", "Notas rápidas", "", "unknown"))
+    }
+
+    @Test fun internalToolsShareSearchAndCategoryFiltering() {
+        assertEquals("productivity", InfinityStartCatalogPolicy.desktopToolCategory("notes"))
+        assertEquals("communication", InfinityStartCatalogPolicy.desktopToolCategory("connect"))
+        assertTrue(InfinityStartCatalogPolicy.matchesDesktopTool("notes", "Notas rápidas", "NOTAS", "productivity"))
+        assertFalse(InfinityStartCatalogPolicy.matchesDesktopTool("notes", "Notas rápidas", "NOTAS", "system"))
+        assertTrue(InfinityStartCatalogPolicy.matchesDesktopTool("connect", "CONNECT", "", "communication"))
+        assertFalse(InfinityStartCatalogPolicy.matchesDesktopTool("connect", "CONNECT", "files", "communication"))
     }
 }
