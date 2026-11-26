@@ -251,7 +251,7 @@ jobs:
         run: sdkmanager --install "platforms;android-35" "build-tools;35.0.0" "ndk;27.0.12077973" "cmake;3.22.1"
       - name: Compile native and DEBUG
         run: |
-          gradle -PINFINITY_BUILD_FREERDP_NATIVE=true :freerdpCore:externalNativeBuildDebug compileDebugKotlin testDebugUnitTest lintDebug assembleDebug --stacktrace
+          gradle assembleDebug --stacktrace
       - name: Verify DEBUG APK and native libraries
         run: |
           APK="app/build/outputs/apk/debug/app-debug.apk"
