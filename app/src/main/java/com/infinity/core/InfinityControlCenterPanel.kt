@@ -43,6 +43,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 
@@ -325,14 +326,20 @@ private fun StatusLine(icon: ImageVector, label: String, value: String) {
         Icon(icon, contentDescription = null, tint = Color(0xFF8FC4FF))
         Text(
             text = label,
-            modifier = Modifier.padding(start = 9.dp).weight(1f),
+            modifier = Modifier.padding(start = 9.dp).weight(0.8f),
             style = MaterialTheme.typography.bodySmall,
-            color = Color(0xFFDCE6F5)
+            color = Color(0xFFDCE6F5),
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis
         )
         Text(
             text = value,
+            modifier = Modifier.weight(1.2f),
             style = MaterialTheme.typography.labelMedium,
-            color = Color.White
+            color = Color.White,
+            textAlign = TextAlign.End,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis
         )
     }
 }
