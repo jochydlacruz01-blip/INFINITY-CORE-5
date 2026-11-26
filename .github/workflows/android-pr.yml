@@ -180,6 +180,9 @@ jobs:
           pre-emulator-launch-script: >-
             if [ "${{ matrix.device }}" = "tablet" ]; then
               printf '\nhw.lcd.width=2560\nhw.lcd.height=1600\nhw.lcd.density=240\nhw.device.name=Galaxy Tab S7 FE SM-T738\nhw.device.manufacturer=Samsung\nhw.initialOrientation=landscape\n' >> "$ANDROID_AVD_HOME/test.avd/config.ini";
+            elif [ "${{ matrix.device }}" = "compact-phone" ]; then
+              # Xiaomi 15 Pro display geometry approximation; Google APIs emulator is not HyperOS.
+              printf '\nhw.lcd.width=1440\nhw.lcd.height=3200\nhw.lcd.density=560\nhw.device.name=Xiaomi 15 Pro\nhw.device.manufacturer=Xiaomi\nhw.initialOrientation=portrait\n' >> "$ANDROID_AVD_HOME/test.avd/config.ini";
             fi
           # Keep the runner's maintained emulator flags; custom camera options can prevent AVD boot.
           # Keep this as one command: android-emulator-runner invokes its script through sh -c.
