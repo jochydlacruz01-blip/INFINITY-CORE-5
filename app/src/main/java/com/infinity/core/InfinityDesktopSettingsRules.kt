@@ -19,3 +19,10 @@ internal fun infinityNormalizeDesktopTheme(value: String?): String =
     value?.trim()?.lowercase(java.util.Locale.ROOT)
         ?.takeIf { it == "windows11" }
         ?: "infinity"
+
+/**
+ * Keeps compact-shell branding below the context-menu hit target.
+ * Tablet reference desktops retain the original top alignment.
+ */
+internal fun infinityDesktopBrandingTopInset(viewportWidthDp: Float): Float =
+    if (viewportWidthDp.isFinite() && viewportWidthDp < 600f) 76f else 18f
