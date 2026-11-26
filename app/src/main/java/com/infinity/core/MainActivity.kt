@@ -30,6 +30,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
@@ -902,7 +903,11 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                         .clip(RoundedCornerShape(14.dp))
                         .background(Color(0xCC173653))
                         .border(1.dp, accent.copy(alpha = .55f), RoundedCornerShape(14.dp))
-                        .clickable(role = Role.Button) { contextMenuExpanded = true }
+                        .combinedClickable(
+                            role = Role.Button,
+                            onClick = { contextMenuExpanded = true },
+                            onLongClick = { contextMenuExpanded = true }
+                        )
                         .semantics { contentDescription = "Menú del escritorio" }
                         .padding(8.dp),
                     contentAlignment = Alignment.Center
