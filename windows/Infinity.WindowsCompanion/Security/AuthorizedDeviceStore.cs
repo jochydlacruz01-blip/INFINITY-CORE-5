@@ -54,8 +54,10 @@ public sealed class AuthorizedDeviceStore
         if (!CertificatePinning.HasEnhancedKeyUsage(certificate, CertificatePinning.ClientAuthenticationOid) ||
             !CertificatePinning.AllowsDigitalSignature(certificate) ||
             DateTime.UtcNow < certificate.NotBefore.ToUniversalTime() ||
-            DateTime.UtcNow > certificate.NotAfter.ToUniversalTime())
-            throw new InvalidOperationException("The certificate is not a currently valid Android client-auth certificate.");
+            DateTime.UtcNow > certificate.NotAfter.ToUniversalTime() ||
+            !LocalEnrollmentCertificateAuthority.ValidateClientCertificateChain(certificate))
+            throw new InvalidOperationException(
+                "The certificate must be current, permit TLS client authentication and chain to the local INFINITY enrollment CA.");
 
         var pin = CertificatePinning.ComputeSha256Pin(certificate);
         using var key = OpenWritableAuthorizationKey();
