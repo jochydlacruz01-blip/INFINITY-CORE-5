@@ -7,6 +7,17 @@ import org.junit.Test
 
 class InfinityReferenceRailLayoutTest {
     @Test
+    fun fullMastheadAppearsOnlyWhenItClearsClockAndLauncherRail() {
+        assertFalse(infinityReferenceMastheadVisible(600f))
+        assertFalse(infinityReferenceMastheadVisible(900f))
+        assertFalse(infinityReferenceMastheadVisible(1295f))
+        assertTrue(infinityReferenceMastheadVisible(1320f))
+        assertFalse(infinityReferenceMastheadVisible(Float.NaN))
+        assertFalse(infinityReferenceMastheadVisible(Float.POSITIVE_INFINITY))
+    }
+
+
+    @Test
     fun tabletLandscapeRailFitsAboveDock() {
         val layout = infinityReferenceRailLayout(960f, 600f, 7)
         val bottom = layout.topDp + layout.slotHeightDp * 7
