@@ -1,5 +1,13 @@
 package com.infinity.core
 
+/** Normal (restorable) geometry is expressed in dp. */
+internal data class InfinityAuroraWindowGeometry(
+    val x: Float,
+    val y: Float,
+    val width: Float,
+    val height: Float
+)
+
 /** Persistable geometry is expressed in dp and is owned by exactly one workspace. */
 internal data class InfinityAuroraWindow(
     val id: String,
@@ -10,7 +18,9 @@ internal data class InfinityAuroraWindow(
     val height: Float,
     val minimized: Boolean = false,
     val maximized: Boolean = false,
-    val zIndex: Long = 0L
+    val zIndex: Long = 0L,
+    /** Captured exactly once when maximizing; null for normal or legacy non-maximized windows. */
+    val restoreGeometry: InfinityAuroraWindowGeometry? = null
 )
 
 internal data class InfinityAuroraWindowTransaction(
@@ -25,6 +35,28 @@ internal data class InfinityAuroraWindowState(
     val activeWindowId: String? = null,
     val nextZIndex: Long = 1L
 ) {
+    fun maximize(windowId: String, workspace: Int, bounds: InfinityAuroraSafeBounds): InfinityAuroraWindowState {
+        val targetWorkspace = infinityNormalizeWorkspace(workspace)
+        val target = windows.firstOrNull { it.id == windowId && it.workspace == targetWorkspace && !it.minimized }
+            ?: return this
+        if (target.maximized) return this
+        val normal = InfinityAuroraWindowGeometry(target.x, target.y, target.width, target.height)
+        val maximized = infinityAuroraMaximizedWindow(target, bounds).copy(restoreGeometry = normal)
+        return copy(windows = windows.map { if (it.id == windowId) maximized else it })
+    }
+
+    fun restore(windowId: String, workspace: Int): InfinityAuroraWindowState {
+        val targetWorkspace = infinityNormalizeWorkspace(workspace)
+        val target = windows.firstOrNull { it.id == windowId && it.workspace == targetWorkspace }
+            ?: return this
+        val normal = target.restoreGeometry ?: return this
+        val restored = target.copy(
+            x = normal.x, y = normal.y, width = normal.width, height = normal.height,
+            maximized = false, restoreGeometry = null
+        )
+        return copy(windows = windows.map { if (it.id == windowId) restored else it })
+    }
+
     fun visibleWindows(workspace: Int): List<InfinityAuroraWindow> =
         windows.filter { it.workspace == infinityNormalizeWorkspace(workspace) && !it.minimized }
             .sortedBy { it.zIndex }
