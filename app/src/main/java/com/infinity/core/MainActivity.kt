@@ -7,6 +7,7 @@ import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import android.provider.DocumentsContract
 import android.widget.Toast
 import org.json.JSONArray
