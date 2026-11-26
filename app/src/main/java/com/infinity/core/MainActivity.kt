@@ -1378,6 +1378,12 @@ DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED"
                     }
                 }
 
+                if (maxW >= 600.dp && futuristicDesktop) {
+                    InfinityReferenceSystemTray(
+                        modifier = Modifier.padding(horizontal = 6.dp)
+                    )
+                }
+
                 Column(
                     modifier = Modifier
                         .clip(RoundedCornerShape(10.dp))
