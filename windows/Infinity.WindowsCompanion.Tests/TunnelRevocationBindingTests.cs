@@ -4,6 +4,7 @@ using System.Net.WebSockets;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Logging;
 using Infinity.WindowsCompanion.Security;
 using Xunit;
@@ -153,6 +154,40 @@ public sealed class TunnelRevocationBindingTests
         Assert.True(localSocket.SafeHandle.IsClosed);
         using var peerTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
         Assert.Equal(0, await remotePeer.GetStream().ReadAsync(new byte[1], peerTimeout.Token));
+    }
+
+    [Fact]
+    public async Task RevocationDuringPendingWebSocketUpgradeAbortsHttpRequestAndClosesRdpSocket()
+    {
+        var listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+        using var local = new TcpClient();
+        await local.ConnectAsync((IPEndPoint)listener.LocalEndpoint);
+        using var remote = await listener.AcceptTcpClientAsync(
+            new CancellationTokenSource(TimeSpan.FromSeconds(5)).Token);
+        listener.Stop();
+
+        var localSocket = local.Client;
+        var context = new DefaultHttpContext();
+        var lifetime = new RecordingRequestLifetimeFeature();
+        context.Features.Set<IHttpRequestLifetimeFeature>(lifetime);
+        using var operation = new CancellationTokenSource();
+        using var binding = TunnelRevocationBinding.BindPendingHandshake(
+            operation.Token, context, local);
+
+        operation.Cancel();
+
+        Assert.True(lifetime.Aborted);
+        Assert.True(localSocket.SafeHandle.IsClosed);
+        using var peerTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        Assert.Equal(0, await remote.GetStream().ReadAsync(new byte[1], peerTimeout.Token));
+    }
+
+    private sealed class RecordingRequestLifetimeFeature : IHttpRequestLifetimeFeature
+    {
+        public CancellationToken RequestAborted { get; set; }
+        public bool Aborted { get; private set; }
+        public void Abort() => Aborted = true;
     }
 
     private sealed class RecordingWebSocket : WebSocket
