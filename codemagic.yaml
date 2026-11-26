@@ -1,0 +1,20 @@
+workflows:
+  infinity-core-android:
+    name: INFINITY CORE 5 - Source verification only (PR #87)
+    max_build_duration: 60
+    environment:
+      java: 17
+    scripts:
+      - name: Run unit tests
+        script: |
+          set -Eeuo pipefail
+          gradle testDebugUnitTest testReleaseUnitTest --stacktrace
+      - name: Android lint
+        script: |
+          set -Eeuo pipefail
+          gradle lintDebug lintRelease --stacktrace
+    artifacts:
+      - app/build/test-results/**/*.xml
+      - app/build/reports/tests/**/*.html
+      - app/build/reports/lint-results*.html
+      - freerdp-core/build/reports/lint-results*.html
