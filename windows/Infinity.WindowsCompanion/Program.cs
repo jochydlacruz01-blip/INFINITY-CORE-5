@@ -529,7 +529,7 @@ app.MapGet("/v1/tunnel/rdp", async (HttpContext context) =>
             // Includes cancellation during the pending WebSocket upgrade, which may surface as
             // an IOException/WebSocketException after HttpContext.Abort rather than OCE.
             auditLog.Write("tunnel.revoked", fingerprint, sessionId, "revoked");
-            if (!context.RequestAborted.IsCancellationRequested)
+            if (!context.RequestAborted.IsCancellationRequested && !context.Response.HasStarted)
                 context.Response.StatusCode = StatusCodes.Status401Unauthorized;
         }
         finally
