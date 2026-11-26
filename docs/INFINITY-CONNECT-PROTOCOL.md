@@ -16,6 +16,7 @@ This is not a claim of physical-device operation. Android remote-desktop and fil
 - Each authorized Android installation has its own client certificate with client-authentication EKU and a private key protected by Android Keystore where the selected key algorithm/provider supports the required TLS use.
 - The Windows service accepts only explicitly enrolled Android client certificate fingerprints.
 - The Android client validates the Windows certificate fingerprint against a user-confirmed trust record. Unknown, changed, expired, revoked, or malformed certificates fail closed.
+- Android also retains platform PKIX path validation and HTTPS hostname verification. The Windows server certificate must chain to an Android system-trusted CA and its SAN must match the configured DNS name or IP; the leaf pin is an additional check, not a hostname/PKIX bypass.
 - A successful TCP connection is not identity verification. A successful TLS handshake is not authorization for remote-control capabilities.
 - Certificate enrollment is a separate, explicit, user-confirmed operation. Do not silently trust the first certificate observed.
 
