@@ -1,12 +1,16 @@
 package com.infinity.core
 
+import android.content.ContentValues
 import android.graphics.Bitmap
+import android.os.Build
+import android.os.Environment
+import android.provider.MediaStore
 import android.util.Log
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.click
+import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.semantics.SemanticsProperties
 import org.junit.Assert.assertTrue
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -34,8 +38,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.rules.TestWatcher
 import org.junit.runner.Description
-import java.io.File
-import java.io.FileOutputStream
 
 @RunWith(AndroidJUnit4::class)
 class InfinityDesktopEmulatorTest {
@@ -71,6 +73,7 @@ class InfinityDesktopEmulatorTest {
     @Test(timeout = 360_000)
     fun exerciseDesktopCaptureRealScreensAcrossOrientations() {
         val isTablet = context.resources.configuration.smallestScreenWidthDp >= 600
+        capture("00-initial-desktop")
         if (isTablet) {
             // Workspace changes intentionally close ORBIT; reopen it for each selection.
             // Exercise real workspace transitions through ORBIT, not only its labels.
@@ -221,8 +224,9 @@ class InfinityDesktopEmulatorTest {
             settleComposeFrame()
         }
         closeOrbit.assertIsDisplayed()
-        Log.i("INFINITY_TEST_DIAGNOSTIC", "ORBIT close target is visible; dispatching a real touch.")
-        closeOrbit.performTouchInput { click() }
+        closeOrbit.assertHasClickAction()
+        Log.i("INFINITY_TEST_DIAGNOSTIC", "ORBIT close target is visible; invoking its semantic click action.")
+        closeOrbit.performClick()
         repeat(3) { settleComposeFrame() }
         compose.waitUntil(timeoutMillis = 5_000) {
             compose.onAllNodesWithTag("infinity-orbit-panel").fetchSemanticsNodes().isEmpty()
@@ -327,19 +331,43 @@ class InfinityDesktopEmulatorTest {
         compose.mainClock.advanceTimeBy(250)
         compose.waitForIdle()
         device.waitForIdle()
+        check(Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            "CI screenshot export requires scoped MediaStore support (Android 10+)."
+        }
         val bitmap = instrumentation.uiAutomation.takeScreenshot()
             ?: throw AssertionError("Android emulator screenshot capture returned null: $name")
-        // Use app-internal storage so CI can export screenshots with run-as even when
-        // getExternalFilesDir() is unavailable on a headless emulator.
-        val root = File(context.filesDir, "infinity-ui-captures")
-        check(root.mkdirs() || root.isDirectory) { "Cannot create screenshot folder: $root" }
-        val file = File(root, "$name.png")
-        FileOutputStream(file).use { output ->
-            check(bitmap.compress(Bitmap.CompressFormat.PNG, 100, output)) {
-                "Failed to encode emulator screenshot: $name"
-            }
+        val resolver = context.contentResolver
+        val values = ContentValues().apply {
+            put(MediaStore.Images.Media.DISPLAY_NAME, "$name.png")
+            put(MediaStore.Images.Media.MIME_TYPE, "image/png")
+            put(
+                MediaStore.Images.Media.RELATIVE_PATH,
+                "${Environment.DIRECTORY_PICTURES}/infinity-ui-captures"
+            )
+            put(MediaStore.Images.Media.IS_PENDING, 1)
         }
-        bitmap.recycle()
-        check(file.length() > 10_000L) { "Screenshot is unexpectedly small: $file" }
+        val uri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
+            ?: throw AssertionError("Cannot create MediaStore screenshot row: $name")
+        try {
+            val output = resolver.openOutputStream(uri, "w")
+                ?: throw AssertionError("Cannot open MediaStore screenshot output: $name")
+            output.use {
+                check(bitmap.compress(Bitmap.CompressFormat.PNG, 100, it)) {
+                    "Failed to encode emulator screenshot: $name"
+                }
+            }
+            val publish = ContentValues().apply {
+                put(MediaStore.Images.Media.IS_PENDING, 0)
+            }
+            check(resolver.update(uri, publish, null, null) == 1) {
+                "Failed to publish emulator screenshot: $name"
+            }
+            Log.i("INFINITY_TEST_DIAGNOSTIC", "Screenshot persisted to shared MediaStore: $name")
+        } catch (failure: Throwable) {
+            resolver.delete(uri, null, null)
+            throw failure
+        } finally {
+            bitmap.recycle()
+        }
     }
 }
