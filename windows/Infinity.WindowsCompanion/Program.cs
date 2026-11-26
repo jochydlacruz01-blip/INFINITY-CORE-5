@@ -428,8 +428,15 @@ app.MapDelete("/v1/files/{fileId}", async (HttpContext context, string fileId) =
         {
             deleteOperation.Token.ThrowIfCancellationRequested();
             var deleted = await fileTransferStore.DeleteAsync(fileId, fingerprint, deleteOperation.Token);
-            auditLog.Write("file.deleted", fingerprint, sessionId, deleted ? "revoked" : "failed");
-            return deleted ? Results.NoContent() : Results.NotFound();
+            var deletionFailed = !deleted && fileTransferStore.Find(fileId, fingerprint) is not null;
+            auditLog.Write(
+                "file.deleted",
+                fingerprint,
+                sessionId,
+                deleted ? "deleted" : deletionFailed ? "filesystem-delete-failed" : "not-found");
+            return deleted
+                ? Results.NoContent()
+                : deletionFailed ? Results.Conflict() : Results.NotFound();
         }
     }
     catch (OperationCanceledException) when (!context.RequestAborted.IsCancellationRequested)
