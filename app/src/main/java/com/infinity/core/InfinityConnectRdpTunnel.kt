@@ -133,12 +133,16 @@ internal class InfinityConnectRdpTunnel(
             }
 
             override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
+                opened.completeExceptionally(IOException("Windows closed the tunnel before it became ready."))
                 inboundFrames.close()
+                localSocketRef.getAndSet(null)?.let { socket -> runCatching { socket.close() } }
                 runCatching { localServer.close() }
             }
 
             override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
+                opened.completeExceptionally(IOException("Windows closed the RDP tunnel."))
                 inboundFrames.close()
+                localSocketRef.getAndSet(null)?.let { socket -> runCatching { socket.close() } }
                 runCatching { localServer.close() }
             }
 
@@ -195,6 +199,8 @@ internal class InfinityConnectRdpTunnel(
                     localToRemote.cancel()
                     localSocketRef.getAndSet(null)?.runCatching { close() }
                 }
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
             } catch (error: Throwable) {
                 inboundFrames.close(error)
                 webSocket.close(1011, "Local RDP relay stopped")
