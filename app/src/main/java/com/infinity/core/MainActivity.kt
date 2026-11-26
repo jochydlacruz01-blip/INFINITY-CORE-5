@@ -159,7 +159,8 @@ private data class DeskWindow(
     val height: Float = 330f,
     val minimized: Boolean = false,
     val workspace: Int = 1,
-    val maximized: Boolean = false
+    val maximized: Boolean = false,
+    val zIndex: Long = 0L
 )
 private data class InstalledApp(val label: String, val packageName: String, val activityName: String)
 private data class ExplorerEntry(
@@ -391,18 +392,33 @@ private fun Infinity08App() {
                     )
                     // Ignore duplicate kind/workspace records instead of restoring duplicate tasks.
                     if (any { it.id == restoredId }) continue
+                    val legacyRecord = InfinityLegacyWindowRecord(
+                        id = restoredId,
+                        workspace = restoredWorkspace,
+                        x = infinityNormalizeWindowCoordinate(item.optDouble("x", 24.0).toFloat(), 24f),
+                        y = infinityNormalizeWindowCoordinate(item.optDouble("y", 100.0).toFloat(), 100f),
+                        width = infinityNormalizeWindowDimension(item.optDouble("width", 370.0).toFloat(), 370f, 240f, 900f),
+                        height = infinityNormalizeWindowDimension(item.optDouble("height", 330.0).toFloat(), 330f, 180f, 900f),
+                        minimized = item.optBoolean("minimized", false),
+                        maximized = item.optBoolean("maximized", false),
+                        zIndex = item.optLong("zIndex", i.toLong())
+                    )
+                    // The legacy JSON remains the migration source of truth. Convert each
+                    // validated record into AURORA state while retaining UI-only metadata here.
+                    val auroraWindow = infinityAuroraWindowFromLegacy(legacyRecord)
                     add(
                         DeskWindow(
-                            id = restoredId,
+                            id = auroraWindow.id,
                             title = item.optString("title", kind).trim().take(80).ifBlank { kind },
                             kind = kind,
-                            x = infinityNormalizeWindowCoordinate(item.optDouble("x", 24.0).toFloat(), 24f),
-                            y = infinityNormalizeWindowCoordinate(item.optDouble("y", 100.0).toFloat(), 100f),
-                            width = infinityNormalizeWindowDimension(item.optDouble("width", 370.0).toFloat(), 370f, 240f, 900f),
-                            height = infinityNormalizeWindowDimension(item.optDouble("height", 330.0).toFloat(), 330f, 180f, 900f),
-                            minimized = item.optBoolean("minimized", false),
-                            workspace = restoredWorkspace,
-                            maximized = item.optBoolean("maximized", false)
+                            x = auroraWindow.x,
+                            y = auroraWindow.y,
+                            width = auroraWindow.width,
+                            height = auroraWindow.height,
+                            minimized = auroraWindow.minimized,
+                            workspace = auroraWindow.workspace,
+                            maximized = auroraWindow.maximized,
+                            zIndex = auroraWindow.zIndex
                         )
                     )
                 }
@@ -414,7 +430,7 @@ private fun Infinity08App() {
     }
 
     val windowSnapshot = windows.joinToString("|") {
-        "${it.id},${it.x},${it.y},${it.width},${it.height},${it.minimized},${it.workspace},${it.maximized}"
+        "${it.id},${it.x},${it.y},${it.width},${it.height},${it.minimized},${it.workspace},${it.maximized},${it.zIndex}"
     }
     LaunchedEffect(windowSnapshot) {
         val array = JSONArray()
@@ -423,7 +439,7 @@ private fun Infinity08App() {
                 JSONObject().put("id", win.id).put("title", win.title).put("kind", win.kind)
                     .put("x", win.x).put("y", win.y).put("width", win.width).put("height", win.height)
                     .put("minimized", win.minimized).put("workspace", win.workspace)
-                    .put("maximized", win.maximized)
+                    .put("maximized", win.maximized).put("zIndex", win.zIndex)
             )
         }
         prefs.edit().putString("saved_windows", array.toString()).apply()
