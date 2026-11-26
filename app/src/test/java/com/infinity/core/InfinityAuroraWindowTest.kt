@@ -144,3 +144,60 @@ class InfinityAuroraLegacyMigrationTest {
         assertEquals(10f, migrated.single().x)
     }
 }
+
+
+class InfinityAuroraDeskWindowAdapterTest {
+    @Test fun desktopAdapterDelegatesPersistentStateToAuroraAndPreservesUiMetadata() {
+        val original = DeskWindow(
+            id = "notes-w1", title = "Notas rápidas", kind = "notes",
+            x = 37f, y = 52f, width = 470f, height = 340f, zIndex = 6L
+        )
+
+        val moved = original.copy(x = 91f, y = 108f, zIndex = 12L)
+
+        assertEquals("Notas rápidas", moved.title)
+        assertEquals("notes", moved.kind)
+        assertEquals(91f, moved.x)
+        assertEquals(108f, moved.aurora.y)
+        assertEquals(12L, moved.aurora.zIndex)
+        assertEquals(original.x, original.aurora.x)
+    }
+
+    @Test fun desktopAdapterMaximizeAndRestoreUseAuroraLifecycleAndExactGeometry() {
+        val original = DeskWindow(
+            id = "files-w2", title = "Archivos", kind = "files",
+            x = 23f, y = 61f, width = 430f, height = 315f, workspace = 2, zIndex = 4L
+        )
+        val bounds = InfinityAuroraSafeBounds(900f, 700f, 30f, 610f)
+
+        val maximized = original.maximize(bounds)
+        assertTrue(maximized.maximized)
+        assertEquals(InfinityAuroraWindowGeometry(23f, 61f, 430f, 315f), maximized.aurora.restoreGeometry)
+        assertEquals(8f, maximized.x)
+        assertEquals(38f, maximized.y)
+
+        val restored = maximized.restore()
+        assertTrue(!restored.maximized)
+        assertNull(restored.aurora.restoreGeometry)
+        assertEquals(23f, restored.x)
+        assertEquals(61f, restored.y)
+        assertEquals(430f, restored.width)
+        assertEquals(315f, restored.height)
+        assertEquals("Archivos", restored.title)
+        assertEquals(2, restored.workspace)
+    }
+
+    @Test fun desktopAdapterRejectsLifecycleMutationThroughPresentationCopy() {
+        val normal = DeskWindow(
+            id = "notes-w1", title = "Notas", kind = "notes",
+            x = 20f, y = 30f, width = 400f, height = 280f
+        )
+        var rejected = false
+        try {
+            normal.copy(maximized = true)
+        } catch (_: IllegalArgumentException) {
+            rejected = true
+        }
+        assertTrue(rejected)
+    }
+}
