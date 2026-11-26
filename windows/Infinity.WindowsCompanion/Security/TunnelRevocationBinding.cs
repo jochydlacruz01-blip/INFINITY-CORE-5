@@ -42,7 +42,12 @@ public static class TunnelRevocationBinding
         {
             var resources = ((WebSocket WebSocket, TcpClient TcpClient))state!;
             try { resources.WebSocket.Abort(); }
-            finally { resources.TcpClient.Close(); }
+            catch (ObjectDisposedException) { }
+            finally
+            {
+                try { resources.TcpClient.Close(); }
+                catch (ObjectDisposedException) { }
+            }
         }, (webSocket, rdpClient));
     }
 }
