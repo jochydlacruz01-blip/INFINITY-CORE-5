@@ -1394,7 +1394,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                     }
                 )
             ) {
-                DockAction(if (futuristicDesktop && maxW >= 600.dp) "▦" else "⌂", "HOME", accent, iconPack, compact = maxW < 390.dp, referenceStyle = futuristicDesktop && maxW >= 600.dp) {
+                DockAction(if (futuristicDesktop && maxW >= 600.dp) "▦" else "⌂", "HOME", accent, iconPack, compact = infinityDockUsesCompactActions(maxW.value), referenceStyle = futuristicDesktop && maxW >= 600.dp) {
                     dashboardOpen = true
                     startOpen = false
                     orbitOpen = false
@@ -1402,7 +1402,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                     advancedOpen = false
                 }
 
-                DockAction(if (futuristicDesktop && maxW >= 600.dp) "⌕" else "✦", "START", accent, iconPack, compact = maxW < 390.dp, referenceStyle = futuristicDesktop && maxW >= 600.dp) {
+                DockAction(if (futuristicDesktop && maxW >= 600.dp) "⌕" else "✦", "START", accent, iconPack, compact = infinityDockUsesCompactActions(maxW.value), referenceStyle = futuristicDesktop && maxW >= 600.dp) {
                     startOpen = !startOpen
                     if (startOpen) {
                         search = ""
@@ -1434,7 +1434,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                     }
                 }
 
-                DockAction(if (futuristicDesktop && maxW >= 600.dp) "∞" else "◎", "ORBIT", Color(0xFFB69CFF), iconPack, compact = maxW < 390.dp, referenceStyle = futuristicDesktop && maxW >= 600.dp) {
+                DockAction(if (futuristicDesktop && maxW >= 600.dp) "∞" else "◎", "ORBIT", Color(0xFFB69CFF), iconPack, compact = infinityDockUsesCompactActions(maxW.value), referenceStyle = futuristicDesktop && maxW >= 600.dp) {
                     // ORBIT is an explicit launcher command: repeated activation must never
                     // cancel the opening transition while accessibility dispatch is settling.
                     orbitOpen = true
@@ -1443,14 +1443,14 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                     advancedOpen = false
                 }
 
-                DockAction(if (futuristicDesktop && maxW >= 600.dp) "⬡" else "☷", "CONTROL", Color(0xFFFFC27A), iconPack, compact = maxW < 390.dp, referenceStyle = futuristicDesktop && maxW >= 600.dp) {
+                DockAction(if (futuristicDesktop && maxW >= 600.dp) "⬡" else "☷", "CONTROL", Color(0xFFFFC27A), iconPack, compact = infinityDockUsesCompactActions(maxW.value), referenceStyle = futuristicDesktop && maxW >= 600.dp) {
                     controlOpen = !controlOpen
                     if (controlOpen) controlMode = "personalization"
                     startOpen = false
                     orbitOpen = false
                     advancedOpen = false
                 }
-DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED", accent, iconPack, compact = maxW < 390.dp, referenceStyle = futuristicDesktop && maxW >= 600.dp) {
+DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED", accent, iconPack, compact = infinityDockUsesCompactActions(maxW.value), referenceStyle = futuristicDesktop && maxW >= 600.dp) {
     advancedOpen = !advancedOpen
     startOpen = false
     orbitOpen = false
@@ -1472,7 +1472,7 @@ DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED"
                     val visibleTaskIds = allTaskIds.takeLast(visibleTaskLimit)
                     visibleTaskIds.forEach { taskId ->
                         val task = workspaceWindows.firstOrNull { it.id == taskId } ?: return@forEach
-                        DockAction(if (task.minimized) "□" else "▣", infinityDockLabel(task.title), accent, iconPack, compact = maxW < 390.dp) {
+                        DockAction(if (task.minimized) "□" else "▣", infinityDockLabel(task.title), accent, iconPack, compact = infinityDockUsesCompactActions(maxW.value)) {
                             val idx = windows.indexOfFirst { it.id == task.id }
                             if (idx >= 0) {
                                 val tappedTask = windows[idx]
@@ -1498,7 +1498,7 @@ DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED"
                     }
                     val hiddenTaskCount = infinityDockHiddenTaskCount(allTaskIds.size, visibleTaskIds.size)
                     if (hiddenTaskCount > 0) {
-                        DockAction("⋯", "MÁS VENTANAS: $hiddenTaskCount", accent, iconPack, compact = maxW < 390.dp, referenceStyle = futuristicDesktop && maxW >= 600.dp) {
+                        DockAction("⋯", "MÁS VENTANAS: $hiddenTaskCount", accent, iconPack, compact = infinityDockUsesCompactActions(maxW.value), referenceStyle = futuristicDesktop && maxW >= 600.dp) {
                             orbitOpen = true
                             dashboardOpen = false
                             startOpen = false
