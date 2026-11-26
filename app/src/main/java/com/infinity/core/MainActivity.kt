@@ -214,28 +214,16 @@ private class DeskWindow(
         maximized: Boolean = this.maximized,
         zIndex: Long = this.zIndex
     ): DeskWindow {
-        var next = aurora.copy(
-            id = id, workspace = workspace, x = x, y = y, width = width, height = height,
-            minimized = minimized, zIndex = zIndex
-        )
-        if (!this.maximized && maximized) {
-            next = next.copy(
-                maximized = true,
-                restoreGeometry = InfinityAuroraWindowGeometry(this.x, this.y, this.width, this.height)
-            )
-        } else if (this.maximized && !maximized) {
-            val restore = aurora.restoreGeometry
-            if (restore != null) {
-                next = next.copy(
-                    x = restore.x, y = restore.y, width = restore.width, height = restore.height,
-                    maximized = false, restoreGeometry = null
-                )
-            } else {
-                next = next.copy(maximized = false, restoreGeometry = null)
-            }
-        } else {
-            next = next.copy(maximized = maximized, restoreGeometry = aurora.restoreGeometry)
+        // Maximize/restore transitions must go through the AURORA state API,
+        // never through a presentation-wrapper copy.
+        require(maximized == aurora.maximized) {
+            "Use DeskWindow.maximize()/restore() for AURORA lifecycle transitions."
         }
+        val next = aurora.copy(
+            id = id, workspace = workspace, x = x, y = y, width = width, height = height,
+            minimized = minimized, maximized = maximized, zIndex = zIndex,
+            restoreGeometry = aurora.restoreGeometry
+        )
         return DeskWindow(title, kind, next)
     }
 }
