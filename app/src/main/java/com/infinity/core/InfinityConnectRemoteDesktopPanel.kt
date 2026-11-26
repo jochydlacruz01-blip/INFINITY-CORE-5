@@ -80,6 +80,12 @@ internal fun InfinityConnectRemoteDesktopPanel(
                 status = "Escritorio Windows conectado mediante NLA y certificado fijado."
             }
 
+            override fun onAuthenticating() {
+                if (client == null) return
+                lifecycle.transition(InfinityConnectSessionState.AUTHENTICATING)
+                status = "Autenticando la sesión RDP con Network Level Authentication..."
+            }
+
             override fun onDisconnected() {
                 connected = false
                 val disconnectedClient = client
