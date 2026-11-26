@@ -25,7 +25,6 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
-import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipe
 import androidx.compose.ui.test.swipeUp
@@ -112,7 +111,6 @@ class InfinityDesktopEmulatorTest {
         capture(if (isTablet) "01-desktop-tablet-portrait" else "10-desktop-compact-phone")
 
         // START: open, search, launch a real desktop tool.
-        compose.onNodeWithContentDescription("START").performScrollTo()
         Log.i("INFINITY_TEST_DIAGNOSTIC", "START click")
         compose.onNodeWithContentDescription("START").performClick()
         settleComposeFrame()
@@ -226,7 +224,6 @@ class InfinityDesktopEmulatorTest {
         compose.onNodeWithTag("infinity-orbit-panel").assertDoesNotExist()
 
         // CONTROL: interact with a real theme option and capture the resulting panel.
-        compose.onNodeWithContentDescription("CONTROL").performScrollTo()
         compose.onNodeWithContentDescription("CONTROL").performClick()
         settleComposeFrame()
         compose.onNodeWithText("CONTROL CENTER").assertExists()
@@ -249,8 +246,6 @@ class InfinityDesktopEmulatorTest {
             )
         )
         compose.waitForIdle()
-
-        compose.onNodeWithContentDescription("ADVANCED").performScrollTo()
         compose.onNodeWithContentDescription("ADVANCED").performClick()
         settleComposeFrame()
         compose.onNodeWithText("INFINITY ADVANCED").assertExists()
@@ -276,13 +271,11 @@ class InfinityDesktopEmulatorTest {
         compose.onNodeWithText("Todavía no hay notificaciones disponibles.").assertExists()
 
         // Dock stays reachable after opening and closing the desktop panels.
-        compose.onNodeWithContentDescription("HOME").performScrollTo()
         compose.onNodeWithContentDescription("HOME").performClick()
         settleComposeFrame()
         capture("04-dock-operational")
 
         // Rotate with START open; validate recovery of the main shell and Dock.
-        compose.onNodeWithContentDescription("START").performScrollTo()
         compose.onNodeWithContentDescription("START").performClick()
         settleComposeFrame()
         device.setOrientationLeft()
@@ -336,7 +329,6 @@ class InfinityDesktopEmulatorTest {
     }
 
     private fun openStartApp(query: String, appTag: String) {
-        compose.onNodeWithContentDescription("START").performScrollTo()
         compose.onNodeWithContentDescription("START").performClick()
         settleComposeFrame()
         waitForText("INFINITY START")
@@ -364,7 +356,6 @@ class InfinityDesktopEmulatorTest {
         // This suite freezes Compose's clock; explicitly commit the UI state transition.
         compose.mainClock.advanceTimeByFrame()
         compose.waitForIdle()
-        device.waitForIdle()
     }
 
     private fun waitForText(text: String) {
