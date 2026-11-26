@@ -1,5 +1,7 @@
 package com.infinity.core
 
+import java.util.Locale
+
 /**
  * Deterministic filtering for INFINITY START's installed-app catalog.
  * Classification is heuristic because Android does not expose a reliable
@@ -8,10 +10,10 @@ package com.infinity.core
 internal object InfinityStartCatalogPolicy {
     val categories = listOf("all", "productivity", "communication", "media", "games", "system")
 
-    fun normalizeQuery(query: String): String = query.trim().lowercase()
+    fun normalizeQuery(query: String): String = query.trim().lowercase(Locale.ROOT)
 
     fun categoryOf(label: String, packageName: String): String {
-        val value = "${label.lowercase()} ${packageName.lowercase()}"
+        val value = "${label.lowercase(Locale.ROOT)} ${packageName.lowercase(Locale.ROOT)}"
         return when {
             listOf("game", "games", "playgames", "gaming").any(value::contains) -> "games"
             listOf("camera", "photo", "gallery", "video", "music", "audio", "media", "youtube", "netflix").any(value::contains) -> "media"
@@ -30,8 +32,8 @@ internal object InfinityStartCatalogPolicy {
     ): Boolean {
         val normalized = normalizeQuery(query)
         val queryMatches = normalized.isEmpty() ||
-            label.lowercase().contains(normalized) ||
-            packageName.lowercase().contains(normalized)
+            label.lowercase(Locale.ROOT).contains(normalized) ||
+            packageName.lowercase(Locale.ROOT).contains(normalized)
         val categoryMatches = selectedCategory == "all" ||
             (selectedCategory in categories && categoryOf(label, packageName) == selectedCategory)
         return queryMatches && categoryMatches
@@ -52,7 +54,7 @@ internal object InfinityStartCatalogPolicy {
         selectedCategory: String
     ): Boolean {
         val normalized = normalizeQuery(query)
-        val queryMatches = normalized.isEmpty() || label.lowercase().contains(normalized) || id.lowercase().contains(normalized)
+        val queryMatches = normalized.isEmpty() || label.lowercase(Locale.ROOT).contains(normalized) || id.lowercase(Locale.ROOT).contains(normalized)
         val categoryMatches = selectedCategory == "all" ||
             (selectedCategory in categories && desktopToolCategory(id) == selectedCategory)
         return queryMatches && categoryMatches

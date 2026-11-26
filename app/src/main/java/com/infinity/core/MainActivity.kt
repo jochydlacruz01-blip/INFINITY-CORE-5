@@ -233,6 +233,38 @@ internal class DeskWindow(
         DeskWindow(title = title, kind = kind, aurora = window)
 }
 
+private fun infinityCurrentAuroraWindowState(
+    windows: MutableList<DeskWindow>,
+    focusedWindowId: String?,
+    workspace: Int
+): InfinityAuroraWindowState {
+    // Rebase before the Long counter wraps so every new activation remains on top.
+    if (windows.any { it.zIndex == Long.MAX_VALUE }) {
+        windows.indices.sortedBy { windows[it].zIndex }.forEachIndexed { rank, index ->
+            windows[index] = windows[index].copy(zIndex = rank.toLong() + 1L)
+        }
+    }
+    val nextZIndex = (windows.maxOfOrNull { it.zIndex } ?: 0L) + 1L
+    return InfinityAuroraWindowState(
+        windows = windows.map { it.aurora },
+        activeWindowId = focusedWindowId,
+        activeWindowWorkspace = infinityNormalizeWorkspace(workspace),
+        nextZIndex = nextZIndex
+    )
+}
+
+private fun infinityApplyAuroraWindowState(
+    windows: MutableList<DeskWindow>,
+    state: InfinityAuroraWindowState
+) {
+    val metadata = windows.associateBy { "${it.workspace}:${it.id}" }
+    val updated = state.windows.mapNotNull { model ->
+        metadata["${model.workspace}:${model.id}"]?.withAurora(model)
+    }
+    windows.clear()
+    windows.addAll(updated)
+}
+
 private data class InstalledApp(val label: String, val packageName: String, val activityName: String)
 private data class ExplorerEntry(
     val documentId: String,
@@ -1506,15 +1538,16 @@ DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED"
                                 val activation = infinityDockResolveActivation(
                                     tappedTask.id, focusedWindowId, tappedTask.minimized
                                 )
-                                val minimizeTask = activation == null
-                                windows[idx] = tappedTask.copy(minimized = minimizeTask)
-                                focusedWindowId = if (minimizeTask) {
-                                    infinityResolveWorkspaceFocus(
-                                        null, windows.map { it.id },
-                                        windows.associate { it.id to it.workspace },
-                                        windows.filter { it.minimized }.map { it.id }.toSet(), workspace
-                                    )
-                                } else activation
+                                val currentState = infinityCurrentAuroraWindowState(
+                                    windows, focusedWindowId, workspace
+                                )
+                                val nextState = if (activation == null) {
+                                    currentState.minimize(tappedTask.id, workspace)
+                                } else {
+                                    currentState.activate(tappedTask.id, workspace)
+                                }
+                                infinityApplyAuroraWindowState(windows, nextState)
+                                focusedWindowId = nextState.activeWindowId
                             }
                             dashboardOpen = false
                             startOpen = false
@@ -1590,7 +1623,9 @@ DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED"
                         else -> accent.copy(alpha = .28f)
                     })
                 ) {
-                    Column(Modifier.padding(16.dp)) {
+                    Column(
+                        Modifier.padding(16.dp).verticalScroll(rememberScrollState())
+                    ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically
@@ -1744,7 +1779,7 @@ DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED"
                                 fontSize = 11.sp,
                                 modifier = Modifier.padding(vertical = 10.dp)
                             )
-                        } else LazyColumn(Modifier.weight(1f, fill = false).heightIn(max = 230.dp)) {
+                        } else LazyColumn(Modifier.heightIn(max = 230.dp)) {
                             items(filteredInstalledApps, key = { it.packageName }) { app ->
                                 Row(
                                     Modifier.fillMaxWidth().clickable {
@@ -2277,14 +2312,11 @@ Spacer(Modifier.height(14.dp))
                                         Column(
                                             Modifier.weight(1f)
                                                 .clickable {
-                                                    val index = windows.indexOfFirst {
-                                                        it.id == win.id
-                                                    }
-                                                    if (index >= 0) {
-                                                        windows[index] =
-                                                            windows[index].copy(minimized = false)
-                                                        focusedWindowId = win.id
-                                                    }
+                                                    val nextState = infinityCurrentAuroraWindowState(
+                                                        windows, focusedWindowId, workspace
+                                                    ).activate(win.id, win.workspace)
+                                                    infinityApplyAuroraWindowState(windows, nextState)
+                                                    focusedWindowId = nextState.activeWindowId
                                                     orbitOpen = false
                                                 }
                                                 .padding(start = 8.dp)
@@ -2307,26 +2339,17 @@ Spacer(Modifier.height(14.dp))
 
                                         TextButton(
                                             onClick = {
-                                                val index = windows.indexOfFirst {
-                                                    it.id == win.id
+                                                val currentState = infinityCurrentAuroraWindowState(
+                                                    windows, focusedWindowId, workspace
+                                                )
+                                                val nextState = if (win.minimized) {
+                                                    currentState.activate(win.id, win.workspace)
+                                                } else {
+                                                    currentState.minimize(win.id, win.workspace)
                                                 }
-                                                if (index >= 0) {
-                                                    if (win.minimized) {
-                                                        windows[index] = windows[index].copy(minimized = false)
-                                                        focusedWindowId = win.id
-                                                        orbitOpen = false
-                                                    } else {
-                                                        windows[index] = windows[index].copy(minimized = true)
-                                                        focusedWindowId = infinityResolveFocusAfterWindowDeactivation(
-                                                            win.id,
-                                                            focusedWindowId,
-                                                            windows.map { it.id },
-                                                            windows.associate { it.id to it.workspace },
-                                                            windows.filter { it.minimized }.map { it.id }.toSet(),
-                                                            workspace
-                                                        )
-                                                    }
-                                                }
+                                                infinityApplyAuroraWindowState(windows, nextState)
+                                                focusedWindowId = nextState.activeWindowId
+                                                if (win.minimized) orbitOpen = false
                                             }
                                         ) {
                                             Text(
@@ -2337,17 +2360,11 @@ Spacer(Modifier.height(14.dp))
 
                                         TextButton(
                                             onClick = {
-                                                windows.removeAll {
-                                                    it.id == win.id
-                                                }
-                                                focusedWindowId = infinityResolveFocusAfterWindowDeactivation(
-                                                    win.id,
-                                                    focusedWindowId,
-                                                    windows.map { it.id },
-                                                    windows.associate { it.id to it.workspace },
-                                                    windows.filter { it.minimized }.map { it.id }.toSet(),
-                                                    workspace
-                                                )
+                                                val nextState = infinityCurrentAuroraWindowState(
+                                                    windows, focusedWindowId, workspace
+                                                ).close(win.id, win.workspace)
+                                                infinityApplyAuroraWindowState(windows, nextState)
+                                                focusedWindowId = nextState.activeWindowId
                                             }
                                         ) {
                                             Text(
@@ -2687,7 +2704,10 @@ private fun openInfinityWindow(
     val existing = windows.indexOfFirst { it.kind == id && it.workspace == workspace }
     val windowId = infinityWindowIdentity(id, workspace)
     if (existing >= 0) {
-        windows[existing] = windows[existing].copy(minimized = false)
+        val nextState = infinityCurrentAuroraWindowState(
+            windows, null, workspace
+        ).activate(windowId, workspace)
+        infinityApplyAuroraWindowState(windows, nextState)
     } else {
         val (windowWidth, windowHeight) = infinityInitialWindowSize(
             viewportWidth,
@@ -2709,7 +2729,8 @@ private fun openInfinityWindow(
                 y = windowY,
                 width = windowWidth,
                 height = windowHeight,
-                workspace = workspace
+                workspace = workspace,
+                zIndex = infinityCurrentAuroraWindowState(windows, null, workspace).nextZIndex
             )
         )
     }

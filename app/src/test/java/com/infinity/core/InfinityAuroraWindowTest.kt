@@ -238,6 +238,13 @@ class InfinityAuroraWindowLifecycleTest {
         assertEquals(3, minimized.windows.size)
     }
 
+    @Test fun activateRaisesAnAlreadyVisibleWindowAboveTheCurrentStack() {
+        val activated = state().activate("notes", 1)
+        assertEquals("notes", activated.activeWindowId)
+        assertEquals(8L, activated.windows.first { it.id == "notes" && it.workspace == 1 }.zIndex)
+        assertEquals(9L, activated.nextZIndex)
+    }
+
     @Test fun activateRestoresAndRaisesMinimizedWindow() {
         val minimized = state().minimize("files", 1)
         val activated = minimized.activate("files", 1)
