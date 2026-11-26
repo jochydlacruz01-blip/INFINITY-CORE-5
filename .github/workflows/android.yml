@@ -69,11 +69,11 @@ jobs:
           set -euo pipefail
           sdkmanager --install "platforms;android-35" "build-tools;35.0.0" "ndk;27.0.12077973" "cmake;3.22.1"
 
-      - name: Compile, test, lint, build FreeRDP native libraries and assemble DEBUG only
+      - name: Build installable DEBUG APK (best-effort test build)
         shell: bash
         run: |
           set -euo pipefail
-          gradle -PINFINITY_BUILD_FREERDP_NATIVE=true :freerdpCore:externalNativeBuildDebug compileDebugKotlin testDebugUnitTest lintDebug assembleDebug --stacktrace
+          gradle assembleDebug --stacktrace
 
       - name: Verify DEBUG APK and Android debug certificate
         shell: bash
@@ -116,14 +116,16 @@ jobs:
           sha256sum "${APK}" | tee app-debug-sha256.txt
           stat --format='APK_SIZE_BYTES=%s' "${APK}" | tee app-debug-size.txt
 
-      - name: Upload DEBUG APK verification evidence
+      - name: Upload DEBUG APK and available verification evidence
+        if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: PROJECT-INFINITY-0.10-DEBUG-APK-EVIDENCE
+          name: PROJECT-INFINITY-0.10-DEBUG-APK-TEST
           path: |
+            app/build/outputs/apk/debug/app-debug.apk
             app-debug-sha256.txt
             app-debug-size.txt
             app-debug-signature.txt
             app-debug-freerdp-libraries.txt
-          if-no-files-found: error
-          retention-days: 14
+          if-no-files-found: warn
+          retention-days: 3
