@@ -628,12 +628,18 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
             val maxW = maxWidth
             val maxH = maxHeight
             val density = LocalDensity.current
-            val desktopIconMetrics = remember(maxW, maxH, density, desktopItems.size) {
+            // A compact reference masthead is shown only on tall phone layouts.
+            // Reserve its vertical space before computing icon positions so the
+            // brand, clock and shortcuts never occupy the same touch area.
+            val mobileReferenceHeader = maxW < 600.dp && maxH >= 700.dp &&
+                futuristicDesktop && !dashboardOpen
+            val desktopIconMetrics = remember(maxW, maxH, density, desktopItems.size, mobileReferenceHeader) {
                 infinityDesktopIconLayoutMetrics(
                     with(density) { maxW.toPx() },
                     with(density) { maxH.toPx() },
                     desktopItems.size,
-                    density.density
+                    density.density,
+                    topInsetDp = if (mobileReferenceHeader) 220f else 118f
                 )
             }
 
@@ -719,15 +725,22 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
 
             // PACK13: render a true layered futuristic scene when no personal wallpaper is selected.
             // The scene is decorative only; all desktop controls remain live Compose elements above it.
-            if (currentWallpaperBitmap == null && maxW >= 600.dp && !dashboardOpen && futuristicDesktop) {
+            if (currentWallpaperBitmap == null && !dashboardOpen && futuristicDesktop) {
+                // The same native INFINITY scene scales to phone and tablet; only the
+                // interactive controls change density for the available viewport.
                 InfinityFuturisticScene(modifier = Modifier.fillMaxSize())
             }
 
-            // Cabecera de marca para tablet; no sustituye los accesos ni el fondo elegido.
+            // Tablet reference masthead keeps its approved placement. Tall phones use
+            // a compact native wordmark with a reserved icon-grid safe zone.
             if (maxW >= 600.dp && !dashboardOpen && futuristicDesktop) {
                 InfinityReferenceMasthead(
                     modifier = Modifier.align(Alignment.TopCenter)
                         .padding(top = if (maxW < 900.dp) 112.dp else 88.dp)
+                )
+            } else if (mobileReferenceHeader) {
+                InfinityDesktopMasthead(
+                    modifier = Modifier.align(Alignment.TopCenter).padding(top = 86.dp)
                 )
             }
 
@@ -754,7 +767,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
             )
 
             // Compact workspace branding is suppressed on the reference desktop to preserve its clean composition.
-            if (!(maxW >= 600.dp && futuristicDesktop && !dashboardOpen)) {
+            if (!(maxW >= 600.dp && futuristicDesktop && !dashboardOpen) && !mobileReferenceHeader) {
             Column(
                 Modifier.align(Alignment.TopStart)
                     .widthIn(max = infinityDesktopBrandingMaxWidth(maxW.value).dp)

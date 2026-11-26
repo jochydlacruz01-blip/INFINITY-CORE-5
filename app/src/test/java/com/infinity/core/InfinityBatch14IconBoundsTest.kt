@@ -119,3 +119,40 @@ class InfinityBatch14IconBoundsTest {
         )
     }
 }
+
+
+class InfinityMobileReferenceHeaderLayoutTest {
+    @Test fun portraitPhoneReservesTheMastheadSafeZoneInDensityPixels() {
+        val metrics = infinityDesktopIconLayoutMetrics(
+            viewportWidthPx = 360f,
+            viewportHeightPx = 800f,
+            itemCount = 7,
+            density = 1f,
+            topInsetDp = 220f
+        )
+        assertEquals(220f, metrics.topInsetPx, 0.001f)
+        assertTrue(metrics.itemWidthPx > 0f)
+        assertTrue(metrics.itemHeightPx > 0f)
+    }
+
+    @Test fun mastheadSafeZoneScalesWithDisplayDensity() {
+        val metrics = infinityDesktopIconLayoutMetrics(
+            viewportWidthPx = 720f,
+            viewportHeightPx = 1600f,
+            itemCount = 7,
+            density = 2f,
+            topInsetDp = 220f
+        )
+        assertEquals(440f, metrics.topInsetPx, 0.001f)
+    }
+
+    @Test fun defaultTabletLayoutKeepsItsExistingTopInset() {
+        val metrics = infinityDesktopIconLayoutMetrics(
+            viewportWidthPx = 1600f,
+            viewportHeightPx = 1200f,
+            itemCount = 7,
+            density = 2f
+        )
+        assertEquals(236f, metrics.topInsetPx, 0.001f)
+    }
+}

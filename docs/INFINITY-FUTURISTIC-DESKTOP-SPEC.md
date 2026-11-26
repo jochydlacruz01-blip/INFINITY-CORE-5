@@ -5,7 +5,7 @@ The target is the user's supplied visual reference: an immersive blue/violet spa
 ## PACK13 delivery
 
 - Added `InfinityFuturisticScene.kt`: a resolution-independent Compose Canvas scene with deep-space gradient, deterministic star field, nebula glow, planetary horizon, orbital light and a futuristic skyline.
-- Integrated the scene into the tablet desktop only when the Futuristic preset is active and no personal wallpaper has been selected.
+- Integrated the same resolution-independent scene on phone and tablet when the Futuristic preset is active and no personal wallpaper has been selected. Existing tablet reference masthead remains; tall phone portrait layouts receive a compact native wordmark with a reserved icon-grid safe zone.
 - Kept all desktop controls as live Compose elements above the scene. The scene is not a flattened screenshot and does not intercept interaction.
 - Existing user-selected wallpaper and legacy preset remain available.
 - Existing masthead, desktop icons, clock, brand badge, dock, context menu and system controls remain separate interactive UI.
@@ -17,7 +17,7 @@ This pack creates a native procedural scene based on the written reference contr
 ## Required validation
 
 1. Android debug build and unit tests.
-2. Tablet landscape and portrait screenshots.
+2. Phone portrait/landscape and tablet landscape/portrait screenshots.
 3. Confirm wallpaper override, icon drag/drop, dock actions, clock and context menu remain functional.
 4. Inspect generated APK artifact before declaring it ready.
 
