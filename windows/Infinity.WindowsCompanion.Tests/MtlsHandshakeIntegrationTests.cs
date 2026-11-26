@@ -25,6 +25,9 @@ public sealed class MtlsHandshakeIntegrationTests
         using var serverCertificate = CreateLeaf(
             root, "localhost", CertificatePinning.ServerAuthenticationOid,
             DateTimeOffset.UtcNow.AddMinutes(-5), DateTimeOffset.UtcNow.AddHours(2), "localhost");
+        using var rotatedServerCertificate = CreateLeaf(
+            root, "localhost", CertificatePinning.ServerAuthenticationOid,
+            DateTimeOffset.UtcNow.AddMinutes(-5), DateTimeOffset.UtcNow.AddHours(2), "localhost");
         using var validClient = CreateLeaf(
             root, "android-device-01", CertificatePinning.ClientAuthenticationOid,
             DateTimeOffset.UtcNow.AddMinutes(-5), DateTimeOffset.UtcNow.AddHours(2));
@@ -79,6 +82,11 @@ public sealed class MtlsHandshakeIntegrationTests
         Assert.False(await ExchangeAsync(
             serverCertificate, rotatedClient, root, root, approvedPins, "localhost", serverPin,
             clientProtocols: SslProtocols.Tls12));
+        var rotatedServerPin = CertificatePinning.ComputeSha256Pin(rotatedServerCertificate);
+        Assert.True(await ExchangeAsync(
+            rotatedServerCertificate, rotatedClient, root, root, approvedPins, "localhost", rotatedServerPin));
+        Assert.False(await ExchangeAsync(
+            rotatedServerCertificate, rotatedClient, root, root, approvedPins, "localhost", serverPin));
         Assert.False(await ExchangeAsync(
             serverCertificate, validClient, root, root, approvedPins, "localhost", new string('0', 64)));
         Assert.False(await ExchangeAsync(
