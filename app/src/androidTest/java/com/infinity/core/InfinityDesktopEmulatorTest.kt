@@ -143,7 +143,25 @@ class InfinityDesktopEmulatorTest {
                 .performTouchInput { swipe(center, center + Offset(44f, 30f), durationMillis = 420) }
             // AURORA owns resize at the outer window-container grip. The legacy
             // inner-window resize control is intentionally hidden in embedded mode.
-            compose.onNodeWithTag("infinity-aurora-resize-notes")
+            // AURORA uses a workspace-scoped task ID; read the exact persisted ID.
+            compose.waitUntil(timeoutMillis = 5_000) {
+                val saved = JSONArray(
+                    context.getSharedPreferences("infinity_desktop", 0)
+                        .getString("saved_windows", "[]")
+                )
+                (0 until saved.length()).any { index ->
+                    saved.optJSONObject(index)?.optString("kind") == "notes"
+                }
+            }
+            val savedWindows = JSONArray(
+                context.getSharedPreferences("infinity_desktop", 0)
+                    .getString("saved_windows", "[]")
+            )
+            val notesWindowId = (0 until savedWindows.length())
+                .mapNotNull { savedWindows.optJSONObject(it) }
+                .first { it.optString("kind") == "notes" }
+                .getString("id")
+            compose.onNodeWithTag("infinity-aurora-resize-$notesWindowId")
                 .performTouchInput { swipe(center, center + Offset(46f, 38f), durationMillis = 420) }
         }
         compose.onNodeWithContentDescription("Minimizar").performClick()

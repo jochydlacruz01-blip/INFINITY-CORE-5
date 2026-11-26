@@ -128,7 +128,7 @@ internal fun InfinityAuroraWindowContainer(
                         if (!renderedWindow.maximized) {
                             Box(
                                 Modifier.align(Alignment.BottomEnd).size(30.dp)
-                                    .testTag("infinity-aurora-resize-${modelWindow.kind}")
+                                    .testTag("infinity-aurora-resize-${modelWindow.id}")
                                     .background(
                                         Color(0xFF56D6C9).copy(alpha = .20f),
                                         RoundedCornerShape(topStart = 10.dp)
