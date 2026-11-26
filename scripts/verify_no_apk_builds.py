@@ -12,7 +12,7 @@ FORBIDDEN_GRADLE_TASK = re.compile(
 )
 SIGNING = re.compile(r"\b(?:signingConfig|signingConfigs|apksigner|jarsigner)\b", re.IGNORECASE)
 APK_REFERENCE = re.compile(
-    r"(?:\.apk\b|app[-_](?:debug|release)|(?:^|[/\\])outputs[/\\](?:apk|(?=[^\s]*\.apk))|
+    r"(?:\.apk\b|app[-_](?:debug|release)|(?:^|[/\\])outputs[/\\](?:apk|(?=[^\s]*\.apk))|"
     r"\bAPK(?:_[A-Z0-9_]+|Path|File)\b)",
     re.IGNORECASE,
 )
