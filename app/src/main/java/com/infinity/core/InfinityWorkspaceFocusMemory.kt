@@ -5,7 +5,7 @@ package com.infinity.core
  * focus key remains a migration fallback for installations upgraded in place.
  */
 internal fun infinityWorkspaceFocusPreferenceKey(workspace: Int): String =
-    "focused_window_id_workspace_${'$'}{infinityNormalizeWorkspace(workspace)}"
+    "focused_window_id_workspace_${infinityNormalizeWorkspace(workspace)}"
 
 /** Restores only a visible window belonging to the requested workspace. */
 internal fun infinityResolveRememberedWorkspaceFocus(
