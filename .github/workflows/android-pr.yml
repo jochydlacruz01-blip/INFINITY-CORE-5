@@ -135,8 +135,10 @@ jobs:
         include:
           - device: tablet
             profile: pixel_tablet
+            api_level: 34
           - device: compact-phone
             profile: pixel_2
+            api_level: 35
     steps:
       - name: Enable KVM for the Android emulator
         run: |
@@ -164,7 +166,7 @@ jobs:
       - name: Run real app on Android emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 35
+          api-level: ${{ matrix.api_level }}
           target: google_apis
           arch: x86_64
           profile: ${{ matrix.profile }}
@@ -173,6 +175,12 @@ jobs:
           ram-size: 2048M
           heap-size: 512M
           disable-animations: true
+          # Tablet CI profile approximates the Galaxy Tab S7 FE display geometry.
+          # Android Emulator is Google APIs/AOSP, not Samsung One UI firmware.
+          pre-emulator-launch-script: >-
+            if [ "${{ matrix.device }}" = "tablet" ]; then
+              printf '\nhw.lcd.width=2560\nhw.lcd.height=1600\nhw.lcd.density=240\nhw.device.name=Galaxy Tab S7 FE SM-T738\nhw.device.manufacturer=Samsung\nhw.initialOrientation=landscape\n' >> "$ANDROID_AVD_HOME/test.avd/config.ini";
+            fi
           # Keep the runner's maintained emulator flags; custom camera options can prevent AVD boot.
           # Keep this as one command: android-emulator-runner invokes its script through sh -c.
           # Capture the real test exit code and preserve screenshots without masking failures.
