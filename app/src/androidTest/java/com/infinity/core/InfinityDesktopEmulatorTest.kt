@@ -113,7 +113,7 @@ class InfinityDesktopEmulatorTest {
         capture(if (isTablet) "01-desktop-tablet-portrait" else "10-desktop-compact-phone")
 
         // START: open, search, launch a real desktop tool.
-        compose.onNodeWithContentDescription("START").performScrollTo()
+        compose.onNodeWithContentDescription("START").assertExists()
         Log.i("INFINITY_TEST_DIAGNOSTIC", "START click")
         compose.onNodeWithContentDescription("START").performClick()
         settleComposeFrame()
@@ -214,7 +214,7 @@ class InfinityDesktopEmulatorTest {
 
         // Opening ADVANCED from inside ORBIT must replace ORBIT, never stack panels.
         val openAdvancedFromOrbit = compose.onNodeWithText("ABRIR CENTRO DE NOTIFICACIONES")
-        openAdvancedFromOrbit.performScrollTo()
+        scrollOrbitUntilVisible("ABRIR CENTRO DE NOTIFICACIONES")
         openAdvancedFromOrbit.performClick()
         settleComposeFrame()
         compose.onNodeWithTag("infinity-orbit-panel").assertDoesNotExist()
@@ -243,7 +243,7 @@ class InfinityDesktopEmulatorTest {
         compose.onNodeWithTag("infinity-orbit-panel").assertDoesNotExist()
 
         // CONTROL: interact with a real theme option and capture the resulting panel.
-        compose.onNodeWithContentDescription("CONTROL").performScrollTo()
+        compose.onNodeWithContentDescription("CONTROL").assertExists()
         compose.onNodeWithContentDescription("CONTROL").performClick()
         settleComposeFrame()
         compose.onNodeWithText("CONTROL CENTER").assertExists()
@@ -267,7 +267,7 @@ class InfinityDesktopEmulatorTest {
         )
         compose.waitForIdle()
 
-        compose.onNodeWithContentDescription("ADVANCED").performScrollTo()
+        compose.onNodeWithContentDescription("ADVANCED").assertExists()
         compose.onNodeWithContentDescription("ADVANCED").performClick()
         settleComposeFrame()
         compose.onNodeWithText("INFINITY ADVANCED").assertExists()
@@ -299,7 +299,7 @@ class InfinityDesktopEmulatorTest {
         capture("04-dock-operational")
 
         // Rotate with START open; validate recovery of the main shell and Dock.
-        compose.onNodeWithContentDescription("START").performScrollTo()
+        compose.onNodeWithContentDescription("START").assertExists()
         compose.onNodeWithContentDescription("START").performClick()
         settleComposeFrame()
         device.setOrientationLeft()
@@ -349,7 +349,7 @@ class InfinityDesktopEmulatorTest {
         compose.onNodeWithTag("infinity-dock-orbit").performClick()
         settleComposeFrame()
         val minimizeAll = compose.onNodeWithTag("infinity-orbit-minimize-all")
-        minimizeAll.performScrollTo()
+        scrollOrbitUntilVisible("infinity-orbit-minimize-all")
         minimizeAll.performClick()
         settleComposeFrame()
 
@@ -371,6 +371,17 @@ class InfinityDesktopEmulatorTest {
             context.getSharedPreferences("infinity_desktop", 0)
                 .getString("focused_window_id", null) == null
         )
+    }
+
+    private fun scrollOrbitUntilVisible(targetTag: String) {
+        val target = compose.onNodeWithTag(targetTag)
+        val panel = compose.onNodeWithTag("infinity-orbit-panel")
+        repeat(8) {
+            if (runCatching { target.assertIsDisplayed() }.isSuccess) return
+            panel.performTouchInput { swipeUp() }
+            settleComposeFrame()
+        }
+        target.assertIsDisplayed()
     }
 
     private fun settleComposeFrame() {
