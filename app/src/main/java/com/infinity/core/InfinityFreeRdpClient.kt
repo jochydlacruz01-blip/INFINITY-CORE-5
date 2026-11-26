@@ -65,6 +65,7 @@ internal class InfinityFreeRdpClient(
     private val expectedRdpPin = normalizeRdpFingerprint(expectedRdpCertificateSha256)
         ?: throw IllegalArgumentException("A valid SHA-256 RDP server certificate pin is required.")
     private val instanceLock = Any()
+    private val sessionLock = Any()
     private val mainHandler = Handler(Looper.getMainLooper())
     private val closed = AtomicBoolean(false)
     @Volatile private var session: SessionState? = null
@@ -110,55 +111,57 @@ internal class InfinityFreeRdpClient(
     }
 
     suspend fun connect() = withContext(Dispatchers.IO) {
-        check(!closed.get()) { "RDP client has been closed." }
-        check(session == null) { "RDP client has already been initialized." }
+        synchronized(sessionLock) {
+            check(!closed.get()) { "RDP client has been closed." }
+            check(session == null) { "RDP client has already been initialized." }
 
-        val uri = Uri.Builder()
-            .scheme("freerdp")
-            .authority("127.0.0.1:${tunnel.localPort}")
-            .appendPath("connect")
-            .appendQueryParameter("sec", "nla")
-            .appendQueryParameter("cert", "fingerprint:sha256:$expectedRdpPin")
-            .appendQueryParameter("clipboard", "-")
-            .build()
+            val uri = Uri.Builder()
+                .scheme("freerdp")
+                .authority("127.0.0.1:${tunnel.localPort}")
+                .appendPath("connect")
+                .appendQueryParameter("sec", "nla")
+                .appendQueryParameter("cert", "fingerprint:sha256:$expectedRdpPin")
+                .appendQueryParameter("clipboard", "-")
+                .build()
 
-        val created = GlobalApp.createSession(uri, context)
-        session = created
-        created.setUIEventListener(createUiListener(created))
-        GlobalApp.registerSessionListener(
-            created.instance,
-            object : GlobalApp.SessionEventListener {
-                override fun onConnectionSuccess() {
-                    connected = true
-                    mainHandler.post { listener.onConnected() }
+            val created = GlobalApp.createSession(uri, context)
+            session = created
+            created.setUIEventListener(createUiListener(created))
+            GlobalApp.registerSessionListener(
+                created.instance,
+                object : GlobalApp.SessionEventListener {
+                    override fun onConnectionSuccess() {
+                        connected = true
+                        mainHandler.post { listener.onConnected() }
+                    }
+
+                    override fun onConnectionFailure() {
+                        connected = false
+                        mainHandler.post { listener.onError("Windows rechazó o no pudo completar la conexión RDP.") }
+                    }
+
+                    override fun onDisconnected() {
+                        connected = false
+                        mainHandler.post { listener.onDisconnected() }
+                    }
                 }
+            )
 
-                override fun onConnectionFailure() {
-                    connected = false
-                    mainHandler.post { listener.onError("Windows rechazó o no pudo completar la conexión RDP.") }
+            try {
+                check(LibFreeRDP.setConnectionInfo(context, created.instance, uri)) {
+                    "FreeRDP rejected the constrained NLA connection arguments."
                 }
-
-                override fun onDisconnected() {
-                    connected = false
-                    mainHandler.post { listener.onDisconnected() }
+                check(LibFreeRDP.connect(created.instance)) {
+                    "FreeRDP could not start the RDP connection."
                 }
+            } catch (error: Throwable) {
+                runCatching { GlobalApp.unregisterSessionListener(created.instance) }
+                    .onFailure(error::addSuppressed)
+                runCatching { GlobalApp.freeSession(created.instance) }
+                    .onFailure(error::addSuppressed)
+                session = null
+                throw error
             }
-        )
-
-        try {
-            check(LibFreeRDP.setConnectionInfo(context, created.instance, uri)) {
-                "FreeRDP rejected the constrained NLA connection arguments."
-            }
-            check(LibFreeRDP.connect(created.instance)) {
-                "FreeRDP could not start the RDP connection."
-            }
-        } catch (error: Throwable) {
-            runCatching { GlobalApp.unregisterSessionListener(created.instance) }
-                .onFailure(error::addSuppressed)
-            runCatching { GlobalApp.freeSession(created.instance) }
-                .onFailure(error::addSuppressed)
-            session = null
-            throw error
         }
     }
 
@@ -346,9 +349,12 @@ internal class InfinityFreeRdpClient(
     suspend fun closeSession() = withContext(Dispatchers.IO) {
         if (!closed.compareAndSet(false, true)) return@withContext
         credentials.clear()
-        keyboardMapper.clearlAllModifiers()
-        val current = session
-        session = null
+        runCatching { keyboardMapper.clearlAllModifiers() }
+        val current = synchronized(sessionLock) {
+            val active = session
+            session = null
+            active
+        }
         try {
             tunnel.close()
         } finally {
