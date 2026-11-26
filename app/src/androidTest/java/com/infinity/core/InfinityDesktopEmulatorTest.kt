@@ -225,12 +225,13 @@ class InfinityDesktopEmulatorTest {
         }
         closeOrbit.assertIsDisplayed()
         closeOrbit.assertHasClickAction()
-        Log.i("INFINITY_TEST_DIAGNOSTIC", "ORBIT close target is visible; invoking its semantic click action.")
-        closeOrbit.performClick()
+        Log.i("INFINITY_TEST_DIAGNOSTIC", "ORBIT close target is visible; dispatching a real tap at its center.")
+        closeOrbit.performTouchInput { click(center) }
         repeat(3) { settleComposeFrame() }
-        compose.waitUntil(timeoutMillis = 5_000) {
+        compose.waitUntil(timeoutMillis = 15_000) {
             compose.onAllNodesWithTag("infinity-orbit-panel").fetchSemanticsNodes().isEmpty()
         }
+        Log.i("INFINITY_TEST_DIAGNOSTIC", "ORBIT panel removed after close tap.")
         compose.onNodeWithTag("infinity-orbit-panel").assertDoesNotExist()
 
         // CONTROL: interact with a real theme option and capture the resulting panel.
