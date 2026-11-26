@@ -26,7 +26,6 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
-import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipe
 import androidx.compose.ui.test.swipeUp
@@ -293,7 +292,7 @@ class InfinityDesktopEmulatorTest {
         compose.onNodeWithText("Todavía no hay notificaciones disponibles.").assertExists()
 
         // Dock stays reachable after opening and closing the desktop panels.
-        compose.onNodeWithContentDescription("HOME").performScrollTo()
+        compose.onNodeWithContentDescription("HOME").assertExists()
         compose.onNodeWithContentDescription("HOME").performClick()
         settleComposeFrame()
         capture("04-dock-operational")
