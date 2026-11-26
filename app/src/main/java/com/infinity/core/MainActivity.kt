@@ -735,19 +735,25 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
 
             // Compact workspace branding is suppressed on the reference desktop to preserve its clean composition.
             if (!(maxW >= 600.dp && futuristicDesktop && !dashboardOpen)) {
-            Column(Modifier.align(Alignment.TopStart).padding(
-                start = 22.dp,
-                top = infinityDesktopBrandingTopInset(maxW.value).dp
-            )) {
+            Column(
+                Modifier.align(Alignment.TopStart)
+                    .widthIn(max = (maxW - 180.dp).coerceAtLeast(120.dp))
+                    .padding(
+                        start = 22.dp,
+                        top = infinityDesktopBrandingTopInset(maxW.value).dp
+                    )
+            ) {
                 Text(
                     when (iconPack) {
                         "windows11" -> "Windows 11"
                         else -> "INFINITY"
                     },
                     color = foreground.copy(alpha = .94f),
-                    fontSize = 30.sp,
+                    fontSize = infinityDesktopBrandingTitleSize(maxW.value).sp,
                     fontWeight = FontWeight.Black,
-                    letterSpacing = 5.sp
+                    letterSpacing = infinityDesktopBrandingTitleLetterSpacing(maxW.value).sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     when (iconPack) {
@@ -757,7 +763,9 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                     color = accent,
                     fontSize = 10.sp,
                     letterSpacing = 1.5.sp,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     when (iconPack) {
@@ -766,7 +774,9 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                     },
                     color = InfinityMuted.copy(alpha = .78f),
                     fontSize = 8.sp,
-                    letterSpacing = 1.2.sp
+                    letterSpacing = 1.2.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Spacer(Modifier.height(9.dp))
                 Row(

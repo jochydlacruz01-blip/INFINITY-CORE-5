@@ -43,6 +43,20 @@ class InfinityDesktopSettingsRulesTest {
         assertEquals(18f, infinityDesktopBrandingTopInset(900f))
     }
 
+    @Test fun compactBrandingTitleScalesToAvailableWidth() {
+        assertEquals(20f, infinityDesktopBrandingTitleSize(320f))
+        assertEquals(24f, infinityDesktopBrandingTitleSize(390f))
+        assertEquals(30f, infinityDesktopBrandingTitleSize(600f))
+        assertEquals(30f, infinityDesktopBrandingTitleSize(Float.NaN))
+    }
+
+    @Test fun compactBrandingLetterSpacingScalesWithTitle() {
+        assertEquals(2f, infinityDesktopBrandingTitleLetterSpacing(320f))
+        assertEquals(3f, infinityDesktopBrandingTitleLetterSpacing(390f))
+        assertEquals(5f, infinityDesktopBrandingTitleLetterSpacing(600f))
+        assertEquals(5f, infinityDesktopBrandingTitleLetterSpacing(Float.POSITIVE_INFINITY))
+    }
+
     @Test fun invalidViewportWidthUsesSafeTabletInset() {
         assertEquals(18f, infinityDesktopBrandingTopInset(Float.NaN))
         assertEquals(18f, infinityDesktopBrandingTopInset(Float.POSITIVE_INFINITY))

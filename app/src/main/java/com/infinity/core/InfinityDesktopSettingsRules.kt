@@ -26,3 +26,18 @@ internal fun infinityNormalizeDesktopTheme(value: String?): String =
  */
 internal fun infinityDesktopBrandingTopInset(viewportWidthDp: Float): Float =
     if (viewportWidthDp.isFinite() && viewportWidthDp < 600f) 76f else 18f
+
+/** Responsive title sizing keeps compact desktop branding clear beside the clock. */
+internal fun infinityDesktopBrandingTitleSize(viewportWidthDp: Float): Float = when {
+    !viewportWidthDp.isFinite() -> 30f
+    viewportWidthDp < 360f -> 20f
+    viewportWidthDp < 420f -> 24f
+    else -> 30f
+}
+
+internal fun infinityDesktopBrandingTitleLetterSpacing(viewportWidthDp: Float): Float = when {
+    !viewportWidthDp.isFinite() -> 5f
+    viewportWidthDp < 360f -> 2f
+    viewportWidthDp < 420f -> 3f
+    else -> 5f
+}
