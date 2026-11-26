@@ -258,6 +258,9 @@ class InfinityDesktopEmulatorTest {
         compose.onNodeWithText("INFINITY UI TEST").assertExists()
         capture("06-advanced-notifications")
         compose.onNodeWithText("LIMPIAR").performClick()
+        compose.waitUntil(timeoutMillis = 5_000) {
+            InfinityNotificationStore.notifications.isEmpty()
+        }
         settleComposeFrame()
         compose.onNodeWithText("Todavía no hay notificaciones disponibles.").assertExists()
 

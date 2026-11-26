@@ -19,7 +19,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: infinity-freerdp-native-${{ github.sha }}
+  group: infinity-freerdp-native-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:

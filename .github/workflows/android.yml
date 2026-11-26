@@ -54,6 +54,7 @@ jobs:
           test -f app/build.gradle.kts
           test -f app/src/main/java/com/infinity/core/MainActivity.kt
           test -f app/src/main/AndroidManifest.xml
+          test "$(git -C external/FreeRDP rev-parse HEAD)" = "65bcca1913a28cbdd7eb913599f692bd2b707991"
           grep -q 'android:allowBackup="false"' app/src/main/AndroidManifest.xml
           grep -q 'android:usesCleartextTraffic="false"' app/src/main/AndroidManifest.xml
 

@@ -431,8 +431,8 @@ fun InfinityConnectPanel() {
         )
 
         Text(
-            text = "La conexión RDP real se integrará en una siguiente " +
-                "etapa mediante un cliente remoto compatible."
+            text = "La comprobación TCP solo valida la accesibilidad del puerto; no inicia una sesión RDP. " +
+                "El escritorio remoto seguro requiere el emparejamiento mTLS superior y permanece bloqueado hasta completar la validación física."
         )
     }
 

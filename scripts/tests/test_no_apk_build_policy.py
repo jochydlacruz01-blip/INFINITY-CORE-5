@@ -164,6 +164,31 @@ class NoApkBuildPolicyTest(unittest.TestCase):
 """
         self.assertEqual(audit_text(content), [])
 
+    def test_codmagic_release_apk_build_route_is_rejected(self):
+        content = """workflows:
+  infinity-core-android:
+    scripts:
+      - name: Build APKs
+        script: gradle assembleDebug assembleRelease
+    artifacts:
+      - app/build/outputs/apk/**/*.apk
+"""
+        self.assertTrue(audit_named_workflow("codemagic.yaml", content))
+
+    def test_codmagic_source_only_pipeline_is_allowed(self):
+        content = """workflows:
+  infinity-core-android:
+    scripts:
+      - name: Unit tests
+        script: gradle testDebugUnitTest testReleaseUnitTest
+      - name: Lint
+        script: gradle lintDebug lintRelease
+    artifacts:
+      - app/build/test-results/**/*.xml
+      - app/build/reports/lint-results*.html
+"""
+        self.assertEqual(audit_named_workflow("codemagic.yaml", content), [])
+
     def test_manual_apk_workflow_requires_every_job_disabled(self):
         content = """name: legacy release
 on:

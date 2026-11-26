@@ -27,6 +27,8 @@ on:
       - "gradle.properties"
       - "settings.gradle.kts"
       - ".gitmodules"
+      - "codemagic.yaml"
+      - ".github/workflows/android.yml"
       - ".github/workflows/android-pr.yml"
       - ".github/workflows/freerdp-android.yml"
   workflow_dispatch:
@@ -35,7 +37,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: infinity-pr-${{ github.sha }}
+  group: infinity-pr-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -77,6 +79,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 scripts/verify_no_apk_builds.py .github/workflows
+          python3 scripts/verify_no_apk_builds.py codemagic.yaml
 
       - name: Verify integrated INFINITY package inventory
         run: |
