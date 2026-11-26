@@ -85,8 +85,9 @@ internal fun InfinityAuroraWindowContainer(
                                     }
                                     if (start != null) {
                                         onFocus(modelWindow.id)
-                                        preview = renderedWindow
-                                        drag(start.id) { change ->
+                                        val original = renderedWindow
+                                        preview = original
+                                        val completed = drag(start.id) { change ->
                                             val delta = change.positionChange()
                                             if (delta != Offset.Zero) {
                                                 val base = preview ?: renderedWindow
@@ -102,9 +103,16 @@ internal fun InfinityAuroraWindowContainer(
                                                 change.consume()
                                             }
                                         }
-                                        preview?.let {
-                                            renderedWindow = it
-                                            onGeometryCommit(it)
+                                        if (completed) {
+                                            preview?.let {
+                                                renderedWindow = it
+                                                onGeometryCommit(it)
+                                            }
+                                        } else {
+                                            // A canceled pointer sequence must never leave an
+                                            // uncommitted visual position behind.
+                                            renderedWindow = original
+                                            onGeometryCancel(modelWindow.id)
                                         }
                                     }
                                 }
