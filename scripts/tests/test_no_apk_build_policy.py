@@ -276,14 +276,19 @@ jobs:
             echo "ELF64 AArch64"
           done
           "${APKSIGNER}" verify --verbose --print-certs "${APK}"
-      - uses: actions/upload-artifact@v7
+      - name: Upload DEBUG APK and evidence
+        if: always()
+        uses: actions/upload-artifact@v7
         with:
-          name: PROJECT-INFINITY-0.10-DEBUG-APK-EVIDENCE
+          name: PROJECT-INFINITY-0.10-DEBUG-APK-TEST
           path: |
+            app/build/outputs/apk/debug/app-debug.apk
             app-debug-sha256.txt
             app-debug-size.txt
             app-debug-signature.txt
             app-debug-freerdp-libraries.txt
+          if-no-files-found: warn
+          retention-days: 3
 """
     def test_manual_debug_workflow_wrong_branch_is_rejected(self):
         content = """on:
