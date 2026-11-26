@@ -48,6 +48,7 @@ internal class InfinityFreeRdpClient(
         private val secret = password
         private val consumed = AtomicBoolean(false)
 
+        @Synchronized
         fun consume(into: StringBuilder): Boolean {
             if (!consumed.compareAndSet(false, true)) return false
             into.setLength(0)
@@ -56,6 +57,7 @@ internal class InfinityFreeRdpClient(
             return true
         }
 
+        @Synchronized
         fun clear() {
             secret.fill('\u0000')
             consumed.set(true)
