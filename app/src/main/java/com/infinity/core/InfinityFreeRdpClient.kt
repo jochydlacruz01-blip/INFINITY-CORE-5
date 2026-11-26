@@ -31,6 +31,7 @@ internal class InfinityFreeRdpClient(
 ) {
     interface Listener {
         fun onConnected()
+        fun onAuthenticating()
         fun onDisconnected()
         fun onReconnecting()
         fun onError(message: String)
@@ -173,6 +174,7 @@ internal class InfinityFreeRdpClient(
             domain: StringBuilder,
             password: StringBuilder
         ): Boolean {
+            mainHandler.post { listener.onAuthenticating() }
             username.setLength(0)
             username.append(credentials.username)
             domain.setLength(0)
