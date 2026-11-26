@@ -621,10 +621,10 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
             }
 
             // Cabecera de marca para tablet; no sustituye los accesos ni el fondo elegido.
-            if (maxW >= 600.dp && !dashboardOpen && futuristicDesktop) {
+            if (infinityReferenceMastheadVisible(maxW.value) && !dashboardOpen && futuristicDesktop) {
                 InfinityReferenceMasthead(
                     modifier = Modifier.align(Alignment.TopCenter)
-                        .padding(top = if (maxW < 900.dp) 112.dp else 88.dp)
+                        .padding(top = 88.dp)
                 )
             }
 
