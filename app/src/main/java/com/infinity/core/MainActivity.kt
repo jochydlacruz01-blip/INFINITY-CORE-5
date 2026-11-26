@@ -1994,7 +1994,13 @@ Spacer(Modifier.height(14.dp))
                         Spacer(Modifier.height(10.dp))
 
 
-                        TextButton(onClick = { orbitOpen = false }) {
+                        TextButton(onClick = {
+                            Log.d("INFINITY_ORBIT", "Close action invoked")
+                            orbitOpen = false
+                            startOpen = false
+                            controlOpen = false
+                            advancedOpen = false
+                        }) {
                             Text("CERRAR ORBIT", color = accent, fontSize = 10.sp)
                         }
                     }
