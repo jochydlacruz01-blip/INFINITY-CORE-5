@@ -38,7 +38,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -55,6 +57,7 @@ internal fun InfinityConnectRemoteDesktopPanel(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val focusRequester = remember { FocusRequester() }
+    val lifecycle = remember { InfinityConnectSessionLifecycle() }
     var rdpServerPin by remember { mutableStateOf("") }
     var rdpUsername by remember { mutableStateOf("") }
     var rdpDomain by remember { mutableStateOf("") }
@@ -71,16 +74,35 @@ internal fun InfinityConnectRemoteDesktopPanel(
     val listener = remember {
         object : InfinityFreeRdpClient.Listener {
             override fun onConnected() {
+                lifecycle.transition(InfinityConnectSessionState.CONNECTED)
                 connected = true
                 status = "Escritorio Windows conectado mediante NLA y certificado fijado."
             }
 
             override fun onDisconnected() {
                 connected = false
-                status = "La sesión RDP se desconectó."
+                val disconnectedClient = client
+                if (disconnectedClient != null) {
+                    client = null
+                    frame = null
+                    lifecycle.transition(InfinityConnectSessionState.DISCONNECTING)
+                    lifecycle.transition(InfinityConnectSessionState.IDLE)
+                    status = "La sesión RDP se desconectó."
+                    CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+                        runCatching { disconnectedClient.closeSession() }
+                    }
+                }
+            }
+
+            override fun onReconnecting() {
+                lifecycle.transition(InfinityConnectSessionState.RECONNECTING)
+                connected = false
+                status = "Windows está intentando restablecer la sesión RDP."
             }
 
             override fun onError(message: String) {
+                lifecycle.transition(InfinityConnectSessionState.FAILED, message)
+                connected = false
                 status = message
             }
 
@@ -95,19 +117,23 @@ internal fun InfinityConnectRemoteDesktopPanel(
 
             override fun onRdpCertificateRejected(host: String, observedFingerprint: String) {
                 connected = false
-                status = "Certificado RDP rechazado. Huella observada: $observedFingerprint"
+                val message = "Certificado RDP rechazado. Huella observada: $observedFingerprint"
+                lifecycle.transition(InfinityConnectSessionState.FAILED, message)
+                status = message
             }
         }
     }
 
     fun disconnect() {
         val current = client ?: return
+        lifecycle.transition(InfinityConnectSessionState.DISCONNECTING)
         client = null
         connected = false
         frame = null
         scope.launch {
             busy = true
             runCatching { current.closeSession() }
+            lifecycle.transition(InfinityConnectSessionState.IDLE)
             busy = false
             status = "Sesión remota cerrada."
         }
@@ -115,7 +141,14 @@ internal fun InfinityConnectRemoteDesktopPanel(
 
     DisposableEffect(client) {
         val activeClient = client
-        onDispose { activeClient?.let { current -> scope.launch { runCatching { current.closeSession() } } } }
+        onDispose {
+            activeClient?.let { current ->
+                // The composition scope is cancelled on disposal; cleanup must outlive it.
+                CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+                    runCatching { current.closeSession() }
+                }
+            }
+        }
     }
 
     LaunchedEffect(frameRevision) {
@@ -175,6 +208,7 @@ internal fun InfinityConnectRemoteDesktopPanel(
                         rdpPassword = ""
                         scope.launch {
                             busy = true
+                            lifecycle.transition(InfinityConnectSessionState.PREPARING)
                             var tunnel: InfinityConnectRdpTunnel.Handle? = null
                             var created: InfinityFreeRdpClient? = null
                             val result = runCatching {
@@ -188,9 +222,12 @@ internal fun InfinityConnectRemoteDesktopPanel(
                                     sessionToken = remoteSessionToken,
                                     grantedCapabilities = setOf("identity.read", "remote.display", "remote.input")
                                 )
-                                tunnel = withContext(Dispatchers.IO) {
-                                    InfinityConnectRdpTunnel().open(config)
+                                withContext(Dispatchers.IO) {
+                                    // Assign inside the IO block so a cancelled dispatcher hand-off
+                                    // cannot lose the newly opened handle before failure cleanup.
+                                    tunnel = InfinityConnectRdpTunnel().open(config)
                                 }
+                                lifecycle.transition(InfinityConnectSessionState.CONNECTING)
                                 val activeTunnel = tunnel ?: error("No se pudo establecer el túnel autenticado.")
                                 created = InfinityFreeRdpClient(
                                     context,
@@ -204,10 +241,16 @@ internal fun InfinityConnectRemoteDesktopPanel(
                                 created!!.connect()
                             }
                             if (result.isFailure) {
-                                created?.let { runCatching { it.closeSession() } } ?: tunnel?.close()
+                                created?.let { failedClient ->
+                                    CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+                                        runCatching { failedClient.closeSession() }
+                                    }
+                                } ?: tunnel?.close()
                                 credentials.clear()
                                 client = null
-                                status = "No se pudo abrir el escritorio: ${result.exceptionOrNull()?.message ?: "error"}"
+                                val message = "No se pudo abrir el escritorio: ${result.exceptionOrNull()?.message ?: "error"}"
+                                lifecycle.transition(InfinityConnectSessionState.FAILED, message)
+                                status = message
                             } else {
                                 status = "Negociando conexión segura con Windows..."
                             }
