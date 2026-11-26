@@ -49,7 +49,7 @@ internal fun infinityDesktopIconGridOffset(
     val row = safeIndex / columns
     val x = (gapX.toDouble() + column.toDouble() * (iconWidth + gapX).toDouble())
         .coerceAtMost((width - iconWidth).coerceAtLeast(0f).toDouble()).toFloat()
-    val y = (safeTop.toDouble() + row.toDouble() * (iconHeight + gapY).toDouble())
+    val y = (inset.toDouble() + row.toDouble() * (iconHeight + gapY).toDouble())
         .coerceAtMost(Float.MAX_VALUE.toDouble()).toFloat()
     return Offset(x, y)
 }
