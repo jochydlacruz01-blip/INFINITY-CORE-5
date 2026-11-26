@@ -1248,9 +1248,10 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                                     nextZIndex = (windows.maxOfOrNull { it.zIndex } ?: 0L)
                                         .let { if (it == Long.MAX_VALUE) 1L else it + 1L }
                                 ).close(win.id, win.workspace)
+                                val metadata = windows.associateBy { it.id }
                                 windows.clear()
                                 windows.addAll(current.windows.mapNotNull { model ->
-                                    windows.firstOrNull { it.id == model.id }?.copy(aurora = model)
+                                    metadata[model.id]?.copy(aurora = model)
                                 })
                                 focusedWindowId = current.activeWindowId
                             },
