@@ -153,9 +153,15 @@ internal class InfinityFreeRdpClient(
                 "FreeRDP could not start the RDP connection."
             }
         } catch (error: Throwable) {
-            GlobalApp.unregisterSessionListener(created.instance)
-            GlobalApp.freeSession(created.instance)
-            session = null
+            try {
+                GlobalApp.unregisterSessionListener(created.instance)
+            } finally {
+                try {
+                    GlobalApp.freeSession(created.instance)
+                } finally {
+                    session = null
+                }
+            }
             throw error
         }
     }
@@ -347,16 +353,28 @@ internal class InfinityFreeRdpClient(
         keyboardMapper.clearlAllModifiers()
         val current = session
         session = null
-        tunnel.close()
-        if (current != null) {
-            GlobalApp.unregisterSessionListener(current.instance)
-            LibFreeRDP.cancelConnection(current.instance)
-            GlobalApp.freeSession(current.instance)
-        }
-        synchronized(instanceLock) {
-            pendingFrames.clear()
-            frameBitmap?.recycle()
-            frameBitmap = null
+        try {
+            tunnel.close()
+        } finally {
+            try {
+                if (current != null) {
+                    try {
+                        GlobalApp.unregisterSessionListener(current.instance)
+                    } finally {
+                        try {
+                            LibFreeRDP.cancelConnection(current.instance)
+                        } finally {
+                            GlobalApp.freeSession(current.instance)
+                        }
+                    }
+                }
+            } finally {
+                synchronized(instanceLock) {
+                    pendingFrames.clear()
+                    frameBitmap?.recycle()
+                    frameBitmap = null
+                }
+            }
         }
     }
 
