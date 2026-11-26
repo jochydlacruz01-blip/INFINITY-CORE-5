@@ -3132,12 +3132,15 @@ private fun Infinity08Window(
                     )
                 ) 
                 .clickable { onFocus() }
-                .pointerInput(win.id) {
-                    detectDragGestures { change, drag ->
-                        change.consume()
-                        onMove(drag.x, drag.y)
+                .then(
+                    if (embeddedInAurora) Modifier
+                    else Modifier.pointerInput(win.id) {
+                        detectDragGestures { change, drag ->
+                            change.consume()
+                            onMove(drag.x, drag.y)
+                        }
                     }
-                }
+                )
                 .heightIn(min = 48.dp)
                 .testTag("infinity-window-title-${win.kind}")
                 .padding(horizontal = 10.dp, vertical = 8.dp),
