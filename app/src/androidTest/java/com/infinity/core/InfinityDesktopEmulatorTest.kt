@@ -118,7 +118,7 @@ class InfinityDesktopEmulatorTest {
         settleComposeFrame()
         waitForText("INFINITY START")
         capture("02-start-open")
-        compose.onNode(hasSetTextAction()).performTextInput("Mis")
+        compose.onNode(hasSetTextAction()).performTextInput("Notas")
         settleComposeFrame()
         // Search can expose both the desktop icon and the matching result.
         compose.onNodeWithTag("infinity-start-app-notes").assertExists()
