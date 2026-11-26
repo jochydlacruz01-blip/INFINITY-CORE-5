@@ -45,6 +45,23 @@ public sealed class SecureFileTransferStoreTests : IDisposable
     }
 
     [Fact]
+    public async Task DeleteAsyncHonorsCancellationBeforeMutatingStoredFile()
+    {
+        var bytes = "delete cancellation"u8.ToArray();
+        var digest = Convert.ToHexString(SHA256.HashData(bytes));
+        await using var source = new MemoryStream(bytes);
+        var receipt = await store.SaveAsync(
+            source, DevicePin, "keep-until-authorized.bin", bytes.Length, digest, CancellationToken.None);
+
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            store.DeleteAsync(receipt.FileId, DevicePin, cancellation.Token));
+        Assert.NotNull(store.Find(receipt.FileId, DevicePin));
+    }
+
+    [Fact]
     public async Task TransferDirectoriesUseProtectedAclWithoutBroadUserGroups()
     {
         var bytes = new byte[] { 1, 2, 3 };
