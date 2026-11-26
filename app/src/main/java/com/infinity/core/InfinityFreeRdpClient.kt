@@ -153,15 +153,11 @@ internal class InfinityFreeRdpClient(
                 "FreeRDP could not start the RDP connection."
             }
         } catch (error: Throwable) {
-            try {
-                GlobalApp.unregisterSessionListener(created.instance)
-            } finally {
-                try {
-                    GlobalApp.freeSession(created.instance)
-                } finally {
-                    session = null
-                }
-            }
+            runCatching { GlobalApp.unregisterSessionListener(created.instance) }
+                .onFailure(error::addSuppressed)
+            runCatching { GlobalApp.freeSession(created.instance) }
+                .onFailure(error::addSuppressed)
+            session = null
             throw error
         }
     }
