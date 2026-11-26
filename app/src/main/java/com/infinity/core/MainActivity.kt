@@ -153,14 +153,11 @@ private fun InfinityAppBadge(item: DeskItem, size: androidx.compose.ui.unit.Dp, 
  * Desktop presentation wrapper. AURORA owns all persistent window state;
  * this layer contributes only title/kind metadata required by the UI.
  */
-private class DeskWindow private constructor(
+private class DeskWindow(
     val title: String,
     val kind: String,
     internal val aurora: InfinityAuroraWindow
 ) {
-    constructor(title: String, kind: String, aurora: InfinityAuroraWindow) :
-        this(title, kind, aurora)
-
     constructor(
         id: String,
         title: String,
