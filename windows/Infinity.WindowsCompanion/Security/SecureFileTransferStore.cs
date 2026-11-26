@@ -282,9 +282,8 @@ public sealed class SecureFileTransferStore
         var fingerprint = metadata.ClientCertificateSha256;
         var id = Guid.ParseExact(metadata.FileId, "D").ToString("N");
         var directory = Path.Combine(rootPath, fingerprint);
-        TryDelete(Path.Combine(directory, id + ".bin"));
-        TryDelete(Path.Combine(directory, id + ".json"));
-        return true;
+        if (!TryDelete(Path.Combine(directory, id + ".bin"))) return false;
+        return TryDelete(Path.Combine(directory, id + ".json"));
     }
 
     private static void EnsurePrivateDirectory(string path)
@@ -337,11 +336,15 @@ public sealed class SecureFileTransferStore
             throw new InvalidDataException("Filename is reserved by Windows.");
     }
 
-    private static void TryDelete(string path)
+    private static bool TryDelete(string path)
     {
-        try { if (File.Exists(path)) File.Delete(path); }
-        catch (IOException) { }
-        catch (UnauthorizedAccessException) { }
+        try
+        {
+            if (File.Exists(path)) File.Delete(path);
+            return !File.Exists(path);
+        }
+        catch (IOException) { return false; }
+        catch (UnauthorizedAccessException) { return false; }
     }
 
     public sealed record FileReceipt(
