@@ -57,11 +57,22 @@ jobs:
           grep -q 'android:allowBackup="false"' app/src/main/AndroidManifest.xml
           grep -q 'android:usesCleartextTraffic="false"' app/src/main/AndroidManifest.xml
 
-      - name: Compile, test, lint, and assemble DEBUG only
+      - name: Initialize Android SDK and accept licenses
+        uses: android-actions/setup-android@v4
+        with:
+          packages: "platform-tools"
+
+      - name: Install required Android platform, NDK and CMake
         shell: bash
         run: |
           set -euo pipefail
-          gradle compileDebugKotlin testDebugUnitTest lintDebug assembleDebug --stacktrace
+          sdkmanager --install "platforms;android-35" "build-tools;35.0.0" "ndk;27.0.12077973" "cmake;3.22.1"
+
+      - name: Compile, test, lint, build FreeRDP native libraries and assemble DEBUG only
+        shell: bash
+        run: |
+          set -euo pipefail
+          gradle -PINFINITY_BUILD_FREERDP_NATIVE=true :freerdpCore:externalNativeBuildDebug compileDebugKotlin testDebugUnitTest lintDebug assembleDebug --stacktrace
 
       - name: Verify DEBUG APK and Android debug certificate
         shell: bash
@@ -73,6 +84,25 @@ jobs:
           test -n "${APKSIGNER}"
           "${APKSIGNER}" verify --verbose --print-certs "${APK}" | tee app-debug-signature.txt
           grep -Fq 'CN=Android Debug' app-debug-signature.txt
+          APK_ENTRIES="$(unzip -Z1 "${APK}")"
+          REQUIRED_FREERDP_LIBRARIES=(
+            libfreerdp-android.so
+            libfreerdp3.so
+            libfreerdp-client3.so
+            libwinpr3.so
+            libssl.so
+            libcrypto.so
+            liburiparser.so
+          )
+          : > app-debug-freerdp-libraries.txt
+          for library in "${REQUIRED_FREERDP_LIBRARIES[@]}"; do
+            entry="lib/arm64-v8a/${library}"
+            if ! grep -Fxq "${entry}" <<< "${APK_ENTRIES}"; then
+              echo "Missing required FreeRDP native library in DEBUG APK: ${entry}" >&2
+              exit 1
+            fi
+            printf '%s\\n' "${entry}" | tee -a app-debug-freerdp-libraries.txt
+          done
           sha256sum "${APK}" | tee app-debug-sha256.txt
           stat --format='APK_SIZE_BYTES=%s' "${APK}" | tee app-debug-size.txt
 
