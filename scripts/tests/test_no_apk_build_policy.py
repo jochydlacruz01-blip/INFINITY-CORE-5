@@ -317,14 +317,12 @@ jobs:
 class Fase2DebugApkAllowlistTest(unittest.TestCase):
     def fixture(self):
         return """on:
-  push:
-    branches:
-      - INFINITY-BASE-PACKAGES-01-05
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:
   build:
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/INFINITY-BASE-PACKAGES-01-05' }}
+    if: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/INFINITY-BASE-PACKAGES-01-05' }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -364,6 +362,13 @@ jobs:
 
     def test_exact_fase2_debug_workflow_is_allowed(self):
         self.assertEqual(audit_named_workflow("android-fase2-test-apk.yml", self.fixture()), [])
+
+    def test_automatic_push_trigger_is_rejected(self):
+        automatic = self.fixture().replace(
+            "on:\n  workflow_dispatch:",
+            "on:\n  push:\n    branches:\n      - INFINITY-BASE-PACKAGES-01-05"
+        ).replace("github.event_name == 'workflow_dispatch'", "github.event_name == 'push'")
+        self.assertTrue(audit_named_workflow("android-fase2-test-apk.yml", automatic))
 
     def test_wrong_branch_is_rejected(self):
         self.assertTrue(audit_named_workflow("android-fase2-test-apk.yml",

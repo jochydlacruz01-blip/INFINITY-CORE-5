@@ -166,9 +166,9 @@ def _is_safe_fase2_debug_apk_workflow(path: Path, content: str) -> bool:
     if path.name != FASE2_DEBUG_APK_WORKFLOW:
         return False
     required = [
-        "branches:\n      - INFINITY-BASE-PACKAGES-01-05",
+        "on:\n  workflow_dispatch:",
         "contents: read",
-        "github.event_name == 'push'",
+        "github.event_name == 'workflow_dispatch'",
         "github.ref == 'refs/heads/INFINITY-BASE-PACKAGES-01-05'",
         "ref: ${{ github.sha }}",
         'test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"',
@@ -183,7 +183,7 @@ def _is_safe_fase2_debug_apk_workflow(path: Path, content: str) -> bool:
     if not all(item in content for item in required):
         return False
     forbidden = (
-        "workflow_dispatch", "assembleRelease", "bundleRelease", "publish",
+        "on:\n  push:", "github.event_name == 'push'", "assembleRelease", "bundleRelease", "publish",
         "softprops/action-gh-release", "contents: write", "packages: write",
         "INFINITY_KEYSTORE_BASE64", "INFINITY_KEYSTORE_PASSWORD",
         "INFINITY_KEY_ALIAS", "INFINITY_KEY_PASSWORD", "signingConfig", "secrets."

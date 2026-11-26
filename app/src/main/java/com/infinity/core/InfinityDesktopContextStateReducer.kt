@@ -11,7 +11,7 @@ internal data class InfinityDesktopContextState(
 /** Sanitizes persisted values before applying desktop commands. */
 internal fun infinityNormalizeDesktopContextState(state: InfinityDesktopContextState): InfinityDesktopContextState =
     state.copy(
-        iconSizePx = state.iconSizePx.takeIf { it.isFinite() }?.coerceIn(24f, 96f) ?: 48f,
+        iconSizePx = state.iconSizePx.takeIf { it.isFinite() }?.coerceIn(40f, 72f) ?: 48f,
         refreshToken = state.refreshToken.coerceAtLeast(0L)
     )
 
@@ -32,7 +32,7 @@ internal fun infinityReduceDesktopContextState(
     InfinityDesktopContextAction.REFRESH_LAYOUT -> safe.copy(refreshToken = if (safe.refreshToken == Long.MAX_VALUE) Long.MAX_VALUE else safe.refreshToken + 1L)
     InfinityDesktopContextAction.ICON_SIZE -> {
         val step = iconSizeStep.takeIf { it.isFinite() && it > 0f } ?: 4f
-        safe.copy(iconSizePx = (safe.iconSizePx + step).coerceIn(24f, 96f))
+        safe.copy(iconSizePx = (safe.iconSizePx + step).coerceIn(40f, 72f))
     }
     InfinityDesktopContextAction.DESKTOP_APPEARANCE,
     InfinityDesktopContextAction.WALLPAPER,

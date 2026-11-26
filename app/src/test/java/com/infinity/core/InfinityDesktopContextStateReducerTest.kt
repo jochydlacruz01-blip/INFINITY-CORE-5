@@ -27,10 +27,10 @@ class InfinityDesktopContextStateReducerTest {
     }
 
     @Test fun iconSizeIsBoundedAndInvalidStepFallsBack() {
-        val large = infinityReduceDesktopContextState(InfinityDesktopContextState(iconSizePx = 96f), InfinityDesktopContextAction.ICON_SIZE)
-        assertEquals(96f, large.iconSizePx)
-        val small = infinityReduceDesktopContextState(InfinityDesktopContextState(iconSizePx = 24f), InfinityDesktopContextAction.ICON_SIZE, Float.NaN)
-        assertEquals(28f, small.iconSizePx)
+        val large = infinityReduceDesktopContextState(InfinityDesktopContextState(iconSizePx = 72f), InfinityDesktopContextAction.ICON_SIZE)
+        assertEquals(72f, large.iconSizePx)
+        val small = infinityReduceDesktopContextState(InfinityDesktopContextState(iconSizePx = 40f), InfinityDesktopContextAction.ICON_SIZE, Float.NaN)
+        assertEquals(44f, small.iconSizePx)
     }
 
     @Test fun invalidPersistedValuesAreSanitizedBeforeCommands() {
