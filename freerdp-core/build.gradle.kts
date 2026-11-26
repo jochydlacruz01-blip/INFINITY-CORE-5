@@ -86,6 +86,9 @@ val prepareFreeRdpJavaSources = tasks.register<Sync>("prepareFreeRdpJavaSources"
     exclude("**/presentation/PrintNotificationHelper.java")
     exclude("**/presentation/PrintJobMonitor.java")
     exclude("**/presentation/PrintProxyActivity.java")
+    // Replace upstream WebView and intent handlers with locally hardened equivalents.
+    exclude("**/presentation/HelpActivity.java")
+    exclude("**/services/SessionRequestHandlerActivity.java")
     into(layout.buildDirectory.dir("generated/freerdp/java"))
 }
 
