@@ -113,9 +113,14 @@ object InfinityNotificationStore {
 
     fun clearAll() {
         // Limpiar únicamente la lista local de INFINITY.
-        // No retirar las notificaciones del panel de Android.
-        mainHandler.post {
+        // Si se invoca desde Compose (hilo principal), aplicar el cambio de inmediato;
+        // desde callbacks del servicio, despachar de forma segura al hilo principal.
+        if (Looper.myLooper() == Looper.getMainLooper()) {
             notifications.clear()
+        } else {
+            mainHandler.post {
+                notifications.clear()
+            }
         }
     }
 
