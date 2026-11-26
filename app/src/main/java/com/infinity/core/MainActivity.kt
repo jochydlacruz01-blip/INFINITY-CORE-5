@@ -189,6 +189,18 @@ private class DeskWindow(
     val maximized: Boolean get() = aurora.maximized
     val zIndex: Long get() = aurora.zIndex
 
+    fun maximize(bounds: InfinityAuroraSafeBounds): DeskWindow {
+        val next = InfinityAuroraWindowState(listOf(aurora))
+            .maximize(id, workspace, bounds).windows.single()
+        return DeskWindow(title, kind, next)
+    }
+
+    fun restore(): DeskWindow {
+        val next = InfinityAuroraWindowState(listOf(aurora))
+            .restore(id, workspace).windows.single()
+        return DeskWindow(title, kind, next)
+    }
+
     fun copy(
         id: String = this.id,
         title: String = this.title,
@@ -470,7 +482,21 @@ private fun Infinity08App() {
                     )
                     // The legacy JSON remains the migration source of truth. Convert each
                     // validated record into AURORA state while retaining UI-only metadata here.
-                    val auroraWindow = infinityAuroraWindowFromLegacy(legacyRecord)
+                    val migratedWindow = infinityAuroraWindowFromLegacy(legacyRecord)
+                    val restoreGeometry = if (
+                        item.has("restoreX") && item.has("restoreY") &&
+                        item.has("restoreWidth") && item.has("restoreHeight") &&
+                        !item.isNull("restoreX") && !item.isNull("restoreY") &&
+                        !item.isNull("restoreWidth") && !item.isNull("restoreHeight")
+                    ) {
+                        InfinityAuroraWindowGeometry(
+                            item.optDouble("restoreX").toFloat(),
+                            item.optDouble("restoreY").toFloat(),
+                            item.optDouble("restoreWidth").toFloat(),
+                            item.optDouble("restoreHeight").toFloat()
+                        )
+                    } else migratedWindow.restoreGeometry
+                    val auroraWindow = migratedWindow.copy(restoreGeometry = restoreGeometry)
                     add(
                         DeskWindow(
                             title = item.optString("title", kind).trim().take(80).ifBlank { kind },
@@ -496,7 +522,13 @@ private fun Infinity08App() {
                 JSONObject().put("id", win.id).put("title", win.title).put("kind", win.kind)
                     .put("x", win.x).put("y", win.y).put("width", win.width).put("height", win.height)
                     .put("minimized", win.minimized).put("workspace", win.workspace)
-                    .put("maximized", win.maximized).put("zIndex", win.zIndex)
+                    .put("maximized", win.maximized).put("zIndex", win.zIndex).apply {
+                        val restore = win.aurora.restoreGeometry
+                        if (restore != null) {
+                            put("restoreX", restore.x).put("restoreY", restore.y)
+                                .put("restoreWidth", restore.width).put("restoreHeight", restore.height)
+                        }
+                    }
             )
         }
         prefs.edit().putString("saved_windows", array.toString()).apply()
@@ -1214,7 +1246,15 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                         onMaximize = {
                             val index = windows.indexOfFirst { it.id == win.id }
                             if (index >= 0) {
-                                windows[index] = windows[index].copy(maximized = !windows[index].maximized)
+                                val current = windows[index]
+                                val safeBounds = InfinityAuroraSafeBounds(
+                                    width = maxW.value,
+                                    height = maxH.value,
+                                    topInset = 8f,
+                                    dockTop = (maxH.value - 92f).coerceAtLeast(8f)
+                                )
+                                windows[index] = if (current.maximized) current.restore()
+                                    else current.maximize(safeBounds)
                                 focusedWindowId = win.id
                             }
                         },
@@ -1265,6 +1305,9 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                      onFocus = {
                          val activeIndex = windows.indexOfFirst { it.id == win.id }
                          if (activeIndex >= 0) {
+                             val nextZ = (windows.maxOfOrNull { it.zIndex } ?: 0L)
+                                 .let { if (it == Long.MAX_VALUE) 1L else it + 1L }
+                             windows[activeIndex] = windows[activeIndex].copy(zIndex = nextZ)
                              val orderedWindows = infinityBringItemToFront(
                                  windows.toList(),
                                  windows[activeIndex]
