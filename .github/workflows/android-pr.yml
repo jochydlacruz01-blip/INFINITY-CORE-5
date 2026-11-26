@@ -17,6 +17,7 @@ on:
       - INFINITY-PACK-12-WINDOWS-COMPANION
       - INFINITY-PACK-13-FUTURISTIC-DESKTOP-VISUAL
       - INFINITY-PACK-14-REMOTE-FRAME-PIPELINE
+      - INFINITY-BASE-PACKAGES-01-05
     paths:
       - "app/**"
       - "freerdp-core/**"
