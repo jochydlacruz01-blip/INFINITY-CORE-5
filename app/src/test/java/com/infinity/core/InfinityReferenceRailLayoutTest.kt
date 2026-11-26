@@ -16,13 +16,13 @@ class InfinityReferenceRailLayoutTest {
         assertFalse(infinityReferenceMastheadVisible(Float.POSITIVE_INFINITY))
     }
 
-
     @Test
     fun tabletLandscapeRailFitsAboveDock() {
         val layout = infinityReferenceRailLayout(960f, 600f, 7)
         val bottom = layout.topDp + layout.slotHeightDp * 7
         assertTrue(layout.itemWidthDp in 78f..88f)
-        assertTrue(layout.iconSizeDp in 12f..40f)
+        assertTrue(layout.iconSizeDp in 1f..40f)
+        assertTrue(layout.iconSizeDp <= layout.slotHeightDp)
         assertTrue(bottom <= 600f - 148f + 0.01f)
     }
 
@@ -30,6 +30,7 @@ class InfinityReferenceRailLayoutTest {
     fun tabletPortraitRailUsesAvailableHeight() {
         val layout = infinityReferenceRailLayout(720f, 900f, 7)
         assertTrue(layout.slotHeightDp in 1f..88f)
+        assertTrue(layout.iconSizeDp <= layout.slotHeightDp)
         assertTrue(layout.topDp + layout.slotHeightDp * 7 <= 900f - 148f + 0.01f)
     }
 
@@ -50,6 +51,16 @@ class InfinityReferenceRailLayoutTest {
             assertTrue("rail overlaps dock at height=$height", railBottom <= height - 112f + 0.01f)
             assertTrue(layout.iconSizeDp <= layout.slotHeightDp * .38f + 0.01f)
             if (height == 420f) assertFalse(layout.showLabels)
+        }
+    }
+
+    @Test
+    fun veryShortViewportNeverLetsRailIconsExceedTheirSlots() {
+        for (height in listOf(220f, 240f, 260f)) {
+            val layout = infinityReferenceRailLayout(600f, height, 7)
+            assertTrue("icon exceeds slot at height=$height", layout.iconSizeDp <= layout.slotHeightDp)
+            assertTrue("icon size must remain positive at height=$height", layout.iconSizeDp > 0f)
+            assertFalse(layout.showLabels)
         }
     }
 
