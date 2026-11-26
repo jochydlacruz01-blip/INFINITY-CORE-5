@@ -45,6 +45,15 @@ class InfinityWorkspaceRulesTest {
         ))
         assertEquals(emptyList<String>(), infinityDockWindowIds(emptyList(), emptyMap()))
     }
+    @Test fun phoneAdaptationDoesNotEnablePersistentWindowGeometryGestures() {
+        assertEquals(false, infinityWindowCanManipulateGeometry(false, 412f))
+        assertEquals(false, infinityWindowCanManipulateGeometry(false, 599.9f))
+        assertEquals(true, infinityWindowCanManipulateGeometry(false, 600f))
+        assertEquals(true, infinityWindowCanManipulateGeometry(false, 900f))
+        assertEquals(false, infinityWindowCanManipulateGeometry(true, 900f))
+        assertEquals(false, infinityWindowCanManipulateGeometry(false, Float.NaN))
+    }
+
     @Test fun dockTapMinimizesFocusedTaskButRestoresOtherTasks() {
         assertEquals(true, infinityDockTapMinimizes("files_1", "files_1", false))
         assertEquals(false, infinityDockTapMinimizes("files_1", "notes_1", false))
