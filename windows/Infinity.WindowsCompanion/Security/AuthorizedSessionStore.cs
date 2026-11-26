@@ -41,7 +41,8 @@ public sealed class AuthorizedSessionStore
 
         lock (gate)
         {
-            PurgeExpired(utcNow());
+            var now = utcNow();
+            PurgeExpired(now);
             if (sessions.Count >= MaximumSessions ||
                 sessions.Values.Count(session => string.Equals(
                     session.ClientFingerprint, fingerprint, StringComparison.Ordinal)) >= 4)
@@ -52,7 +53,7 @@ public sealed class AuthorizedSessionStore
             var token = Base64UrlEncode(tokenBytes);
             var tokenHash = SHA256.HashData(tokenBytes);
             CryptographicOperations.ZeroMemory(tokenBytes);
-            var expiresAt = utcNow().Add(SessionLifetime);
+            var expiresAt = now.Add(SessionLifetime);
             sessions.Add(sessionId, new SessionRecord(
                 fingerprint,
                 tokenHash,
@@ -86,7 +87,7 @@ public sealed class AuthorizedSessionStore
 
         lock (gate)
         {
-            PurgeExpired(DateTimeOffset.UtcNow);
+            PurgeExpired(utcNow());
             if (!sessions.TryGetValue(parsedId, out var session)) {
                 CryptographicOperations.ZeroMemory(suppliedHash);
                 return false;
