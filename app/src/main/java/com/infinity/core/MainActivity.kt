@@ -1165,155 +1165,134 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                 }
             }
 
-            windows.filter { !it.minimized && it.workspace == workspace }.forEach { win ->
-                key(win.id) {
-                    val shown = if (win.maximized || maxW < 600.dp) {
-                        // En teléfonos, las ventanas se ajustan automáticamente
-                        // al espacio disponible para evitar recortes horizontales.
-                        win.copy(
-                            x = 8f,
-                            y = if (maxW < 600.dp) 62f else 8f,
-                            width = (maxW.value - 16f).coerceAtLeast(1f),
-                            height = (maxH.value - if (maxW < 600.dp) 132f else 100f)
-                                .coerceAtLeast(180f)
+            val auroraBounds = InfinityAuroraSafeBounds(
+                width = maxW.value,
+                height = maxH.value,
+                topInset = 8f,
+                dockTop = (maxH.value - 92f).coerceAtLeast(8f)
+            )
+            val auroraState = InfinityAuroraWindowState(
+                windows = windows.map { it.aurora },
+                activeWindowId = focusedWindowId,
+                nextZIndex = (windows.maxOfOrNull { it.zIndex } ?: 0L)
+                    .let { if (it == Long.MAX_VALUE) 1L else it + 1L }
+            )
+            InfinityAuroraWindowContainer(
+                state = auroraState,
+                workspace = workspace,
+                bounds = auroraBounds,
+                onFocus = { id ->
+                    val activeIndex = windows.indexOfFirst { it.id == id }
+                    if (activeIndex >= 0) {
+                        val nextZ = (windows.maxOfOrNull { it.zIndex } ?: 0L)
+                            .let { if (it == Long.MAX_VALUE) 1L else it + 1L }
+                        windows[activeIndex] = windows[activeIndex].copy(zIndex = nextZ)
+                        val ordered = infinityBringItemToFront(windows.toList(), windows[activeIndex]) { it.id }
+                        if (ordered.map { it.id } != windows.map { it.id }) {
+                            windows.clear()
+                            windows.addAll(ordered)
+                        }
+                        focusedWindowId = id
+                    }
+                },
+                onGeometryPreview = { /* Preview stays local to the AURORA container. */ },
+                onGeometryCommit = { committed ->
+                    val index = windows.indexOfFirst { it.id == committed.id }
+                    if (index >= 0) {
+                        windows[index] = windows[index].copy(
+                            x = committed.x,
+                            y = committed.y,
+                            width = committed.width,
+                            height = committed.height
                         )
-                    } else win
-
-                    Infinity08Window(
-                        win = shown,
-                        isFocused = focusedWindowId == win.id,
-                        installedApps = installedApps,
-                        accent = accent,
-                        lightMode = lightMode,
-                        desktopTheme = iconPack,
-                        themeChoice = themeChoice,
-                        onThemeChange = {
-                            val normalized = infinityNormalizeThemeChoice(it)
-                            themeChoice = normalized
-                            prefs.edit().putString("theme_choice", normalized).apply()
-                        },
-                        appearance = appearance,
-                        onAppearanceChange = {
-                            val normalized = infinityNormalizeAppearance(it)
-                            appearance = normalized
-                            prefs.edit().putString("appearance", normalized).apply()
-                        },
-                        iconSize = iconSize,
-                        onIconSizeChange = {
-                            val normalized = infinityNormalizeIconSize(it)
-                            iconSize = normalized
-                            prefs.edit().putFloat("icon_size", normalized).apply()
-                        },
-                        onChooseWallpaper = { wallpaperPicker.launch(arrayOf("image/*")) },
-                        selectedFolder = selectedFolder,
-                        onChooseFolder = { folderPicker.launch(null) },
-                        onLaunchApp = ::launchApp,
-                        onClose = {
-                            windows.removeAll { item -> item.id == win.id }
-                            focusedWindowId = infinityResolveFocusAfterWindowDeactivation(
-                                win.id,
-                                focusedWindowId,
-                                windows.map { it.id },
-                                windows.associate { it.id to it.workspace },
-                                windows.filter { it.minimized }.map { it.id }.toSet(),
-                                workspace
-                            )
-                        },
-                        onMinimize = {
-                            val index = windows.indexOfFirst { it.id == win.id }
-                            if (index >= 0) windows[index] = windows[index].copy(minimized = true)
-                            focusedWindowId = infinityResolveFocusAfterWindowDeactivation(
-                                win.id,
-                                focusedWindowId,
-                                windows.map { it.id },
-                                windows.associate { it.id to it.workspace },
-                                windows.filter { it.minimized }.map { it.id }.toSet(),
-                                workspace
-                            )
-                        },
-                        onMaximize = {
-                            val index = windows.indexOfFirst { it.id == win.id }
-                            if (index >= 0) {
-                                val current = windows[index]
-                                val safeBounds = InfinityAuroraSafeBounds(
-                                    width = maxW.value,
-                                    height = maxH.value,
-                                    topInset = 8f,
-                                    dockTop = (maxH.value - 92f).coerceAtLeast(8f)
+                    }
+                },
+                onGeometryCancel = { /* The container rolls back its transient preview. */ }
+            ) {
+                val activeWindows = windows.filter { !it.minimized && it.workspace == workspace }
+                activeWindows.forEach { win ->
+                    key(win.id) {
+                        Infinity08Window(
+                            win = win,
+                            isFocused = focusedWindowId == win.id,
+                            installedApps = installedApps,
+                            accent = accent,
+                            lightMode = lightMode,
+                            desktopTheme = iconPack,
+                            themeChoice = themeChoice,
+                            onThemeChange = {
+                                val normalized = infinityNormalizeThemeChoice(it)
+                                themeChoice = normalized
+                                prefs.edit().putString("theme_choice", normalized).apply()
+                            },
+                            appearance = appearance,
+                            onAppearanceChange = {
+                                val normalized = infinityNormalizeAppearance(it)
+                                appearance = normalized
+                                prefs.edit().putString("appearance", normalized).apply()
+                            },
+                            iconSize = iconSize,
+                            onIconSizeChange = {
+                                val normalized = infinityNormalizeIconSize(it)
+                                iconSize = normalized
+                                prefs.edit().putFloat("icon_size", normalized).apply()
+                            },
+                            onChooseWallpaper = { wallpaperPicker.launch(arrayOf("image/*")) },
+                            selectedFolder = selectedFolder,
+                            onChooseFolder = { folderPicker.launch(null) },
+                            onLaunchApp = ::launchApp,
+                            onClose = {
+                                windows.removeAll { item -> item.id == win.id }
+                                focusedWindowId = infinityResolveFocusAfterWindowDeactivation(
+                                    win.id,
+                                    focusedWindowId,
+                                    windows.map { it.id },
+                                    windows.associate { it.id to it.workspace },
+                                    windows.filter { it.minimized }.map { it.id }.toSet(),
+                                    workspace
                                 )
-                                windows[index] = if (current.maximized) current.restore()
-                                    else current.maximize(safeBounds)
-                                focusedWindowId = win.id
-                            }
-                        },
-                        
-                        // INFINITY 0.11 — MOVIMIENTO CON LÍMITES
-                        onMove = { dx, dy ->
-                            val index = windows.indexOfFirst { it.id == win.id }
-                            if (index >= 0 && infinityWindowCanManipulateGeometry(windows[index].maximized, maxW.value)) {
-                                val current = windows[index]
-                                // Compose drag deltas are pixels; persisted window geometry is dp.
-                                val deltaXdp = infinityGestureDeltaToDp(dx, density.density)
-                                val deltaYdp = infinityGestureDeltaToDp(dy, density.density)
-                                val boundedPosition = infinityClampWindowPosition(
-                                    current.x + deltaXdp,
-                                    current.y + deltaYdp,
-                                    current.width,
-                                    current.height,
-                                    maxW.value,
-                                    maxH.value
+                            },
+                            onMinimize = {
+                                val index = windows.indexOfFirst { it.id == win.id }
+                                if (index >= 0) windows[index] = windows[index].copy(minimized = true)
+                                focusedWindowId = infinityResolveFocusAfterWindowDeactivation(
+                                    win.id,
+                                    focusedWindowId,
+                                    windows.map { it.id },
+                                    windows.associate { it.id to it.workspace },
+                                    windows.filter { it.minimized }.map { it.id }.toSet(),
+                                    workspace
                                 )
-                                windows[index] = current.copy(
-                                    x = boundedPosition.first,
-                                    y = boundedPosition.second
-                                )
-                            }
-                        },
-                        // INFINITY 0.11 — REDIMENSIONAMIENTO ADAPTABLE
-                        onResize = { dx, dy ->
-                            val index = windows.indexOfFirst { it.id == win.id }
-                            if (index >= 0 && infinityWindowCanManipulateGeometry(windows[index].maximized, maxW.value)) {
-                                val current = windows[index]
-                                // Resize gestures also report pixels; dimensions and viewport are dp.
-                                val deltaWidthDp = infinityGestureDeltaToDp(dx, density.density)
-                                val deltaHeightDp = infinityGestureDeltaToDp(dy, density.density)
-
-                                val availableWidth =
-                                    (maxW.value - current.x).coerceAtLeast(1f)
-
-                                val availableHeight =
-                                    (maxH.value - current.y).coerceAtLeast(1f)
-
-                                windows[index] = current.copy(
-                                    width = infinityResizeDimension(current.width, deltaWidthDp, availableWidth, 280f),
-                                    height = infinityResizeDimension(current.height, deltaHeightDp, availableHeight, 190f)
-                                )
-                            }
-                        },
-                     onFocus = {
-                         val activeIndex = windows.indexOfFirst { it.id == win.id }
-                         if (activeIndex >= 0) {
-                             val nextZ = (windows.maxOfOrNull { it.zIndex } ?: 0L)
-                                 .let { if (it == Long.MAX_VALUE) 1L else it + 1L }
-                             windows[activeIndex] = windows[activeIndex].copy(zIndex = nextZ)
-                             val orderedWindows = infinityBringItemToFront(
-                                 windows.toList(),
-                                 windows[activeIndex]
-                             ) { it.id }
-                             if (orderedWindows.map { it.id } != windows.map { it.id }) {
-                                 windows.clear()
-                                 windows.addAll(orderedWindows)
-                             }
-                         }
-                         focusedWindowId = win.id
-                     },
-                        showGeometryControls = infinityWindowGeometryControlsVisible(maxW.value)
-                    )
+                            },
+                            onMaximize = {
+                                val index = windows.indexOfFirst { it.id == win.id }
+                                if (index >= 0) {
+                                    val current = windows[index]
+                                    windows[index] = if (current.maximized) current.restore()
+                                        else current.maximize(auroraBounds)
+                                    focusedWindowId = win.id
+                                }
+                            },
+                            onMove = { _, _ -> },
+                            onResize = { _, _ -> },
+                            onFocus = {
+                                val index = windows.indexOfFirst { it.id == win.id }
+                                if (index >= 0) {
+                                    val nextZ = (windows.maxOfOrNull { it.zIndex } ?: 0L)
+                                        .let { if (it == Long.MAX_VALUE) 1L else it + 1L }
+                                    windows[index] = windows[index].copy(zIndex = nextZ)
+                                    focusedWindowId = win.id
+                                }
+                            },
+                            showGeometryControls = infinityWindowGeometryControlsVisible(maxW.value),
+                            embeddedInAurora = true,
+                            showResizeControl = false
+                        )
+                    }
                 }
             }
 
-          
-            // DOCK INFINITY 0.10 — DISEÑO MEJORADO
+                        // DOCK INFINITY 0.10 — DISEÑO MEJORADO
             Row(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -3093,7 +3072,9 @@ private fun Infinity08Window(
     onMove: (Float, Float) -> Unit,
     onResize: (Float, Float) -> Unit,
     onFocus: () -> Unit,
-    showGeometryControls: Boolean
+    showGeometryControls: Boolean,
+    embeddedInAurora: Boolean = false,
+    showResizeControl: Boolean = true
 ) {
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences("infinity_desktop", 0) }
@@ -3115,15 +3096,22 @@ private fun Infinity08Window(
  
     Column(
      
-        Modifier.offset { IntOffset(win.x.roundToInt(), win.y.roundToInt()) }
-            .zIndex(if (isFocused) 10f else 0f)
-            .width(win.width.dp)
-            .height(win.height.dp)
+        Modifier
+            .then(
+                if (embeddedInAurora) Modifier.fillMaxSize()
+                else Modifier.offset { IntOffset(win.x.roundToInt(), win.y.roundToInt()) }
+                    .zIndex(if (isFocused) 10f else 0f)
+                    .width(win.width.dp)
+                    .height(win.height.dp)
+            )
             .testTag("infinity-window-${win.kind}")
-            .animateContentSize()
-             .shadow(26.dp, RoundedCornerShape(windowRadius))
-            .background(windowSurface, RoundedCornerShape(windowRadius))
-            .border(1.dp, windowBorder, RoundedCornerShape(windowRadius))
+            .then(
+                if (embeddedInAurora) Modifier
+                else Modifier.animateContentSize()
+                    .shadow(26.dp, RoundedCornerShape(windowRadius))
+                    .background(windowSurface, RoundedCornerShape(windowRadius))
+                    .border(1.dp, windowBorder, RoundedCornerShape(windowRadius))
+            )
             .clickable { onFocus() }
             // Keep the window name as an explicit accessible node outside the
             // clickable's descendant-merging semantics.
@@ -3402,7 +3390,7 @@ private fun Infinity08Window(
         }
 
          // En teléfono se usa ventana adaptada a pantalla completa; se ocultan controles inoperantes.
-        if (showGeometryControls) {
+        if (showGeometryControls && showResizeControl) {
         // INFINITY DESKTOP 0.11 — CONTROL DE REDIMENSIONAMIENTO
         Box(
             Modifier
