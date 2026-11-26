@@ -52,10 +52,14 @@ internal fun InfinityAuroraWindowContainer(
     Box(modifier.fillMaxSize()) {
         orderedWindows.forEachIndexed { stackOrder, modelWindow ->
             key(modelWindow.id) {
-                var renderedWindow by remember(modelWindow.id, modelWindow.workspace) {
-                    mutableStateOf(modelWindow)
+                // Viewport adaptation is presentation-only. Keep the source model intact
+                // so a phone-sized viewport cannot overwrite the saved desktop geometry.
+                var renderedWindow by remember(modelWindow.id, modelWindow.workspace, bounds) {
+                    mutableStateOf(infinityAuroraBoundWindow(modelWindow, bounds))
                 }
-                LaunchedEffect(modelWindow) { renderedWindow = modelWindow }
+                LaunchedEffect(modelWindow, bounds) {
+                    renderedWindow = infinityAuroraBoundWindow(modelWindow, bounds)
+                }
                 val active = state.activeWindowId == modelWindow.id
 
                 Surface(
@@ -80,6 +84,7 @@ internal fun InfinityAuroraWindowContainer(
                                 // Only the title-bar strip moves a window. Content controls,
                                 // text selection and scrolling retain their normal gestures.
                                 if (infinityAuroraCanChangeGeometry(renderedWindow) &&
+                                    infinityWindowCanManipulateGeometry(renderedWindow.maximized, bounds.width) &&
                                     down.position.y <= with(density) { 56.dp.toPx() }) {
                                     var preview: InfinityAuroraWindow? = null
                                     val start = awaitTouchSlopOrCancellation(down.id) { change, _ ->
@@ -125,7 +130,7 @@ internal fun InfinityAuroraWindowContainer(
                 ) {
                     Box(Modifier.fillMaxSize()) {
                         windowContent(renderedWindow)
-                        if (!renderedWindow.maximized) {
+                        if (infinityWindowCanManipulateGeometry(renderedWindow.maximized, bounds.width)) {
                             Box(
                                 Modifier.align(Alignment.BottomEnd).size(30.dp)
                                     .testTag("infinity-aurora-resize-${modelWindow.id}")
