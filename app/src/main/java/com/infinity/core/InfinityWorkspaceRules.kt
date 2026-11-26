@@ -72,6 +72,16 @@ internal fun infinityWorkspaceWindowIds(windowIds: List<String>, workspaceById: 
     return windowIds.filter { id -> workspaceById[id]?.let(::infinityNormalizeWorkspace) == target }
 }
 
+/** Returns the complete set of window IDs that must be minimized by ORBIT in one workspace. */
+internal fun infinityWorkspaceMinimizePlan(
+    orderedIds: List<String>,
+    workspaceById: Map<String, Int>,
+    alreadyMinimizedIds: Set<String>,
+    activeWorkspace: Int
+): Set<String> = alreadyMinimizedIds + infinityWorkspaceWindowIds(
+    orderedIds, workspaceById, activeWorkspace
+)
+
 /** Selects focus only among non-minimized windows in the normalized target workspace. */
 internal fun infinityResolveWorkspaceFocus(
     currentId: String?,

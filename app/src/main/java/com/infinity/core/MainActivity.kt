@@ -2169,16 +2169,22 @@ Spacer(Modifier.height(14.dp))
 
                             OutlinedButton(
                                 onClick = {
-                                    val activeWorkspaceWindowIds = infinityWorkspaceWindowIds(
-                                        windows.map { it.id },
-                                        windows.associate { it.id to it.workspace },
-                                        workspace
-                                    ).toSet()
+                                    // Resolve the workspace once for this click and build a pure,
+                                    // deterministic plan before mutating the Compose snapshot list.
+                                    val targetWorkspace = infinityNormalizeWorkspace(workspace)
+                                    val minimizeIds = infinityWorkspaceMinimizePlan(
+                                        orderedIds = windows.map { it.id },
+                                        workspaceById = windows.associate { it.id to it.workspace },
+                                        alreadyMinimizedIds = windows.filter { it.minimized }.map { it.id }.toSet(),
+                                        activeWorkspace = targetWorkspace
+                                    )
                                     windows.indices.forEach { index ->
-                                        if (windows[index].id in activeWorkspaceWindowIds) {
-                                            windows[index] = windows[index].copy(minimized = true)
+                                        val current = windows[index]
+                                        if (current.id in minimizeIds && !current.minimized) {
+                                            windows[index] = current.copy(minimized = true)
                                         }
                                     }
+                                    // Focus is global, so no task remains focused after this action.
                                     focusedWindowId = null
                                     dashboardOpen = false
                                     orbitOpen = false

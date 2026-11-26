@@ -63,6 +63,23 @@ class InfinityWorkspaceRulesTest {
         assertEquals(listOf("a"), infinityWorkspaceWindowIds(listOf("a", "b"), mapOf("a" to 0, "b" to 3), 1))
         assertEquals(emptyList<String>(), infinityWorkspaceWindowIds(listOf("x"), emptyMap(), 3))
     }
+    @Test fun orbitMinimizePlanIncludesEveryActiveWorkspaceTaskAndPreservesOtherSpaces() {
+        val ordered = listOf("notes_1", "files_2", "apps_2", "connect_3")
+        val workspaceById = mapOf("notes_1" to 1, "files_2" to 2, "apps_2" to 2, "connect_3" to 3)
+        assertEquals(
+            setOf("notes_1", "files_2", "apps_2"),
+            infinityWorkspaceMinimizePlan(ordered, workspaceById, setOf("notes_1"), 2)
+        )
+        assertEquals(
+            setOf("notes_1", "files_2", "apps_2", "connect_3"),
+            infinityWorkspaceMinimizePlan(ordered, workspaceById, setOf("notes_1"), 99)
+        )
+        assertEquals(
+            setOf("notes_1"),
+            infinityWorkspaceMinimizePlan(ordered, workspaceById, setOf("notes_1"), 0)
+        )
+    }
+
     @Test fun workspaceFocusExcludesMinimizedAndOtherWorkspaceWindows() {
         assertEquals("c", infinityResolveWorkspaceFocus(
             "b", listOf("a", "b", "c", "d"),
