@@ -1242,27 +1242,30 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                             onChooseFolder = { folderPicker.launch(null) },
                             onLaunchApp = ::launchApp,
                             onClose = {
-                                windows.removeAll { item -> item.id == win.id }
-                                focusedWindowId = infinityResolveFocusAfterWindowDeactivation(
-                                    win.id,
-                                    focusedWindowId,
-                                    windows.map { it.id },
-                                    windows.associate { it.id to it.workspace },
-                                    windows.filter { it.minimized }.map { it.id }.toSet(),
-                                    workspace
-                                )
+                                val current = InfinityAuroraWindowState(
+                                    windows = windows.map { it.aurora },
+                                    activeWindowId = focusedWindowId,
+                                    nextZIndex = (windows.maxOfOrNull { it.zIndex } ?: 0L)
+                                        .let { if (it == Long.MAX_VALUE) 1L else it + 1L }
+                                ).close(win.id, win.workspace)
+                                windows.clear()
+                                windows.addAll(current.windows.mapNotNull { model ->
+                                    windows.firstOrNull { it.id == model.id }?.copy(aurora = model)
+                                })
+                                focusedWindowId = current.activeWindowId
                             },
                             onMinimize = {
-                                val index = windows.indexOfFirst { it.id == win.id }
-                                if (index >= 0) windows[index] = windows[index].copy(minimized = true)
-                                focusedWindowId = infinityResolveFocusAfterWindowDeactivation(
-                                    win.id,
-                                    focusedWindowId,
-                                    windows.map { it.id },
-                                    windows.associate { it.id to it.workspace },
-                                    windows.filter { it.minimized }.map { it.id }.toSet(),
-                                    workspace
-                                )
+                                val current = InfinityAuroraWindowState(
+                                    windows = windows.map { it.aurora },
+                                    activeWindowId = focusedWindowId,
+                                    nextZIndex = (windows.maxOfOrNull { it.zIndex } ?: 0L)
+                                        .let { if (it == Long.MAX_VALUE) 1L else it + 1L }
+                                ).minimize(win.id, win.workspace)
+                                current.windows.forEach { model ->
+                                    val index = windows.indexOfFirst { it.id == model.id }
+                                    if (index >= 0) windows[index] = windows[index].copy(aurora = model)
+                                }
+                                focusedWindowId = current.activeWindowId
                             },
                             onMaximize = {
                                 val index = windows.indexOfFirst { it.id == win.id }
