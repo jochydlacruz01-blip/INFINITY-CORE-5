@@ -1248,7 +1248,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                 width = maxW.value,
                 height = maxH.value,
                 topInset = 8f,
-                dockTop = (maxH.value - 92f).coerceAtLeast(8f)
+                dockTop = (maxH.value - infinityAuroraDockClearanceDp(maxW.value, iconPack, futuristicDesktop)).coerceAtLeast(8f)
             )
             val auroraState = InfinityAuroraWindowState(
                 windows = windows.map { it.aurora },

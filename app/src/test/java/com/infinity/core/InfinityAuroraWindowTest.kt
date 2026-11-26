@@ -219,6 +219,22 @@ class InfinityAuroraGeometryGesturePolicyTest {
     }
 }
 
+    @Test fun dockClearanceMatchesCompactPhoneLayout() {
+        assertEquals(104f, infinityAuroraDockClearanceDp(390f, "infinity", true))
+    }
+
+    @Test fun dockClearanceMatchesWindows11CompactLayout() {
+        assertEquals(74f, infinityAuroraDockClearanceDp(390f, "windows11", true))
+    }
+
+    @Test fun dockClearanceIncludesTabletReferenceRailPadding() {
+        assertEquals(112f, infinityAuroraDockClearanceDp(800f, "infinity", true))
+    }
+
+    @Test fun dockClearanceUsesCompactClassicLayoutWhenReferenceModeIsOff() {
+        assertEquals(104f, infinityAuroraDockClearanceDp(800f, "infinity", false))
+    }
+
 
 class InfinityAuroraWindowLifecycleTest {
     private fun state() = InfinityAuroraWindowState(

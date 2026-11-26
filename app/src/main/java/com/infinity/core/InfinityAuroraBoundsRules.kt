@@ -52,3 +52,17 @@ internal fun infinityAuroraMaximizedWindow(
 /** Maximized and minimized windows are not eligible for direct geometry gestures. */
 internal fun infinityAuroraCanChangeGeometry(window: InfinityAuroraWindow): Boolean =
     !window.maximized && !window.minimized
+
+/**
+ * Dock vertical footprint, including the outer and inner Compose padding.
+ * Keep this policy aligned with the Dock modifier chain in MainActivity.
+ */
+internal fun infinityAuroraDockClearanceDp(
+    viewportWidthDp: Float,
+    desktopTheme: String,
+    futuristicDesktop: Boolean
+): Float = when {
+    desktopTheme == "windows11" -> 74f // 60dp row + 7dp inner padding on each side.
+    viewportWidthDp >= 600f && futuristicDesktop -> 112f // 72dp row + 8dp inner + 12dp outer padding.
+    else -> 104f // 60dp row + 10dp inner + 12dp outer padding.
+}
