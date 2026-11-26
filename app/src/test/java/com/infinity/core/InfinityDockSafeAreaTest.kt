@@ -38,4 +38,11 @@ class InfinityDockSafeAreaTest {
         assertEquals(74f, infinityDockReservedHeightDp(800f, false, "windows11"), 0f)
         assertEquals(84f, infinityDockReservedHeightDp(390f, false, "infinity"), 0f)
     }
+
+    @Test fun newlyOpenedWindowUsesTheSafeAreaAboveDock() {
+        val safeBottom = 388f
+        val (width, height) = infinityInitialWindowSize(800f, safeBottom)
+        val (_, y) = infinityInitialWindowPosition(0, 800f, safeBottom, width, height)
+        assertTrue(y + height <= safeBottom)
+    }
 }

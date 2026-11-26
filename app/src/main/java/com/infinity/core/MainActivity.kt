@@ -66,7 +66,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -879,7 +879,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                         }
                         if (plan.requestWallpaperPicker) wallpaperPicker.launch(arrayOf("image/*"))
                         if (plan.requestAppearancePanel) {
-                            focusedWindowId = openInfinityWindow("settings", windows, workspace, maxW.value, maxH.value)
+                            focusedWindowId = openInfinityWindow("settings", windows, workspace, maxW.value, maxH.value, dockSafeBottom)
                         }
                         if (plan.requestWorkspacePanel) dashboardOpen = true
                     }
@@ -891,7 +891,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                     workspace = workspace,
                     onWorkspaceChange = { target -> switchWorkspace(target); dashboardOpen = true },
                     onOpenWindow = { id ->
-                        focusedWindowId = openInfinityWindow(id, windows, workspace, maxW.value, maxH.value)
+                        focusedWindowId = openInfinityWindow(id, windows, workspace, maxW.value, maxH.value, dockSafeBottom)
                         dashboardOpen = false
                         startOpen = false
                         orbitOpen = false
@@ -1099,7 +1099,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                                         orbitOpen = false
                                         advancedOpen = false
                                     }
-                                    else -> focusedWindowId = openInfinityWindow(item.id, windows, workspace, maxW.value, maxH.value)
+                                    else -> focusedWindowId = openInfinityWindow(item.id, windows, workspace, maxW.value, maxH.value, dockSafeBottom)
                                 }
                             }
                             .padding(if (referenceRail) 2.dp else if (compactIconCell) 3.dp else 6.dp)
@@ -1140,14 +1140,14 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
             windows.filter { !it.minimized && it.workspace == workspace }.forEach { win ->
                 key(win.id) {
                     val shown = if (win.maximized || maxW < 600.dp) {
-                        // En teléfonos, las ventanas se ajustan automáticamente
-                        // al espacio disponible para evitar recortes horizontales.
+                        // Both maximized tablet windows and phone-adapted windows stop above
+                        // the measured Dock, including its floating margin and safe inset.
+                        val top = if (maxW < 600.dp) 62f else 8f
                         win.copy(
                             x = 8f,
-                            y = if (maxW < 600.dp) 62f else 8f,
+                            y = top,
                             width = (maxW.value - 16f).coerceAtLeast(1f),
-                            height = (maxH.value - if (maxW < 600.dp) 132f else 100f)
-                                .coerceAtLeast(180f)
+                            height = (dockSafeBottom - top - 8f).coerceAtLeast(1f)
                         )
                     } else win
 
@@ -1273,7 +1273,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                     .align(Alignment.BottomCenter)
                     .zIndex(20f)
                     .onGloballyPositioned { coordinates ->
-                        val measuredTop = with(density) { coordinates.positionInRoot().y.toDp().value }
+                        val measuredTop = with(density) { coordinates.positionInParent().y.toDp().value }
                         val nextSafeBottom = (measuredTop - 8f).coerceIn(0f, maxH.value)
                         if (kotlin.math.abs(dockSafeBottom - nextSafeBottom) > 0.5f) {
                             dockSafeBottom = nextSafeBottom
@@ -1541,7 +1541,7 @@ DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED"
                                             if (item.id == "orbit") {
                                                 orbitOpen = true
                                             } else {
-                                                focusedWindowId = openInfinityWindow(item.id, windows, workspace, maxW.value, maxH.value)
+                                                focusedWindowId = openInfinityWindow(item.id, windows, workspace, maxW.value, maxH.value, dockSafeBottom)
                                             }
                                             startOpen = false
                                         }.padding(9.dp),
@@ -1979,7 +1979,7 @@ Spacer(Modifier.height(14.dp))
                         ) {
                             Button(
                                 onClick = {
-                                    focusedWindowId = openInfinityWindow("connect", windows, workspace, maxW.value, maxH.value)
+                                    focusedWindowId = openInfinityWindow("connect", windows, workspace, maxW.value, maxH.value, dockSafeBottom)
                                     orbitOpen = false
                                 },
                                 modifier = Modifier
@@ -2506,7 +2506,8 @@ private fun openInfinityWindow(
     windows: MutableList<DeskWindow>,
     workspace: Int,
     viewportWidth: Float,
-    viewportHeight: Float
+    viewportHeight: Float,
+    safeBottom: Float = viewportHeight
 ): String {
     val titles = mapOf(
         "files" to "Explorador de archivos",
@@ -2523,7 +2524,7 @@ private fun openInfinityWindow(
     } else {
         val (windowWidth, windowHeight) = infinityInitialWindowSize(
             viewportWidth,
-            viewportHeight
+            safeBottom
         )
         val (windowX, windowY) = infinityInitialWindowPosition(
             infinityWorkspaceWindowCount(
@@ -2532,7 +2533,7 @@ private fun openInfinityWindow(
                 workspace
             ),
             viewportWidth,
-            viewportHeight,
+            safeBottom,
             windowWidth,
             windowHeight
         )
