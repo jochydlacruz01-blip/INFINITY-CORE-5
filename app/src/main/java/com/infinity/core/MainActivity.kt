@@ -413,10 +413,26 @@ private fun Infinity08App() {
         }
     }
 
-    val windowSnapshot = windows.joinToString("|") {
-        "${it.id},${it.x},${it.y},${it.width},${it.height},${it.minimized},${it.workspace},${it.maximized}"
-    }
+    // Include every persisted field and the list order (AURORA z-order) in the key.
+    // Debouncing avoids writing SharedPreferences for every pointer-move frame.
+    val windowSnapshot = infinityWindowSnapshotKey(
+        windows.map { win ->
+            InfinityWindowSnapshotEntry(
+                id = win.id,
+                title = win.title,
+                kind = win.kind,
+                x = win.x,
+                y = win.y,
+                width = win.width,
+                height = win.height,
+                minimized = win.minimized,
+                workspace = win.workspace,
+                maximized = win.maximized
+            )
+        }
+    )
     LaunchedEffect(windowSnapshot) {
+        delay(INFINITY_WINDOW_PERSISTENCE_DEBOUNCE_MS)
         val array = JSONArray()
         windows.forEach { win ->
             array.put(
@@ -1365,7 +1381,7 @@ DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED"
                         workspaceWindows.associate { it.id to it.minimized }
                     )
                     val visibleTaskLimit = infinityDockVisibleTaskLimit(maxW.value)
-                    val visibleTaskIds = allTaskIds.takeLast(visibleTaskLimit)
+                    val visibleTaskIds = infinityDockVisibleTaskIds(allTaskIds, visibleTaskLimit)
                     visibleTaskIds.forEach { taskId ->
                         val task = workspaceWindows.firstOrNull { it.id == taskId } ?: return@forEach
                         DockAction(if (task.minimized) "□" else "▣", infinityDockLabel(task.title), accent, iconPack, compact = maxW < 390.dp) {

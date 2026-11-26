@@ -34,7 +34,7 @@ internal fun infinityResolveFocusedWindow(currentId: String?, eligibleIds: List<
 internal fun infinityDockWindowIds(windowIds: List<String>, minimizedById: Map<String, Boolean>): List<String> =
     windowIds.filter { it in minimizedById.keys }
 
-/** Limits visible task shortcuts so primary controls and the clock remain on-screen. */
+/** Caps task shortcuts so they do not crowd primary Dock actions; overflow remains reachable through ORBIT. */
 internal fun infinityDockVisibleTaskLimit(availableWidthDp: Float): Int = when {
     !availableWidthDp.isFinite() || availableWidthDp < 600f -> 1
     availableWidthDp < 720f -> 2
@@ -45,6 +45,44 @@ internal fun infinityDockVisibleTaskLimit(availableWidthDp: Float): Int = when {
 /** Counts hidden task shortcuts without allowing invalid or negative counts. */
 internal fun infinityDockHiddenTaskCount(totalTasks: Int, visibleTasks: Int): Int =
     (totalTasks.coerceAtLeast(0) - visibleTasks.coerceAtLeast(0)).coerceAtLeast(0)
+
+/** Shows the newest tasks first, matching AURORA's last-drawn-is-front z-order. */
+internal fun infinityDockVisibleTaskIds(orderedTaskIds: List<String>, maxVisibleTasks: Int): List<String> =
+    orderedTaskIds.takeLast(maxVisibleTasks.coerceAtLeast(0))
+
+/** Persisted window state used to detect meaningful changes without writing on every drag frame. */
+internal data class InfinityWindowSnapshotEntry(
+    val id: String,
+    val title: String,
+    val kind: String,
+    val x: Float,
+    val y: Float,
+    val width: Float,
+    val height: Float,
+    val minimized: Boolean,
+    val workspace: Int,
+    val maximized: Boolean
+)
+
+/** Stable key includes metadata, geometry, visibility, workspace, maximization and z-order. */
+internal fun infinityWindowSnapshotKey(entries: List<InfinityWindowSnapshotEntry>): String =
+    entries.joinToString(separator = ";") { entry ->
+        buildString {
+            append(entry.id.length).append(':').append(entry.id).append('|')
+            append(entry.title.length).append(':').append(entry.title).append('|')
+            append(entry.kind.length).append(':').append(entry.kind).append('|')
+            append(entry.x.toBits()).append('|')
+            append(entry.y.toBits()).append('|')
+            append(entry.width.toBits()).append('|')
+            append(entry.height.toBits()).append('|')
+            append(entry.minimized).append('|')
+            append(entry.workspace).append('|')
+            append(entry.maximized)
+        }
+    }
+
+/** Wait for short geometry gestures to settle before committing the window snapshot. */
+internal const val INFINITY_WINDOW_PERSISTENCE_DEBOUNCE_MS = 250L
 
 /** Window geometry controls are available only when a desktop/tablet viewport can use them. */
 internal fun infinityWindowGeometryControlsVisible(availableWidthDp: Float): Boolean =

@@ -2,6 +2,7 @@ package com.infinity.core
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertNotEquals
 import org.junit.Test
 
 class InfinityWorkspaceRulesTest {
@@ -49,6 +50,42 @@ class InfinityWorkspaceRulesTest {
         assertEquals(true, infinityDockTapMinimizes("files_1", "files_1", false))
         assertEquals(false, infinityDockTapMinimizes("files_1", "notes_1", false))
         assertEquals(false, infinityDockTapMinimizes("files_1", "files_1", true))
+    }
+
+    @Test fun dockShowsMostRecentlyRaisedTasksAndCountsOverflow() {
+        val orderedByAURORAZOrder = listOf("files_1", "apps_1", "notes_1", "connect_1")
+        val visible = infinityDockVisibleTaskIds(orderedByAURORAZOrder, 2)
+        assertEquals(listOf("notes_1", "connect_1"), visible)
+        assertEquals(2, infinityDockHiddenTaskCount(orderedByAURORAZOrder.size, visible.size))
+        assertEquals(emptyList<String>(), infinityDockVisibleTaskIds(orderedByAURORAZOrder, 0))
+    }
+
+    @Test fun dockTaskLimitAdaptsToAvailableViewportWidth() {
+        assertEquals(1, infinityDockVisibleTaskLimit(599f))
+        assertEquals(2, infinityDockVisibleTaskLimit(600f))
+        assertEquals(3, infinityDockVisibleTaskLimit(720f))
+        assertEquals(5, infinityDockVisibleTaskLimit(960f))
+        assertEquals(1, infinityDockVisibleTaskLimit(Float.NaN))
+    }
+
+    @Test fun windowSnapshotKeyTracksAllPersistedStateAndZOrder() {
+        val files = InfinityWindowSnapshotEntry(
+            "files_1", "Explorador", "files", 10f, 20f, 370f, 330f,
+            minimized = false, workspace = 1, maximized = false
+        )
+        val notes = files.copy(id = "notes_1", title = "Notas", kind = "notes")
+        val baseline = infinityWindowSnapshotKey(listOf(files, notes))
+
+        assertNotEquals(baseline, infinityWindowSnapshotKey(listOf(notes, files)))
+        assertNotEquals(baseline, infinityWindowSnapshotKey(listOf(files.copy(title = "Archivos"), notes)))
+        assertNotEquals(baseline, infinityWindowSnapshotKey(listOf(files.copy(x = 11f), notes)))
+        assertNotEquals(baseline, infinityWindowSnapshotKey(listOf(files.copy(minimized = true), notes)))
+        assertNotEquals(baseline, infinityWindowSnapshotKey(listOf(files.copy(workspace = 2), notes)))
+        assertNotEquals(baseline, infinityWindowSnapshotKey(listOf(files.copy(maximized = true), notes)))
+    }
+
+    @Test fun emptyWindowSnapshotKeyIsStable() {
+        assertEquals("", infinityWindowSnapshotKey(emptyList()))
     }
 
     @Test fun dockLabelsNormalizeWhitespaceAndTruncateSafely() {
