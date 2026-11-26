@@ -27,6 +27,13 @@ internal fun infinityNormalizeDesktopTheme(value: String?): String =
 internal fun infinityDesktopBrandingTopInset(viewportWidthDp: Float): Float =
     if (viewportWidthDp.isFinite() && viewportWidthDp < 600f) 76f else 18f
 
+/**
+ * Reserves space for the compact clock and outer margins without forcing
+ * branding wider than the viewport on very narrow devices.
+ */
+internal fun infinityDesktopBrandingMaxWidth(viewportWidthDp: Float): Float =
+    if (viewportWidthDp.isFinite()) (viewportWidthDp - 180f).coerceAtLeast(64f) else 120f
+
 /** Responsive title sizing keeps compact desktop branding clear beside the clock. */
 internal fun infinityDesktopBrandingTitleSize(viewportWidthDp: Float): Float = when {
     !viewportWidthDp.isFinite() -> 30f

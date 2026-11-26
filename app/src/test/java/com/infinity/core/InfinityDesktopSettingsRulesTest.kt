@@ -43,6 +43,15 @@ class InfinityDesktopSettingsRulesTest {
         assertEquals(18f, infinityDesktopBrandingTopInset(900f))
     }
 
+    @Test fun compactBrandingMaximumWidthRespectsNarrowViewports() {
+        assertEquals(64f, infinityDesktopBrandingMaxWidth(240f))
+        assertEquals(100f, infinityDesktopBrandingMaxWidth(280f))
+        assertEquals(140f, infinityDesktopBrandingMaxWidth(320f))
+        assertEquals(420f, infinityDesktopBrandingMaxWidth(600f))
+        assertEquals(120f, infinityDesktopBrandingMaxWidth(Float.NaN))
+        assertEquals(120f, infinityDesktopBrandingMaxWidth(Float.POSITIVE_INFINITY))
+    }
+
     @Test fun compactBrandingTitleScalesToAvailableWidth() {
         assertEquals(20f, infinityDesktopBrandingTitleSize(320f))
         assertEquals(24f, infinityDesktopBrandingTitleSize(390f))
