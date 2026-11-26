@@ -79,6 +79,6 @@ jobs:
           for library in "${REQUIRED_LIBRARIES[@]}"; do
             path="$JNI_LIBS/$library"
             test -s "$path"
-            readelf -h "$path" | grep -Fq 'Machine:                           AArch64'
+            readelf -h "$path" | grep -Eq 'Machine:[[:space:]]+AArch64'
             ls -lh "$path"
           done
