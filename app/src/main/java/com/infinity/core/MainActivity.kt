@@ -1042,7 +1042,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                                     else -> focusedWindowId = openInfinityWindow(item.id, windows, workspace, maxW.value, maxH.value)
                                 }
                             }
-                            .padding(if (referenceRail) 2.dp else 6.dp)
+                            .padding(if (referenceRail) 2.dp else if (compactIconCell) 3.dp else 6.dp)
                     ) {
                         InfinityAppBadge(
                             item,
