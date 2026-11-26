@@ -109,7 +109,7 @@ def _is_safe_manual_debug_apk_workflow(path: Path, content: str) -> bool:
         re.search(r"(?m)^\s+ref:\s*" + re.escape(AUTHORIZED_DEBUG_BRANCH) + r"\s*$", content),
         re.search(r"(?m)^\s+gradle -PINFINITY_BUILD_FREERDP_NATIVE=true :freerdpCore:externalNativeBuildDebug compileDebugKotlin testDebugUnitTest lintDebug assembleDebug --stacktrace\s*$", content),
         re.search(r"(?m)^\s*\"?\$\{APKSIGNER\}\"? verify --verbose --print-certs", content),
-        re.search(r"(?m)^\s+path: app/build/outputs/apk/debug/app-debug\.apk\s*$", content),
+        re.search(r'(?m)^\\s+APK="app/build/outputs/apk/debug/app-debug\\.apk"\\s*$', content),
         re.search(r"(?m)^\s+REQUIRED_FREERDP_LIBRARIES=\($", content),
         re.search(r"(?m)^\s+libfreerdp-android\.so$", content),
         re.search(r"(?m)^\s+libfreerdp3\.so$", content),
@@ -123,6 +123,11 @@ def _is_safe_manual_debug_apk_workflow(path: Path, content: str) -> bool:
         re.search(r"ndk;27\.0\.12077973", content),
         re.search(r"cmake;3\.22\.1", content),
         re.search(r'entry="lib/arm64-v8a/\$\{library\}"', content),
+        re.search(r"unzip -p", content),
+        re.search(r"readelf -h", content),
+        re.search(r"ELF64", content),
+        re.search(r"AArch64", content),
+        re.search(r"test -s", content),
     )
     if not all(required):
         return False
@@ -136,15 +141,15 @@ def _is_safe_manual_debug_apk_workflow(path: Path, content: str) -> bool:
     if re.search(forbidden, content) or "secrets." in content:
         return False
 
+    # The DEBUG APK is inspected in-place but never uploaded or published.
     artifact_blocks = _artifact_steps(content)
-    if len(artifact_blocks) != 2:
+    if len(artifact_blocks) != 1:
         return False
-    apk_block = next((block for block in artifact_blocks if "app/build/outputs/apk/debug/app-debug.apk" in block), "")
-    evidence_block = next((block for block in artifact_blocks if "app-debug-sha256.txt" in block), "")
+    evidence_block = artifact_blocks[0]
     return bool(
-        apk_block
-        and re.search(r"(?m)^\s+name:\s*PROJECT-INFINITY-0\.10-DEBUG-TEST-APK\s*$", apk_block)
-        and re.search(r"(?m)^\s+name:\s*PROJECT-INFINITY-0\.10-DEBUG-APK-EVIDENCE\s*$", evidence_block)
+        "app/build/outputs/apk/debug/app-debug.apk" not in evidence_block
+        and not APK_REFERENCE.search(evidence_block)
+        and re.search(r"(?m)^\\s+name:\\s*PROJECT-INFINITY-0\\.10-DEBUG-APK-EVIDENCE\\s*$", evidence_block)
         and "app-debug-signature.txt" in evidence_block
         and "app-debug-size.txt" in evidence_block
         and "app-debug-freerdp-libraries.txt" in evidence_block
