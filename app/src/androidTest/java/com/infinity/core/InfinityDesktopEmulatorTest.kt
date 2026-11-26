@@ -141,7 +141,9 @@ class InfinityDesktopEmulatorTest {
             settleComposeFrame()
             compose.onNodeWithTag("infinity-window-title-notes")
                 .performTouchInput { swipe(center, center + Offset(44f, 30f), durationMillis = 420) }
-            compose.onNodeWithTag("infinity-window-resize-notes", useUnmergedTree = true)
+            // AURORA owns resize at the outer window-container grip. The legacy
+            // inner-window resize control is intentionally hidden in embedded mode.
+            compose.onNodeWithTag("infinity-aurora-resize-notes")
                 .performTouchInput { swipe(center, center + Offset(46f, 38f), durationMillis = 420) }
         }
         compose.onNodeWithContentDescription("Minimizar").performClick()
@@ -352,6 +354,22 @@ class InfinityDesktopEmulatorTest {
         minimizeAll.performClick()
         settleComposeFrame()
 
+        // Wait for the durable snapshot effect; Compose state and SharedPreferences
+        // persistence are separate operations and must not be raced by this test.
+        compose.waitUntil(timeoutMillis = 5_000) {
+            val persisted = JSONArray(
+                context.getSharedPreferences("infinity_desktop", 0)
+                    .getString("saved_windows", "[]")
+            )
+            val persistedStates = (0 until persisted.length()).mapNotNull { index ->
+                persisted.optJSONObject(index)?.let { item ->
+                    item.optString("kind") to (
+                        item.optInt("workspace", 1) to item.optBoolean("minimized", false)
+                    )
+                }
+            }.toMap()
+            persistedStates["notes"] == (1 to false) && persistedStates["files"] == (2 to true)
+        }
         val saved = JSONArray(
             context.getSharedPreferences("infinity_desktop", 0)
                 .getString("saved_windows", "[]")
@@ -363,8 +381,8 @@ class InfinityDesktopEmulatorTest {
                 )
             }
         }.toMap()
-        assertTrue("Workspace 1 Notes task must remain visible", states["notes"] == (1 to false))
-        assertTrue("Workspace 2 Files task must be minimized", states["files"] == (2 to true))
+        assertTrue("Workspace 1 Notes task must remain visible: $states", states["notes"] == (1 to false))
+        assertTrue("Workspace 2 Files task must be minimized: $states", states["files"] == (2 to true))
         assertTrue(
             "Focus must be cleared after minimizing all active workspace windows",
             context.getSharedPreferences("infinity_desktop", 0)

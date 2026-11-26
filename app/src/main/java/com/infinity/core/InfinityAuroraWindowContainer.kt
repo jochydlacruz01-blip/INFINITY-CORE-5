@@ -29,6 +29,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -127,6 +128,7 @@ internal fun InfinityAuroraWindowContainer(
                         if (!renderedWindow.maximized) {
                             Box(
                                 Modifier.align(Alignment.BottomEnd).size(30.dp)
+                                    .testTag("infinity-aurora-resize-${modelWindow.kind}")
                                     .background(
                                         Color(0xFF56D6C9).copy(alpha = .20f),
                                         RoundedCornerShape(topStart = 10.dp)

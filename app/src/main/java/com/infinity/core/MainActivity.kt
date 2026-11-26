@@ -504,7 +504,11 @@ private fun Infinity08App() {
         }
     }
 
-    val windowSnapshot = windows.joinToString("||") { infinityAuroraWindowSnapshotToken(it.aurora) }
+    // Persist UI state as well as geometry. The previous geometry-only token did not
+    // change when ORBIT minimized a window, so saved_windows could retain stale state.
+    val windowSnapshot = windows.joinToString("||") {
+        infinityAuroraWindowSnapshotToken(it.aurora) + "|" + it.minimized + "|" + it.workspace + "|" + it.maximized + "|" + it.title + "|" + it.kind
+    }
     LaunchedEffect(windowSnapshot) {
         val array = JSONArray()
         windows.forEach { win ->
