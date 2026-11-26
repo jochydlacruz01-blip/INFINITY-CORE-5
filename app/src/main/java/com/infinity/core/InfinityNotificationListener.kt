@@ -63,12 +63,9 @@ object InfinityNotificationStore {
         hideContent = enabled
         if (enabled) {
             mainHandler.post {
-                notifications.indices.forEach { index ->
-                    val current = notifications[index]
-                    if (current.title.isNotEmpty() || current.message.isNotEmpty()) {
-                        notifications[index] = current.copy(title = "", message = "")
-                    }
-                }
+                val redacted = infinityNotificationApplyPrivacy(notifications.toList(), hideContent = true)
+                notifications.clear()
+                notifications.addAll(redacted)
             }
         }
     }
