@@ -32,6 +32,7 @@ internal class InfinityFreeRdpClient(
     interface Listener {
         fun onConnected()
         fun onDisconnected()
+        fun onReconnecting()
         fun onError(message: String)
         fun onFrame(frame: Bitmap)
         fun onResolutionChanged(width: Int, height: Int)
@@ -164,7 +165,7 @@ internal class InfinityFreeRdpClient(
         }
 
         override fun OnReconnecting() {
-            mainHandler.post { listener.onError("Windows está intentando restablecer la sesión RDP.") }
+            mainHandler.post { listener.onReconnecting() }
         }
 
         override fun OnAuthenticate(
