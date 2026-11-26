@@ -1,0 +1,54 @@
+name: INFINITY main security recovery verification
+
+on:
+  push:
+    branches:
+      - INFINITY-RECOVERY-MAIN-BACKUP-SECURITY
+
+permissions:
+  contents: read
+
+concurrency:
+  group: infinity-main-security-recovery
+  cancel-in-progress: false
+
+jobs:
+  verify-main-source:
+    name: Verify main Android source and security defaults (no APK)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout recovery branch
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Configure Java 17
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - name: Configure Gradle 8.9
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: '8.9'
+
+      - name: Verify repository files and Android security defaults
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f settings.gradle.kts
+          test -f build.gradle.kts
+          test -f app/build.gradle.kts
+          test -f app/src/main/AndroidManifest.xml
+          grep -q 'android:allowBackup="false"' app/src/main/AndroidManifest.xml
+          grep -q 'android:usesCleartextTraffic="false"' app/src/main/AndroidManifest.xml
+          git diff --check
+
+      - name: Compile Android debug Kotlin source (no APK)
+        run: gradle compileDebugKotlin --stacktrace
+
+      - name: Run Android debug lint (no APK)
+        run: gradle lintDebug --stacktrace
