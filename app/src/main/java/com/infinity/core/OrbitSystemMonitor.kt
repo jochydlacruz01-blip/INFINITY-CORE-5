@@ -167,7 +167,8 @@ fun OrbitSystemMonitor(
                 thermalState = "NO DISPONIBLE"
             }
 
-            // Polling interval is centralized for tuning and predictable resource use.\n            delay(ORBIT_REFRESH_INTERVAL_MS)
+            // Polling interval is centralized for tuning and predictable resource use.
+            delay(ORBIT_REFRESH_INTERVAL_MS)
         }
     }
 
