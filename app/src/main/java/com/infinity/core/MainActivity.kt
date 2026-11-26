@@ -1365,13 +1365,16 @@ DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED"
                                 )
                                 val minimizeTask = activation == null
                                 windows[idx] = tappedTask.copy(minimized = minimizeTask)
-                                focusedWindowId = if (minimizeTask) {
-                                    infinityResolveWorkspaceFocus(
+                                if (minimizeTask) {
+                                    focusedWindowId = infinityResolveWorkspaceFocus(
                                         null, windows.map { it.id },
                                         windows.associate { it.id to it.workspace },
                                         windows.filter { it.minimized }.map { it.id }.toSet(), workspace
                                     )
-                                } else activation
+                                } else {
+                                    // Dock activation must update both logical focus and AURORA z-order.
+                                    focusWindowToFront(tappedTask.id)
+                                }
                             }
                             dashboardOpen = false
                             startOpen = false
