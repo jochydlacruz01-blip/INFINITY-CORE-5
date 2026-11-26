@@ -32,6 +32,7 @@ ALLOWED_NON_APK_ARTIFACT_PATHS = (
 )
 TEMPORARILY_DISABLED_APK_WORKFLOWS = {"publish-release.yml"}
 MANUAL_DEBUG_APK_WORKFLOW = "android.yml"
+MANUAL_RELEASE_VALIDATION_WORKFLOW = "android-validation-release.yml"
 AUTHORIZED_DEBUG_BRANCH = "INFINITY-PACK-14-REMOTE-FRAME-PIPELINE"
 
 
@@ -157,6 +158,57 @@ def _is_safe_manual_debug_apk_workflow(path: Path, content: str) -> bool:
     )
 
 
+
+def _is_safe_manual_release_validation_workflow(path: Path, content: str) -> bool:
+    """Allow only a manually dispatched, branch-pinned, ephemeral-key validation Release APK."""
+    if path.name != MANUAL_RELEASE_VALIDATION_WORKFLOW:
+        return False
+    required = (
+        re.search(r"(?m)^on:\s*\n\s+workflow_dispatch:\s*$", content),
+        re.search(
+            r"(?m)^    if:\s*\$\{\{\s*github\.event_name\s*==\s*'workflow_dispatch'\s*&&\s*github\.ref\s*==\s*'refs/heads/"
+            + re.escape(AUTHORIZED_DEBUG_BRANCH)
+            + r"'\s*\}\}\s*$",
+            content,
+        ),
+        re.search(r"(?m)^permissions:\s*\n\s+contents:\s*read\s*$", content),
+        re.search(r"(?m)^\s+ref:\s*" + re.escape(AUTHORIZED_DEBUG_BRANCH) + r"\s*$", content),
+        re.search(r"keytool\s+-genkeypair", content),
+        re.search(r"openssl\s+rand", content),
+        re.search(r"CN=INFINITY VALIDATION ONLY", content),
+        re.search(r"INFINITY_KEYSTORE_FILE", content),
+        re.search(r"INFINITY_KEYSTORE_PASSWORD", content),
+        re.search(r"INFINITY_KEY_ALIAS", content),
+        re.search(r"INFINITY_KEY_PASSWORD", content),
+        re.search(r"assembleRelease", content),
+        re.search(r"testReleaseUnitTest", content),
+        re.search(r"lintRelease", content),
+        re.search(r"app/build/outputs/apk/release/app-release\.apk", content),
+        re.search(r"apksigner\s+verify\s+--verbose\s+--print-certs", content),
+        re.search(r"sha256sum", content),
+        re.search(r"actions/upload-artifact@", content),
+        re.search(r"PROJECT-INFINITY-0\.10-RELEASE-VALIDATION-APK", content),
+        re.search(r"retention-days:\s*7", content),
+    )
+    if not all(required):
+        return False
+    forbidden = (
+        r"(?i)secrets\.|softprops/action-gh-release|gh\s+release|"
+        r"actions/upload-release-asset|contents:\s*write|packages:\s*write|"
+        r"INFINITY_KEYSTORE_BASE64"
+    )
+    if re.search(forbidden, content):
+        return False
+    artifact_blocks = _artifact_steps(content)
+    if len(artifact_blocks) != 1:
+        return False
+    artifact_block = artifact_blocks[0]
+    return bool(
+        "app/build/outputs/apk/release/app-release.apk" in artifact_block
+        and re.search(r"(?m)^\s+name:\s*PROJECT-INFINITY-0\.10-RELEASE-VALIDATION-APK\s*$", artifact_block)
+        and "if-no-files-found: error" in artifact_block
+    )
+
 def _audit_file(workflow: Path) -> list[str]:
     try:
         content = workflow.read_text(encoding="utf-8")
@@ -167,8 +219,11 @@ def _audit_file(workflow: Path) -> list[str]:
     # branch-pinned DEBUG-only workflow with no commercial signing or publication.
     disabled_apk_workflow = _is_temporarily_disabled_apk_workflow(workflow, content)
     safe_debug_workflow = _is_safe_manual_debug_apk_workflow(workflow, content)
+    safe_release_validation = _is_safe_manual_release_validation_workflow(workflow, content)
     if workflow.name == MANUAL_DEBUG_APK_WORKFLOW and not safe_debug_workflow:
         return [f"{workflow}: manual DEBUG APK workflow does not satisfy the strict PR #87 allowlist"]
+    if workflow.name == MANUAL_RELEASE_VALIDATION_WORKFLOW and not safe_release_validation:
+        return [f"{workflow}: manual Release validation workflow does not satisfy the strict PR #87 ephemeral-signing allowlist"]
 
     findings: list[str] = []
     normalized_shell = content.replace("\\\n", " ")
@@ -180,10 +235,10 @@ def _audit_file(workflow: Path) -> list[str]:
         pattern.search(content)
         for pattern in (APK_REFERENCE, GENERIC_OUTPUT, SIGNING, RELEASE_UPLOAD)
     )
-    if (gradle_build or has_apk_output) and not (disabled_apk_workflow or safe_debug_workflow):
+    if (gradle_build or has_apk_output) and not (disabled_apk_workflow or safe_debug_workflow or safe_release_validation):
         findings.append(f"{workflow}: APK build, signing, or publication route is not disabled")
 
-    if not (disabled_apk_workflow or safe_debug_workflow):
+    if not (disabled_apk_workflow or safe_debug_workflow or safe_release_validation):
         for block in _artifact_steps(content):
             path_match = re.search(
                 r"(?ims)^\s*path\s*:\s*(.*?)(?=^\s*[a-zA-Z_-]+\s*:|\Z)",
