@@ -780,6 +780,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                 )
                 Spacer(Modifier.height(9.dp))
                 Row(
+                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
