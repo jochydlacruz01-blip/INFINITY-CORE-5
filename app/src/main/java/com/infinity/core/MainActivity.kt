@@ -527,7 +527,10 @@ private fun Infinity08App() {
     var focusedWindowId by remember {
         mutableStateOf(
             infinityResolveRestoredWindowFocus(
-                prefs.getString("focused_window_id", null),
+                prefs.getString(
+                    infinityWorkspaceFocusPreferenceKey(workspace),
+                    prefs.getString("focused_window_id", null)
+                ),
                 windows.map { it.id },
                 windows.associate { it.id to it.workspace },
                 windows.filter { it.minimized }.map { it.id }.toSet(),
@@ -535,18 +538,34 @@ private fun Infinity08App() {
             )
         )
     }
-    LaunchedEffect(focusedWindowId) {
+    LaunchedEffect(focusedWindowId, workspace) {
         val id = focusedWindowId
-        if (id == null) prefs.edit().remove("focused_window_id").apply()
-        else prefs.edit().putString("focused_window_id", id).apply()
+        val editor = prefs.edit()
+        if (id == null) {
+            editor.remove("focused_window_id")
+            editor.remove(infinityWorkspaceFocusPreferenceKey(workspace))
+        } else {
+            editor.putString("focused_window_id", id)
+            editor.putString(infinityWorkspaceFocusPreferenceKey(workspace), id)
+        }
+        editor.apply()
     }
 
     fun switchWorkspace(target: Int) {
         val normalizedTarget = infinityNormalizeWorkspace(target)
+        val currentFocus = focusedWindowId
+        val currentFocusIsVisible = currentFocus != null && windows.any {
+            it.id == currentFocus && it.workspace == workspace && !it.minimized
+        }
+        val editor = prefs.edit().putInt("active_workspace", normalizedTarget)
+        if (currentFocusIsVisible) {
+            editor.putString(infinityWorkspaceFocusPreferenceKey(workspace), currentFocus)
+        }
+        editor.apply()
+        val targetSavedFocus = prefs.getString(infinityWorkspaceFocusPreferenceKey(normalizedTarget), null)
         workspace = normalizedTarget
-        prefs.edit().putInt("active_workspace", normalizedTarget).apply()
-        focusedWindowId = infinityResolveWorkspaceSwitchFocus(
-            focusedWindowId, windows.map { it.id },
+        focusedWindowId = infinityResolveRestoredWindowFocus(
+            targetSavedFocus, windows.map { it.id },
             windows.associate { it.id to it.workspace },
             windows.filter { it.minimized }.map { it.id }.toSet(), normalizedTarget
         )
