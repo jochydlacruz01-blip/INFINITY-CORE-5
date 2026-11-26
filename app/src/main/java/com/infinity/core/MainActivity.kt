@@ -696,24 +696,8 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                 iconLayoutReady = true
             }
 
-            // Normalize persisted windows after screen size, orientation, or density changes.
-            LaunchedEffect(maxW, maxH) {
-                windows.indices.forEach { index ->
-                    val current = windows[index]
-                    val bounds = infinityNormalizeWindowBounds(
-                        current.x, current.y, current.width, current.height,
-                        maxW.value, maxH.value
-                    )
-                    if (bounds.x != current.x || bounds.y != current.y ||
-                        bounds.width != current.width || bounds.height != current.height
-                    ) {
-                        windows[index] = current.copy(
-                            x = bounds.x, y = bounds.y,
-                            width = bounds.width, height = bounds.height
-                        )
-                    }
-                }
-            }
+            // AURORA adapts persisted geometry at render time. Do not rewrite the
+            // saved tablet/desktop geometry just because the current viewport is a phone.
 
             // The selected desktop theme is rendered by the root background above.
             val currentWallpaperBitmap = wallpaperBitmap
