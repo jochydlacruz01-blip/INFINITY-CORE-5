@@ -184,7 +184,7 @@ def _is_safe_manual_release_validation_workflow(path: Path, content: str) -> boo
         re.search(r"testReleaseUnitTest", content),
         re.search(r"lintRelease", content),
         re.search(r"app/build/outputs/apk/release/app-release\.apk", content),
-        re.search(r"apksigner\s+verify\s+--verbose\s+--print-certs", content),
+        re.search(r"APKSIGNER.*verify\s+--verbose\s+--print-certs", content),
         re.search(r"sha256sum", content),
         re.search(r"actions/upload-artifact@", content),
         re.search(r"PROJECT-INFINITY-0\.10-RELEASE-VALIDATION-APK", content),
@@ -286,4 +286,4 @@ if __name__ == "__main__":
     if errors:
         print("\n".join("FAIL: " + error for error in errors))
         raise SystemExit(1)
-    print("Workflow policy passed: only the branch-pinned manual DEBUG APK allowlist is enabled; Release/publication and all other APK routes remain blocked")
+    print("Workflow policy passed: only branch-pinned manual DEBUG and ephemeral-signed Release validation APK workflows are enabled; commercial Release/publication remains blocked")

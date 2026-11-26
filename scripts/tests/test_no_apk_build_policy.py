@@ -285,6 +285,53 @@ jobs:
             app-debug-signature.txt
             app-debug-freerdp-libraries.txt
 """
+
+    def test_authorized_manual_ephemeral_release_validation_workflow_is_allowed(self):
+        self.assertEqual(
+            audit_named_workflow("android-validation-release.yml", self._authorized_release_validation_workflow_fixture()),
+            [],
+        )
+
+    def test_release_validation_workflow_with_commercial_secret_is_rejected(self):
+        content = self._authorized_release_validation_workflow_fixture().replace(
+            "keytool -genkeypair", "echo \${{ secrets.INFINITY_KEYSTORE_PASSWORD }}\n      - run: keytool -genkeypair"
+        )
+        self.assertTrue(audit_named_workflow("android-validation-release.yml", content))
+
+    def _authorized_release_validation_workflow_fixture(self):
+        return """name: PROJECT INFINITY 0.10 - RELEASE VALIDATION APK (EPHEMERAL SIGNING)
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build-release-validation:
+    if: \${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/INFINITY-PACK-14-REMOTE-FRAME-PIPELINE' }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: INFINITY-PACK-14-REMOTE-FRAME-PIPELINE
+      - run: openssl rand -hex 32
+      - run: keytool -genkeypair -dname "CN=INFINITY VALIDATION ONLY"
+      - run: |
+          export INFINITY_KEYSTORE_FILE=/tmp/validation.jks
+          export INFINITY_KEYSTORE_PASSWORD=ephemeral
+          export INFINITY_KEY_ALIAS=infinity-validation-only
+          export INFINITY_KEY_PASSWORD=ephemeral
+          gradle testReleaseUnitTest lintRelease assembleRelease
+      - run: |
+          APK="app/build/outputs/apk/release/app-release.apk"
+          "\${APKSIGNER}" verify --verbose --print-certs "\${APK}"
+          sha256sum "\${APK}"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: PROJECT-INFINITY-0.10-RELEASE-VALIDATION-APK
+          path: |
+            app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error
+          retention-days: 7
+"""
+
     def test_manual_debug_workflow_wrong_branch_is_rejected(self):
         content = """on:
   workflow_dispatch:
