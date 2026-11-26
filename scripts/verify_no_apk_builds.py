@@ -120,9 +120,9 @@ def _is_safe_manual_debug_apk_workflow(path: Path, content: str) -> bool:
         re.search(r"(?m)^\s+liburiparser\.so$", content),
         re.search(r"unzip -Z1", content),
         re.search(r"grep -Fxq", content),
-        re.search(r"ndk;27\\.0\\.12077973", content),
-        re.search(r"cmake;3\\.22\\.1", content),
-        re.search(r'entry="lib/arm64-v8a/\\$\\{library\\}"', content),
+        re.search(r"ndk;27\.0\.12077973", content),
+        re.search(r"cmake;3\.22\.1", content),
+        re.search(r'entry="lib/arm64-v8a/\$\{library\}"', content),
     )
     if not all(required):
         return False
