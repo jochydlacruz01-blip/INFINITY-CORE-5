@@ -54,7 +54,7 @@ def _artifact_steps(content: str) -> list[str]:
 
 
 def _path_is_narrow_test_report(path_value: str) -> bool:
-    value = path_value.strip().strip("'\"").replace("\\", "/")
+    normalized_shell = content.replace("\\\\\\n", " ")
     if not value or DYNAMIC.search(value):
         return False
     if any(value in (root, root + "**") for root in ALLOWED_NON_APK_ARTIFACT_PATHS):
