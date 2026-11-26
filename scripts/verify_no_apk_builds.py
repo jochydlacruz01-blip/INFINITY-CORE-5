@@ -54,7 +54,7 @@ def _artifact_steps(content: str) -> list[str]:
 
 
 def _path_is_narrow_test_report(path_value: str) -> bool:
-    normalized_shell = content.replace("\\\\\\n", " ")
+    value = path_value.strip().strip("'\"").replace("\\", "/")
     if not value or DYNAMIC.search(value):
         return False
     if any(value in (root, root + "**") for root in ALLOWED_NON_APK_ARTIFACT_PATHS):
@@ -171,7 +171,7 @@ def _audit_file(workflow: Path) -> list[str]:
         return [f"{workflow}: manual DEBUG APK workflow does not satisfy the strict PR #87 allowlist"]
 
     findings: list[str] = []
-    value = path_value.strip().strip("'\"").replace("\\", "/")
+    normalized_shell = content.replace("\\\n", " ")
     gradle_build = any(
         GRADLE_INVOKED.search(line) and FORBIDDEN_GRADLE_TASK.search(line)
         for line in normalized_shell.splitlines()
