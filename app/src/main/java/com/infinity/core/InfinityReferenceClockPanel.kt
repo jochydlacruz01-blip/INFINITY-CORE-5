@@ -56,12 +56,12 @@ internal fun InfinityReferenceClockPanel(clock: String, date: String, modifier: 
                         .background(Brush.verticalGradient(listOf(Color(0xFF35D8FF), Color(0x998D70FF), Color.Transparent)))
                 )
                 Column(horizontalAlignment = Alignment.Start) {
-                    Text("INNOVACIÓN", color = Color(0xFFEAF7FF), fontSize = titleSize,
-                        fontWeight = FontWeight.Medium, letterSpacing = lineSpacing, maxLines = 1)
-                    Text("TECNOLOGÍA", color = Color(0xFF00D9FF), fontSize = titleSize,
-                        fontWeight = FontWeight.Medium, letterSpacing = lineSpacing, maxLines = 1)
-                    Text("PRODUCTIVIDAD", color = Color(0xFF00D9FF), fontSize = titleSize,
-                        fontWeight = FontWeight.Bold, letterSpacing = if (compact) 2.sp else 3.sp, maxLines = 1)
+                    Text("I N N O V A C I Ó N", color = Color(0xFFEAF7FF), fontSize = if (compact) 10.sp else 12.sp,
+                        fontWeight = FontWeight.Medium, maxLines = 1)
+                    Text("T E C N O L O G Í A", color = Color(0xFF00D9FF), fontSize = if (compact) 10.sp else 12.sp,
+                        fontWeight = FontWeight.Medium, maxLines = 1)
+                    Text("P R O D U C T I V I D A D", color = Color(0xFF00D9FF), fontSize = if (compact) 9.sp else 11.sp,
+                        fontWeight = FontWeight.Bold, maxLines = 1)
                     Spacer(Modifier.height(10.dp))
                     Text(
                         "Un solo entorno,\ninfinitas posibilidades.",

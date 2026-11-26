@@ -19,6 +19,11 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.focusable
+import androidx.compose.foundation.hoverable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.Image
@@ -54,6 +59,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -108,11 +114,11 @@ private fun InfinityAppBadge(item: DeskItem, size: androidx.compose.ui.unit.Dp, 
         else -> Color(0xFF56D6C9)
     }
     val appIcon = when (item.id) {
-        "files" -> Icons.Filled.FolderOpen
-        "notes" -> Icons.Filled.EditNote
+        "files" -> Icons.Filled.Computer
+        "notes" -> Icons.Filled.FolderOpen
         "apps" -> Icons.Filled.Apps
         "connect" -> Icons.Filled.Computer
-        "settings" -> Icons.Filled.Palette
+        "settings" -> Icons.Filled.Info
         "orbit" -> Icons.Filled.Apps
         else -> Icons.Filled.Info
     }
@@ -130,12 +136,14 @@ private fun InfinityAppBadge(item: DeskItem, size: androidx.compose.ui.unit.Dp, 
         contentAlignment = Alignment.Center
     ) {
         Box(Modifier.fillMaxSize().padding(size * .12f).border(1.dp, Color.White.copy(.08f), RoundedCornerShape(size * .2f)))
-        Icon(
-            imageVector = appIcon,
-            contentDescription = item.label,
-            tint = if (iconPack == "windows11") Color(0xFFF4FAFF) else identity,
-            modifier = Modifier.size(size * .53f)
-        )
+        if (item.id in setOf("apps", "about", "settings", "orbit", "connect")) {
+            Text(item.glyph, color = if (iconPack == "windows11") Color(0xFFF4FAFF) else identity,
+                fontSize = (size.value * .60f).sp, fontWeight = FontWeight.Black)
+        } else {
+            Icon(imageVector = appIcon, contentDescription = item.label,
+                tint = if (iconPack == "windows11") Color(0xFFF4FAFF) else identity,
+                modifier = Modifier.size(size * .53f))
+        }
         Box(Modifier.align(Alignment.BottomEnd).padding(size * .10f).size(size * .10f).background(accent, CircleShape))
     }
 }
@@ -172,11 +180,11 @@ private fun Infinity08App() {
         // INFINITY FUTURE reference desktop: stable IDs preserve existing window actions.
         listOf(
             DeskItem("files", "Este Equipo", "▣"),
-            DeskItem("notes", "Mis Archivos", "✎"),
-            DeskItem("apps", "Papelera de Reciclaje", "◈"),
+            DeskItem("notes", "Mis Archivos", "▰"),
+            DeskItem("apps", "Papelera de Reciclaje", "▤"),
             DeskItem("about", "INFINITY START", "∞"),
-            DeskItem("settings", "System Guard", "⚙"),
-            DeskItem("orbit", "ORBIT", "∞"),
+            DeskItem("settings", "System Guard", "⬡"),
+            DeskItem("orbit", "ORBIT", "◎"),
             DeskItem("connect", "CONNECT", "◉")
         )
     }
@@ -238,8 +246,8 @@ private fun Infinity08App() {
     LaunchedEffect(Unit) {
         while (true) {
             val now = Date()
-            clockText = SimpleDateFormat("h:mm a", Locale.getDefault()).format(now)
-            dateText = SimpleDateFormat("EEE, dd MMM yyyy", Locale.getDefault()).format(now)
+            clockText = SimpleDateFormat("hh:mm a", Locale.US).format(now)
+            dateText = SimpleDateFormat("EEE, dd MMM yyyy", Locale("es", "DO")).format(now)
             delay(30_000)
         }
     }
@@ -631,8 +639,8 @@ val iconOffsets = remember {
             // Cabecera de marca para tablet; no sustituye los accesos ni el fondo elegido.
             if (maxW >= 600.dp && !dashboardOpen && futuristicDesktop) {
                 InfinityReferenceMasthead(
-                    modifier = Modifier.align(Alignment.Center)
-                        .offset(y = maxH * 0.035f)
+                    modifier = Modifier.align(Alignment.TopCenter)
+                        .padding(top = if (maxW < 900.dp) 112.dp else 88.dp)
                 )
             }
 
@@ -874,6 +882,10 @@ val iconOffsets = remember {
                 val referenceRail = maxW >= 600.dp && futuristicDesktop
                 val railLayout = if (referenceRail) infinityReferenceRailLayout(maxW.value, maxH.value, desktopItems.size) else null
                 desktopItems.forEach { item ->
+                    val shortcutInteraction = remember(item.id) { MutableInteractionSource() }
+                    val shortcutHovered by shortcutInteraction.collectIsHoveredAsState()
+                    val shortcutFocused by shortcutInteraction.collectIsFocusedAsState()
+                    val shortcutHighlighted = shortcutHovered || shortcutFocused
                     val itemIndex = desktopItems.indexOf(item)
                     val offset = if (railLayout != null) {
                         with(density) {
@@ -888,6 +900,12 @@ val iconOffsets = remember {
                         modifier = Modifier
                             .offset { IntOffset(offset.x.roundToInt(), offset.y.roundToInt()) }
                             .width((railLayout?.itemWidthDp ?: 108f).dp)
+                            .graphicsLayer {
+                                val emphasis = if (shortcutHighlighted) 1.045f else 1f
+                                scaleX = emphasis
+                                scaleY = emphasis
+                            }
+                            .shadow(if (shortcutHighlighted) 18.dp else 0.dp, RoundedCornerShape(18.dp))
                             .clip(RoundedCornerShape(if (iconPack == "windows11") 12.dp else 18.dp))
                             .background(
                                 if (maxW >= 600.dp && futuristicDesktop) Brush.verticalGradient(listOf(Color.Transparent, Color.Transparent))
@@ -908,6 +926,9 @@ val iconOffsets = remember {
                                 RoundedCornerShape(if (iconPack == "windows11") 12.dp else 18.dp)
                             )
                             .padding(if (referenceRail) 2.dp else 8.dp)
+                            .hoverable(shortcutInteraction)
+                            .focusable(interactionSource = shortcutInteraction)
+                            .testTag("infinity-desktop-shortcut-${item.id}")
                             .pointerInput(item.id, referenceRail) {
                                 if (!referenceRail) detectDragGestures { change, drag ->
                                     change.consume()
@@ -951,14 +972,30 @@ val iconOffsets = remember {
                                     }
                                 }
                             }
-                            .clickable {
-                                if (item.id == "orbit") {
-                                    orbitOpen = !orbitOpen
-                                    startOpen = false
-                                    controlOpen = false
-                                    advancedOpen = false
-                                } else {
-                                    focusedWindowId = openInfinityWindow(item.id, windows, workspace, maxW.value, maxH.value)
+                            .clickable(interactionSource = shortcutInteraction, indication = null, role = Role.Button) {
+                                when (item.id) {
+                                    "orbit" -> {
+                                        orbitOpen = !orbitOpen
+                                        startOpen = false
+                                        controlOpen = false
+                                        advancedOpen = false
+                                    }
+                                    "about" -> {
+                                        startOpen = true
+                                        search = ""
+                                        startCategory = "all"
+                                        orbitOpen = false
+                                        controlOpen = false
+                                        advancedOpen = false
+                                    }
+                                    "settings" -> {
+                                        controlOpen = true
+                                        controlMode = "device"
+                                        startOpen = false
+                                        orbitOpen = false
+                                        advancedOpen = false
+                                    }
+                                    else -> focusedWindowId = openInfinityWindow(item.id, windows, workspace, maxW.value, maxH.value)
                                 }
                             }
                             .padding(if (referenceRail) 2.dp else 6.dp)
