@@ -109,10 +109,16 @@ internal fun InfinityConnectRemoteDesktopPanel(
             }
 
             override fun onError(message: String) {
-                if (client == null) return
+                val failedClient = client
+                if (failedClient == null) return
                 lifecycle.transition(InfinityConnectSessionState.FAILED, message)
+                client = null
                 connected = false
+                frame = null
                 status = message
+                CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+                    runCatching { failedClient.closeSession() }
+                }
             }
 
             override fun onFrame(frameBitmap: Bitmap) {
@@ -127,11 +133,17 @@ internal fun InfinityConnectRemoteDesktopPanel(
             }
 
             override fun onRdpCertificateRejected(host: String, observedFingerprint: String) {
-                if (client == null) return
+                val rejectedClient = client
+                if (rejectedClient == null) return
                 connected = false
+                frame = null
+                client = null
                 val message = "Certificado RDP rechazado. Huella observada: $observedFingerprint"
                 lifecycle.transition(InfinityConnectSessionState.FAILED, message)
                 status = message
+                CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+                    runCatching { rejectedClient.closeSession() }
+                }
             }
         }
     }
