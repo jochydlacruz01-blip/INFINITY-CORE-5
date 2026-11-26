@@ -157,6 +157,59 @@ def _is_safe_manual_debug_apk_workflow(path: Path, content: str) -> bool:
     )
 
 
+
+FASE2_DEBUG_APK_WORKFLOW = "android-fase2-test-apk.yml"
+
+
+def _is_safe_fase2_debug_apk_workflow(path: Path, content: str) -> bool:
+    """Strict exception for the branch-pinned, DEBUG-only Fase II acceptance APK."""
+    if path.name != FASE2_DEBUG_APK_WORKFLOW:
+        return False
+    required = [
+        "branches:\n      - INFINITY-BASE-PACKAGES-01-05",
+        "contents: read",
+        "github.event_name == 'push'",
+        "github.ref == 'refs/heads/INFINITY-BASE-PACKAGES-01-05'",
+        "ref: \${{ github.sha }}",
+        'test "$(git rev-parse HEAD)" = "\${GITHUB_SHA}"',
+        "gradle -PINFINITY_BUILD_FREERDP_NATIVE=true :freerdpCore:externalNativeBuildDebug compileDebugKotlin testDebugUnitTest lintDebug assembleDebug --stacktrace",
+        'APK="app/build/outputs/apk/debug/app-debug.apk"',
+        "REQUIRED_FREERDP_LIBRARIES=(",
+        "libfreerdp-android.so", "libfreerdp3.so", "libfreerdp-client3.so",
+        "libwinpr3.so", "libssl.so", "libcrypto.so", "liburiparser.so",
+        "CN=Android Debug", "readelf -h", "ELF64", "AArch64",
+        "ndk;27.0.12077973", "cmake;3.22.1",
+    ]
+    if not all(item in content for item in required):
+        return False
+    forbidden = (
+        "workflow_dispatch", "assembleRelease", "bundleRelease", "publish",
+        "softprops/action-gh-release", "contents: write", "packages: write",
+        "INFINITY_KEYSTORE_BASE64", "INFINITY_KEYSTORE_PASSWORD",
+        "INFINITY_KEY_ALIAS", "INFINITY_KEY_PASSWORD", "signingConfig", "secrets."
+    )
+    if any(item in content for item in forbidden):
+        return False
+    jobs = re.search(r"(?ms)^jobs:\s*\n(.*)\Z", content)
+    if not jobs or len(re.findall(r"(?m)^  [A-Za-z0-9_-]+:\s*$", jobs.group(1))) != 1:
+        return False
+    blocks = _artifact_steps(content)
+    if len(blocks) != 1:
+        return False
+    block = blocks[0]
+    if "name: PROJECT-INFINITY-FASE-II-DEBUG-TEST-APK" not in block or "retention-days: 7" not in block:
+        return False
+    path_match = re.search(r"(?ims)^\s*path\s*:\s*\|\s*\n(.*?)(?=^\s*[a-zA-Z_-]+\s*:|\Z)", block)
+    if not path_match:
+        return False
+    entries = [line.strip() for line in path_match.group(1).splitlines() if line.strip()]
+    expected = {
+        "app/build/outputs/apk/debug/app-debug.apk", "app-debug-sha256.txt",
+        "app-debug-size.txt", "app-debug-signature.txt", "app-debug-freerdp-libraries.txt"
+    }
+    return set(entries) == expected and len(entries) == len(expected)
+
+
 def _audit_file(workflow: Path) -> list[str]:
     try:
         content = workflow.read_text(encoding="utf-8")
@@ -167,8 +220,12 @@ def _audit_file(workflow: Path) -> list[str]:
     # branch-pinned DEBUG-only workflow with no commercial signing or publication.
     disabled_apk_workflow = _is_temporarily_disabled_apk_workflow(workflow, content)
     safe_debug_workflow = _is_safe_manual_debug_apk_workflow(workflow, content)
+    safe_fase2_debug_workflow = _is_safe_fase2_debug_apk_workflow(workflow, content)
     if workflow.name == MANUAL_DEBUG_APK_WORKFLOW and not safe_debug_workflow:
         return [f"{workflow}: manual DEBUG APK workflow does not satisfy the strict PR #87 allowlist"]
+
+    if workflow.name == FASE2_DEBUG_APK_WORKFLOW and not safe_fase2_debug_workflow:
+        return [f"{workflow}: Fase II DEBUG APK workflow does not satisfy the strict branch-pinned test allowlist"]
 
     findings: list[str] = []
     normalized_shell = content.replace("\\\n", " ")
@@ -180,10 +237,10 @@ def _audit_file(workflow: Path) -> list[str]:
         pattern.search(content)
         for pattern in (APK_REFERENCE, GENERIC_OUTPUT, SIGNING, RELEASE_UPLOAD)
     )
-    if (gradle_build or has_apk_output) and not (disabled_apk_workflow or safe_debug_workflow):
+    if (gradle_build or has_apk_output) and not (disabled_apk_workflow or safe_debug_workflow or safe_fase2_debug_workflow):
         findings.append(f"{workflow}: APK build, signing, or publication route is not disabled")
 
-    if not (disabled_apk_workflow or safe_debug_workflow):
+    if not (disabled_apk_workflow or safe_debug_workflow or safe_fase2_debug_workflow):
         for block in _artifact_steps(content):
             path_match = re.search(
                 r"(?ims)^\s*path\s*:\s*(.*?)(?=^\s*[a-zA-Z_-]+\s*:|\Z)",

@@ -314,5 +314,73 @@ jobs:
 
 
 
+class Fase2DebugApkAllowlistTest(unittest.TestCase):
+    def fixture(self):
+        return """on:
+  push:
+    branches:
+      - INFINITY-BASE-PACKAGES-01-05
+permissions:
+  contents: read
+jobs:
+  build:
+    if: \${{ github.event_name == 'push' && github.ref == 'refs/heads/INFINITY-BASE-PACKAGES-01-05' }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: \${{ github.sha }}
+          submodules: recursive
+          persist-credentials: false
+      - run: |
+          test "$(git rev-parse HEAD)" = "\${GITHUB_SHA}"
+      - run: sdkmanager --install "platforms;android-35" "build-tools;35.0.0" "ndk;27.0.12077973" "cmake;3.22.1"
+      - run: gradle -PINFINITY_BUILD_FREERDP_NATIVE=true :freerdpCore:externalNativeBuildDebug compileDebugKotlin testDebugUnitTest lintDebug assembleDebug --stacktrace
+      - run: |
+          APK="app/build/outputs/apk/debug/app-debug.apk"
+          "\${APKSIGNER}" verify --verbose --print-certs "\${APK}"
+          grep -Fq 'CN=Android Debug' app-debug-signature.txt
+          REQUIRED_FREERDP_LIBRARIES=(
+            libfreerdp-android.so
+            libfreerdp3.so
+            libfreerdp-client3.so
+            libwinpr3.so
+            libssl.so
+            libcrypto.so
+            liburiparser.so
+          )
+          readelf -h native.so
+          echo ELF64 AArch64
+      - uses: actions/upload-artifact@v7
+        with:
+          name: PROJECT-INFINITY-FASE-II-DEBUG-TEST-APK
+          path: |
+            app/build/outputs/apk/debug/app-debug.apk
+            app-debug-sha256.txt
+            app-debug-size.txt
+            app-debug-signature.txt
+            app-debug-freerdp-libraries.txt
+          retention-days: 7
+"""
+
+    def test_exact_fase2_debug_workflow_is_allowed(self):
+        self.assertEqual(audit_named_workflow("android-fase2-test-apk.yml", self.fixture()), [])
+
+    def test_wrong_branch_is_rejected(self):
+        self.assertTrue(audit_named_workflow("android-fase2-test-apk.yml",
+            self.fixture().replace("INFINITY-BASE-PACKAGES-01-05", "main")))
+
+    def test_release_task_is_rejected(self):
+        self.assertTrue(audit_named_workflow("android-fase2-test-apk.yml",
+            self.fixture().replace("assembleDebug --stacktrace", "assembleRelease --stacktrace")))
+
+    def test_commercial_signing_is_rejected(self):
+        self.assertTrue(audit_named_workflow("android-fase2-test-apk.yml",
+            self.fixture().replace("permissions:", "env:\n  KEY: \${{ secrets.INFINITY_KEYSTORE_PASSWORD }}\npermissions:")))
+
+    def test_broad_artifact_path_is_rejected(self):
+        self.assertTrue(audit_named_workflow("android-fase2-test-apk.yml",
+            self.fixture().replace("app/build/outputs/apk/debug/app-debug.apk", "app/build/outputs/**")))
+
+
 if __name__ == "__main__":
     unittest.main()
