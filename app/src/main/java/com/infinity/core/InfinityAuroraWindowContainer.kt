@@ -2,7 +2,9 @@ package com.infinity.core
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitTouchSlopOrCancellation
+import androidx.compose.foundation.gestures.drag
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
@@ -18,6 +20,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.pointer.awaitFirstDown
+import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -68,40 +73,40 @@ internal fun InfinityAuroraWindowContainer(
                             RoundedCornerShape(18.dp)
                         )
                         .pointerInput(modelWindow.id, modelWindow.workspace, bounds) {
-                            var original: InfinityAuroraWindow? = null
-                            var preview: InfinityAuroraWindow? = null
-                            detectDragGestures(
-                                onDragStart = {
-                                    onFocus(modelWindow.id)
-                                    original = renderedWindow
-                                    preview = renderedWindow
-                                },
-                                onDragEnd = {
-                                    preview?.let {
-                                        renderedWindow = it
-                                        onGeometryCommit(it)
+                            awaitEachGesture {
+                                val down = awaitFirstDown(requireUnconsumed = false)
+                                // Only the title-bar strip moves a window. Content controls,
+                                // text selection and scrolling retain their normal gestures.
+                                if (down.position.y <= with(density) { 56.dp.toPx() }) {
+                                    var preview: InfinityAuroraWindow? = null
+                                    val start = awaitTouchSlopOrCancellation(down.id) { change, _ ->
+                                        change.consume()
                                     }
-                                    original = null
-                                    preview = null
-                                },
-                                onDragCancel = {
-                                    original?.let { renderedWindow = it }
-                                    onGeometryCancel(modelWindow.id)
-                                    original = null
-                                    preview = null
+                                    if (start != null) {
+                                        onFocus(modelWindow.id)
+                                        preview = renderedWindow
+                                        drag(start.id) { change ->
+                                            val delta = change.positionChange()
+                                            if (delta != Offset.Zero) {
+                                                val base = preview ?: renderedWindow
+                                                val candidate = infinityAuroraBoundWindow(
+                                                    base.copy(
+                                                        x = base.x + with(density) { delta.x.toDp().value },
+                                                        y = base.y + with(density) { delta.y.toDp().value }
+                                                    ), bounds
+                                                )
+                                                preview = candidate
+                                                renderedWindow = candidate
+                                                onGeometryPreview(candidate)
+                                                change.consume()
+                                            }
+                                        }
+                                        preview?.let {
+                                            renderedWindow = it
+                                            onGeometryCommit(it)
+                                        }
+                                    }
                                 }
-                            ) { change, drag ->
-                                change.consume()
-                                val base = preview ?: renderedWindow
-                                val candidate = infinityAuroraBoundWindow(
-                                    base.copy(
-                                        x = base.x + with(density) { drag.x.toDp().value },
-                                        y = base.y + with(density) { drag.y.toDp().value }
-                                    ), bounds
-                                )
-                                preview = candidate
-                                renderedWindow = candidate
-                                onGeometryPreview(candidate)
                             }
                         },
                     color = Color(0xF0142036),
