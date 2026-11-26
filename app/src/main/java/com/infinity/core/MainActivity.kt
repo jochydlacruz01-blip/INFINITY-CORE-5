@@ -1569,6 +1569,21 @@ DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED"
         .padding(16.dp),
     horizontalAlignment = Alignment.CenterHorizontally
 ) {
+                        // Keep the close action at the top of the scrollable panel so it
+                        // remains reachable on compact screens and does not require a long scroll.
+                        TextButton(
+                            onClick = {
+                                Log.d("INFINITY_TEST_DIAGNOSTIC", "ORBIT close callback invoked; orbitOpen before close=$orbitOpen")
+                                orbitOpen = false
+                                startOpen = false
+                                controlOpen = false
+                                advancedOpen = false
+                            },
+                            modifier = Modifier.fillMaxWidth().testTag("infinity-orbit-close")
+                        ) {
+                            Text("CERRAR ORBIT", color = accent, fontSize = 10.sp)
+                        }
+
                         // CABECERA Y NUCLEO ORBITAL
                         Row(
                             Modifier.fillMaxWidth(),
@@ -2049,18 +2064,7 @@ Spacer(Modifier.height(14.dp))
                         Spacer(Modifier.height(10.dp))
 
 
-                        TextButton(
-                            onClick = {
-                                Log.d("INFINITY_TEST_DIAGNOSTIC", "ORBIT close callback invoked; orbitOpen before close=$orbitOpen")
-                                orbitOpen = false
-                                startOpen = false
-                                controlOpen = false
-                                advancedOpen = false
-                            },
-                            modifier = Modifier.testTag("infinity-orbit-close")
-                        ) {
-                            Text("CERRAR ORBIT", color = accent, fontSize = 10.sp)
-                        }
+
                     }
                 }
             }

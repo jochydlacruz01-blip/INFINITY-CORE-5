@@ -211,27 +211,18 @@ class InfinityDesktopEmulatorTest {
         compose.onNodeWithText("CERRAR ORBIT").assertExists()
         compose.onNodeWithContentDescription("START").assertExists()
         capture("03-orbit-open")
-        // ORBIT is a real vertically scrollable panel. Avoid Compose's
-        // performScrollTo synchronization here: with autoAdvance disabled it
-        // can wait indefinitely for a scroll/idle condition. Drive the panel
-        // with real touch gestures, then verify the close action is on-screen.
+        // ORBIT close stays at the top of the panel so it remains reachable on
+        // phone and tablet without scrolling a long diagnostics list.
         val closeOrbit = compose.onNodeWithTag("infinity-orbit-close")
-        val orbitPanel = compose.onNodeWithTag("infinity-orbit-panel")
-        repeat(4) {
-            orbitPanel.performTouchInput {
-                swipeUp()
-            }
-            settleComposeFrame()
-        }
         closeOrbit.assertIsDisplayed()
         closeOrbit.assertHasClickAction()
-        Log.i("INFINITY_TEST_DIAGNOSTIC", "ORBIT close target is visible; dispatching a real tap at its center.")
-        closeOrbit.performTouchInput { click(center) }
+        Log.i("INFINITY_TEST_DIAGNOSTIC", "ORBIT close target is visible; invoking its semantic click action.")
+        closeOrbit.performClick()
         repeat(3) { settleComposeFrame() }
-        compose.waitUntil(timeoutMillis = 15_000) {
+        compose.waitUntil(timeoutMillis = 10_000) {
             compose.onAllNodesWithTag("infinity-orbit-panel").fetchSemanticsNodes().isEmpty()
         }
-        Log.i("INFINITY_TEST_DIAGNOSTIC", "ORBIT panel removed after close tap.")
+        Log.i("INFINITY_TEST_DIAGNOSTIC", "ORBIT panel removed after close action.")
         compose.onNodeWithTag("infinity-orbit-panel").assertDoesNotExist()
 
         // CONTROL: interact with a real theme option and capture the resulting panel.
