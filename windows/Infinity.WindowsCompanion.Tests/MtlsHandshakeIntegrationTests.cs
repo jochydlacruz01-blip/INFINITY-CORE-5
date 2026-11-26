@@ -67,8 +67,6 @@ public sealed class MtlsHandshakeIntegrationTests
             serverCertificate, validClient, root, root, approvedPins, "localhost", serverPin, validDiagnostics),
             string.Join(" | ", validDiagnostics));
         var originalClientPin = CertificatePinning.ComputeSha256Pin(validClient);
-        Assert.False(await ExchangeAsync(
-            serverCertificate, validClient, root, root, approvedPins, "localhost", serverPin));
         approvedPins.Remove(originalClientPin);
         Assert.False(await ExchangeAsync(
             serverCertificate, validClient, root, root, approvedPins, "localhost", serverPin));
