@@ -106,11 +106,11 @@ jobs:
             unzip -p "${APK}" "${entry}" > "${extracted}"
             test -s "${extracted}"
             header="$(readelf -h "${extracted}")"
-            elf_class="$(printf '%s\\n' "${header}" | awk -F: '/Class:/ { gsub(/^[[:space:]]+/, "", $2); print $2; exit }')"
-            elf_machine="$(printf '%s\\n' "${header}" | awk -F: '/Machine:/ { gsub(/^[[:space:]]+/, "", $2); print $2; exit }')"
+            elf_class="$(printf '%s\n' "${header}" | awk -F: '/Class:/ { gsub(/^[[:space:]]+/, "", $2); print $2; exit }')"
+            elf_machine="$(printf '%s\n' "${header}" | awk -F: '/Machine:/ { gsub(/^[[:space:]]+/, "", $2); print $2; exit }')"
             test "${elf_class}" = "ELF64"
             case "${elf_machine}" in AArch64*) ;; *) echo "Unexpected APK ELF architecture for ${library}: ${elf_machine}" >&2; exit 1 ;; esac
-            printf '%s class=%s machine=%s bytes=%s\\n' "${entry}" "${elf_class}" "${elf_machine}" "$(stat --format='%s' "${extracted}")" | tee -a app-debug-freerdp-libraries.txt
+            printf '%s class=%s machine=%s bytes=%s\n' "${entry}" "${elf_class}" "${elf_machine}" "$(stat --format='%s' "${extracted}")" | tee -a app-debug-freerdp-libraries.txt
           done
           sha256sum "${APK}" | tee app-debug-sha256.txt
           stat --format='APK_SIZE_BYTES=%s' "${APK}" | tee app-debug-size.txt
