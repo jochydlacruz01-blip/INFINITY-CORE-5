@@ -27,10 +27,11 @@ internal fun infinityReferenceRailLayout(
     val dockTop = (viewportHeightDp - dockAndBottomReserve).coerceAtLeast(top)
     val available = (dockTop - top).coerceAtLeast(1f)
 
-    // Never force a 52dp minimum: that was the source of the 10dp collision at 520dp.
-    // On compact heights, labels collapse before the rail can intrude into the Dock.
+    // Never force a 52dp minimum: compact heights must not push the rail into the Dock.
     val slot = (available / itemCount).coerceIn(1f, 88f)
-    val icon = (slot * .38f).coerceIn(12f, 40f)
+    // Keep the glyph inside its slot even on unusually short landscape viewports.
+    // A fixed 12dp minimum made icons overlap when the available slot fell below 12dp.
+    val icon = minOf(40f, (slot * .38f).coerceAtLeast(1f), slot)
     val width = if (viewportWidthDp < 720f) 78f else 88f
 
     return InfinityReferenceRailLayout(
