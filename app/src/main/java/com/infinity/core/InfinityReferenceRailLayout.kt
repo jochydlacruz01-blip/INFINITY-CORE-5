@@ -48,3 +48,21 @@ internal fun infinityReferenceRailLayout(
 /** The full masthead needs a wide desktop so it cannot collide with the clock or left launcher rail. */
 internal fun infinityReferenceMastheadVisible(viewportWidthDp: Float): Boolean =
     viewportWidthDp.isFinite() && viewportWidthDp >= 1320f
+
+
+/** Applies the context-menu icon size to the responsive rail without allowing slot overlap. */
+internal fun infinityReferenceRailIconSize(slotHeightDp: Float, requestedSizePx: Float): Float {
+    if (!slotHeightDp.isFinite() || slotHeightDp <= 0f) return 0f
+    val safeRequest = requestedSizePx.takeIf { it.isFinite() }?.coerceIn(24f, 96f) ?: 48f
+    val slotMaximum = (slotHeightDp * .48f).coerceAtMost(slotHeightDp)
+    val base = minOf(40f, slotHeightDp * .38f, slotHeightDp)
+    return (base * (safeRequest / 48f))
+        .coerceIn(minOf(.1f, slotMaximum), slotMaximum)
+}
+
+/** Sort order for the fixed-position reference rail; placement remains responsive and stable. */
+internal fun infinityReferenceRailOrderedRecords(
+    records: List<InfinityDesktopIconRecord>,
+    arrangement: InfinityIconArrangement
+): List<InfinityDesktopIconRecord> =
+    infinityArrangeDesktopIcons(records, arrangement)

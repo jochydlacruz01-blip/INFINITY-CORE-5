@@ -617,7 +617,10 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
             // PACK13: render a true layered futuristic scene when no personal wallpaper is selected.
             // The scene is decorative only; all desktop controls remain live Compose elements above it.
             if (currentWallpaperBitmap == null && maxW >= 600.dp && !dashboardOpen && futuristicDesktop) {
-                InfinityFuturisticScene(modifier = Modifier.fillMaxSize())
+                InfinityFuturisticScene(
+                    backgroundPreset = backgroundPreset,
+                    modifier = Modifier.fillMaxSize()
+                )
             }
 
             // Cabecera de marca para tablet; no sustituye los accesos ni el fondo elegido.
@@ -894,12 +897,27 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                 val desktopItemHeight = with(density) { desktopIconMetrics.itemHeightPx.toDp() }
                 val desktopBadgeSize = with(density) { desktopIconMetrics.iconSizePx.toDp() }
                 val railLayout = if (referenceRail) infinityReferenceRailLayout(maxW.value, maxH.value, desktopItems.size) else null
-                desktopItems.forEach { item ->
+                val railOrderedItems = if (referenceRail) {
+                    val records = desktopItems.mapIndexed { index, item ->
+                        InfinityDesktopIconRecord(
+                            id = item.id,
+                            label = item.label,
+                            type = when (item.id) {
+                                "files" -> "folder"
+                                "apps", "connect" -> "app"
+                                else -> "system"
+                            },
+                            order = index
+                        )
+                    }
+                    infinityReferenceRailOrderedRecords(records, desktopContextState.arrangement)
+                        .mapNotNull { record -> desktopItems.firstOrNull { it.id == record.id } }
+                } else desktopItems
+                railOrderedItems.forEachIndexed { itemIndex, item ->
                     val shortcutInteraction = remember(item.id) { MutableInteractionSource() }
                     val shortcutHovered by shortcutInteraction.collectIsHoveredAsState()
                     val shortcutFocused by shortcutInteraction.collectIsFocusedAsState()
                     val shortcutHighlighted = shortcutHovered || shortcutFocused
-                    val itemIndex = desktopItems.indexOf(item)
                     val offset = if (railLayout != null) {
                         with(density) {
                             Offset(
@@ -1060,7 +1078,12 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                     ) {
                         InfinityAppBadge(
                             item,
-                            (railLayout?.iconSizeDp ?: desktopBadgeSize.value).dp,
+                            if (railLayout != null) {
+                                infinityReferenceRailIconSize(
+                                    railLayout.slotHeightDp,
+                                    desktopContextState.iconSizePx
+                                ).dp
+                            } else desktopBadgeSize,
                             accent,
                             iconPack
                         )
@@ -1221,8 +1244,8 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                     // a visible spatial margin around the desktop on every side.
                     .padding(horizontal = if (maxW >= 600.dp && futuristicDesktop) 14.dp else 0.dp,
                         vertical = if (maxW >= 600.dp && futuristicDesktop) 12.dp else 0.dp)
-                    // On narrow screens, keep every Dock action reachable instead of clipping
-                    // the trailing controls and task buttons beyond the viewport.
+                    // Keep the whole action rail horizontally scrollable. This makes
+                    // task buttons, the system tray and clock reachable on compact tablet widths too.
                     .horizontalScroll(rememberScrollState())
                     .then(if (iconPack == "windows11" || (maxW >= 600.dp && futuristicDesktop)) Modifier.fillMaxWidth() else Modifier)
                     .then(if (maxW >= 600.dp && futuristicDesktop) Modifier.widthIn(max = 1500.dp) else Modifier)

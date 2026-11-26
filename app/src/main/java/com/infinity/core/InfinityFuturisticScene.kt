@@ -19,7 +19,10 @@ import kotlin.math.min
  * independent interactive Compose components layered above this scene.
  */
 @Composable
-internal fun InfinityFuturisticScene(modifier: Modifier = Modifier) {
+internal fun InfinityFuturisticScene(
+    backgroundPreset: String = "interstellar",
+    modifier: Modifier = Modifier
+) {
     Box(modifier = modifier) {
         Canvas(Modifier.fillMaxSize()) {
             val w = size.width
@@ -186,6 +189,19 @@ internal fun InfinityFuturisticScene(modifier: Modifier = Modifier) {
                     1f to Color(0x55020A18)
                 )
             )
+            // The procedural scene sits above the root preset gradient. A restrained
+            // preset tint keeps Nebula, Punk and Aurora visibly distinct in BEYOND LIMITS.
+            drawRect(infinityFuturisticSceneTint(backgroundPreset))
         }
     }
+}
+
+
+/** Color wash applied above the procedural scene so the selected preset remains visible. */
+internal fun infinityFuturisticSceneTint(preset: String): Color = when (preset.lowercase()) {
+    "punk" -> Color(0x664E0A3B)
+    "aurora" -> Color(0x5540B6A4)
+    "nebula" -> Color(0x443C63D8)
+    "interstellar" -> Color.Transparent
+    else -> Color(0x443C63D8)
 }

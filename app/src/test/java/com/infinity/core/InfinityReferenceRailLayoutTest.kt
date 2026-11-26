@@ -65,6 +65,40 @@ class InfinityReferenceRailLayoutTest {
     }
 
     @Test
+    fun contextMenuIconSizeScalesInsideRailSlot() {
+        val slot = 60f
+        val small = infinityReferenceRailIconSize(slot, 24f)
+        val normal = infinityReferenceRailIconSize(slot, 48f)
+        val large = infinityReferenceRailIconSize(slot, 96f)
+        assertTrue(small > 0f)
+        assertTrue(small < normal)
+        assertTrue(normal < large)
+        assertTrue(large <= slot * .48f + 0.001f)
+        assertEquals(0f, infinityReferenceRailIconSize(Float.NaN, 48f), 0f)
+    }
+
+    @Test
+    fun railHonorsContextMenuSortOrder() {
+        val records = listOf(
+            InfinityDesktopIconRecord("notes", "Notas rápidas", "system", 1),
+            InfinityDesktopIconRecord("files", "Este Equipo", "folder", 0),
+            InfinityDesktopIconRecord("apps", "Aplicaciones", "app", 2)
+        )
+        assertEquals(
+            listOf("apps", "files", "notes"),
+            infinityReferenceRailOrderedRecords(records, InfinityIconArrangement.NAME).map { it.id }
+        )
+        assertEquals(
+            listOf("files", "apps", "notes"),
+            infinityReferenceRailOrderedRecords(records, InfinityIconArrangement.TYPE).map { it.id }
+        )
+        assertEquals(
+            listOf("files", "notes", "apps"),
+            infinityReferenceRailOrderedRecords(records, InfinityIconArrangement.MANUAL).map { it.id }
+        )
+    }
+
+    @Test
     fun narrowTallTabletKeepsStableGeometry() {
         val first = infinityReferenceRailLayout(600f, 520f, 7)
         val second = infinityReferenceRailLayout(600f, 520f, 7)
