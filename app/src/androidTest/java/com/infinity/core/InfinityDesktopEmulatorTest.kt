@@ -1,7 +1,6 @@
 package com.infinity.core
 
 import android.graphics.Bitmap
-import android.os.Environment
 import android.util.Log
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.hasSetTextAction
@@ -212,7 +211,7 @@ class InfinityDesktopEmulatorTest {
         // performScrollTo synchronization here: with autoAdvance disabled it
         // can wait indefinitely for a scroll/idle condition. Drive the panel
         // with real touch gestures, then verify the close action is on-screen.
-        val closeOrbit = compose.onNodeWithText("CERRAR ORBIT")
+        val closeOrbit = compose.onNodeWithTag("infinity-orbit-close")
         val orbitPanel = compose.onNodeWithTag("infinity-orbit-panel")
         repeat(4) {
             orbitPanel.performTouchInput {
@@ -221,8 +220,12 @@ class InfinityDesktopEmulatorTest {
             settleComposeFrame()
         }
         closeOrbit.assertIsDisplayed()
-        closeOrbit.performClick()
-        settleComposeFrame()
+        Log.i("INFINITY_TEST_DIAGNOSTIC", "ORBIT close target is visible; dispatching a real touch.")
+        closeOrbit.performTouchInput { click() }
+        repeat(3) { settleComposeFrame() }
+        compose.waitUntil(timeoutMillis = 5_000) {
+            compose.onAllNodesWithTag("infinity-orbit-panel").fetchSemanticsNodes().isEmpty()
+        }
         compose.onNodeWithTag("infinity-orbit-panel").assertDoesNotExist()
 
         // CONTROL: interact with a real theme option and capture the resulting panel.
@@ -325,10 +328,9 @@ class InfinityDesktopEmulatorTest {
         device.waitForIdle()
         val bitmap = instrumentation.uiAutomation.takeScreenshot()
             ?: throw AssertionError("Android emulator screenshot capture returned null: $name")
-        val root = File(
-            context.getExternalFilesDir(Environment.DIRECTORY_PICTURES) ?: context.filesDir,
-            "infinity-ui-captures"
-        )
+        // Use app-internal storage so CI can export screenshots with run-as even when
+        // getExternalFilesDir() is unavailable on a headless emulator.
+        val root = File(context.filesDir, "infinity-ui-captures")
         check(root.mkdirs() || root.isDirectory) { "Cannot create screenshot folder: $root" }
         val file = File(root, "$name.png")
         FileOutputStream(file).use { output ->
