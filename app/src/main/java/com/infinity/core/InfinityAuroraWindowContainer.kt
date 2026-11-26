@@ -11,11 +11,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -47,24 +47,11 @@ internal fun InfinityAuroraWindowContainer(
                 var renderedWindow by remember(modelWindow.id, modelWindow.workspace) {
                     mutableStateOf(modelWindow)
                 }
-                // External committed state wins; a local preview exists only during a gesture.
-                if (renderedWindow == modelWindow.copy()) renderedWindow = modelWindow
+                if (renderedWindow != modelWindow && renderedWindow.id == modelWindow.id &&
+                    renderedWindow.workspace == modelWindow.workspace &&
+                    renderedWindow == modelWindow.copy()
+                ) renderedWindow = modelWindow
                 val active = state.activeWindowId == modelWindow.id
-
-                fun preview(candidate: InfinityAuroraWindow) {
-                    renderedWindow = candidate
-                    onGeometryPreview(candidate)
-                }
-                fun commit(candidate: InfinityAuroraWindow?) {
-                    if (candidate != null) {
-                        renderedWindow = candidate
-                        onGeometryCommit(candidate)
-                    }
-                }
-                fun cancel() {
-                    renderedWindow = modelWindow
-                    onGeometryCancel(modelWindow.id)
-                }
 
                 Surface(
                     modifier = Modifier
@@ -75,7 +62,6 @@ internal fun InfinityAuroraWindowContainer(
                             )
                         }
                         .size(width = renderedWindow.width.dp, height = renderedWindow.height.dp)
-                        // A compact ordinal avoids Float precision loss from large Long z-index values.
                         .zIndex(stackOrder.toFloat())
                         .clip(RoundedCornerShape(18.dp))
                         .border(
@@ -83,23 +69,41 @@ internal fun InfinityAuroraWindowContainer(
                             if (active) Color(0xFF56D6C9) else Color.White.copy(alpha = .22f),
                             RoundedCornerShape(18.dp)
                         )
-                        .pointerInput(modelWindow.id, modelWindow.workspace, bounds, renderedWindow.maximized) {
-                            var transactionPreview: InfinityAuroraWindow? = null
+                        .pointerInput(modelWindow.id, modelWindow.workspace, bounds) {
+                            var original: InfinityAuroraWindow? = null
+                            var preview: InfinityAuroraWindow? = null
                             detectDragGestures(
-                                onDragStart = { onFocus(modelWindow.id); transactionPreview = renderedWindow },
-                                onDragEnd = { commit(transactionPreview); transactionPreview = null },
-                                onDragCancel = { cancel(); transactionPreview = null }
+                                onDragStart = {
+                                    onFocus(modelWindow.id)
+                                    original = renderedWindow
+                                    preview = renderedWindow
+                                },
+                                onDragEnd = {
+                                    preview?.let {
+                                        renderedWindow = it
+                                        onGeometryCommit(it)
+                                    }
+                                    original = null
+                                    preview = null
+                                },
+                                onDragCancel = {
+                                    original?.let { renderedWindow = it }
+                                    onGeometryCancel(modelWindow.id)
+                                    original = null
+                                    preview = null
+                                }
                             ) { change, drag ->
                                 change.consume()
-                                val base = transactionPreview ?: renderedWindow
+                                val base = preview ?: renderedWindow
                                 val candidate = infinityAuroraBoundWindow(
                                     base.copy(
                                         x = base.x + with(density) { drag.x.toDp().value },
                                         y = base.y + with(density) { drag.y.toDp().value }
                                     ), bounds
                                 )
-                                transactionPreview = candidate
-                                preview(candidate)
+                                preview = candidate
+                                renderedWindow = candidate
+                                onGeometryPreview(candidate)
                             }
                         },
                     color = Color(0xF0142036),
@@ -114,23 +118,41 @@ internal fun InfinityAuroraWindowContainer(
                                         Color(0xFF56D6C9).copy(alpha = .20f),
                                         RoundedCornerShape(topStart = 10.dp)
                                     )
-                                    .pointerInput(modelWindow.id, modelWindow.workspace, bounds, renderedWindow) {
-                                        var transactionPreview: InfinityAuroraWindow? = null
+                                    .pointerInput(modelWindow.id, modelWindow.workspace, bounds) {
+                                        var original: InfinityAuroraWindow? = null
+                                        var preview: InfinityAuroraWindow? = null
                                         detectDragGestures(
-                                            onDragStart = { onFocus(modelWindow.id); transactionPreview = renderedWindow },
-                                            onDragEnd = { commit(transactionPreview); transactionPreview = null },
-                                            onDragCancel = { cancel(); transactionPreview = null }
+                                            onDragStart = {
+                                                onFocus(modelWindow.id)
+                                                original = renderedWindow
+                                                preview = renderedWindow
+                                            },
+                                            onDragEnd = {
+                                                preview?.let {
+                                                    renderedWindow = it
+                                                    onGeometryCommit(it)
+                                                }
+                                                original = null
+                                                preview = null
+                                            },
+                                            onDragCancel = {
+                                                original?.let { renderedWindow = it }
+                                                onGeometryCancel(modelWindow.id)
+                                                original = null
+                                                preview = null
+                                            }
                                         ) { change, drag ->
                                             change.consume()
-                                            val base = transactionPreview ?: renderedWindow
+                                            val base = preview ?: renderedWindow
                                             val candidate = infinityAuroraBoundWindow(
                                                 base.copy(
                                                     width = base.width + with(density) { drag.x.toDp().value },
                                                     height = base.height + with(density) { drag.y.toDp().value }
                                                 ), bounds
                                             )
-                                            transactionPreview = candidate
-                                            preview(candidate)
+                                            preview = candidate
+                                            renderedWindow = candidate
+                                            onGeometryPreview(candidate)
                                         }
                                     }
                             )
