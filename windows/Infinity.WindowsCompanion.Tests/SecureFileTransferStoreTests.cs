@@ -45,6 +45,26 @@ public sealed class SecureFileTransferStoreTests : IDisposable
     }
 
     [Fact]
+    public async Task DeleteReportsLockedFileFailureAndPreservesItsMetadata()
+    {
+        var bytes = "locked file"u8.ToArray();
+        var digest = Convert.ToHexString(SHA256.HashData(bytes));
+        await using var source = new MemoryStream(bytes);
+        var receipt = await store.SaveAsync(
+            source, DevicePin, "locked.bin", bytes.Length, digest, CancellationToken.None);
+        var dataPath = Path.Combine(root, DevicePin, Guid.Parse(receipt.FileId).ToString("N") + ".bin");
+
+        using (var locked = new FileStream(dataPath, FileMode.Open, FileAccess.Read, FileShare.None))
+        {
+            Assert.False(store.Delete(receipt.FileId, DevicePin));
+            Assert.NotNull(store.Find(receipt.FileId, DevicePin));
+        }
+
+        Assert.True(store.Delete(receipt.FileId, DevicePin));
+        Assert.Null(store.Find(receipt.FileId, DevicePin));
+    }
+
+    [Fact]
     public async Task DeleteAsyncHonorsCancellationBeforeMutatingStoredFile()
     {
         var bytes = "delete cancellation"u8.ToArray();
