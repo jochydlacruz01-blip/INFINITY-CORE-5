@@ -12,11 +12,11 @@ FORBIDDEN_GRADLE_TASK = re.compile(
 )
 SIGNING = re.compile(r"\b(?:signingConfig|signingConfigs|apksigner|jarsigner)\b", re.IGNORECASE)
 APK_REFERENCE = re.compile(
-    r"(?:\.apk\b|app[-_](?:debug|release)|(?:^|[/\])outputs[/\](?:apk|(?=[^\s]*\.apk))|"
+    r"(?:\.apk\b|app[-_](?:debug|release)|(?:^|[/\\])outputs[/\\](?:apk|(?=[^\s]*\.apk))|
     r"\bAPK(?:_[A-Z0-9_]+|Path|File)\b)",
     re.IGNORECASE,
 )
-GENERIC_OUTPUT = re.compile(r"(?:^|[/\])(?:app/)?build[/\]outputs(?:[/\]|$)", re.IGNORECASE)
+GENERIC_OUTPUT = re.compile(r"(?:^|[/\\])(?:app/)?build[/\\]outputs(?:[/\\]|$)", re.IGNORECASE)
 DYNAMIC = re.compile(r"\$\{\{.*?\}\}|\$[A-Z_][A-Z0-9_]*", re.IGNORECASE)
 UPLOAD_ACTION = re.compile(r"uses\s*:\s*actions/upload-artifact@", re.IGNORECASE)
 RELEASE_UPLOAD = re.compile(
@@ -54,7 +54,7 @@ def _artifact_steps(content: str) -> list[str]:
 
 
 def _path_is_narrow_test_report(path_value: str) -> bool:
-    value = path_value.strip().strip("'\"").replace("\", "/")
+    value = path_value.strip().strip("'\"").replace("\\", "/")
     if not value or DYNAMIC.search(value):
         return False
     if any(value in (root, root + "**") for root in ALLOWED_NON_APK_ARTIFACT_PATHS):
@@ -170,7 +170,7 @@ def _audit_file(workflow: Path) -> list[str]:
         return [f"{workflow}: manual DEBUG APK workflow does not satisfy the strict PR #87 allowlist"]
 
     findings: list[str] = []
-    normalized_shell = content.replace("\\n", " ")
+    value = path_value.strip().strip("'\"").replace("\\", "/")
     gradle_build = any(
         GRADLE_INVOKED.search(line) and FORBIDDEN_GRADLE_TASK.search(line)
         for line in normalized_shell.splitlines()
