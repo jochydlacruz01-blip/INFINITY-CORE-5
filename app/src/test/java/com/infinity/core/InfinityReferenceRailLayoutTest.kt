@@ -89,7 +89,7 @@ class InfinityReferenceRailLayoutTest {
             infinityReferenceRailOrderedRecords(records, InfinityIconArrangement.NAME).map { it.id }
         )
         assertEquals(
-            listOf("files", "apps", "notes"),
+            listOf("apps", "files", "notes"),
             infinityReferenceRailOrderedRecords(records, InfinityIconArrangement.TYPE).map { it.id }
         )
         assertEquals(
