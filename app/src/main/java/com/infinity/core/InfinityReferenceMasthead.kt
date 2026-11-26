@@ -76,9 +76,3 @@ internal fun InfinityReferenceMasthead(modifier: Modifier = Modifier) {
     }
 }
 
-/**
- * Keep the reference masthead on desktop/tablet-sized viewports only.
- * The threshold preserves the original 600 dp visibility rule.
- */
-internal fun infinityReferenceMastheadVisible(widthDp: Float): Boolean =
-    widthDp.isFinite() && widthDp >= 600f
