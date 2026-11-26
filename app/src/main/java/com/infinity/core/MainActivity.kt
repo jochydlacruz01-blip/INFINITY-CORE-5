@@ -312,7 +312,7 @@ private fun Infinity08App() {
         mutableStateOf(infinityNormalizeThemeChoice(prefs.getString("theme_choice", "midnight")))
     }
     var iconPack by remember { mutableStateOf(infinityNormalizeDesktopTheme(prefs.getString("icon_pack", "infinity"))) }
-    var backgroundPreset by remember { mutableStateOf(prefs.getString("background_preset", "nebula") ?: "nebula") }
+    var backgroundPreset by remember { mutableStateOf(infinityNormalizeBackgroundPreset(prefs.getString("background_preset", "nebula"))) }
     var desktopPreset by remember { mutableStateOf(infinityNormalizeWallpaperPreset(prefs.getString("desktop_wallpaper_preset", "futuristic"))) }
     val futuristicDesktop = desktopPreset == InfinityDesktopWallpaperPreset.FUTURISTIC
     var appearance by remember {
@@ -2439,7 +2439,7 @@ Spacer(Modifier.height(14.dp))
                         Text("FONDOS", color = accent, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             listOf("nebula" to "Nebula", "interstellar" to "Interestelar", "punk" to "Punk", "aurora" to "Aurora").forEach { (preset, label) ->
-                                FilterChip(selected = backgroundPreset == preset, onClick = { backgroundPreset = preset; prefs.edit().putString("background_preset", preset).apply(); wallpaperUri = null; prefs.edit().remove("wallpaper_uri").apply() }, label = { Text(label) })
+                                FilterChip(selected = backgroundPreset == preset, onClick = { val normalizedPreset = infinityNormalizeBackgroundPreset(preset); backgroundPreset = normalizedPreset; wallpaperUri = null; prefs.edit().putString("background_preset", normalizedPreset).remove("wallpaper_uri").apply() }, label = { Text(label) })
                             }
                         }
                         Text("APARIENCIA", color = accent, fontSize = 10.sp, fontWeight = FontWeight.Bold)

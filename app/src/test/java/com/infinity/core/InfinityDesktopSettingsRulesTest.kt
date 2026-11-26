@@ -22,6 +22,18 @@ class InfinityDesktopSettingsRulesTest {
         assertEquals("midnight", infinityNormalizeThemeChoice(null))
     }
 
+    @Test fun backgroundPresetAcceptsOnlyBuiltInChoices() {
+        assertEquals("interstellar", infinityNormalizeBackgroundPreset(" INTERSTELLAR "))
+        assertEquals("punk", infinityNormalizeBackgroundPreset("punk"))
+        assertEquals("nebula", infinityNormalizeBackgroundPreset("unknown"))
+        assertEquals("nebula", infinityNormalizeBackgroundPreset(null))
+        assertEquals("nebula", infinityNormalizeBackgroundPreset(""))
+    }
+
+    @Test fun backgroundPresetCatalogMatchesVisibleDesktopChoices() {
+        assertEquals(setOf("nebula", "interstellar", "punk", "aurora"), INFINITY_BACKGROUND_PRESET_IDS)
+    }
+
     @Test fun desktopIdentityAllowsOnlyInfinityAndWindows11() {
         assertEquals("windows11", infinityNormalizeDesktopTheme(" WINDOWS11 "))
         assertEquals("infinity", infinityNormalizeDesktopTheme("infinity"))

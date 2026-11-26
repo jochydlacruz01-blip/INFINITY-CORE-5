@@ -48,3 +48,12 @@ internal fun infinityDesktopBrandingTitleLetterSpacing(viewportWidthDp: Float): 
     viewportWidthDp < 420f -> 3f
     else -> 5f
 }
+
+/** Accepts only built-in wallpaper presets; unknown persisted values fall back safely. */
+internal fun infinityNormalizeBackgroundPreset(value: String?): String =
+    value?.trim()?.lowercase(java.util.Locale.ROOT)
+        ?.takeIf { it in INFINITY_BACKGROUND_PRESET_IDS }
+        ?: "nebula"
+
+internal val INFINITY_BACKGROUND_PRESET_IDS: Set<String> =
+    setOf("nebula", "interstellar", "punk", "aurora")
