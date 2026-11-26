@@ -115,7 +115,7 @@ private fun InfinityAppBadge(item: DeskItem, size: androidx.compose.ui.unit.Dp, 
     }
     val appIcon = when (item.id) {
         "files" -> Icons.Filled.Computer
-        "notes" -> Icons.Filled.FolderOpen
+        "notes" -> Icons.Filled.EditNote
         "apps" -> Icons.Filled.Apps
         "connect" -> Icons.Filled.Computer
         "settings" -> Icons.Filled.Info
@@ -136,7 +136,7 @@ private fun InfinityAppBadge(item: DeskItem, size: androidx.compose.ui.unit.Dp, 
         contentAlignment = Alignment.Center
     ) {
         Box(Modifier.fillMaxSize().padding(size * .12f).border(1.dp, Color.White.copy(.08f), RoundedCornerShape(size * .2f)))
-        if (item.id in setOf("apps", "about", "settings", "orbit", "connect")) {
+        if (item.id in setOf("about", "settings", "orbit", "connect")) {
             Text(item.glyph, color = if (iconPack == "windows11") Color(0xFFF4FAFF) else identity,
                 fontSize = (size.value * .60f).sp, fontWeight = FontWeight.Black)
         } else {
@@ -180,8 +180,8 @@ private fun Infinity08App() {
         // INFINITY FUTURE reference desktop: stable IDs preserve existing window actions.
         listOf(
             DeskItem("files", "Este Equipo", "▣"),
-            DeskItem("notes", "Mis Archivos", "▰"),
-            DeskItem("apps", "Papelera de Reciclaje", "▤"),
+            DeskItem("notes", "Notas rápidas", "▰"),
+            DeskItem("apps", "Aplicaciones", "▤"),
             DeskItem("about", "INFINITY START", "∞"),
             DeskItem("settings", "System Guard", "⬡"),
             DeskItem("orbit", "ORBIT", "◎"),
