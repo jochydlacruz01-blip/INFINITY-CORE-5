@@ -2407,7 +2407,12 @@ Spacer(Modifier.height(14.dp))
                         .zIndex(15f)
                         .padding(end = 14.dp, top = 76.dp, bottom = 112.dp)
                         .widthIn(max = infinityControlPanelMaxWidthDp(maxW.value).dp)
-                        .heightIn(max = (maxH - 200.dp).coerceAtLeast(220.dp))
+                        .heightIn(
+                            max = minOf(
+                                (maxH - 200.dp).coerceAtLeast(220.dp),
+                                (maxH - 188.dp).coerceAtLeast(1.dp)
+                            )
+                        )
                         .shadow(24.dp, RoundedCornerShape(controlRadius)),
                     shape = RoundedCornerShape(controlRadius),
                     colors = CardDefaults.cardColors(containerColor = controlSurface),
