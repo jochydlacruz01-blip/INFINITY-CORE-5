@@ -246,8 +246,10 @@ app.MapDelete("/v1/sessions/{sessionId}", async (HttpContext context, string ses
     if (token is null || !authorizedSessions.IsAuthorized(sessionId, token, fingerprint, "identity.read"))
         return Results.Unauthorized();
 
+    // Close admission and cancel active operations before removing the bearer grant.
+    // A request that raced past IsAuthorized must still fail BeginOperation after this point.
+    var operationRevoked = operationRegistry.RevokeSession(fingerprint, sessionId);
     var revoked = authorizedSessions.Revoke(sessionId, fingerprint);
-    if (revoked) operationRegistry.RevokeSession(fingerprint, sessionId);
     auditLog.Write("session.revoked", fingerprint, sessionId, revoked ? "revoked" : "failed");
     return revoked ? Results.NoContent() : Results.NotFound();
 });
@@ -329,8 +331,18 @@ app.MapGet("/v1/files", async (HttpContext context) =>
         return Results.StatusCode(StatusCodes.Status403Forbidden);
     }
 
-    auditLog.Write("file.listed", fingerprint, sessionId, "allowed");
-    return Results.Ok(fileTransferStore.List(fingerprint));
+    DeviceOperationRegistry.OperationLease listOperation;
+    try { listOperation = operationRegistry.BeginOperation(fingerprint, sessionId, context.RequestAborted); }
+    catch (OperationCanceledException) { return Results.Unauthorized(); }
+
+    using (listOperation)
+    {
+        listOperation.Token.ThrowIfCancellationRequested();
+        var files = fileTransferStore.List(fingerprint);
+        listOperation.Token.ThrowIfCancellationRequested();
+        auditLog.Write("file.listed", fingerprint, sessionId, "allowed");
+        return Results.Ok(files);
+    }
 });
 
 app.MapGet("/v1/files/{fileId}", async (HttpContext context, string fileId) =>
@@ -384,9 +396,18 @@ app.MapDelete("/v1/files/{fileId}", async (HttpContext context, string fileId) =
         return Results.StatusCode(StatusCodes.Status403Forbidden);
     }
 
-    var deleted = fileTransferStore.Delete(fileId, fingerprint);
-    auditLog.Write("file.deleted", fingerprint, sessionId, deleted ? "revoked" : "failed");
-    return deleted ? Results.NoContent() : Results.NotFound();
+    DeviceOperationRegistry.OperationLease deleteOperation;
+    try { deleteOperation = operationRegistry.BeginOperation(fingerprint, sessionId, context.RequestAborted); }
+    catch (OperationCanceledException) { return Results.Unauthorized(); }
+
+    using (deleteOperation)
+    {
+        deleteOperation.Token.ThrowIfCancellationRequested();
+        var deleted = fileTransferStore.Delete(fileId, fingerprint);
+        deleteOperation.Token.ThrowIfCancellationRequested();
+        auditLog.Write("file.deleted", fingerprint, sessionId, deleted ? "revoked" : "failed");
+        return deleted ? Results.NoContent() : Results.NotFound();
+    }
 });
 
 app.MapGet("/v1/tunnel/rdp", async (HttpContext context) =>
@@ -455,10 +476,15 @@ app.MapGet("/v1/tunnel/rdp", async (HttpContext context) =>
             }
 
             tunnelOperation.Token.ThrowIfCancellationRequested();
+            // Revocation can race between the RDP connect and WebSocket upgrade. Abort both the
+            // pending HTTP upgrade and the loopback socket until the active WebSocket binding exists.
+            using var pendingHandshakeRevocation = TunnelRevocationBinding.BindPendingHandshake(
+                tunnelOperation.Token, context, rdpClient);
             using var webSocket = await context.WebSockets.AcceptWebSocketAsync();
             using var tunnelCancellation = CancellationTokenSource.CreateLinkedTokenSource(
                 context.RequestAborted, tunnelOperation.Token);
             using var closeResources = TunnelRevocationBinding.Bind(tunnelCancellation.Token, webSocket, rdpClient);
+            pendingHandshakeRevocation.Dispose();
             var rdpStream = rdpClient.GetStream();
             auditLog.Write("tunnel.started", fingerprint, sessionId, "allowed");
 
@@ -481,10 +507,13 @@ app.MapGet("/v1/tunnel/rdp", async (HttpContext context) =>
 
             auditLog.Write("tunnel.ended", fingerprint, sessionId, "allowed");
         }
-        catch (OperationCanceledException) when (tunnelOperation.Token.IsCancellationRequested)
+        catch (Exception) when (tunnelOperation.Token.IsCancellationRequested)
         {
+            // Includes cancellation during the pending WebSocket upgrade, which may surface as
+            // an IOException/WebSocketException after HttpContext.Abort rather than OCE.
             auditLog.Write("tunnel.revoked", fingerprint, sessionId, "revoked");
-            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            if (!context.RequestAborted.IsCancellationRequested)
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
         }
         finally
         {
