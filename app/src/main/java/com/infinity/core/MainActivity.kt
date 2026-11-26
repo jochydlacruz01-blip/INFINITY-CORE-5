@@ -163,6 +163,62 @@ private data class DeskWindow(
     val workspace: Int = 1,
     val maximized: Boolean = false
 )
+
+/**
+ * Gesture-local geometry transaction for the legacy DeskWindow surface.
+ * Preview coordinates remain in Compose state; persistence is enabled only
+ * after commit. Cancellation restores the exact pre-gesture geometry.
+ */
+private data class InfinityDeskWindowGeometry(
+    val x: Float,
+    val y: Float,
+    val width: Float,
+    val height: Float
+)
+
+private data class InfinityDeskWindowGeometryTransaction(
+    val windowId: String,
+    val original: InfinityDeskWindowGeometry,
+    val current: InfinityDeskWindowGeometry
+)
+
+private fun infinityStartDeskWindowGeometryTransaction(
+    windowId: String,
+    original: InfinityDeskWindowGeometry
+): InfinityDeskWindowGeometryTransaction =
+    InfinityDeskWindowGeometryTransaction(windowId, original, original)
+
+private fun infinityUpdateDeskWindowGeometryTransaction(
+    transaction: InfinityDeskWindowGeometryTransaction,
+    candidate: InfinityDeskWindowGeometry
+): InfinityDeskWindowGeometryTransaction =
+    transaction.copy(current = candidate)
+
+private fun infinityCommitDeskWindowGeometryTransaction(
+    transaction: InfinityDeskWindowGeometryTransaction,
+    candidate: InfinityDeskWindowGeometry,
+    viewportWidth: Float,
+    viewportHeight: Float,
+    safeBottom: Float
+): InfinityDeskWindowGeometry {
+    val widthLimit = viewportWidth.takeIf { it.isFinite() }?.coerceAtLeast(1f) ?: 1f
+    val heightLimit = minOf(
+        viewportHeight.takeIf { it.isFinite() }?.coerceAtLeast(1f) ?: 1f,
+        safeBottom.takeIf { it.isFinite() }?.coerceAtLeast(1f) ?: 1f
+    )
+    val minWidth = minOf(280f, widthLimit)
+    val minHeight = minOf(190f, heightLimit)
+    val width = candidate.width.takeIf { it.isFinite() }?.coerceIn(minWidth, widthLimit) ?: minWidth
+    val height = candidate.height.takeIf { it.isFinite() }?.coerceIn(minHeight, heightLimit) ?: minHeight
+    val x = candidate.x.takeIf { it.isFinite() }?.coerceIn(0f, (widthLimit - width).coerceAtLeast(0f)) ?: 0f
+    val y = candidate.y.takeIf { it.isFinite() }?.coerceIn(0f, (heightLimit - height).coerceAtLeast(0f)) ?: 0f
+    return InfinityDeskWindowGeometry(x, y, width, height)
+}
+
+private fun infinityCancelDeskWindowGeometryTransaction(
+    transaction: InfinityDeskWindowGeometryTransaction
+): InfinityDeskWindowGeometry = transaction.original
+
 private data class InstalledApp(val label: String, val packageName: String, val activityName: String)
 private data class ExplorerEntry(
     val documentId: String,
@@ -416,13 +472,13 @@ private fun Infinity08App() {
     }
 
     // Geometry transactions keep preview frames out of SharedPreferences until commit.
-    val geometryTransactions = remember { mutableStateMapOf<String, InfinityWindowGeometryTransaction>() }
+    val geometryTransactions = remember { mutableStateMapOf<String, InfinityDeskWindowGeometryTransaction>() }
 
     fun beginWindowGeometryTransaction(windowId: String) {
         val window = windows.firstOrNull { it.id == windowId } ?: return
-        geometryTransactions[windowId] = infinityBeginWindowGeometryTransaction(
+        geometryTransactions[windowId] = infinityStartDeskWindowGeometryTransaction(
             windowId,
-            InfinityWindowGeometry(window.x, window.y, window.width, window.height)
+            InfinityDeskWindowGeometry(window.x, window.y, window.width, window.height)
         )
     }
 
@@ -433,9 +489,9 @@ private fun Infinity08App() {
         val index = windows.indexOfFirst { it.id == windowId }
         if (index < 0) return
         val current = windows[index]
-        val committed = infinityCommitWindowGeometryTransaction(
+        val committed = infinityCommitDeskWindowGeometryTransaction(
             transaction,
-            InfinityWindowGeometry(current.x, current.y, current.width, current.height),
+            InfinityDeskWindowGeometry(current.x, current.y, current.width, current.height),
             viewportWidth, viewportHeight, safeBottom
         )
         windows[index] = current.copy(
@@ -447,7 +503,7 @@ private fun Infinity08App() {
         val transaction = geometryTransactions.remove(windowId) ?: return
         val index = windows.indexOfFirst { it.id == windowId }
         if (index < 0) return
-        val restored = infinityCancelWindowGeometryTransaction(transaction)
+        val restored = infinityCancelDeskWindowGeometryTransaction(transaction)
         windows[index] = windows[index].copy(
             x = restored.x, y = restored.y, width = restored.width, height = restored.height
         )
@@ -1286,8 +1342,8 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                                     height = bounded.height
                                 )
                                 geometryTransactions[win.id]?.let { transaction ->
-                                    geometryTransactions[win.id] = infinityUpdateWindowGeometryTransaction(
-                                        transaction, InfinityWindowGeometry(bounded.x, bounded.y, bounded.width, bounded.height)
+                                    geometryTransactions[win.id] = infinityUpdateDeskWindowGeometryTransaction(
+                                        transaction, InfinityDeskWindowGeometry(bounded.x, bounded.y, bounded.width, bounded.height)
                                     )
                                 }
                             }
@@ -1313,8 +1369,8 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                                 )
                                 windows[index] = resized
                                 geometryTransactions[win.id]?.let { transaction ->
-                                    geometryTransactions[win.id] = infinityUpdateWindowGeometryTransaction(
-                                        transaction, InfinityWindowGeometry(resized.x, resized.y, resized.width, resized.height)
+                                    geometryTransactions[win.id] = infinityUpdateDeskWindowGeometryTransaction(
+                                        transaction, InfinityDeskWindowGeometry(resized.x, resized.y, resized.width, resized.height)
                                     )
                                 }
                             }
