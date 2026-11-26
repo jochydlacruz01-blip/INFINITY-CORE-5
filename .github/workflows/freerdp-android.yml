@@ -67,6 +67,7 @@ jobs:
         run: |
           set -euo pipefail
           JNI_LIBS="external/FreeRDP/client/Android/Studio/freeRDPCore/src/main/jniLibs/arm64-v8a"
+          NATIVE_OUTPUT="freerdp-core/build"
           REQUIRED_LIBRARIES=(
             libfreerdp-android.so
             libfreerdp3.so
@@ -77,13 +78,23 @@ jobs:
             liburiparser.so
           )
           for library in "${REQUIRED_LIBRARIES[@]}"; do
-            path="$JNI_LIBS/$library"
-            test -s "$path"
+            if [ "$library" = "libfreerdp-android.so" ]; then
+              path="$(find "$NATIVE_OUTPUT" -type f -name "$library" -path '*/obj/arm64-v8a/*' -print -quit)"
+            else
+              path="$JNI_LIBS/$library"
+            fi
+            if [ -z "$path" ] || [ ! -s "$path" ]; then
+              echo "Missing required arm64-v8a library: $library" >&2
+              echo "Native CMake outputs:" >&2
+              find "$NATIVE_OUTPUT" -type f -name '*.so' -path '*/obj/arm64-v8a/*' -print | sort >&2 || true
+              echo "FreeRDP JNI dependency outputs:" >&2
+              find "$JNI_LIBS" -maxdepth 3 -type f -name '*.so' -print | sort >&2 || true
+              exit 1
+            fi
             header="$(readelf -h "$path")"
             elf_class="$(printf '%s\n' "$header" | awk -F: '/Class:/ { gsub(/^[[:space:]]+/, "", $2); print $2; exit }')"
             elf_machine="$(printf '%s\n' "$header" | awk -F: '/Machine:/ { gsub(/^[[:space:]]+/, "", $2); print $2; exit }')"
-            printf '%s: class=%s machine=%s\n' "$library" "$elf_class" "$elf_machine"
+            printf '%s: %s class=%s machine=%s\n' "$library" "$path" "$elf_class" "$elf_machine"
             test "$elf_class" = "ELF64"
             case "$elf_machine" in AArch64*) ;; *) echo "Unexpected ELF architecture for $library: $elf_machine" >&2; exit 1 ;; esac
-            ls -lh "$path"
           done
