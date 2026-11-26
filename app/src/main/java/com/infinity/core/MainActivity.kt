@@ -1154,8 +1154,8 @@ val iconOffsets = remember {
                         if (maxW >= 600.dp && futuristicDesktop) Brush.verticalGradient(
                             listOf(Color(0xF20C1B35), Color(0xE908142A), Color(0xF20A1730))
                         ) else when {
-                            iconPack == "windows11" -> Color(0xF20B1829)
-                            else -> Color(0xF016263D)
+                            iconPack == "windows11" -> Brush.verticalGradient(listOf(Color(0xF20B1829), Color(0xF20B1829)))
+                            else -> Brush.verticalGradient(listOf(Color(0xF016263D), Color(0xF016263D)))
                         },
                         if (maxW >= 600.dp && futuristicDesktop) RoundedCornerShape(28.dp)
                         else RoundedCornerShape(20.dp)
