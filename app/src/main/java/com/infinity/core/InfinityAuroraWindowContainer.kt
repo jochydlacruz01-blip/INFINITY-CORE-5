@@ -78,7 +78,8 @@ internal fun InfinityAuroraWindowContainer(
                                 val down = awaitFirstDown(requireUnconsumed = false)
                                 // Only the title-bar strip moves a window. Content controls,
                                 // text selection and scrolling retain their normal gestures.
-                                if (down.position.y <= with(density) { 56.dp.toPx() }) {
+                                if (infinityAuroraCanChangeGeometry(renderedWindow) &&
+                                    down.position.y <= with(density) { 56.dp.toPx() }) {
                                     var preview: InfinityAuroraWindow? = null
                                     val start = awaitTouchSlopOrCancellation(down.id) { change, _ ->
                                         change.consume()
