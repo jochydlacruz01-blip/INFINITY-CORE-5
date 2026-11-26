@@ -78,7 +78,7 @@ public final class HelpActivity extends AppCompatActivity {
             return false;
         }
         String path = uri.getPath();
-        if (path == null || path.contains("..") || path.indexOf('\\\\') >= 0) {
+        if (path == null || path.contains("..") || path.indexOf((char) 92) >= 0) {
             return false;
         }
         return path.startsWith("/android_asset/help_page/")
