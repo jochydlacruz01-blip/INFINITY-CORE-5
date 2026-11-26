@@ -109,6 +109,7 @@ public sealed class DeviceOperationRegistryTests
         Assert.True(registry.RevokeSession(expired.ClientFingerprint, expired.SessionId));
 
         Assert.True(operation.Token.IsCancellationRequested);
+        operation.Dispose();
         Assert.Equal(0, registry.Snapshot.ActiveOperations);
     }
 
