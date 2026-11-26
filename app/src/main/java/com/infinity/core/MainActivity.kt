@@ -1206,7 +1206,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                             .let { if (it == Long.MAX_VALUE) 1L else it + 1L }
                         windows[activeIndex] = windows[activeIndex].copy(zIndex = nextZ)
                         val ordered = infinityBringItemToFront(windows.toList(), windows[activeIndex]) { "${it.workspace}:${it.id}" }
-                        if (ordered.map { it.id } != windows.map { it.id }) {
+                        if (ordered.map { "${it.workspace}:${it.id}" } != windows.map { "${it.workspace}:${it.id}" }) {
                             windows.clear()
                             windows.addAll(ordered)
                         }
@@ -1229,7 +1229,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
             ) { auroraWindow ->
                 val win = windows.firstOrNull { it.id == auroraWindow.id && it.workspace == auroraWindow.workspace && !it.minimized }
                 if (win != null) {
-                    key(win.id) {
+                    key("${win.workspace}:${win.id}") {
                         Infinity08Window(
                             win = win,
                             isFocused = focusedWindowId == win.id,
