@@ -149,19 +149,87 @@ private fun InfinityAppBadge(item: DeskItem, size: androidx.compose.ui.unit.Dp, 
     }
 }
 
-private data class DeskWindow(
-    val id: String,
+/**
+ * Desktop presentation wrapper. AURORA owns all persistent window state;
+ * this layer contributes only title/kind metadata required by the UI.
+ */
+private class DeskWindow private constructor(
     val title: String,
     val kind: String,
-    val x: Float,
-    val y: Float,
-    val width: Float = 370f,
-    val height: Float = 330f,
-    val minimized: Boolean = false,
-    val workspace: Int = 1,
-    val maximized: Boolean = false,
-    val zIndex: Long = 0L
-)
+    internal val aurora: InfinityAuroraWindow
+) {
+    constructor(title: String, kind: String, aurora: InfinityAuroraWindow) :
+        this(title, kind, aurora)
+
+    constructor(
+        id: String,
+        title: String,
+        kind: String,
+        x: Float,
+        y: Float,
+        width: Float = 370f,
+        height: Float = 330f,
+        minimized: Boolean = false,
+        workspace: Int = 1,
+        maximized: Boolean = false,
+        zIndex: Long = 0L
+    ) : this(
+        title,
+        kind,
+        InfinityAuroraWindow(
+            id = id, workspace = workspace, x = x, y = y, width = width, height = height,
+            minimized = minimized, maximized = maximized, zIndex = zIndex
+        )
+    )
+
+    val id: String get() = aurora.id
+    val x: Float get() = aurora.x
+    val y: Float get() = aurora.y
+    val width: Float get() = aurora.width
+    val height: Float get() = aurora.height
+    val minimized: Boolean get() = aurora.minimized
+    val workspace: Int get() = aurora.workspace
+    val maximized: Boolean get() = aurora.maximized
+    val zIndex: Long get() = aurora.zIndex
+
+    fun copy(
+        id: String = this.id,
+        title: String = this.title,
+        kind: String = this.kind,
+        x: Float = this.x,
+        y: Float = this.y,
+        width: Float = this.width,
+        height: Float = this.height,
+        minimized: Boolean = this.minimized,
+        workspace: Int = this.workspace,
+        maximized: Boolean = this.maximized,
+        zIndex: Long = this.zIndex
+    ): DeskWindow {
+        var next = aurora.copy(
+            id = id, workspace = workspace, x = x, y = y, width = width, height = height,
+            minimized = minimized, zIndex = zIndex
+        )
+        if (!this.maximized && maximized) {
+            next = next.copy(
+                maximized = true,
+                restoreGeometry = InfinityAuroraWindowGeometry(this.x, this.y, this.width, this.height)
+            )
+        } else if (this.maximized && !maximized) {
+            val restore = aurora.restoreGeometry
+            if (restore != null) {
+                next = next.copy(
+                    x = restore.x, y = restore.y, width = restore.width, height = restore.height,
+                    maximized = false, restoreGeometry = null
+                )
+            } else {
+                next = next.copy(maximized = false, restoreGeometry = null)
+            }
+        } else {
+            next = next.copy(maximized = maximized, restoreGeometry = aurora.restoreGeometry)
+        }
+        return DeskWindow(title, kind, next)
+    }
+}
 private data class InstalledApp(val label: String, val packageName: String, val activityName: String)
 private data class ExplorerEntry(
     val documentId: String,
@@ -408,17 +476,9 @@ private fun Infinity08App() {
                     val auroraWindow = infinityAuroraWindowFromLegacy(legacyRecord)
                     add(
                         DeskWindow(
-                            id = auroraWindow.id,
                             title = item.optString("title", kind).trim().take(80).ifBlank { kind },
                             kind = kind,
-                            x = auroraWindow.x,
-                            y = auroraWindow.y,
-                            width = auroraWindow.width,
-                            height = auroraWindow.height,
-                            minimized = auroraWindow.minimized,
-                            workspace = auroraWindow.workspace,
-                            maximized = auroraWindow.maximized,
-                            zIndex = auroraWindow.zIndex
+                            aurora = auroraWindow
                         )
                     )
                 }
