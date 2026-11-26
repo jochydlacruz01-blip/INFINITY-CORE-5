@@ -257,7 +257,18 @@ class InfinityDesktopEmulatorTest {
         compose.onNodeWithText("NOTIFICACIONES").assertExists()
         compose.onNodeWithText("INFINITY UI TEST").assertExists()
         capture("06-advanced-notifications")
-        compose.onNodeWithText("LIMPIAR").performClick()
+        // The notifications section is below the quick-action cards in a scrollable panel.
+        val advancedPanel = compose.onNodeWithTag("infinity-advanced-panel")
+        val clearNotifications = compose.onNodeWithTag("infinity-notifications-clear")
+        for (attempt in 0 until 6) {
+            if (runCatching { clearNotifications.assertIsDisplayed() }.isSuccess) break
+            advancedPanel.performTouchInput { swipeUp() }
+            settleComposeFrame()
+        }
+        clearNotifications.assertIsDisplayed()
+        clearNotifications.assertHasClickAction()
+        Log.i("INFINITY_TEST_DIAGNOSTIC", "Notification clear action is visible; invoking click.")
+        clearNotifications.performClick()
         compose.waitUntil(timeoutMillis = 5_000) {
             InfinityNotificationStore.notifications.isEmpty()
         }

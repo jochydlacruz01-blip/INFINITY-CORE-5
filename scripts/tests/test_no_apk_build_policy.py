@@ -251,7 +251,7 @@ jobs:
         run: sdkmanager --install "platforms;android-35" "build-tools;35.0.0" "ndk;27.0.12077973" "cmake;3.22.1"
       - name: Compile native and DEBUG
         run: |
-          gradle assembleDebug --stacktrace
+          gradle -PINFINITY_BUILD_FREERDP_NATIVE=true :freerdpCore:externalNativeBuildDebug compileDebugKotlin testDebugUnitTest lintDebug assembleDebug --stacktrace
       - name: Verify DEBUG APK and native libraries
         run: |
           APK="app/build/outputs/apk/debug/app-debug.apk"
@@ -276,19 +276,14 @@ jobs:
             echo "ELF64 AArch64"
           done
           "${APKSIGNER}" verify --verbose --print-certs "${APK}"
-      - name: Upload DEBUG APK and evidence
-        if: always()
-        uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@v7
         with:
-          name: PROJECT-INFINITY-0.10-DEBUG-APK-TEST
+          name: PROJECT-INFINITY-0.10-DEBUG-APK-EVIDENCE
           path: |
-            app/build/outputs/apk/debug/app-debug.apk
             app-debug-sha256.txt
             app-debug-size.txt
             app-debug-signature.txt
             app-debug-freerdp-libraries.txt
-          if-no-files-found: warn
-          retention-days: 3
 """
     def test_manual_debug_workflow_wrong_branch_is_rejected(self):
         content = """on:

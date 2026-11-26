@@ -5,6 +5,7 @@ import android.content.Intent
 import android.provider.Settings
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.platform.testTag
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -93,7 +94,8 @@ fun InfinityAdvancedPanel(
         Column(
             modifier = Modifier
                 .padding(18.dp)
-                .verticalScroll(rememberScrollState()),
+                .verticalScroll(rememberScrollState())
+                .testTag("infinity-advanced-panel"),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Row(
@@ -305,6 +307,7 @@ fun InfinityAdvancedPanel(
                             onClick = {
                                 InfinityNotificationStore.clearAll()
                             },
+                            modifier = Modifier.testTag("infinity-notifications-clear"),
                             enabled = InfinityNotificationStore.notifications.isNotEmpty()
                         ) {
                             Text("LIMPIAR", color = AdvancedAccent, fontSize = 9.sp)

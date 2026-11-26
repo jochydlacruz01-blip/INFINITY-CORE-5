@@ -107,7 +107,7 @@ def _is_safe_manual_debug_apk_workflow(path: Path, content: str) -> bool:
         ),
         re.search(r"(?m)^permissions:\s*\n\s+contents:\s*read\s*$", content),
         re.search(r"(?m)^\s+ref:\s*" + re.escape(AUTHORIZED_DEBUG_BRANCH) + r"\s*$", content),
-        re.search(r"(?m)^\s+gradle assembleDebug --stacktrace\s*$", content),
+        re.search(r"(?m)^\s+gradle -PINFINITY_BUILD_FREERDP_NATIVE=true :freerdpCore:externalNativeBuildDebug compileDebugKotlin testDebugUnitTest lintDebug assembleDebug --stacktrace\s*$", content),
         re.search(r"(?m)^\s*\"?\$\{APKSIGNER\}\"? verify --verbose --print-certs", content),
         re.search(r'(?m)^\s+APK="app/build/outputs/apk/debug/app-debug\.apk"\s*$', content),
         re.search(r"(?m)^\s+REQUIRED_FREERDP_LIBRARIES=\($", content),
@@ -141,21 +141,19 @@ def _is_safe_manual_debug_apk_workflow(path: Path, content: str) -> bool:
     if re.search(forbidden, content) or "secrets." in content:
         return False
 
-    # Only this manually dispatched, branch-pinned workflow may upload the
-    # unsigned DEBUG test APK; it is never a Release build or publication.
+    # The DEBUG APK is inspected in-place but never uploaded or published.
     artifact_blocks = _artifact_steps(content)
     if len(artifact_blocks) != 1:
         return False
-    artifact_block = artifact_blocks[0]
+    evidence_block = artifact_blocks[0]
     return bool(
-        re.search(r"(?m)^\\s+name:\\s*PROJECT-INFINITY-0\\.10-DEBUG-APK-TEST\\s*$", artifact_block)
-        and "app/build/outputs/apk/debug/app-debug.apk" in artifact_block
-        and "app-debug-signature.txt" in artifact_block
-        and "app-debug-size.txt" in artifact_block
-        and "app-debug-freerdp-libraries.txt" in artifact_block
-        and re.search(r"(?m)^\\s+retention-days:\\s*3\\s*$", artifact_block)
-        and re.search(r"(?m)^\\s+if-no-files-found:\\s*warn\\s*$", artifact_block)
-        and re.search(r"(?m)^\\s+if:\\s*always\\(\\)\\s*$", content)
+        "app/build/outputs/apk/debug/app-debug.apk" not in evidence_block
+        and ".apk" not in evidence_block.lower()
+        and "app/build/outputs" not in evidence_block
+        and re.search(r"(?m)^\s+name:\s*PROJECT-INFINITY-0\.10-DEBUG-APK-EVIDENCE\s*$", evidence_block)
+        and "app-debug-signature.txt" in evidence_block
+        and "app-debug-size.txt" in evidence_block
+        and "app-debug-freerdp-libraries.txt" in evidence_block
     )
 
 
