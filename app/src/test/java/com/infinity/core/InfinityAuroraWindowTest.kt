@@ -80,3 +80,67 @@ class InfinityAuroraWindowStateTest {
         assertEquals("aurora_workspace_2_notes-w2_width", infinityAuroraWindowPositionKey(2, "notes-w2", "width"))
     }
 }
+
+
+class InfinityAuroraLegacyMigrationTest {
+    @Test fun legacyRecordPreservesIdentityGeometryAndWindowFlags() {
+        val migrated = infinityAuroraWindowFromLegacy(
+            InfinityLegacyWindowRecord(
+                id = "notes-w1", workspace = 1, x = 31f, y = 47f,
+                width = 510f, height = 360f, minimized = true, maximized = false, zIndex = 9L
+            )
+        )
+        assertEquals("notes-w1", migrated.id)
+        assertEquals(1, migrated.workspace)
+        assertEquals(31f, migrated.x)
+        assertEquals(47f, migrated.y)
+        assertEquals(510f, migrated.width)
+        assertEquals(360f, migrated.height)
+        assertTrue(migrated.minimized)
+        assertTrue(!migrated.maximized)
+        assertEquals(9L, migrated.zIndex)
+        assertNull(migrated.restoreGeometry)
+    }
+
+    @Test fun legacyMaximizedRecordUsesPersistedNormalGeometryForExactRestore() {
+        val original = InfinityLegacyWindowRecord(
+            id = "files-w2", workspace = 2, x = 23f, y = 61f,
+            width = 430f, height = 315f, maximized = true
+        )
+        val state = InfinityAuroraWindowState(
+            windows = listOf(infinityAuroraWindowFromLegacy(original))
+        )
+        val restored = state.restore("files-w2", 2).windows.single()
+        assertEquals(original.x, restored.x)
+        assertEquals(original.y, restored.y)
+        assertEquals(original.width, restored.width)
+        assertEquals(original.height, restored.height)
+        assertTrue(!restored.maximized)
+        assertNull(restored.restoreGeometry)
+    }
+
+    @Test fun maximizeCapturesGeometryOnlyOnceAndRestoreReturnsExactValues() {
+        val normal = InfinityAuroraWindow("notes-w1", 1, 37f, 52f, 470f, 340f)
+        val state = InfinityAuroraWindowState(windows = listOf(normal))
+        val bounds = InfinityAuroraSafeBounds(900f, 700f, 30f, 610f)
+        val maximized = state.maximize("notes-w1", 1, bounds)
+        val maximizedAgain = maximized.maximize("notes-w1", 1, bounds)
+        assertEquals(maximized, maximizedAgain)
+        val restored = maximized.restore("notes-w1", 1).windows.single()
+        assertEquals(normal.x, restored.x)
+        assertEquals(normal.y, restored.y)
+        assertEquals(normal.width, restored.width)
+        assertEquals(normal.height, restored.height)
+        assertTrue(!restored.maximized)
+        assertNull(restored.restoreGeometry)
+    }
+
+    @Test fun legacyMigrationDropsBlankAndDuplicateIdsButPreservesFirstOccurrence() {
+        val first = InfinityLegacyWindowRecord("notes-w1", 1, 10f, 20f, 300f, 240f)
+        val duplicate = first.copy(x = 99f)
+        val blank = first.copy(id = " ")
+        val migrated = infinityAuroraWindowsFromLegacy(listOf(first, duplicate, blank))
+        assertEquals(1, migrated.size)
+        assertEquals(10f, migrated.single().x)
+    }
+}
