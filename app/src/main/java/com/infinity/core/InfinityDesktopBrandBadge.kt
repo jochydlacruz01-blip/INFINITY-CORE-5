@@ -60,13 +60,13 @@ internal fun InfinityDesktopBrandBadge(modifier: Modifier = Modifier, onClick: (
         Spacer(Modifier.size(10.dp))
         Column {
             Text(
-                "PROJECT INFINITY",
+                "INFINITY — BEYOND LIMITS",
                 color = Color.White,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold
             )
             Text(
-                "Sistema Operativo Inteligente",
+                "FUTURISTIC DESKTOP ENVIRONMENT",
                 color = Color(0xFFB9D6FF),
                 fontSize = 10.sp
             )
