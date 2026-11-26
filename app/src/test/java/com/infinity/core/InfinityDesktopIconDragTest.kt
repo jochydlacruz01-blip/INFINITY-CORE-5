@@ -61,3 +61,37 @@ class InfinityDesktopIconDragTest {
         assertNotEquals(one.keys, two.keys)
     }
 }
+
+class InfinityDesktopIconLayoutMetricsTest {
+    @Test fun sevenShortcutsFitPhonePortraitWithoutOverlappingCells() {
+        val metrics = infinityDesktopIconLayoutMetrics(360f, 720f, 7, 1f)
+        assertEquals(3, ((360f + metrics.horizontalGapPx) / (metrics.itemWidthPx + metrics.horizontalGapPx)).toInt())
+        assertTrue(metrics.itemHeightPx * 3f + metrics.verticalGapPx * 2f <= metrics.safeDesktopHeightPx - metrics.topInsetPx + 0.001f)
+        val positions = infinityResolveIconOverlaps(
+            List(7) { Offset.Zero },
+            360f, metrics.safeDesktopHeightPx,
+            metrics.itemWidthPx, metrics.itemHeightPx,
+            metrics.horizontalGapPx, metrics.verticalGapPx, metrics.topInsetPx
+        )
+        assertEquals(7, positions.size)
+        for (i in positions.indices) for (j in i + 1 until positions.size) {
+            val a = positions[i]; val b = positions[j]
+            assertTrue(!(a.x < b.x + metrics.itemWidthPx && a.x + metrics.itemWidthPx > b.x &&
+                a.y < b.y + metrics.itemHeightPx && a.y + metrics.itemHeightPx > b.y))
+        }
+    }
+
+    @Test fun compactViewportShrinksCellsInsteadOfPlacingIconsBehindDock() {
+        val metrics = infinityDesktopIconLayoutMetrics(320f, 640f, 7, 1f)
+        assertTrue(metrics.itemHeightPx < 150f)
+        assertTrue(metrics.iconSizePx >= 24f)
+        val positions = infinityResolveIconOverlaps(
+            List(7) { Offset.Zero },
+            320f, metrics.safeDesktopHeightPx,
+            metrics.itemWidthPx, metrics.itemHeightPx,
+            metrics.horizontalGapPx, metrics.verticalGapPx, metrics.topInsetPx
+        )
+        assertEquals(7, positions.size)
+        assertTrue(positions.all { it.y >= metrics.topInsetPx && it.y + metrics.itemHeightPx <= metrics.safeDesktopHeightPx + 0.001f })
+    }
+}

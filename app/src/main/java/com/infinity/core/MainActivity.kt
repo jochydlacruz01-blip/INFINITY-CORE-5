@@ -461,6 +461,7 @@ private fun Infinity08App() {
     }
 
 val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
+    val latestWorkspace by rememberUpdatedState(workspace)
 
     val installedApps = remember {
         val launcherIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
@@ -509,6 +510,14 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
             val maxW = maxWidth
             val maxH = maxHeight
             val density = LocalDensity.current
+            val desktopIconMetrics = remember(maxW, maxH, density, desktopItems.size) {
+                infinityDesktopIconLayoutMetrics(
+                    with(density) { maxW.toPx() },
+                    with(density) { maxH.toPx() },
+                    desktopItems.size,
+                    density.density
+                )
+            }
 
             // Load, normalize, de-collide and persist one workspace atomically.
             // Keep the icon layer hidden until this workspace snapshot is ready.
@@ -516,22 +525,15 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
             LaunchedEffect(workspace, maxW, maxH) {
                 iconLayoutReady = false
                 val viewportWidth = with(density) { maxW.toPx() }
-                val safeDesktopHeight = with(density) {
-                    infinityDesktopHeightAboveDock(
-                        maxH.toPx(),
-                        dockHeight = 88.dp.toPx(),
-                        dockBottomInset = 24.dp.toPx(),
-                        safetyGap = 56.dp.toPx()
-                    )
-                }
-                val itemWidth = with(density) { 108.dp.toPx() }
-                val itemHeight = with(density) { 150.dp.toPx() }
-                val topInset = with(density) { 118.dp.toPx() }
+                val safeDesktopHeight = desktopIconMetrics.safeDesktopHeightPx
+                val itemWidth = desktopIconMetrics.itemWidthPx
+                val itemHeight = desktopIconMetrics.itemHeightPx
+                val topInset = desktopIconMetrics.topInsetPx
                 val loaded = desktopItems.mapIndexed { index, item ->
                     val fallback = infinityDesktopIconGridOffset(
                         index, viewportWidth, itemWidth, itemHeight,
-                        horizontalGap = with(density) { 12.dp.toPx() },
-                        verticalGap = with(density) { 14.dp.toPx() },
+                        horizontalGap = desktopIconMetrics.horizontalGapPx,
+                        verticalGap = desktopIconMetrics.verticalGapPx,
                         topInset = topInset
                     )
                     val legacyX = if (workspace == 1) {
@@ -551,8 +553,8 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                     safeDesktopHeight,
                     itemWidth = itemWidth,
                     itemHeight = itemHeight,
-                    horizontalGap = with(density) { 12.dp.toPx() },
-                    verticalGap = with(density) { 14.dp.toPx() },
+                    horizontalGap = desktopIconMetrics.horizontalGapPx,
+                    verticalGap = desktopIconMetrics.verticalGapPx,
                     topInset = topInset
                 )
                 iconOffsets.clear()
@@ -787,8 +789,8 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                             action = action,
                             icons = records,
                             viewportWidth = with(density) { maxW.toPx() },
-                            itemWidth = 108f * densityValue,
-                            itemHeight = 150f * densityValue,
+                            itemWidth = desktopIconMetrics.itemWidthPx,
+                            itemHeight = desktopIconMetrics.itemHeightPx,
                             leftInset = 16f * densityValue,
                             topInset = 118f * densityValue
                         )
@@ -813,11 +815,11 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                                 desktopItems.map { placements[it.id] ?: iconOffsets[it.id] ?: Offset.Zero },
                                 with(density) { maxW.toPx() },
                                 safeHeight,
-                                itemWidth = with(density) { 108.dp.toPx() },
-                                itemHeight = with(density) { 150.dp.toPx() },
-                                horizontalGap = with(density) { 12.dp.toPx() },
-                                verticalGap = with(density) { 14.dp.toPx() },
-                                topInset = with(density) { 118.dp.toPx() }
+                                itemWidth = desktopIconMetrics.itemWidthPx,
+                                itemHeight = desktopIconMetrics.itemHeightPx,
+                                horizontalGap = desktopIconMetrics.horizontalGapPx,
+                                verticalGap = desktopIconMetrics.verticalGapPx,
+                                topInset = desktopIconMetrics.topInsetPx
                             )
                             desktopItems.forEachIndexed { index, desktopItem ->
                                 iconOffsets[desktopItem.id] = resolved[index]
@@ -872,6 +874,10 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                 )
             } else if (desktopIconsVisible && iconLayoutReady) {
                 val referenceRail = maxW >= 600.dp && futuristicDesktop
+                val compactIconCell = !referenceRail && desktopIconMetrics.itemHeightPx < with(density) { 112.dp.toPx() }
+                val desktopItemWidth = with(density) { desktopIconMetrics.itemWidthPx.toDp() }
+                val desktopItemHeight = with(density) { desktopIconMetrics.itemHeightPx.toDp() }
+                val desktopBadgeSize = with(density) { desktopIconMetrics.iconSizePx.toDp() }
                 val railLayout = if (referenceRail) infinityReferenceRailLayout(maxW.value, maxH.value, desktopItems.size) else null
                 desktopItems.forEach { item ->
                     val shortcutInteraction = remember(item.id) { MutableInteractionSource() }
@@ -891,7 +897,8 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier
                             .offset { IntOffset(offset.x.roundToInt(), offset.y.roundToInt()) }
-                            .width((railLayout?.itemWidthDp ?: 108f).dp)
+                            .width((railLayout?.itemWidthDp ?: desktopItemWidth.value).dp)
+                            .heightIn(max = if (referenceRail) Dp.Unspecified else desktopItemHeight)
                             .graphicsLayer {
                                 val emphasis = if (shortcutHighlighted) 1.045f else 1f
                                 scaleX = emphasis
@@ -917,7 +924,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                                 ),
                                 RoundedCornerShape(if (iconPack == "windows11") 12.dp else 18.dp)
                             )
-                            .padding(if (referenceRail) 2.dp else 8.dp)
+                            .padding(if (referenceRail) 2.dp else if (compactIconCell) 3.dp else 8.dp)
                             .hoverable(shortcutInteraction)
                             .focusable(interactionSource = shortcutInteraction)
                             .testTag("infinity-desktop-shortcut-${item.id}")
@@ -954,13 +961,13 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                                                     desktopItems.map { it.id },
                                                     with(density) { maxW.toPx() },
                                                     safeHeight,
-                                                    itemWidth = with(density) { 108.dp.toPx() },
-                                                    itemHeight = with(density) { 150.dp.toPx() },
-                                                    horizontalGap = with(density) { 12.dp.toPx() },
-                                                    verticalGap = with(density) { 14.dp.toPx() },
-                                                    topInset = with(density) { 118.dp.toPx() }
+                                                    itemWidth = desktopIconMetrics.itemWidthPx,
+                                                    itemHeight = desktopIconMetrics.itemHeightPx,
+                                                    horizontalGap = desktopIconMetrics.horizontalGapPx,
+                                                    verticalGap = desktopIconMetrics.verticalGapPx,
+                                                    topInset = desktopIconMetrics.topInsetPx
                                                 )
-                                                if (workspace == active.workspace) {
+                                                if (latestWorkspace == active.workspace) {
                                                     committed.forEach { (id, position) -> iconOffsets[id] = position }
                                                 }
                                                 persistSnapshot(active.workspace, committed)
@@ -971,7 +978,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                                             val active = transaction
                                             if (active != null) {
                                                 val restored = infinityCancelDesktopIconDrag(active)
-                                                if (workspace == active.workspace) {
+                                                if (latestWorkspace == active.workspace) {
                                                     restored.forEach { (id, position) -> iconOffsets[id] = position }
                                                 }
                                                 persistSnapshot(active.workspace, restored)
@@ -998,9 +1005,9 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                                                         safetyGap = 56.dp.toPx()
                                                     )
                                                 },
-                                                itemWidth = with(density) { 108.dp.toPx() },
-                                                itemHeight = with(density) { 150.dp.toPx() },
-                                                topInset = with(density) { 118.dp.toPx() }
+                                                itemWidth = desktopIconMetrics.itemWidthPx,
+                                                itemHeight = desktopIconMetrics.itemHeightPx,
+                                                topInset = desktopIconMetrics.topInsetPx
                                             )
                                             transaction = next
                                             next.currentPositions[item.id]?.let { iconOffsets[item.id] = it }
@@ -1042,7 +1049,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                             accent,
                             iconPack
                         )
-                        Spacer(Modifier.height(if (referenceRail) 2.dp else 7.dp))
+                        Spacer(Modifier.height(if (referenceRail) 2.dp else if (compactIconCell) 3.dp else 7.dp))
                         if (railLayout?.showLabels != false) Text(
                             item.label,
                             modifier = Modifier
@@ -1054,7 +1061,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                                     vertical = if (referenceRail) 1.dp else 6.dp
                                 ),
                             color = Color.White,
-                            fontSize = if (referenceRail) 7.sp else 10.sp,
+                            fontSize = if (referenceRail) 7.sp else if (compactIconCell) 8.sp else 10.sp,
                             fontWeight = FontWeight.SemiBold,
                             maxLines = 2,
                             textAlign = androidx.compose.ui.text.style.TextAlign.Center,

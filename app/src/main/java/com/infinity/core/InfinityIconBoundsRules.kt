@@ -99,7 +99,7 @@ internal fun infinityResolveIconOverlaps(
         val row = slot / columns
         val x = (gapX.toDouble() + column.toDouble() * (iconWidth + gapX).toDouble())
             .coerceAtMost((width - iconWidth).coerceAtLeast(0f).toDouble()).toFloat()
-        val y = (inset.toDouble() + row.toDouble() * (iconHeight + gapY).toDouble())
+        val y = (safeTop.toDouble() + row.toDouble() * (iconHeight + gapY).toDouble())
             .coerceAtMost((height - iconHeight).coerceAtLeast(safeTop).toDouble()).toFloat()
         return Offset(x, y)
     }
@@ -117,4 +117,55 @@ internal fun infinityResolveIconOverlaps(
         }
     }
     return resolved
+}
+
+/** Geometry and compact visual sizing that fit every shortcut into the dock-safe desktop area. */
+internal data class InfinityDesktopIconLayoutMetrics(
+    val safeDesktopHeightPx: Float,
+    val itemWidthPx: Float,
+    val itemHeightPx: Float,
+    val horizontalGapPx: Float,
+    val verticalGapPx: Float,
+    val topInsetPx: Float,
+    val iconSizePx: Float
+)
+
+internal fun infinityDesktopIconLayoutMetrics(
+    viewportWidthPx: Float,
+    viewportHeightPx: Float,
+    itemCount: Int,
+    density: Float = 1f
+): InfinityDesktopIconLayoutMetrics {
+    val safeDensity = density.takeIf { it.isFinite() && it > 0f } ?: 1f
+    val width = viewportWidthPx.takeIf { it.isFinite() && it > 0f } ?: 1f
+    val safeHeight = infinityDesktopHeightAboveDock(
+        viewportHeightPx,
+        88f * safeDensity,
+        24f * safeDensity,
+        56f * safeDensity
+    )
+    val count = itemCount.coerceAtLeast(1)
+    val gapX = 12f * safeDensity
+    val gapY = 10f * safeDensity
+    val top = (118f * safeDensity).coerceAtMost((safeHeight - 1f).coerceAtLeast(0f))
+    val preferredWidth = 108f * safeDensity
+    val columns = (((width + gapX) / (preferredWidth + gapX)).toInt())
+        .coerceAtLeast(1).coerceAtMost(count)
+    val rows = ((count + columns - 1) / columns).coerceAtLeast(1)
+    val itemWidth = minOf(
+        preferredWidth,
+        ((width - (columns - 1) * gapX) / columns).coerceAtLeast(1f)
+    )
+    val availableHeight = (safeHeight - top).coerceAtLeast(1f)
+    val itemHeight = minOf(
+        150f * safeDensity,
+        ((availableHeight - (rows - 1) * gapY) / rows).coerceAtLeast(1f)
+    )
+    val labelAndSpacingBudget = 42f * safeDensity
+    val iconSize = (itemHeight - labelAndSpacingBudget)
+        .coerceAtLeast(24f * safeDensity)
+        .coerceAtMost(62f * safeDensity)
+    return InfinityDesktopIconLayoutMetrics(
+        safeHeight, itemWidth, itemHeight, gapX, gapY, top, iconSize
+    )
 }
