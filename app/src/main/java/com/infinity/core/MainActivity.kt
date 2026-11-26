@@ -1133,31 +1133,39 @@ val iconOffsets = remember {
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .zIndex(20f)
+                    // A floating glass rail preserves the full action surface while leaving
+                    // a visible spatial margin around the desktop on every side.
+                    .padding(horizontal = if (maxW >= 600.dp && futuristicDesktop) 14.dp else 0.dp,
+                        vertical = if (maxW >= 600.dp && futuristicDesktop) 12.dp else 0.dp)
                     // On narrow screens, keep every Dock action reachable instead of clipping
                     // the trailing controls and task buttons beyond the viewport.
                     .horizontalScroll(rememberScrollState())
                     .then(if (iconPack == "windows11" || (maxW >= 600.dp && futuristicDesktop)) Modifier.fillMaxWidth() else Modifier)
+                    .then(if (maxW >= 600.dp && futuristicDesktop) Modifier.widthIn(max = 1500.dp) else Modifier)
                     .padding(
                         horizontal = if (iconPack == "windows11" || (maxW >= 600.dp && futuristicDesktop)) 0.dp else 12.dp,
                         vertical = if (iconPack == "windows11" || (maxW >= 600.dp && futuristicDesktop)) 0.dp else 12.dp
                     )
                     .shadow(
-                        if (iconPack == "windows11") 0.dp else 26.dp,
-                        RoundedCornerShape(if (iconPack == "windows11") 0.dp else 20.dp)
+                        if (iconPack == "windows11") 0.dp else 30.dp,
+                        RoundedCornerShape(if (iconPack == "windows11") 0.dp else 28.dp)
                     )
                     .background(
-                        when {
-                            maxW >= 600.dp && futuristicDesktop -> Color(0xF208142A)
+                        if (maxW >= 600.dp && futuristicDesktop) Brush.verticalGradient(
+                            listOf(Color(0xF20C1B35), Color(0xE908142A), Color(0xF20A1730))
+                        ) else when {
                             iconPack == "windows11" -> Color(0xF20B1829)
                             else -> Color(0xF016263D)
                         },
-                        if (maxW >= 600.dp && futuristicDesktop) RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp) else RoundedCornerShape(20.dp)
+                        if (maxW >= 600.dp && futuristicDesktop) RoundedCornerShape(28.dp)
+                        else RoundedCornerShape(20.dp)
                     )
                     .border(
                         if (maxW >= 600.dp && futuristicDesktop) 1.dp else if (iconPack == "windows11") 0.dp else 1.dp,
-                        if (maxW >= 600.dp && futuristicDesktop) Color(0xAA29CFFF)
-                        else if (iconPack == "windows11") Color.Transparent else Color(0xFF6686B5),
-                        if (maxW >= 600.dp && futuristicDesktop) RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp) else RoundedCornerShape(20.dp)
+                        if (maxW >= 600.dp && futuristicDesktop) Brush.linearGradient(
+                            listOf(Color(0xCC43D9FF), Color(0x665A7DFF), Color(0x998F68FF), Color(0x6643D9FF))
+                        ) else Brush.linearGradient(listOf(Color(0xFF6686B5), Color(0xFF6686B5))),
+                        if (maxW >= 600.dp && futuristicDesktop) RoundedCornerShape(28.dp) else RoundedCornerShape(20.dp)
                     )
                     .padding(
                         horizontal = if (iconPack == "windows11") 12.dp else if (maxW < 600.dp) 6.dp else 18.dp,
@@ -1197,8 +1205,8 @@ val iconOffsets = remember {
                     Row(
                         Modifier.widthIn(min = 150.dp, max = 260.dp).height(42.dp)
                             .clip(RoundedCornerShape(14.dp))
-                            .background(Color(0xFF122640))
-                            .border(1.dp, Color(0xFF38C8FF).copy(.55f), RoundedCornerShape(14.dp))
+                            .background(Brush.linearGradient(listOf(Color(0xDD102B49), Color(0xCC101A35), Color(0xDD1A2450))))
+                            .border(1.dp, Brush.horizontalGradient(listOf(Color(0xAA38DFFF), Color(0x887E79FF))), RoundedCornerShape(14.dp))
                             .clickable {
                                 startOpen = true
                                 search = ""
