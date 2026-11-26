@@ -26,6 +26,8 @@ The Companion listens on a deliberately selected private LAN/VPN interface and d
 
 The PFX must be current, contain a private key and meet the Companion server-certificate policy. Do not put the PFX password in source control, scripts, command-line arguments, chat, or ordinary configuration files. Protect the PFX and the mechanism that supplies its password with Windows ACLs restricted to the service identity and local administrators. The repository does not yet provide a production installer or a hardened secret-provisioning UI; service installation and secret storage remain operator-controlled deployment steps.
 
+**Android trust requirement:** the server certificate chain must terminate at a CA trusted by the Android system trust store, and its Subject Alternative Name must match the exact host entered in INFINITY CONNECT. Android performs normal PKIX and hostname validation in addition to the SHA-256 pin; the pin does not bypass either check. For VPN access, prefer a private-DNS FQDN covered by the certificate. If the app connects to an IP literal, the certificate must contain that exact IP address as an IP SAN. A self-signed or otherwise Android-untrusted server certificate will be rejected by the current client.
+
 Build/test/publish the Windows Companion from GitHub Actions artifact `INFINITY-WINDOWS-COMPANION-win-x64`. The current workflow runs .NET tests and publishes the Windows x64 Companion; it does not generate an Android APK. Install the published files as a Windows service using an administrator-approved deployment procedure. The service name is `INFINITY Windows Companion`.
 
 ## 3. Enroll the Android tablet
