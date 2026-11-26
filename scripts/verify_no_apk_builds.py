@@ -12,11 +12,11 @@ FORBIDDEN_GRADLE_TASK = re.compile(
 )
 SIGNING = re.compile(r"\b(?:signingConfig|signingConfigs|apksigner|jarsigner)\b", re.IGNORECASE)
 APK_REFERENCE = re.compile(
-    r"(?:\.apk\b|app[-_](?:debug|release)|(?:^|[/\\])outputs[/\\](?:apk|(?=[^\s]*\.apk))|"
+    r"(?:\.apk\b|app[-_](?:debug|release)|(?:^|[/\])outputs[/\](?:apk|(?=[^\s]*\.apk))|"
     r"\bAPK(?:_[A-Z0-9_]+|Path|File)\b)",
     re.IGNORECASE,
 )
-GENERIC_OUTPUT = re.compile(r"(?:^|[/\\])(?:app/)?build[/\\]outputs(?:[/\\]|$)", re.IGNORECASE)
+GENERIC_OUTPUT = re.compile(r"(?:^|[/\])(?:app/)?build[/\]outputs(?:[/\]|$)", re.IGNORECASE)
 DYNAMIC = re.compile(r"\$\{\{.*?\}\}|\$[A-Z_][A-Z0-9_]*", re.IGNORECASE)
 UPLOAD_ACTION = re.compile(r"uses\s*:\s*actions/upload-artifact@", re.IGNORECASE)
 RELEASE_UPLOAD = re.compile(
@@ -54,7 +54,7 @@ def _artifact_steps(content: str) -> list[str]:
 
 
 def _path_is_narrow_test_report(path_value: str) -> bool:
-    value = path_value.strip().strip("'\"").replace("\\", "/")
+    value = path_value.strip().strip("'\"").replace("\", "/")
     if not value or DYNAMIC.search(value):
         return False
     if any(value in (root, root + "**") for root in ALLOWED_NON_APK_ARTIFACT_PATHS):
@@ -109,7 +109,7 @@ def _is_safe_manual_debug_apk_workflow(path: Path, content: str) -> bool:
         re.search(r"(?m)^\s+ref:\s*" + re.escape(AUTHORIZED_DEBUG_BRANCH) + r"\s*$", content),
         re.search(r"(?m)^\s+gradle -PINFINITY_BUILD_FREERDP_NATIVE=true :freerdpCore:externalNativeBuildDebug compileDebugKotlin testDebugUnitTest lintDebug assembleDebug --stacktrace\s*$", content),
         re.search(r"(?m)^\s*\"?\$\{APKSIGNER\}\"? verify --verbose --print-certs", content),
-        re.search(r'(?m)^\\s+APK="app/build/outputs/apk/debug/app-debug\\.apk"\\s*$', content),
+        re.search(r'(?m)^\s+APK="app/build/outputs/apk/debug/app-debug\.apk"\s*$', content),
         re.search(r"(?m)^\s+REQUIRED_FREERDP_LIBRARIES=\($", content),
         re.search(r"(?m)^\s+libfreerdp-android\.so$", content),
         re.search(r"(?m)^\s+libfreerdp3\.so$", content),
@@ -149,7 +149,7 @@ def _is_safe_manual_debug_apk_workflow(path: Path, content: str) -> bool:
     return bool(
         "app/build/outputs/apk/debug/app-debug.apk" not in evidence_block
         and not APK_REFERENCE.search(evidence_block)
-        and re.search(r"(?m)^\\s+name:\\s*PROJECT-INFINITY-0\\.10-DEBUG-APK-EVIDENCE\\s*$", evidence_block)
+        and re.search(r"(?m)^\s+name:\s*PROJECT-INFINITY-0\.10-DEBUG-APK-EVIDENCE\s*$", evidence_block)
         and "app-debug-signature.txt" in evidence_block
         and "app-debug-size.txt" in evidence_block
         and "app-debug-freerdp-libraries.txt" in evidence_block
@@ -170,7 +170,7 @@ def _audit_file(workflow: Path) -> list[str]:
         return [f"{workflow}: manual DEBUG APK workflow does not satisfy the strict PR #87 allowlist"]
 
     findings: list[str] = []
-    normalized_shell = content.replace("\\\n", " ")
+    normalized_shell = content.replace("\\n", " ")
     gradle_build = any(
         GRADLE_INVOKED.search(line) and FORBIDDEN_GRADLE_TASK.search(line)
         for line in normalized_shell.splitlines()
