@@ -135,7 +135,8 @@ internal fun infinityDesktopIconLayoutMetrics(
     viewportHeightPx: Float,
     itemCount: Int,
     density: Float = 1f,
-    topInsetDp: Float = 118f
+    topInsetDp: Float = 118f,
+    requestedIconSizeDp: Float? = null
 ): InfinityDesktopIconLayoutMetrics {
     val safeDensity = density.takeIf { it.isFinite() && it > 0f } ?: 1f
     val width = viewportWidthPx.takeIf { it.isFinite() && it > 0f } ?: 1f
@@ -164,9 +165,15 @@ internal fun infinityDesktopIconLayoutMetrics(
         ((availableHeight - (rows - 1) * gapY) / rows).coerceAtLeast(1f)
     )
     val labelAndSpacingBudget = 42f * safeDensity
-    val iconSize = (itemHeight - labelAndSpacingBudget)
+    val maxIconSize = (itemHeight - labelAndSpacingBudget)
         .coerceAtLeast(24f * safeDensity)
-        .coerceAtMost(62f * safeDensity)
+        .coerceAtMost(72f * safeDensity)
+    val automaticIconSize = maxIconSize.coerceAtMost(62f * safeDensity)
+    val requestedIconSize = requestedIconSizeDp
+        ?.takeIf { it.isFinite() && it > 0f }
+        ?.times(safeDensity)
+        ?.coerceIn(24f * safeDensity, maxIconSize)
+    val iconSize = requestedIconSize ?: automaticIconSize
     return InfinityDesktopIconLayoutMetrics(
         safeHeight, itemWidth, itemHeight, gapX, gapY, top, iconSize
     )

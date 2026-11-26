@@ -121,6 +121,8 @@ jobs:
           retention-days: 14
 
   emulator-ui:
+    # Disabled at the user's request: no tablet/phone emulator simulations until explicitly authorized.
+    if: ${{ false }}
     # Re-enabled for the explicitly requested ORBIT/ADVANCED panel-interaction regression.
     # Final emulator validation runs only after source, unit-test and lint gates pass.
     name: Instrumented Android UI (${{ matrix.device }})

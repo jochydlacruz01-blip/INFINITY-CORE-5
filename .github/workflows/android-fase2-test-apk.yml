@@ -1,9 +1,7 @@
 name: PROJECT INFINITY - FASE II DEBUG TEST APK
 
 on:
-  push:
-    branches:
-      - INFINITY-BASE-PACKAGES-01-05
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -14,7 +12,7 @@ concurrency:
 
 jobs:
   build-fase2-debug-test-apk:
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/INFINITY-BASE-PACKAGES-01-05' }}
+    if: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/INFINITY-BASE-PACKAGES-01-05' }}
     name: Build and verify Fase II DEBUG test APK only
     runs-on: ubuntu-latest
     timeout-minutes: 90

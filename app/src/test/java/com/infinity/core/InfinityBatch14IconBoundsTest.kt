@@ -147,6 +147,25 @@ class InfinityMobileReferenceHeaderLayoutTest {
         assertEquals(440f, metrics.topInsetPx, 0.001f)
     }
 
+    @Test fun selectedIconSizeIsAppliedInDensityPixelsAndClampedToAvailableSpace() {
+        val metrics = infinityDesktopIconLayoutMetrics(
+            viewportWidthPx = 1600f,
+            viewportHeightPx = 1200f,
+            itemCount = 7,
+            density = 2f,
+            requestedIconSizeDp = 56f
+        )
+        assertEquals(112f, metrics.iconSizePx, 0.001f)
+    }
+
+    @Test fun invalidRequestedIconSizeFallsBackToAutomaticSizing() {
+        val automatic = infinityDesktopIconLayoutMetrics(1600f, 1200f, 7, 2f)
+        val invalid = infinityDesktopIconLayoutMetrics(
+            1600f, 1200f, 7, 2f, requestedIconSizeDp = Float.NaN
+        )
+        assertEquals(automatic.iconSizePx, invalid.iconSizePx, 0.001f)
+    }
+
     @Test fun defaultTabletLayoutKeepsItsExistingTopInset() {
         val metrics = infinityDesktopIconLayoutMetrics(
             viewportWidthPx = 1600f,

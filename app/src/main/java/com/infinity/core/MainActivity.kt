@@ -636,13 +636,14 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
             // brand, clock and shortcuts never occupy the same touch area.
             val mobileReferenceHeader = maxW < 600.dp && maxH >= 700.dp &&
                 futuristicDesktop && !dashboardOpen
-            val desktopIconMetrics = remember(maxW, maxH, density, desktopItems.size, mobileReferenceHeader) {
+            val desktopIconMetrics = remember(maxW, maxH, density, desktopItems.size, mobileReferenceHeader, iconSize) {
                 infinityDesktopIconLayoutMetrics(
                     with(density) { maxW.toPx() },
                     with(density) { maxH.toPx() },
                     desktopItems.size,
                     density.density,
-                    topInsetDp = if (mobileReferenceHeader) 220f else 118f
+                    topInsetDp = if (mobileReferenceHeader) 220f else 118f,
+                    requestedIconSizeDp = iconSize
                 )
             }
 
@@ -2570,6 +2571,9 @@ Spacer(Modifier.height(14.dp))
                             value = iconSize,
                             onValueChange = {
                                 iconSize = it
+                                desktopContextState = infinityNormalizeDesktopContextState(
+                                    desktopContextState.copy(iconSizePx = it)
+                                )
                                 prefs.edit().putFloat("icon_size", it).apply()
                             },
                             valueRange = 40f..72f
