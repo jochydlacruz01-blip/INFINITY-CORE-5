@@ -1359,6 +1359,14 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .zIndex(20f)
+                .semantics {
+                    contentDescription = if (infinityDockRequiresHorizontalScroll(maxW.value)) {
+                        "Barra de aplicaciones INFINITY. Desliza horizontalmente para ver más accesos."
+                    } else {
+                        "Barra de aplicaciones INFINITY"
+                    }
+                }
+                .testTag("infinity-dock")
                     // A floating glass rail preserves the full action surface while leaving
                     // a visible spatial margin around the desktop on every side.
                     .padding(horizontal = if (maxW >= 600.dp && futuristicDesktop) 14.dp else 0.dp,
