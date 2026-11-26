@@ -737,7 +737,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
             if (!(maxW >= 600.dp && futuristicDesktop && !dashboardOpen)) {
             Column(Modifier.align(Alignment.TopStart).padding(
                 start = 22.dp,
-                top = 18.dp
+                top = infinityDesktopBrandingTopInset(maxW.value).dp
             )) {
                 Text(
                     when (iconPack) {
