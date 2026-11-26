@@ -111,11 +111,20 @@ internal data class InfinityAuroraWindowState(
         val target = windows.firstOrNull { it.id == windowId && it.workspace == targetWorkspace }
             ?: return this
         val updated = windows.map { if (it.id == windowId && it.workspace == targetWorkspace) it.copy(minimized = true) else it }
-        val nextActive = if (activeWindowId == windowId && activeWindowWorkspace == targetWorkspace) {
+        // Legacy states may contain activeWindowId without its workspace. Infer only
+        // when the ID is unique; never guess when the same ID exists in multiple workspaces.
+        val currentActiveWorkspace = resolvedActiveWindowWorkspace()
+        val minimizingActiveWindow = activeWindowId == windowId && currentActiveWorkspace == targetWorkspace
+        val nextActive = if (minimizingActiveWindow) {
             updated.filter { it.workspace == targetWorkspace && !it.minimized }
                 .maxByOrNull { it.zIndex }?.id
         } else activeWindowId
-        return copy(windows = updated, activeWindowId = nextActive, activeWindowWorkspace = if (activeWindowId == windowId && activeWindowWorkspace == targetWorkspace) targetWorkspace.takeIf { nextActive != null } else activeWindowWorkspace)
+        return copy(
+            windows = updated,
+            activeWindowId = nextActive,
+            activeWindowWorkspace = if (nextActive == null) null
+                else if (minimizingActiveWindow) targetWorkspace else currentActiveWorkspace
+        )
     }
 
     /** Restore and focus a task, assigning a fresh stacking order. */
@@ -137,11 +146,29 @@ internal data class InfinityAuroraWindowState(
         val targetWorkspace = infinityNormalizeWorkspace(workspace)
         if (windows.none { it.id == windowId && it.workspace == targetWorkspace }) return this
         val remaining = windows.filterNot { it.id == windowId && it.workspace == targetWorkspace }
-        val nextActive = if (activeWindowId == windowId && activeWindowWorkspace == targetWorkspace) {
+        val currentActiveWorkspace = resolvedActiveWindowWorkspace()
+        val closingActiveWindow = activeWindowId == windowId && currentActiveWorkspace == targetWorkspace
+        val nextActive = if (closingActiveWindow) {
             remaining.filter { it.workspace == targetWorkspace && !it.minimized }
                 .maxByOrNull { it.zIndex }?.id
-        } else activeWindowId?.takeIf { id -> remaining.any { it.id == id && it.workspace == activeWindowWorkspace && !it.minimized } }
-        return copy(windows = remaining, activeWindowId = nextActive, activeWindowWorkspace = activeWindowWorkspace.takeIf { nextActive != null })
+        } else {
+            activeWindowId?.takeIf { id ->
+                remaining.any { it.id == id && it.workspace == currentActiveWorkspace && !it.minimized }
+            }
+        }
+        return copy(
+            windows = remaining,
+            activeWindowId = nextActive,
+            activeWindowWorkspace = if (nextActive == null) null
+                else if (closingActiveWindow) targetWorkspace else currentActiveWorkspace
+        )
+    }
+
+    /** Resolves legacy focus state without weakening composite identity when IDs collide. */
+    private fun resolvedActiveWindowWorkspace(): Int? {
+        activeWindowWorkspace?.let { return infinityNormalizeWorkspace(it) }
+        val activeId = activeWindowId ?: return null
+        return windows.filter { it.id == activeId }.singleOrNull()?.workspace
     }
 
     fun switchWorkspace(workspace: Int): InfinityAuroraWindowState {
