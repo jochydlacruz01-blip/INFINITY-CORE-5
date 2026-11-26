@@ -446,6 +446,20 @@ private fun Infinity08App() {
         else prefs.edit().putString("focused_window_id", id).apply()
     }
 
+    // Every activation path must update both logical focus and visual z-order.
+    // Windows are drawn in list order, so changing only focusedWindowId can leave
+    // an ORBIT/Dock-restored window visually underneath a later overlapping window.
+    fun focusWindowToFront(windowId: String) {
+        val index = windows.indexOfFirst { it.id == windowId }
+        if (index < 0) return
+        val ordered = infinityBringItemToFront(windows.toList(), windows[index]) { it.id }
+        if (ordered.map { it.id } != windows.map { it.id }) {
+            windows.clear()
+            windows.addAll(ordered)
+        }
+        focusedWindowId = windowId
+    }
+
     fun switchWorkspace(target: Int) {
         val normalizedTarget = infinityNormalizeWorkspace(target)
         workspace = normalizedTarget
@@ -1142,7 +1156,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                             val index = windows.indexOfFirst { it.id == win.id }
                             if (index >= 0) {
                                 windows[index] = windows[index].copy(maximized = !windows[index].maximized)
-                                focusedWindowId = win.id
+                                focusWindowToFront(win.id)
                             }
                         },
                         
@@ -1201,7 +1215,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                                  windows.addAll(orderedWindows)
                              }
                          }
-                         focusedWindowId = win.id
+                         focusWindowToFront(win.id)
                      },
                         showGeometryControls = infinityWindowGeometryControlsVisible(maxW.value)
                     )
@@ -2047,7 +2061,7 @@ Spacer(Modifier.height(14.dp))
                                                     if (index >= 0) {
                                                         windows[index] =
                                                             windows[index].copy(minimized = false)
-                                                        focusedWindowId = win.id
+                                                        focusWindowToFront(win.id)
                                                     }
                                                     orbitOpen = false
                                                 }
@@ -2077,7 +2091,7 @@ Spacer(Modifier.height(14.dp))
                                                 if (index >= 0) {
                                                     if (win.minimized) {
                                                         windows[index] = windows[index].copy(minimized = false)
-                                                        focusedWindowId = win.id
+                                                        focusWindowToFront(win.id)
                                                         orbitOpen = false
                                                     } else {
                                                         windows[index] = windows[index].copy(minimized = true)
