@@ -201,3 +201,20 @@ class InfinityAuroraDeskWindowAdapterTest {
         assertTrue(rejected)
     }
 }
+
+
+class InfinityAuroraGeometryGesturePolicyTest {
+    @Test fun normalWindowAllowsGeometryGestures() {
+        assertTrue(infinityAuroraCanChangeGeometry(InfinityAuroraWindow("normal", 1, 10f, 20f, 400f, 300f)))
+    }
+
+    @Test fun maximizedWindowCannotBeMovedOrResizedDirectly() {
+        val window = InfinityAuroraWindow("maximized", 1, 8f, 40f, 784f, 452f, maximized = true)
+        assertTrue(!infinityAuroraCanChangeGeometry(window))
+    }
+
+    @Test fun minimizedWindowCannotReceiveGeometryGestures() {
+        val window = InfinityAuroraWindow("minimized", 1, 10f, 20f, 400f, 300f, minimized = true)
+        assertTrue(!infinityAuroraCanChangeGeometry(window))
+    }
+}
