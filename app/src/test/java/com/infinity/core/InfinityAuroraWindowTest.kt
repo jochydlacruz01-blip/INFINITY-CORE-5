@@ -217,7 +217,6 @@ class InfinityAuroraGeometryGesturePolicyTest {
         val window = InfinityAuroraWindow("minimized", 1, 10f, 20f, 400f, 300f, minimized = true)
         assertTrue(!infinityAuroraCanChangeGeometry(window))
     }
-}
 
     @Test fun dockClearanceMatchesCompactPhoneLayout() {
         assertEquals(104f, infinityAuroraDockClearanceDp(390f, "infinity", true))
@@ -234,7 +233,7 @@ class InfinityAuroraGeometryGesturePolicyTest {
     @Test fun dockClearanceUsesCompactClassicLayoutWhenReferenceModeIsOff() {
         assertEquals(104f, infinityAuroraDockClearanceDp(800f, "infinity", false))
     }
-
+}
 
 class InfinityAuroraWindowLifecycleTest {
     private fun state() = InfinityAuroraWindowState(
