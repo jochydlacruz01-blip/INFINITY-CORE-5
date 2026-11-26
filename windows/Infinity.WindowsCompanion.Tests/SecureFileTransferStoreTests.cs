@@ -35,10 +35,12 @@ public sealed class SecureFileTransferStoreTests : IDisposable
         Assert.Empty(store.List(OtherDevicePin));
 
         var metadata = store.Find(receipt.FileId, DevicePin)!;
-        await using var downloaded = (await store.OpenReadVerifiedAsync(metadata, CancellationToken.None))!;
-        using var output = new MemoryStream();
-        await downloaded.CopyToAsync(output);
-        Assert.Equal(bytes, output.ToArray());
+        using (var downloaded = (await store.OpenReadVerifiedAsync(metadata, CancellationToken.None))!)
+        using (var output = new MemoryStream())
+        {
+            await downloaded.CopyToAsync(output);
+            Assert.Equal(bytes, output.ToArray());
+        }
         Assert.False(store.Delete(receipt.FileId, OtherDevicePin));
         Assert.True(store.Delete(receipt.FileId, DevicePin));
         Assert.Null(store.Find(receipt.FileId, DevicePin));
