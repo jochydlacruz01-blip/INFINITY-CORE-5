@@ -148,7 +148,8 @@ def _is_safe_manual_debug_apk_workflow(path: Path, content: str) -> bool:
     evidence_block = artifact_blocks[0]
     return bool(
         "app/build/outputs/apk/debug/app-debug.apk" not in evidence_block
-        and not APK_REFERENCE.search(evidence_block)
+        and ".apk" not in evidence_block.lower()
+        and "app/build/outputs" not in evidence_block
         and re.search(r"(?m)^\s+name:\s*PROJECT-INFINITY-0\.10-DEBUG-APK-EVIDENCE\s*$", evidence_block)
         and "app-debug-signature.txt" in evidence_block
         and "app-debug-size.txt" in evidence_block
