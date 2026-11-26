@@ -417,6 +417,7 @@ internal class InfinityConnectMtlsTransport(
             connection.inputStream.use { input ->
                 val buffer = ByteArray(64 * 1024)
                 while (true) {
+                    cancellationSignal?.throwIfCanceled()
                     val count = input.read(buffer)
                     if (count < 0) break
                     total += count
