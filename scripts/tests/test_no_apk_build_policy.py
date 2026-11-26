@@ -306,7 +306,7 @@ permissions:
   contents: read
 jobs:
   build-release-validation:
-    if: \${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/INFINITY-PACK-14-REMOTE-FRAME-PIPELINE' }}
+    if: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/INFINITY-PACK-14-REMOTE-FRAME-PIPELINE' }}
     steps:
       - uses: actions/checkout@v7
         with:
