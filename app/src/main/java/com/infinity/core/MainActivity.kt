@@ -1299,6 +1299,9 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                             onIconSizeChange = {
                                 val normalized = infinityNormalizeIconSize(it)
                                 iconSize = normalized
+                                desktopContextState = infinityNormalizeDesktopContextState(
+                                    desktopContextState.copy(iconSizePx = normalized)
+                                )
                                 prefs.edit().putFloat("icon_size", normalized).apply()
                             },
                             onChooseWallpaper = { wallpaperPicker.launch(arrayOf("image/*")) },
