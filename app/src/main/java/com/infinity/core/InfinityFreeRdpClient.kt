@@ -128,33 +128,33 @@ internal class InfinityFreeRdpClient(
 
             val created = GlobalApp.createSession(uri, context)
             session = created
-            created.setUIEventListener(createUiListener(created))
-            GlobalApp.registerSessionListener(
-                created.instance,
-                object : GlobalApp.SessionEventListener {
-                    override fun onConnectionSuccess() {
-                        if (closed.get()) return
-                        connected = true
-                        mainHandler.post { if (!closed.get()) listener.onConnected() }
-                    }
+            try {
+                created.setUIEventListener(createUiListener(created))
+                GlobalApp.registerSessionListener(
+                    created.instance,
+                    object : GlobalApp.SessionEventListener {
+                        override fun onConnectionSuccess() {
+                            if (closed.get()) return
+                            connected = true
+                            mainHandler.post { if (!closed.get()) listener.onConnected() }
+                        }
 
-                    override fun onConnectionFailure() {
-                        if (closed.get()) return
-                        connected = false
-                        mainHandler.post {
-                            if (!closed.get()) listener.onError("Windows rechazó o no pudo completar la conexión RDP.")
+                        override fun onConnectionFailure() {
+                            if (closed.get()) return
+                            connected = false
+                            mainHandler.post {
+                                if (!closed.get()) listener.onError("Windows rechazó o no pudo completar la conexión RDP.")
+                            }
+                        }
+
+                        override fun onDisconnected() {
+                            if (closed.get()) return
+                            connected = false
+                            mainHandler.post { if (!closed.get()) listener.onDisconnected() }
                         }
                     }
+                )
 
-                    override fun onDisconnected() {
-                        if (closed.get()) return
-                        connected = false
-                        mainHandler.post { if (!closed.get()) listener.onDisconnected() }
-                    }
-                }
-            )
-
-            try {
                 check(LibFreeRDP.setConnectionInfo(context, created.instance, uri)) {
                     "FreeRDP rejected the constrained NLA connection arguments."
                 }
