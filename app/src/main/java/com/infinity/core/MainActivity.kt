@@ -226,11 +226,11 @@ internal class DeskWindow(
         )
         return DeskWindow(title, kind, next)
     }
-}
-
 
     internal fun withAurora(window: InfinityAuroraWindow): DeskWindow =
         DeskWindow(title = title, kind = kind, aurora = window)
+}
+
 private data class InstalledApp(val label: String, val packageName: String, val activityName: String)
 private data class ExplorerEntry(
     val documentId: String,
