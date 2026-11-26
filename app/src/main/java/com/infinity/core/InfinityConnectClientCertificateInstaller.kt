@@ -67,7 +67,11 @@ internal class InfinityConnectClientCertificateInstaller(
         }
         for (index in 1 until chain.size) {
             val issuer = chain[index]
-            require(issuer.basicConstraints >= 0) { "An issuer certificate is not a CA certificate." }
+            val pathLengthConstraint = issuer.basicConstraints
+            require(pathLengthConstraint >= 0) { "An issuer certificate is not a CA certificate." }
+            require(pathLengthConstraint >= index - 1) {
+                "Certificate chain exceeds an issuer CA path-length constraint."
+            }
             val issuerUsage = issuer.keyUsage
             require(issuerUsage == null || issuerUsage.size > 5 && issuerUsage[5]) {
                 "An issuer certificate does not permit certificate signing."
