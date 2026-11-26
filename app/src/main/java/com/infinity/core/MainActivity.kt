@@ -682,7 +682,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
             // Load, normalize, de-collide and persist one workspace atomically.
             // Keep the icon layer hidden until this workspace snapshot is ready.
             var iconLayoutReady by remember(workspace) { mutableStateOf(false) }
-            LaunchedEffect(workspace, maxW, maxH, mobileReferenceHeader) {
+            LaunchedEffect(workspace, maxW, maxH, mobileReferenceHeader, iconSize) {
                 iconLayoutReady = false
                 val viewportWidth = with(density) { maxW.toPx() }
                 val safeDesktopHeight = desktopIconMetrics.safeDesktopHeightPx
