@@ -95,24 +95,25 @@ jobs:
             liburiparser.so
           )
           : > app-debug-freerdp-libraries.txt
+          mkdir -p apk-native-inspection
           for library in "${REQUIRED_FREERDP_LIBRARIES[@]}"; do
             entry="lib/arm64-v8a/${library}"
             if ! grep -Fxq "${entry}" <<< "${APK_ENTRIES}"; then
               echo "Missing required FreeRDP native library in DEBUG APK: ${entry}" >&2
               exit 1
             fi
-            printf '%s\n' "${entry}" | tee -a app-debug-freerdp-libraries.txt
+            extracted="apk-native-inspection/${library}"
+            unzip -p "${APK}" "${entry}" > "${extracted}"
+            test -s "${extracted}"
+            header="$(readelf -h "${extracted}")"
+            elf_class="$(printf '%s\\n' "${header}" | awk -F: '/Class:/ { gsub(/^[[:space:]]+/, "", $2); print $2; exit }')"
+            elf_machine="$(printf '%s\\n' "${header}" | awk -F: '/Machine:/ { gsub(/^[[:space:]]+/, "", $2); print $2; exit }')"
+            test "${elf_class}" = "ELF64"
+            case "${elf_machine}" in AArch64*) ;; *) echo "Unexpected APK ELF architecture for ${library}: ${elf_machine}" >&2; exit 1 ;; esac
+            printf '%s class=%s machine=%s bytes=%s\\n' "${entry}" "${elf_class}" "${elf_machine}" "$(stat --format='%s' "${extracted}")" | tee -a app-debug-freerdp-libraries.txt
           done
           sha256sum "${APK}" | tee app-debug-sha256.txt
           stat --format='APK_SIZE_BYTES=%s' "${APK}" | tee app-debug-size.txt
-
-      - name: Upload DEBUG test APK
-        uses: actions/upload-artifact@v7
-        with:
-          name: PROJECT-INFINITY-0.10-DEBUG-TEST-APK
-          path: app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: error
-          retention-days: 14
 
       - name: Upload DEBUG APK verification evidence
         uses: actions/upload-artifact@v7
