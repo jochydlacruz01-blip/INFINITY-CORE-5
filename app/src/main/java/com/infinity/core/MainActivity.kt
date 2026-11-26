@@ -176,6 +176,22 @@ private fun Infinity08App() {
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences("infinity_desktop", 0) }
 
+    // One-time upgrade: make BEYOND LIMITS the real first-run desktop, even when
+    // an older installation persisted the previous classic/Windows presentation.
+    // This changes presentation preferences only; user files and window data stay intact.
+    remember {
+        if (!prefs.getBoolean("beyond_limits_migration_v1", false)) {
+            prefs.edit()
+                .putString("desktop_wallpaper_preset", "futuristic")
+                .putString("icon_pack", "infinity")
+                .putString("background_preset", "interstellar")
+                .putString("appearance", "dark")
+                .putBoolean("beyond_limits_migration_v1", true)
+                .apply()
+        }
+        true
+    }
+
     val desktopItems = remember {
         // INFINITY FUTURE reference desktop: stable IDs preserve existing window actions.
         listOf(
