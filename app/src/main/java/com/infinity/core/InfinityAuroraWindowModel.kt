@@ -98,6 +98,44 @@ internal data class InfinityAuroraWindowState(
     /** Cancellation is a true rollback: no state mutation and no persistence required. */
     fun cancelGeometry(transaction: InfinityAuroraWindowTransaction): InfinityAuroraWindowState = this
 
+    /** Minimize a window and select the top remaining visible window in that workspace. */
+    fun minimize(windowId: String, workspace: Int): InfinityAuroraWindowState {
+        val targetWorkspace = infinityNormalizeWorkspace(workspace)
+        val target = windows.firstOrNull { it.id == windowId && it.workspace == targetWorkspace }
+            ?: return this
+        val updated = windows.map { if (it.id == windowId) it.copy(minimized = true) else it }
+        val nextActive = if (activeWindowId == windowId) {
+            updated.filter { it.workspace == targetWorkspace && !it.minimized }
+                .maxByOrNull { it.zIndex }?.id
+        } else activeWindowId
+        return copy(windows = updated, activeWindowId = nextActive)
+    }
+
+    /** Restore and focus a task, assigning a fresh stacking order. */
+    fun activate(windowId: String, workspace: Int): InfinityAuroraWindowState {
+        val targetWorkspace = infinityNormalizeWorkspace(workspace)
+        val target = windows.firstOrNull { it.id == windowId && it.workspace == targetWorkspace }
+            ?: return this
+        val raised = target.copy(minimized = false, zIndex = nextZIndex)
+        return copy(
+            windows = windows.map { if (it.id == windowId) raised else it },
+            activeWindowId = windowId,
+            nextZIndex = if (nextZIndex == Long.MAX_VALUE) 1L else nextZIndex + 1L
+        )
+    }
+
+    /** Close removes the task and deterministically selects the top remaining visible task. */
+    fun close(windowId: String, workspace: Int): InfinityAuroraWindowState {
+        val targetWorkspace = infinityNormalizeWorkspace(workspace)
+        if (windows.none { it.id == windowId && it.workspace == targetWorkspace }) return this
+        val remaining = windows.filterNot { it.id == windowId }
+        val nextActive = if (activeWindowId == windowId) {
+            remaining.filter { it.workspace == targetWorkspace && !it.minimized }
+                .maxByOrNull { it.zIndex }?.id
+        } else activeWindowId?.takeIf { id -> remaining.any { it.id == id && !it.minimized } }
+        return copy(windows = remaining, activeWindowId = nextActive)
+    }
+
     fun switchWorkspace(workspace: Int): InfinityAuroraWindowState {
         val target = infinityNormalizeWorkspace(workspace)
         val nextActive = windows.filter { it.workspace == target && !it.minimized }
