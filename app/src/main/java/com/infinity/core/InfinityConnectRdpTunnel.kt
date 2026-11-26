@@ -57,6 +57,7 @@ internal class InfinityConnectRdpTunnel(
     }
 
     suspend fun open(config: Config): Handle {
+        InfinityConnectFeatureGates.requireRemoteDesktopEnabled()
         require(config.grantedCapabilities.containsAll(setOf("remote.display", "remote.input"))) {
             "Windows has not granted both remote.display and remote.input."
         }

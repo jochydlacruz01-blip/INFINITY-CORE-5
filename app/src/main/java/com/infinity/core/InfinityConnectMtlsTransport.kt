@@ -134,6 +134,7 @@ internal class InfinityConnectMtlsTransport(
         expectedDeviceId: String,
         requestedCapabilities: Set<String> = setOf("identity.read")
     ): AuthorizedIdentitySession {
+        InfinityConnectFeatureGates.requireCapabilitiesEnabled(requestedCapabilities)
         require(requestedCapabilities.contains("identity.read") &&
             requestedCapabilities.size in 1..4 &&
             requestedCapabilities.all { it in KNOWN_CAPABILITIES }) {
@@ -287,6 +288,7 @@ internal class InfinityConnectMtlsTransport(
         source: InputStream,
         cancellationSignal: CancellationSignal? = null
     ): FileTransferReceipt {
+        InfinityConnectFeatureGates.requireFileTransferEnabled()
         validateSessionCredentials(sessionId, sessionToken)
         validateTransferFileName(fileName)
         require(length in 0..MAX_FILE_BYTES) { "File exceeds the 50 MiB transfer limit." }
@@ -379,6 +381,7 @@ internal class InfinityConnectMtlsTransport(
         destination: OutputStream,
         cancellationSignal: CancellationSignal? = null
     ): FileTransferReceipt {
+        InfinityConnectFeatureGates.requireFileTransferEnabled()
         validateSessionCredentials(sessionId, sessionToken)
         require(runCatching { java.util.UUID.fromString(fileId).toString() == fileId }.getOrDefault(false)) {
             "File ID is invalid."
@@ -454,6 +457,7 @@ internal class InfinityConnectMtlsTransport(
         sessionToken: String,
         cancellationSignal: CancellationSignal? = null
     ): List<FileTransferReceipt> {
+        InfinityConnectFeatureGates.requireFileTransferEnabled()
         validateSessionCredentials(sessionId, sessionToken)
         cancellationSignal?.throwIfCanceled()
         require(fetchWindowsIdentity(baseUrl, clientKeyAlias, trustedServerSha256, expectedDeviceId, cancellationSignal).deviceId == expectedDeviceId) {
@@ -508,6 +512,7 @@ internal class InfinityConnectMtlsTransport(
         fileId: String,
         cancellationSignal: CancellationSignal? = null
     ): Boolean {
+        InfinityConnectFeatureGates.requireFileTransferEnabled()
         validateSessionCredentials(sessionId, sessionToken)
         require(runCatching { java.util.UUID.fromString(fileId).toString() == fileId }.getOrDefault(false)) {
             "File ID is invalid."
