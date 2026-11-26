@@ -1923,15 +1923,29 @@ Spacer(Modifier.height(14.dp))
 
                             OutlinedButton(
                                 onClick = {
-                                    windows.indices.forEach { index ->
-                                        windows[index] =
-                                            windows[index].copy(minimized = true)
-                                    }
+                                    val minimizeTargets = infinityWorkspaceMinimizeTargets(
+                                        windows.map { it.id },
+                                        windows.associate { it.id to it.workspace },
+                                        workspace
+                                    )
+                                    windows.indices
+                                        .filter { windows[it].id in minimizeTargets }
+                                        .forEach { index ->
+                                            windows[index] = windows[index].copy(minimized = true)
+                                        }
+                                    focusedWindowId = infinityResolveWorkspaceFocus(
+                                        focusedWindowId,
+                                        windows.map { it.id },
+                                        windows.associate { it.id to it.workspace },
+                                        windows.filter { it.minimized }.map { it.id }.toSet(),
+                                        workspace
+                                    )
                                     orbitOpen = false
                                 },
                                 modifier = Modifier
                                     .weight(1f)
-                                    .height(50.dp),
+                                    .height(50.dp)
+                                    .testTag("infinity-orbit-minimize-all"),
                                 shape = RoundedCornerShape(13.dp),
                                 border = androidx.compose.foundation.BorderStroke(
                                     1.dp,

@@ -63,6 +63,21 @@ class InfinityWorkspaceRulesTest {
         assertEquals(listOf("a"), infinityWorkspaceWindowIds(listOf("a", "b"), mapOf("a" to 0, "b" to 3), 1))
         assertEquals(emptyList<String>(), infinityWorkspaceWindowIds(listOf("x"), emptyMap(), 3))
     }
+    @Test fun minimizeAllTargetsOnlyTheActiveWorkspace() {
+        assertEquals(
+            setOf("notes_2", "files_2"),
+            infinityWorkspaceMinimizeTargets(
+                listOf("notes_1", "notes_2", "files_2", "apps_3"),
+                mapOf("notes_1" to 1, "notes_2" to 2, "files_2" to 2, "apps_3" to 3),
+                2
+            )
+        )
+        assertEquals(
+            emptySet<String>(),
+            infinityWorkspaceMinimizeTargets(listOf("notes_1"), mapOf("notes_1" to 1), 3)
+        )
+    }
+
     @Test fun workspaceFocusExcludesMinimizedAndOtherWorkspaceWindows() {
         assertEquals("c", infinityResolveWorkspaceFocus(
             "b", listOf("a", "b", "c", "d"),

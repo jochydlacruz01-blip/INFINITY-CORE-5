@@ -72,6 +72,13 @@ internal fun infinityWorkspaceWindowIds(windowIds: List<String>, workspaceById: 
     return windowIds.filter { id -> workspaceById[id]?.let(::infinityNormalizeWorkspace) == target }
 }
 
+/** Returns only the windows that a workspace-scoped "minimize all" action may affect. */
+internal fun infinityWorkspaceMinimizeTargets(
+    windowIds: List<String>,
+    workspaceById: Map<String, Int>,
+    activeWorkspace: Int
+): Set<String> = infinityWorkspaceWindowIds(windowIds, workspaceById, activeWorkspace).toSet()
+
 /** Selects focus only among non-minimized windows in the normalized target workspace. */
 internal fun infinityResolveWorkspaceFocus(
     currentId: String?,

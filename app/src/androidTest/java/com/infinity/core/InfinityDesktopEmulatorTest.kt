@@ -308,6 +308,58 @@ class InfinityDesktopEmulatorTest {
         }
     }
 
+    @Test(timeout = 120_000)
+    fun orbitMinimizeAllOnlyAffectsTheActiveWorkspace() {
+        // Keep a visible Notes window in workspace 1.
+        openStartApp("Notas", "infinity-start-app-notes")
+        waitForTag("infinity-window-notes")
+
+        // Create a second visible window in workspace 2.
+        selectWorkspaceThroughOrbit(2)
+        openStartApp("Este Equipo", "infinity-start-app-files")
+        waitForTag("infinity-window-files")
+
+        // Minimize All must affect only workspace 2, then close ORBIT.
+        compose.onNodeWithTag("infinity-dock-orbit").performClick()
+        settleComposeFrame()
+        val minimizeAll = compose.onNodeWithTag("infinity-orbit-minimize-all")
+        minimizeAll.assertIsDisplayed()
+        minimizeAll.assertHasClickAction()
+        minimizeAll.performClick()
+        settleComposeFrame()
+        compose.onNodeWithTag("infinity-window-files").assertDoesNotExist()
+
+        // Returning to workspace 1 proves its window was not minimized as a side effect.
+        selectWorkspaceThroughOrbit(1)
+        compose.onNodeWithTag("infinity-window-notes").assertExists()
+        compose.onNodeWithText("Bloc de ideas").assertExists()
+    }
+
+    private fun openStartApp(query: String, appTag: String) {
+        compose.onNodeWithContentDescription("START").performScrollTo()
+        compose.onNodeWithContentDescription("START").performClick()
+        settleComposeFrame()
+        waitForText("INFINITY START")
+        val searchField = compose.onNode(hasSetTextAction())
+        searchField.performTextInput(query)
+        settleComposeFrame()
+        waitForTag(appTag)
+        compose.onNodeWithTag(appTag).performClick()
+        settleComposeFrame()
+    }
+
+    private fun selectWorkspaceThroughOrbit(targetWorkspace: Int) {
+        compose.onNodeWithTag("infinity-dock-orbit").performClick()
+        settleComposeFrame()
+        waitForTag("infinity-orbit-panel")
+        compose.onNodeWithTag("infinity-orbit-workspace-$targetWorkspace").performClick()
+        settleComposeFrame()
+        compose.waitUntil(timeoutMillis = 10_000) {
+            context.getSharedPreferences("infinity_desktop", 0)
+                .getInt("active_workspace", -1) == targetWorkspace
+        }
+    }
+
     private fun settleComposeFrame() {
         // This suite freezes Compose's clock; explicitly commit the UI state transition.
         compose.mainClock.advanceTimeByFrame()
