@@ -218,3 +218,51 @@ class InfinityAuroraGeometryGesturePolicyTest {
         assertTrue(!infinityAuroraCanChangeGeometry(window))
     }
 }
+
+
+class InfinityAuroraWindowLifecycleTest {
+    private fun state() = InfinityAuroraWindowState(
+        windows = listOf(
+            InfinityAuroraWindow("notes", 1, 10f, 20f, 400f, 300f, zIndex = 2L),
+            InfinityAuroraWindow("files", 1, 20f, 30f, 400f, 300f, zIndex = 5L),
+            InfinityAuroraWindow("other-space", 2, 30f, 40f, 400f, 300f, zIndex = 7L)
+        ),
+        activeWindowId = "files",
+        nextZIndex = 8L
+    )
+
+    @Test fun minimizeSelectsTopRemainingVisibleWindowInSameWorkspace() {
+        val minimized = state().minimize("files", 1)
+        assertTrue(minimized.windows.first { it.id == "files" }.minimized)
+        assertEquals("notes", minimized.activeWindowId)
+        assertEquals(3, minimized.windows.size)
+    }
+
+    @Test fun activateRestoresAndRaisesMinimizedWindow() {
+        val minimized = state().minimize("files", 1)
+        val activated = minimized.activate("files", 1)
+        assertTrue(!activated.windows.first { it.id == "files" }.minimized)
+        assertEquals("files", activated.activeWindowId)
+        assertEquals(8L, activated.windows.first { it.id == "files" }.zIndex)
+        assertEquals(9L, activated.nextZIndex)
+    }
+
+    @Test fun closeRemovesOnlyTargetAndSelectsNextVisibleWindow() {
+        val closed = state().close("files", 1)
+        assertEquals(listOf("notes", "other-space"), closed.windows.map { it.id })
+        assertEquals("notes", closed.activeWindowId)
+    }
+
+    @Test fun closeOrMinimizeUnknownWindowIsNoOp() {
+        val original = state()
+        assertEquals(original, original.close("unknown", 1))
+        assertEquals(original, original.minimize("unknown", 1))
+    }
+
+    @Test fun closingWindowInOtherWorkspaceDoesNotChangeCurrentFocus() {
+        val original = state()
+        val closed = original.close("other-space", 2)
+        assertEquals("files", closed.activeWindowId)
+        assertEquals(listOf("notes", "files"), closed.windows.map { it.id })
+    }
+}
