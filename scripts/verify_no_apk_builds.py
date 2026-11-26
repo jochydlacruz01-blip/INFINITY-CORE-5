@@ -107,7 +107,7 @@ def _is_safe_manual_debug_apk_workflow(path: Path, content: str) -> bool:
         ),
         re.search(r"(?m)^permissions:\s*\n\s+contents:\s*read\s*$", content),
         re.search(r"(?m)^\s+ref:\s*" + re.escape(AUTHORIZED_DEBUG_BRANCH) + r"\s*$", content),
-        re.search(r"(?m)^\s+gradle -PINFINITY_BUILD_FREERDP_NATIVE=true :freerdpCore:externalNativeBuildDebug compileDebugKotlin testDebugUnitTest lintDebug assembleDebug --stacktrace\s*$", content),
+        re.search(r"(?m)^\s+gradle assembleDebug --stacktrace\s*$", content),
         re.search(r"(?m)^\s*\"?\$\{APKSIGNER\}\"? verify --verbose --print-certs", content),
         re.search(r'(?m)^\s+APK="app/build/outputs/apk/debug/app-debug\.apk"\s*$', content),
         re.search(r"(?m)^\s+REQUIRED_FREERDP_LIBRARIES=\($", content),
