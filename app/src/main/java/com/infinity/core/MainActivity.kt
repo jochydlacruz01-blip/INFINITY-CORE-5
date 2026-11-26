@@ -763,7 +763,16 @@ val iconOffsets = remember {
             if (maxW >= 600.dp && futuristicDesktop) {
                 InfinityDesktopBrandBadge(
                     modifier = Modifier.align(Alignment.BottomEnd)
-                        .padding(end = 20.dp, bottom = 104.dp)
+                        .padding(end = 20.dp, bottom = 104.dp),
+                    onClick = {
+                        startOpen = true
+                        search = ""
+                        startCategory = "all"
+                        dashboardOpen = false
+                        orbitOpen = false
+                        controlOpen = false
+                        advancedOpen = false
+                    }
                 )
             }
 
