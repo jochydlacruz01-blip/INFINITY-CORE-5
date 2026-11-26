@@ -95,7 +95,7 @@ public sealed class DeviceOperationRegistryTests
     [Fact]
     public void SessionExpiryCancelsAnAlreadyActiveOperationLease()
     {
-        var now = DateTimeOffset.Parse("2026-01-01T00:00:00Z");
+        var now = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
         var sessions = new AuthorizedSessionStore(() => now);
         var grant = sessions.Create(DevicePin, true, new[] { "identity.read" });
         var registry = new DeviceOperationRegistry();
