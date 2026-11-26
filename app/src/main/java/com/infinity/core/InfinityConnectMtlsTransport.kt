@@ -3,6 +3,7 @@ package com.infinity.core
 import org.json.JSONObject
 import org.json.JSONArray
 import android.util.Base64
+import android.os.CancellationSignal
 import java.io.InputStream
 import java.io.OutputStream
 import java.io.ByteArrayOutputStream
@@ -40,7 +41,8 @@ internal class InfinityConnectMtlsTransport(
         baseUrl: String,
         clientKeyAlias: String,
         trustedServerSha256: String,
-        expectedDeviceId: String? = null
+        expectedDeviceId: String? = null,
+        cancellationSignal: CancellationSignal? = null
     ): VerifiedIdentity {
         require(InfinityConnectIdentityKeyStore.isValidAlias(clientKeyAlias)) {
             "Identity key alias is invalid."
@@ -66,6 +68,8 @@ internal class InfinityConnectMtlsTransport(
         val connection = (url.openConnection() as? HttpsURLConnection)
             ?: throw IllegalArgumentException("The Companion endpoint must use HTTPS.")
         try {
+            attachCancellation(connection, cancellationSignal)
+            cancellationSignal?.throwIfCanceled()
             connection.connectTimeout = connectTimeoutMs.coerceIn(1_000, MAX_TIMEOUT_MS)
             connection.readTimeout = readTimeoutMs.coerceIn(1_000, MAX_TIMEOUT_MS)
             connection.instanceFollowRedirects = false
@@ -81,6 +85,7 @@ internal class InfinityConnectMtlsTransport(
                 val output = ByteArrayOutputStream()
                 val buffer = ByteArray(1024)
                 while (true) {
+                    cancellationSignal?.throwIfCanceled()
                     val count = input.read(buffer)
                     if (count < 0) break
                     require(output.size() + count <= MAX_RESPONSE_BYTES) {
@@ -110,6 +115,7 @@ internal class InfinityConnectMtlsTransport(
             return identity
         } finally {
             connection.disconnect()
+            clearCancellation(cancellationSignal)
         }
     }
 
@@ -277,21 +283,24 @@ internal class InfinityConnectMtlsTransport(
         fileName: String,
         length: Long,
         expectedFileSha256: String,
-        source: InputStream
+        source: InputStream,
+        cancellationSignal: CancellationSignal? = null
     ): FileTransferReceipt {
         validateSessionCredentials(sessionId, sessionToken)
         validateTransferFileName(fileName)
         require(length in 0..MAX_FILE_BYTES) { "File exceeds the 50 MiB transfer limit." }
         val expectedPin = normalizePin(expectedFileSha256)
             ?: throw IllegalArgumentException("A valid file SHA-256 digest is required.")
-        require(fetchWindowsIdentity(baseUrl, clientKeyAlias, trustedServerSha256, expectedDeviceId).deviceId == expectedDeviceId) {
+        cancellationSignal?.throwIfCanceled()
+        require(fetchWindowsIdentity(baseUrl, clientKeyAlias, trustedServerSha256, expectedDeviceId, cancellationSignal).deviceId == expectedDeviceId) {
             "Windows device identity changed before file upload."
         }
 
         val connection = openMtlsConnection(
             baseUrl.trimEnd('/') + "/v1/files",
             clientKeyAlias,
-            trustedServerSha256
+            trustedServerSha256,
+            cancellationSignal
         )
         try {
             connection.requestMethod = "POST"
@@ -316,6 +325,7 @@ internal class InfinityConnectMtlsTransport(
             connection.outputStream.use { output ->
                 val buffer = ByteArray(64 * 1024)
                 while (true) {
+                    cancellationSignal?.throwIfCanceled()
                     val count = source.read(buffer)
                     if (count < 0) break
                     total += count
@@ -353,6 +363,7 @@ internal class InfinityConnectMtlsTransport(
             return receipt
         } finally {
             connection.disconnect()
+            clearCancellation(cancellationSignal)
         }
     }
 
@@ -364,20 +375,23 @@ internal class InfinityConnectMtlsTransport(
         sessionId: String,
         sessionToken: String,
         fileId: String,
-        destination: OutputStream
+        destination: OutputStream,
+        cancellationSignal: CancellationSignal? = null
     ): FileTransferReceipt {
         validateSessionCredentials(sessionId, sessionToken)
         require(runCatching { java.util.UUID.fromString(fileId).toString() == fileId }.getOrDefault(false)) {
             "File ID is invalid."
         }
-        require(fetchWindowsIdentity(baseUrl, clientKeyAlias, trustedServerSha256, expectedDeviceId).deviceId == expectedDeviceId) {
+        cancellationSignal?.throwIfCanceled()
+        require(fetchWindowsIdentity(baseUrl, clientKeyAlias, trustedServerSha256, expectedDeviceId, cancellationSignal).deviceId == expectedDeviceId) {
             "Windows device identity changed before file download."
         }
 
         val connection = openMtlsConnection(
             baseUrl.trimEnd('/') + "/v1/files/$fileId",
             clientKeyAlias,
-            trustedServerSha256
+            trustedServerSha256,
+            cancellationSignal
         )
         try {
             connection.requestMethod = "GET"
@@ -425,6 +439,7 @@ internal class InfinityConnectMtlsTransport(
             return FileTransferReceipt(fileId, fileName, length, expectedPin, "")
         } finally {
             connection.disconnect()
+            clearCancellation(cancellationSignal)
         }
     }
 
@@ -434,16 +449,19 @@ internal class InfinityConnectMtlsTransport(
         trustedServerSha256: String,
         expectedDeviceId: String,
         sessionId: String,
-        sessionToken: String
+        sessionToken: String,
+        cancellationSignal: CancellationSignal? = null
     ): List<FileTransferReceipt> {
         validateSessionCredentials(sessionId, sessionToken)
-        require(fetchWindowsIdentity(baseUrl, clientKeyAlias, trustedServerSha256, expectedDeviceId).deviceId == expectedDeviceId) {
+        cancellationSignal?.throwIfCanceled()
+        require(fetchWindowsIdentity(baseUrl, clientKeyAlias, trustedServerSha256, expectedDeviceId, cancellationSignal).deviceId == expectedDeviceId) {
             "Windows device identity changed before file listing."
         }
         val connection = openMtlsConnection(
             baseUrl.trimEnd('/') + "/v1/files",
             clientKeyAlias,
-            trustedServerSha256
+            trustedServerSha256,
+            cancellationSignal
         )
         try {
             connection.requestMethod = "GET"
@@ -474,6 +492,7 @@ internal class InfinityConnectMtlsTransport(
             }
         } finally {
             connection.disconnect()
+            clearCancellation(cancellationSignal)
         }
     }
 
@@ -484,19 +503,22 @@ internal class InfinityConnectMtlsTransport(
         expectedDeviceId: String,
         sessionId: String,
         sessionToken: String,
-        fileId: String
+        fileId: String,
+        cancellationSignal: CancellationSignal? = null
     ): Boolean {
         validateSessionCredentials(sessionId, sessionToken)
         require(runCatching { java.util.UUID.fromString(fileId).toString() == fileId }.getOrDefault(false)) {
             "File ID is invalid."
         }
-        require(fetchWindowsIdentity(baseUrl, clientKeyAlias, trustedServerSha256, expectedDeviceId).deviceId == expectedDeviceId) {
+        cancellationSignal?.throwIfCanceled()
+        require(fetchWindowsIdentity(baseUrl, clientKeyAlias, trustedServerSha256, expectedDeviceId, cancellationSignal).deviceId == expectedDeviceId) {
             "Windows device identity changed before file deletion."
         }
         val connection = openMtlsConnection(
             baseUrl.trimEnd('/') + "/v1/files/$fileId",
             clientKeyAlias,
-            trustedServerSha256
+            trustedServerSha256,
+            cancellationSignal
         )
         try {
             connection.requestMethod = "DELETE"
@@ -505,6 +527,7 @@ internal class InfinityConnectMtlsTransport(
             return connection.responseCode == 204
         } finally {
             connection.disconnect()
+            clearCancellation(cancellationSignal)
         }
     }
 
@@ -535,7 +558,8 @@ internal class InfinityConnectMtlsTransport(
     private fun openMtlsConnection(
         endpoint: String,
         clientKeyAlias: String,
-        trustedServerSha256: String
+        trustedServerSha256: String,
+        cancellationSignal: CancellationSignal? = null
     ): HttpsURLConnection {
         val url = URL(endpoint)
         require(url.protocol.equals("https", ignoreCase = true) &&
@@ -549,7 +573,20 @@ internal class InfinityConnectMtlsTransport(
         connection.readTimeout = readTimeoutMs.coerceIn(1_000, MAX_TIMEOUT_MS)
         connection.instanceFollowRedirects = false
         connection.sslSocketFactory = tls.first.socketFactory
+        attachCancellation(connection, cancellationSignal)
+        cancellationSignal?.throwIfCanceled()
         return connection
+    }
+
+    private fun attachCancellation(
+        connection: HttpsURLConnection,
+        cancellationSignal: CancellationSignal?
+    ) {
+        cancellationSignal?.setOnCancelListener { connection.disconnect() }
+    }
+
+    private fun clearCancellation(cancellationSignal: CancellationSignal?) {
+        cancellationSignal?.setOnCancelListener(null)
     }
 
     private fun readBoundedResponse(connection: HttpsURLConnection, maxBytes: Int = MAX_RESPONSE_BYTES): ByteArray =
