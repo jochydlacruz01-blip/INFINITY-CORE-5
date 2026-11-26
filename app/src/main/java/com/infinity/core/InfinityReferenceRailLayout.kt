@@ -42,3 +42,8 @@ internal fun infinityReferenceRailLayout(
         showLabels = slot >= 40f
     )
 }
+
+
+/** The full masthead needs a wide desktop so it cannot collide with the clock or left launcher rail. */
+internal fun infinityReferenceMastheadVisible(viewportWidthDp: Float): Boolean =
+    viewportWidthDp.isFinite() && viewportWidthDp >= 1320f
