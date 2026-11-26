@@ -63,8 +63,9 @@ internal data class InfinityAuroraWindowState(
             .sortedBy { it.zIndex }
 
     fun focus(windowId: String, workspace: Int): InfinityAuroraWindowState {
+        val targetWorkspace = infinityNormalizeWorkspace(workspace)
         val target = windows.firstOrNull {
-            it.id == windowId && it.workspace == infinityNormalizeWorkspace(workspace) && !it.minimized
+            it.id == windowId && it.workspace == targetWorkspace && !it.minimized
         } ?: return this
         val raised = target.copy(zIndex = nextZIndex)
         return copy(
