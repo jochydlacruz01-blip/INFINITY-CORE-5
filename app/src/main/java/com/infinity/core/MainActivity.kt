@@ -227,6 +227,10 @@ internal class DeskWindow(
         return DeskWindow(title, kind, next)
     }
 }
+
+
+    internal fun withAurora(window: InfinityAuroraWindow): DeskWindow =
+        DeskWindow(title = title, kind = kind, aurora = window)
 private data class InstalledApp(val label: String, val packageName: String, val activityName: String)
 private data class ExplorerEntry(
     val documentId: String,
@@ -1251,7 +1255,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                                 val metadata = windows.associateBy { it.id }
                                 windows.clear()
                                 windows.addAll(current.windows.mapNotNull { model ->
-                                    metadata[model.id]?.copy(aurora = model)
+                                    metadata[model.id]?.withAurora(model)
                                 })
                                 focusedWindowId = current.activeWindowId
                             },
@@ -1264,7 +1268,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                                 ).minimize(win.id, win.workspace)
                                 current.windows.forEach { model ->
                                     val index = windows.indexOfFirst { it.id == model.id }
-                                    if (index >= 0) windows[index] = windows[index].copy(aurora = model)
+                                    if (index >= 0) windows[index] = windows[index].withAurora(model)
                                 }
                                 focusedWindowId = current.activeWindowId
                             },
