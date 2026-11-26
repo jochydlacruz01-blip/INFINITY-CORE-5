@@ -65,6 +65,8 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -541,6 +543,13 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
             val maxW = maxWidth
             val maxH = maxHeight
             val density = LocalDensity.current
+            // The measured Dock top is authoritative; use a conservative estimate for frame one.
+            var dockSafeBottom by remember(maxW, maxH, futuristicDesktop, iconPack) {
+                mutableFloatStateOf(
+                    (maxH.value - infinityDockReservedHeightDp(maxW.value, futuristicDesktop, iconPack))
+                        .coerceAtLeast(0f)
+                )
+            }
             val desktopIconMetrics = remember(maxW, maxH, density, desktopItems.size) {
                 infinityDesktopIconLayoutMetrics(
                     with(density) { maxW.toPx() },
@@ -600,7 +609,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
             }
 
             // Normalize persisted windows after screen size, orientation, or density changes.
-            LaunchedEffect(maxW, maxH) {
+            LaunchedEffect(maxW, maxH, dockSafeBottom) {
                 // Phone rendering adapts windows visually; never persist phone-sized bounds
                 // over the desktop geometry that must be restored on tablet/desktop.
                 if (!infinityWindowGeometryNormalizationEnabled(maxW.value)) return@LaunchedEffect
@@ -608,7 +617,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                     val current = windows[index]
                     val bounds = infinityNormalizeWindowBounds(
                         current.x, current.y, current.width, current.height,
-                        maxW.value, maxH.value
+                        maxW.value, maxH.value, safeBottom = dockSafeBottom
                     )
                     if (bounds.x != current.x || bounds.y != current.y ||
                         bounds.width != current.width || bounds.height != current.height
@@ -1210,17 +1219,20 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                                 // Compose drag deltas are pixels; persisted window geometry is dp.
                                 val deltaXdp = infinityGestureDeltaToDp(dx, density.density)
                                 val deltaYdp = infinityGestureDeltaToDp(dy, density.density)
-                                val boundedPosition = infinityClampWindowPosition(
+                                val bounded = infinityNormalizeWindowBounds(
                                     current.x + deltaXdp,
                                     current.y + deltaYdp,
                                     current.width,
                                     current.height,
                                     maxW.value,
-                                    maxH.value
+                                    maxH.value,
+                                    safeBottom = dockSafeBottom
                                 )
                                 windows[index] = current.copy(
-                                    x = boundedPosition.first,
-                                    y = boundedPosition.second
+                                    x = bounded.x,
+                                    y = bounded.y,
+                                    width = bounded.width,
+                                    height = bounded.height
                                 )
                             }
                         },
@@ -1237,7 +1249,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                                     (maxW.value - current.x).coerceAtLeast(1f)
 
                                 val availableHeight =
-                                    (maxH.value - current.y).coerceAtLeast(1f)
+                                    (dockSafeBottom - current.y).coerceAtLeast(1f)
 
                                 windows[index] = current.copy(
                                     width = infinityResizeDimension(current.width, deltaWidthDp, availableWidth, 280f),
@@ -1255,17 +1267,28 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
 
           
             // DOCK INFINITY 0.10 — DISEÑO MEJORADO
+            val dockScrollState = rememberScrollState()
             Row(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .zIndex(20f)
+                    .onGloballyPositioned { coordinates ->
+                        val measuredTop = with(density) { coordinates.positionInRoot().y.toDp().value }
+                        val nextSafeBottom = (measuredTop - 8f).coerceIn(0f, maxH.value)
+                        if (kotlin.math.abs(dockSafeBottom - nextSafeBottom) > 0.5f) {
+                            dockSafeBottom = nextSafeBottom
+                        }
+                    }
                     // A floating glass rail preserves the full action surface while leaving
                     // a visible spatial margin around the desktop on every side.
                     .padding(horizontal = if (maxW >= 600.dp && futuristicDesktop) 14.dp else 0.dp,
                         vertical = if (maxW >= 600.dp && futuristicDesktop) 12.dp else 0.dp)
-                    // Keep the whole action rail horizontally scrollable. This makes
-                    // task buttons, the system tray and clock reachable on compact tablet widths too.
-                    .horizontalScroll(rememberScrollState())
+                    // Phone layouts scroll; tablet layouts use the task overflow affordance.
+                    .then(
+                        if (infinityDockRequiresHorizontalScroll(maxW.value)) {
+                            Modifier.horizontalScroll(dockScrollState)
+                        } else Modifier
+                    )
                     .then(if (iconPack == "windows11" || (maxW >= 600.dp && futuristicDesktop)) Modifier.fillMaxWidth() else Modifier)
                     .then(if (maxW >= 600.dp && futuristicDesktop) Modifier.widthIn(max = 1500.dp) else Modifier)
                     .padding(

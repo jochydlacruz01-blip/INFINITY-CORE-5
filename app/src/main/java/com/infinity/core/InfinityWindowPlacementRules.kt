@@ -49,14 +49,17 @@ internal fun infinityClampWindowPosition(
     windowWidth: Float,
     windowHeight: Float,
     viewportWidth: Float,
-    viewportHeight: Float
+    viewportHeight: Float,
+    safeBottom: Float = viewportHeight
 ): Pair<Float, Float> {
     val safeViewportWidth = viewportWidth.takeIf { it.isFinite() && it >= 0f } ?: 0f
     val safeViewportHeight = viewportHeight.takeIf { it.isFinite() && it >= 0f } ?: 0f
+    val safeDockTop = safeBottom.takeIf { it.isFinite() }?.coerceIn(0f, safeViewportHeight)
+        ?: safeViewportHeight
     val safeWindowWidth = windowWidth.takeIf { it.isFinite() && it >= 0f } ?: safeViewportWidth
     val safeWindowHeight = windowHeight.takeIf { it.isFinite() && it >= 0f } ?: safeViewportHeight
     val maxX = (safeViewportWidth - safeWindowWidth).coerceAtLeast(0f)
-    val maxY = (safeViewportHeight - safeWindowHeight).coerceAtLeast(0f)
+    val maxY = (safeDockTop - safeWindowHeight).coerceAtLeast(0f)
     val safeX = x.takeIf { it.isFinite() } ?: 0f
     val safeY = y.takeIf { it.isFinite() } ?: 0f
     return safeX.coerceIn(0f, maxX) to safeY.coerceIn(0f, maxY)
@@ -69,13 +72,16 @@ internal fun infinityNormalizeWindowBounds(
     x: Float, y: Float, width: Float, height: Float,
     viewportWidth: Float, viewportHeight: Float,
     minWidth: Float = 240f, minHeight: Float = 180f,
-    margin: Float = 16f
+    margin: Float = 16f,
+    safeBottom: Float = viewportHeight
 ): InfinityWindowBounds {
     val safeViewportWidth = viewportWidth.takeIf { it.isFinite() && it > 0f } ?: 1f
     val safeViewportHeight = viewportHeight.takeIf { it.isFinite() && it > 0f } ?: 1f
     val safeMargin = margin.takeIf { it.isFinite() && it >= 0f } ?: 0f
+    val safeDockTop = safeBottom.takeIf { it.isFinite() }?.coerceIn(0f, safeViewportHeight)
+        ?: safeViewportHeight
     val availableWidth = (safeViewportWidth - safeMargin).coerceAtLeast(1f)
-    val availableHeight = (safeViewportHeight - safeMargin).coerceAtLeast(1f)
+    val availableHeight = (safeDockTop - safeMargin).coerceAtLeast(1f)
     val safeMinWidth = minWidth.takeIf { it.isFinite() && it > 0f } ?: 1f
     val safeMinHeight = minHeight.takeIf { it.isFinite() && it > 0f } ?: 1f
     val safeRequestedWidth = width.takeIf { it.isFinite() && it > 0f } ?: safeMinWidth
@@ -83,7 +89,7 @@ internal fun infinityNormalizeWindowBounds(
     val normalizedWidth = safeRequestedWidth.coerceIn(safeMinWidth.coerceAtMost(availableWidth), availableWidth)
     val normalizedHeight = safeRequestedHeight.coerceIn(safeMinHeight.coerceAtMost(availableHeight), availableHeight)
     val (safeX, safeY) = infinityClampWindowPosition(
-        x, y, normalizedWidth, normalizedHeight, safeViewportWidth, safeViewportHeight
+        x, y, normalizedWidth, normalizedHeight, safeViewportWidth, safeViewportHeight, safeDockTop
     )
     return InfinityWindowBounds(safeX, safeY, normalizedWidth, normalizedHeight)
 }
