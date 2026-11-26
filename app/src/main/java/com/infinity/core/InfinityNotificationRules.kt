@@ -86,3 +86,21 @@ internal fun infinityNotificationFeedUpdate(current: List<InfinityNotification>,
 /** Derives a truthful notification-listener state from Android permission and service connection. */
 internal fun infinityNotificationAccessEnabled(granted: Boolean, connected: Boolean): Boolean =
     granted && connected
+
+
+/**
+ * Applies privacy mode to notifications already retained in the in-memory feed.
+ * Redaction is irreversible for that feed snapshot: disabling privacy later must
+ * not reconstruct text that was deliberately erased.
+ */
+internal fun infinityNotificationApplyPrivacy(
+    feed: List<InfinityNotification>,
+    hideContent: Boolean
+): List<InfinityNotification> = if (!hideContent) {
+    feed
+} else {
+    feed.map { notification ->
+        if (notification.title.isEmpty() && notification.message.isEmpty()) notification
+        else notification.copy(title = "", message = "")
+    }
+}
