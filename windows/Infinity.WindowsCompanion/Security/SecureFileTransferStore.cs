@@ -258,6 +258,23 @@ public sealed class SecureFileTransferStore
         }
     }
 
+    public async Task<bool> DeleteAsync(
+        string fileId,
+        string clientCertificateSha256,
+        CancellationToken cancellationToken)
+    {
+        await writeGate.WaitAsync(cancellationToken);
+        try
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Delete(fileId, clientCertificateSha256);
+        }
+        finally
+        {
+            writeGate.Release();
+        }
+    }
+
     public bool Delete(string fileId, string clientCertificateSha256)
     {
         var metadata = Find(fileId, clientCertificateSha256);
