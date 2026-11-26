@@ -460,69 +460,7 @@ private fun Infinity08App() {
         advancedOpen = false
     }
 
-val iconOffsets = remember {
-    mutableStateMapOf<String, Offset>().apply {
-        desktopItems.forEachIndexed { index, item ->
-            put(
-                    item.id,
-                    Offset(
-                        prefs.getFloat(infinityWorkspaceIconPositionKey(workspace, item.id, "x"), if (workspace == 1) prefs.getFloat(infinityLegacyWorkspaceIconPositionKey(item.id, "x"), infinityDesktopIconGridOffset(
-                            index, context.resources.displayMetrics.widthPixels.toFloat(),
-                            116f * context.resources.displayMetrics.density, 150f * context.resources.displayMetrics.density,
-                            horizontalGap = 12f * context.resources.displayMetrics.density,
-                            verticalGap = 14f * context.resources.displayMetrics.density,
-                            topInset = 118f * context.resources.displayMetrics.density
-                        ).x) else infinityDesktopIconGridOffset(
-                            index, context.resources.displayMetrics.widthPixels.toFloat(),
-                            116f * context.resources.displayMetrics.density, 150f * context.resources.displayMetrics.density,
-                            horizontalGap = 12f * context.resources.displayMetrics.density,
-                            verticalGap = 14f * context.resources.displayMetrics.density,
-                            topInset = 118f * context.resources.displayMetrics.density
-                        ).x),
-                        prefs.getFloat(infinityWorkspaceIconPositionKey(workspace, item.id, "y"), if (workspace == 1) prefs.getFloat(infinityLegacyWorkspaceIconPositionKey(item.id, "y"), infinityDesktopIconGridOffset(
-                            index, context.resources.displayMetrics.widthPixels.toFloat(),
-                            116f * context.resources.displayMetrics.density, 150f * context.resources.displayMetrics.density,
-                            horizontalGap = 12f * context.resources.displayMetrics.density,
-                            verticalGap = 14f * context.resources.displayMetrics.density,
-                            topInset = 118f * context.resources.displayMetrics.density
-                        ).y) else infinityDesktopIconGridOffset(
-                            index, context.resources.displayMetrics.widthPixels.toFloat(),
-                            116f * context.resources.displayMetrics.density, 150f * context.resources.displayMetrics.density,
-                            horizontalGap = 12f * context.resources.displayMetrics.density,
-                            verticalGap = 14f * context.resources.displayMetrics.density,
-                            topInset = 118f * context.resources.displayMetrics.density
-                        ).y)
-                    )
-                )
-            }
-        }
-    }
-
-    // Reload the selected ORBIT workspace's own desktop icon arrangement.
-    // Workspace 1 imports legacy coordinates once; spaces 2 and 3 start independently.
-    LaunchedEffect(workspace) {
-        val metrics = context.resources.displayMetrics
-        val density = metrics.density
-        desktopItems.forEachIndexed { index, item ->
-            val fallback = infinityDesktopIconGridOffset(
-                index, metrics.widthPixels.toFloat(),
-                116f * density, 150f * density,
-                horizontalGap = 12f * density,
-                verticalGap = 14f * density,
-                topInset = 118f * density
-            )
-            val legacyX = if (workspace == 1) {
-                prefs.getFloat(infinityLegacyWorkspaceIconPositionKey(item.id, "x"), fallback.x)
-            } else fallback.x
-            val legacyY = if (workspace == 1) {
-                prefs.getFloat(infinityLegacyWorkspaceIconPositionKey(item.id, "y"), fallback.y)
-            } else fallback.y
-            iconOffsets[item.id] = Offset(
-                prefs.getFloat(infinityWorkspaceIconPositionKey(workspace, item.id, "x"), legacyX),
-                prefs.getFloat(infinityWorkspaceIconPositionKey(workspace, item.id, "y"), legacyY)
-            )
-        }
-    }
+val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
 
     val installedApps = remember {
         val launcherIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
@@ -572,47 +510,60 @@ val iconOffsets = remember {
             val maxH = maxHeight
             val density = LocalDensity.current
 
-            // Reubica iconos guardados cuando cambia el tamaño/orientación del dispositivo.
-            LaunchedEffect(maxW, maxH) {
+            // Load, normalize, de-collide and persist one workspace atomically.
+            // Keep the icon layer hidden until this workspace snapshot is ready.
+            var iconLayoutReady by remember(workspace) { mutableStateOf(false) }
+            LaunchedEffect(workspace, maxW, maxH) {
+                iconLayoutReady = false
                 val viewportWidth = with(density) { maxW.toPx() }
-                val viewportHeight = with(density) { maxH.toPx() }
-                desktopItems.forEach { item ->
-                    val current = iconOffsets[item.id] ?: Offset(22f, 90f)
-                    val bounded = infinityBoundIconOffset(
-                        current, Offset.Zero, viewportWidth, infinityDesktopHeightAboveDock(viewportHeight, dockHeight = with(density) { 88.dp.toPx() }, dockBottomInset = with(density) { 24.dp.toPx() }, safetyGap = with(density) { 56.dp.toPx() }),
-                        itemWidth = with(density) { 116.dp.toPx() },
-                        itemHeight = with(density) { 150.dp.toPx() }
+                val safeDesktopHeight = with(density) {
+                    infinityDesktopHeightAboveDock(
+                        maxH.toPx(),
+                        dockHeight = 88.dp.toPx(),
+                        dockBottomInset = 24.dp.toPx(),
+                        safetyGap = 56.dp.toPx()
                     )
-                    if (bounded != current) {
-                        iconOffsets[item.id] = bounded
-                        prefs.edit()
-                            .putFloat(infinityWorkspaceIconPositionKey(workspace, item.id, "x"), bounded.x)
-                            .putFloat(infinityWorkspaceIconPositionKey(workspace, item.id, "y"), bounded.y)
-                            .apply()
-                    }
                 }
-            }
-
-            // Automatically displace overlapping saved icons while preserving valid placements.
-            LaunchedEffect(maxW, maxH, iconOffsets.keys.toList()) {
-                val viewportWidth = with(density) { maxW.toPx() }
-                val viewportHeight = with(density) { infinityDesktopHeightAboveDock(maxH.toPx(), 88f * density.density, 24f * density.density, 56f * density.density) }
-                val ordered = desktopItems.map { iconOffsets[it.id] ?: Offset.Zero }
-                val resolved = infinityResolveIconOverlaps(
-                    ordered, viewportWidth, viewportHeight,
-                    itemWidth = with(density) { 116.dp.toPx() },
-                    itemHeight = with(density) { 150.dp.toPx() },
+                val itemWidth = with(density) { 108.dp.toPx() }
+                val itemHeight = with(density) { 150.dp.toPx() }
+                val topInset = with(density) { 118.dp.toPx() }
+                val loaded = desktopItems.mapIndexed { index, item ->
+                    val fallback = infinityDesktopIconGridOffset(
+                        index, viewportWidth, itemWidth, itemHeight,
+                        horizontalGap = with(density) { 12.dp.toPx() },
+                        verticalGap = with(density) { 14.dp.toPx() },
+                        topInset = topInset
+                    )
+                    val legacyX = if (workspace == 1) {
+                        prefs.getFloat(infinityLegacyWorkspaceIconPositionKey(item.id, "x"), fallback.x)
+                    } else fallback.x
+                    val legacyY = if (workspace == 1) {
+                        prefs.getFloat(infinityLegacyWorkspaceIconPositionKey(item.id, "y"), fallback.y)
+                    } else fallback.y
+                    item.id to Offset(
+                        prefs.getFloat(infinityWorkspaceIconPositionKey(workspace, item.id, "x"), legacyX),
+                        prefs.getFloat(infinityWorkspaceIconPositionKey(workspace, item.id, "y"), legacyY)
+                    )
+                }.toMap()
+                val normalized = infinityResolveIconOverlaps(
+                    desktopItems.map { loaded[it.id] ?: Offset.Zero },
+                    viewportWidth,
+                    safeDesktopHeight,
+                    itemWidth = itemWidth,
+                    itemHeight = itemHeight,
                     horizontalGap = with(density) { 12.dp.toPx() },
                     verticalGap = with(density) { 14.dp.toPx() },
-                    topInset = with(density) { 118.dp.toPx() }
+                    topInset = topInset
                 )
-                desktopItems.forEachIndexed { index, item ->
-                    val next = resolved[index]
-                    if (iconOffsets[item.id] != next) {
-                        iconOffsets[item.id] = next
-                        prefs.edit().putFloat("${item.id}_x", next.x).putFloat("${item.id}_y", next.y).apply()
-                    }
-                }
+                iconOffsets.clear()
+                desktopItems.forEachIndexed { index, item -> iconOffsets[item.id] = normalized[index] }
+                val editor = prefs.edit()
+                infinityWorkspaceIconPositionPreferences(
+                    workspace,
+                    desktopItems.associate { it.id to (iconOffsets[it.id] ?: Offset.Zero) }
+                ).forEach { (key, value) -> editor.putFloat(key, value) }
+                editor.apply()
+                iconLayoutReady = true
             }
 
             // Normalize persisted windows after screen size, orientation, or density changes.
@@ -836,7 +787,7 @@ val iconOffsets = remember {
                             action = action,
                             icons = records,
                             viewportWidth = with(density) { maxW.toPx() },
-                            itemWidth = 116f * densityValue,
+                            itemWidth = 108f * densityValue,
                             itemHeight = 150f * densityValue,
                             leftInset = 16f * densityValue,
                             topInset = 118f * densityValue
@@ -849,9 +800,34 @@ val iconOffsets = remember {
                             .apply()
                         desktopIconsVisible = plan.nextState.iconsVisible
                         iconSize = infinityNormalizeIconSize(plan.nextState.iconSizePx)
-                        plan.placements?.forEach { (id, position) ->
-                            iconOffsets[id] = position
-                            prefs.edit().putFloat(infinityWorkspaceIconPositionKey(workspace, id, "x"), position.x).putFloat(infinityWorkspaceIconPositionKey(workspace, id, "y"), position.y).apply()
+                        plan.placements?.let { placements ->
+                            val safeHeight = with(density) {
+                                infinityDesktopHeightAboveDock(
+                                    maxH.toPx(),
+                                    dockHeight = 88.dp.toPx(),
+                                    dockBottomInset = 24.dp.toPx(),
+                                    safetyGap = 56.dp.toPx()
+                                )
+                            }
+                            val resolved = infinityResolveIconOverlaps(
+                                desktopItems.map { placements[it.id] ?: iconOffsets[it.id] ?: Offset.Zero },
+                                with(density) { maxW.toPx() },
+                                safeHeight,
+                                itemWidth = with(density) { 108.dp.toPx() },
+                                itemHeight = with(density) { 150.dp.toPx() },
+                                horizontalGap = with(density) { 12.dp.toPx() },
+                                verticalGap = with(density) { 14.dp.toPx() },
+                                topInset = with(density) { 118.dp.toPx() }
+                            )
+                            desktopItems.forEachIndexed { index, desktopItem ->
+                                iconOffsets[desktopItem.id] = resolved[index]
+                            }
+                            val editor = prefs.edit()
+                            infinityWorkspaceIconPositionPreferences(
+                                workspace,
+                                desktopItems.associate { it.id to (iconOffsets[it.id] ?: Offset.Zero) }
+                            ).forEach { (key, value) -> editor.putFloat(key, value) }
+                            editor.apply()
                         }
                         if (plan.requestWallpaperPicker) wallpaperPicker.launch(arrayOf("image/*"))
                         if (plan.requestAppearancePanel) {
@@ -894,7 +870,7 @@ val iconOffsets = remember {
                     },
                     onShowDesktop = { dashboardOpen = false }
                 )
-            } else if (desktopIconsVisible) {
+            } else if (desktopIconsVisible && iconLayoutReady) {
                 val referenceRail = maxW >= 600.dp && futuristicDesktop
                 val railLayout = if (referenceRail) infinityReferenceRailLayout(maxW.value, maxH.value, desktopItems.size) else null
                 desktopItems.forEach { item ->
@@ -947,64 +923,88 @@ val iconOffsets = remember {
                             .testTag("infinity-desktop-shortcut-${item.id}")
                             .pointerInput(item.id, referenceRail, workspace, desktopItems, maxW.value, maxH.value, density.density) {
                                 if (!referenceRail) {
-                                    // Keep pointer movement lightweight: collision resolution and disk writes
-                                    // happen once when the gesture finishes, not on every drag frame.
-                                    fun settleDraggedIcons() {
-                                        val viewportWidth = with(density) { maxW.toPx() }
-                                        val safeDesktopHeight = with(density) {
-                                            infinityDesktopHeightAboveDock(
-                                                maxH.toPx(),
-                                                dockHeight = 88.dp.toPx(),
-                                                dockBottomInset = 24.dp.toPx(),
-                                                safetyGap = 56.dp.toPx()
-                                            )
-                                        }
-                                        val resolvedOffsets = infinityResolveIconOverlaps(
-                                            desktopItems.map { iconOffsets[it.id] ?: Offset.Zero },
-                                            viewportWidth,
-                                            safeDesktopHeight,
-                                            itemWidth = with(density) { 116.dp.toPx() },
-                                            itemHeight = with(density) { 150.dp.toPx() },
-                                            horizontalGap = with(density) { 12.dp.toPx() },
-                                            verticalGap = with(density) { 14.dp.toPx() },
-                                            topInset = with(density) { 118.dp.toPx() }
-                                        )
+                                    var transaction: InfinityDesktopIconDragTransaction? = null
+                                    fun persistSnapshot(targetWorkspace: Int, positions: Map<String, Offset>) {
                                         val editor = prefs.edit()
-                                        desktopItems.forEachIndexed { index, desktopItem ->
-                                            val position = resolvedOffsets[index]
-                                            iconOffsets[desktopItem.id] = position
-                                            editor.putFloat(
-                                                infinityWorkspaceIconPositionKey(workspace, desktopItem.id, "x"),
-                                                position.x
-                                            ).putFloat(
-                                                infinityWorkspaceIconPositionKey(workspace, desktopItem.id, "y"),
-                                                position.y
-                                            )
-                                        }
+                                        infinityWorkspaceIconPositionPreferences(targetWorkspace, positions)
+                                            .forEach { (key, value) -> editor.putFloat(key, value) }
                                         editor.apply()
                                     }
                                     detectDragGestures(
-                                        onDragEnd = ::settleDraggedIcons,
-                                        onDragCancel = ::settleDraggedIcons
+                                        onDragStart = {
+                                            transaction = infinityBeginDesktopIconDrag(
+                                                workspace,
+                                                desktopItems.associate { it.id to (iconOffsets[it.id] ?: Offset.Zero) },
+                                                item.id
+                                            )
+                                        },
+                                        onDragEnd = {
+                                            val active = transaction
+                                            if (active != null) {
+                                                val safeHeight = with(density) {
+                                                    infinityDesktopHeightAboveDock(
+                                                        maxH.toPx(),
+                                                        dockHeight = 88.dp.toPx(),
+                                                        dockBottomInset = 24.dp.toPx(),
+                                                        safetyGap = 56.dp.toPx()
+                                                    )
+                                                }
+                                                val committed = infinityCommitDesktopIconDrag(
+                                                    active,
+                                                    desktopItems.map { it.id },
+                                                    with(density) { maxW.toPx() },
+                                                    safeHeight,
+                                                    itemWidth = with(density) { 108.dp.toPx() },
+                                                    itemHeight = with(density) { 150.dp.toPx() },
+                                                    horizontalGap = with(density) { 12.dp.toPx() },
+                                                    verticalGap = with(density) { 14.dp.toPx() },
+                                                    topInset = with(density) { 118.dp.toPx() }
+                                                )
+                                                if (workspace == active.workspace) {
+                                                    committed.forEach { (id, position) -> iconOffsets[id] = position }
+                                                }
+                                                persistSnapshot(active.workspace, committed)
+                                            }
+                                            transaction = null
+                                        },
+                                        onDragCancel = {
+                                            val active = transaction
+                                            if (active != null) {
+                                                val restored = infinityCancelDesktopIconDrag(active)
+                                                if (workspace == active.workspace) {
+                                                    restored.forEach { (id, position) -> iconOffsets[id] = position }
+                                                }
+                                                persistSnapshot(active.workspace, restored)
+                                            }
+                                            transaction = null
+                                        }
                                     ) { change, drag ->
                                         change.consume()
-                                        val viewportWidth = with(density) { maxW.toPx() }
-                                        val safeDesktopHeight = with(density) {
-                                            infinityDesktopHeightAboveDock(
-                                                maxH.toPx(),
-                                                dockHeight = 88.dp.toPx(),
-                                                dockBottomInset = 24.dp.toPx(),
-                                                safetyGap = 56.dp.toPx()
-                                            )
-                                        }
-                                        iconOffsets[item.id] = infinityBoundIconOffset(
-                                            iconOffsets[item.id] ?: Offset(22f, 90f),
-                                            Offset(drag.x, drag.y),
-                                            viewportWidth,
-                                            safeDesktopHeight,
-                                            itemWidth = with(density) { 116.dp.toPx() },
-                                            itemHeight = with(density) { 150.dp.toPx() }
+                                        val active = transaction ?: infinityBeginDesktopIconDrag(
+                                            workspace,
+                                            desktopItems.associate { it.id to (iconOffsets[it.id] ?: Offset.Zero) },
+                                            item.id
                                         )
+                                        if (active != null) {
+                                            val next = infinityMoveDesktopIconDrag(
+                                                active,
+                                                Offset(drag.x, drag.y),
+                                                with(density) { maxW.toPx() },
+                                                with(density) {
+                                                    infinityDesktopHeightAboveDock(
+                                                        maxH.toPx(),
+                                                        dockHeight = 88.dp.toPx(),
+                                                        dockBottomInset = 24.dp.toPx(),
+                                                        safetyGap = 56.dp.toPx()
+                                                    )
+                                                },
+                                                itemWidth = with(density) { 108.dp.toPx() },
+                                                itemHeight = with(density) { 150.dp.toPx() },
+                                                topInset = with(density) { 118.dp.toPx() }
+                                            )
+                                            transaction = next
+                                            next.currentPositions[item.id]?.let { iconOffsets[item.id] = it }
+                                        }
                                     }
                                 }
                             }

@@ -9,7 +9,8 @@ internal fun infinityBoundIconOffset(
     viewportWidth: Float,
     viewportHeight: Float,
     itemWidth: Float = 110f,
-    itemHeight: Float = 150f
+    itemHeight: Float = 150f,
+    topInset: Float = 0f
 ): Offset {
     fun safe(value: Float, fallback: Float = 0f) = value.takeIf { it.isFinite() } ?: fallback
     val width = safe(viewportWidth).coerceAtLeast(0f)
@@ -18,9 +19,10 @@ internal fun infinityBoundIconOffset(
     val iconHeight = safe(itemHeight, 150f).coerceAtLeast(0f)
     val maxX = (width - iconWidth).coerceAtLeast(0f)
     val maxY = (height - iconHeight).coerceAtLeast(0f)
+    val minY = safe(topInset).coerceIn(0f, maxY)
     val x = safe(current.x) + safe(delta.x)
     val y = safe(current.y) + safe(delta.y)
-    return Offset(x.coerceIn(0f, maxX), y.coerceIn(0f, maxY))
+    return Offset(x.coerceIn(0f, maxX), y.coerceIn(minY, maxY))
 }
 
 /** Stable grid defaults for icons when saved coordinates are missing or invalid. */
@@ -47,7 +49,7 @@ internal fun infinityDesktopIconGridOffset(
     val row = safeIndex / columns
     val x = (gapX.toDouble() + column.toDouble() * (iconWidth + gapX).toDouble())
         .coerceAtMost((width - iconWidth).coerceAtLeast(0f).toDouble()).toFloat()
-    val y = (inset.toDouble() + row.toDouble() * (iconHeight + gapY).toDouble())
+    val y = (safeTop.toDouble() + row.toDouble() * (iconHeight + gapY).toDouble())
         .coerceAtMost(Float.MAX_VALUE.toDouble()).toFloat()
     return Offset(x, y)
 }
@@ -82,8 +84,10 @@ internal fun infinityResolveIconOverlaps(
     val iconWidth = safe(itemWidth, 116f).coerceAtLeast(1f).coerceAtMost(width)
     val availableHeight = (height - inset).coerceAtLeast(1f)
     val iconHeight = safe(itemHeight, 150f).coerceAtLeast(1f).coerceAtMost(availableHeight)
+    val safeTop = inset.coerceAtMost((height - iconHeight).coerceAtLeast(0f))
+    val usableHeight = (height - safeTop).coerceAtLeast(iconHeight)
     val columns = (((width + gapX) / (iconWidth + gapX)).toInt()).coerceIn(1, 10_000)
-    val rows = (((availableHeight + gapY) / (iconHeight + gapY)).toInt()).coerceIn(1, 10_000)
+    val rows = (((usableHeight + gapY) / (iconHeight + gapY)).toInt()).coerceIn(1, 10_000)
     val maxSlots = (columns.toLong() * rows.toLong()).coerceAtMost(1_000_000L).toInt()
 
     fun overlaps(a: Offset, b: Offset) =
@@ -96,13 +100,13 @@ internal fun infinityResolveIconOverlaps(
         val x = (gapX.toDouble() + column.toDouble() * (iconWidth + gapX).toDouble())
             .coerceAtMost((width - iconWidth).coerceAtLeast(0f).toDouble()).toFloat()
         val y = (inset.toDouble() + row.toDouble() * (iconHeight + gapY).toDouble())
-            .coerceAtMost((height - iconHeight).coerceAtLeast(0f).toDouble()).toFloat()
+            .coerceAtMost((height - iconHeight).coerceAtLeast(safeTop).toDouble()).toFloat()
         return Offset(x, y)
     }
 
     val resolved = mutableListOf<Offset>()
     offsets.forEach { raw ->
-        val bounded = infinityBoundIconOffset(raw, Offset.Zero, width, height, iconWidth, iconHeight)
+        val bounded = infinityBoundIconOffset(raw, Offset.Zero, width, height, iconWidth, iconHeight, safeTop)
         if (resolved.none { overlaps(bounded, it) }) {
             resolved += bounded
         } else {
