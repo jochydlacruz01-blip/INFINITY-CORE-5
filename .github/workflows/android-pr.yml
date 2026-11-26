@@ -37,7 +37,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: infinity-pr-${{ github.ref }}
+  # Each dispatch/push is isolated so independent verification sends can run concurrently.
+  group: infinity-pr-${{ github.run_id }}
   cancel-in-progress: false
 
 jobs:
