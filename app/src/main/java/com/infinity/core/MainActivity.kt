@@ -2449,7 +2449,11 @@ private fun openInfinityWindow(
             viewportHeight
         )
         val (windowX, windowY) = infinityInitialWindowPosition(
-            windows.size,
+            infinityWorkspaceWindowCount(
+                windows.map { it.id },
+                windows.associate { it.id to it.workspace },
+                workspace
+            ),
             viewportWidth,
             viewportHeight,
             windowWidth,
