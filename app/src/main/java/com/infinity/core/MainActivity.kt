@@ -426,7 +426,9 @@ private fun Infinity08App() {
         )
     }
 
-    fun commitWindowGeometryTransaction(windowId: String) {
+    fun commitWindowGeometryTransaction(
+        windowId: String, viewportWidth: Float, viewportHeight: Float, safeBottom: Float
+    ) {
         val transaction = geometryTransactions.remove(windowId) ?: return
         val index = windows.indexOfFirst { it.id == windowId }
         if (index < 0) return
@@ -434,7 +436,7 @@ private fun Infinity08App() {
         val committed = infinityCommitWindowGeometryTransaction(
             transaction,
             InfinityWindowGeometry(current.x, current.y, current.width, current.height),
-            InfinityWindowBounds(maxW.value, dockSafeBottom, 0f, 0f)
+            viewportWidth, viewportHeight, safeBottom
         )
         windows[index] = current.copy(
             x = committed.x, y = committed.y, width = committed.width, height = committed.height
@@ -1257,7 +1259,9 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                         
                         // INFINITY 0.11 — MOVIMIENTO CON LÍMITES
                         onGeometryStart = { beginWindowGeometryTransaction(win.id) },
-                        onGeometryCommit = { commitWindowGeometryTransaction(win.id) },
+                        onGeometryCommit = {
+                            commitWindowGeometryTransaction(win.id, maxW.value, maxH.value, dockSafeBottom)
+                        },
                         onGeometryCancel = { cancelWindowGeometryTransaction(win.id) },
                         onMove = { dx, dy ->
                             val index = windows.indexOfFirst { it.id == win.id }
