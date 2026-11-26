@@ -33,10 +33,12 @@ object InfinityNotificationStore {
     val accessGranted = mutableStateOf(false)
 
     internal fun refreshAccess(context: Context) {
-        val enabledListeners = android.provider.Settings.Secure.getString(
-            context.contentResolver,
-            "enabled_notification_listeners"
-        ).orEmpty()
+        val enabledListeners = runCatching {
+            android.provider.Settings.Secure.getString(
+                context.contentResolver,
+                "enabled_notification_listeners"
+            ).orEmpty()
+        }.getOrDefault("")
 
         accessGranted.value = enabledListeners.split(':').any { flattened ->
             android.content.ComponentName.unflattenFromString(flattened)
@@ -60,8 +62,11 @@ object InfinityNotificationStore {
     private var hideContent = true
 
     internal fun setHideContent(enabled: Boolean) {
+        val wasEnabled = hideContent
         hideContent = enabled
-        if (enabled) {
+        // Redact once on the false -> true transition; subsequent notifications
+        // are already redacted before they enter the main-thread feed.
+        if (enabled && !wasEnabled) {
             mainHandler.post {
                 val redacted = infinityNotificationApplyPrivacy(notifications.toList(), hideContent = true)
                 notifications.clear()

@@ -57,10 +57,12 @@ internal data class InfinityControlCenterSnapshot(
 
         fun read(context: Context): InfinityControlCenterSnapshot {
             val appContext = context.applicationContext
-            val batteryIntent = appContext.registerReceiver(
-                null,
-                IntentFilter(Intent.ACTION_BATTERY_CHANGED)
-            )
+            val batteryIntent = runCatching {
+                appContext.registerReceiver(
+                    null,
+                    IntentFilter(Intent.ACTION_BATTERY_CHANGED)
+                )
+            }.getOrNull()
 
             val level = batteryIntent?.getIntExtra(BatteryManager.EXTRA_LEVEL, -1) ?: -1
             val scale = batteryIntent?.getIntExtra(BatteryManager.EXTRA_SCALE, -1) ?: -1
@@ -104,7 +106,9 @@ internal data class InfinityControlCenterSnapshot(
                     .ifBlank { "Dispositivo Android" },
                 androidVersion = Build.VERSION.RELEASE.orEmpty().ifBlank { "Desconocida" },
                 brightness = brightness,
-                brightnessWritable = Settings.System.canWrite(appContext),
+                brightnessWritable = runCatching {
+                    Settings.System.canWrite(appContext)
+                }.getOrDefault(false),
                 mediaVolumePercent = volume
             )
         }

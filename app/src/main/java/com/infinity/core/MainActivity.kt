@@ -2422,12 +2422,14 @@ Spacer(Modifier.height(14.dp))
                             val updated = InfinityControlCenterActions.setBrightness(context, value)
                             if (updated) {
                                 controlSnapshot = InfinityControlCenterSnapshot.read(context)
+                                true
                             } else {
                                 Toast.makeText(
                                     context,
                                     "Android no permitió cambiar el brillo.",
                                     Toast.LENGTH_SHORT
                                 ).show()
+                                false
                             }
                         },
                         onRequestBrightnessAccess = {
@@ -2439,12 +2441,14 @@ Spacer(Modifier.height(14.dp))
                             val updated = InfinityControlCenterActions.setMediaVolumePercent(context, value)
                             if (updated) {
                                 controlSnapshot = InfinityControlCenterSnapshot.read(context)
+                                true
                             } else {
                                 Toast.makeText(
                                     context,
                                     "Android no permitió cambiar el volumen multimedia.",
                                     Toast.LENGTH_SHORT
                                 ).show()
+                                false
                             }
                         },
                         onClose = { controlOpen = false },

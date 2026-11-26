@@ -6,6 +6,8 @@ import android.provider.Settings
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -276,13 +278,16 @@ fun InfinityAdvancedPanel(
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                "Evita guardar títulos y mensajes en el feed mientras esté activado",
+                                "Elimina títulos y mensajes del feed; no se recuperan al desactivarlo",
                                 color = AdvancedMuted,
                                 fontSize = 9.sp
                             )
                         }
 
                         Switch(
+                            modifier = Modifier.semantics {
+                                contentDescription = "Ocultar títulos y mensajes de notificaciones"
+                            },
                             checked = hideNotificationContent,
                             onCheckedChange = { enabled ->
                                 hideNotificationContent = enabled
@@ -359,6 +364,14 @@ fun InfinityAdvancedPanel(
                                         if (hideNotificationContent) {
                                             Text(
                                                 "Contenido oculto por privacidad",
+                                                color = AdvancedMuted,
+                                                fontSize = 11.sp
+                                            )
+                                        } else if (
+                                            notification.title.isBlank() && notification.message.isBlank()
+                                        ) {
+                                            Text(
+                                                "Contenido no disponible",
                                                 color = AdvancedMuted,
                                                 fontSize = 11.sp
                                             )

@@ -58,9 +58,9 @@ import kotlin.math.roundToInt
 internal fun InfinityControlCenterPanel(
     snapshot: InfinityControlCenterSnapshot,
     onDestinationClick: (InfinityControlDestination) -> Unit,
-    onBrightnessChange: (Int) -> Unit,
+    onBrightnessChange: (Int) -> Boolean,
     onRequestBrightnessAccess: () -> Unit,
-    onVolumeChange: (Int) -> Unit,
+    onVolumeChange: (Int) -> Boolean,
     onClose: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -253,7 +253,7 @@ private fun ControlSlider(
     valueRange: ClosedFloatingPointRange<Float>,
     icon: ImageVector,
     enabled: Boolean = true,
-    onValueChange: (Float) -> Unit
+    onValueChange: (Float) -> Boolean
 ) {
     Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF202D42))) {
         Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
@@ -280,7 +280,12 @@ private fun ControlSlider(
             Slider(
                 value = sliderValue,
                 onValueChange = { sliderValue = it },
-                onValueChangeFinished = { onValueChange(sliderValue) },
+                onValueChangeFinished = {
+                    if (!onValueChange(sliderValue)) {
+                        // Android rejected the write: restore the last confirmed device value.
+                        sliderValue = (value ?: valueRange.start).coerceIn(valueRange)
+                    }
+                },
                 valueRange = valueRange,
                 enabled = value != null && enabled
             )
