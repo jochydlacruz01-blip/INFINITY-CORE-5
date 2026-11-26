@@ -1208,9 +1208,9 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                     }
                 },
                 onGeometryCancel = { /* The container rolls back its transient preview. */ }
-            ) {
-                val activeWindows = windows.filter { !it.minimized && it.workspace == workspace }
-                activeWindows.forEach { win ->
+            ) { auroraWindow ->
+                val win = windows.firstOrNull { it.id == auroraWindow.id && !it.minimized }
+                if (win != null) {
                     key(win.id) {
                         Infinity08Window(
                             win = win,
