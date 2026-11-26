@@ -20,6 +20,19 @@ class InfinityConnectSessionLifecycleTest {
         assertTrue(lifecycle.transition(InfinityConnectSessionState.CONNECTED))
     }
 
+    @Test fun reconnectingSessionCanReauthenticateAndReturnToConnected() {
+        val lifecycle = InfinityConnectSessionLifecycle()
+        assertTrue(lifecycle.transition(InfinityConnectSessionState.PREPARING))
+        assertTrue(lifecycle.transition(InfinityConnectSessionState.CONNECTING))
+        assertTrue(lifecycle.transition(InfinityConnectSessionState.AUTHENTICATING))
+        assertTrue(lifecycle.transition(InfinityConnectSessionState.CONNECTED))
+        assertTrue(lifecycle.transition(InfinityConnectSessionState.RECONNECTING))
+        assertTrue(lifecycle.transition(InfinityConnectSessionState.CONNECTING))
+        assertTrue(lifecycle.transition(InfinityConnectSessionState.AUTHENTICATING))
+        assertTrue(lifecycle.transition(InfinityConnectSessionState.CONNECTED))
+        assertEquals(InfinityConnectSessionState.CONNECTED, lifecycle.state)
+    }
+
     @Test fun storesFailureMessageAndCanRecoverToPrepare() {
         val lifecycle = InfinityConnectSessionLifecycle()
         lifecycle.transition(InfinityConnectSessionState.PREPARING)
