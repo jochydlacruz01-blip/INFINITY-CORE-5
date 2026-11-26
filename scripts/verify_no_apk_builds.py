@@ -119,6 +119,7 @@ def _is_safe_manual_debug_apk_workflow(path: Path, content: str) -> bool:
         re.search(r"(?m)^\s+libcrypto\.so$", content),
         re.search(r"(?m)^\s+liburiparser\.so$", content),
         re.search(r"unzip -Z1", content),
+        re.search(r"grep -Fxq", content),
     )
     if not all(required):
         return False
@@ -143,6 +144,7 @@ def _is_safe_manual_debug_apk_workflow(path: Path, content: str) -> bool:
         and re.search(r"(?m)^\s+name:\s*PROJECT-INFINITY-0\.10-DEBUG-APK-EVIDENCE\s*$", evidence_block)
         and "app-debug-signature.txt" in evidence_block
         and "app-debug-size.txt" in evidence_block
+        and "app-debug-freerdp-libraries.txt" in evidence_block
     )
 
 
