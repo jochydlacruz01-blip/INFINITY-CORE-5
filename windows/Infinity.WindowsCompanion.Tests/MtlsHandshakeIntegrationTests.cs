@@ -28,6 +28,9 @@ public sealed class MtlsHandshakeIntegrationTests
         using var validClient = CreateLeaf(
             root, "android-device-01", CertificatePinning.ClientAuthenticationOid,
             DateTimeOffset.UtcNow.AddMinutes(-5), DateTimeOffset.UtcNow.AddHours(2));
+        using var rotatedClient = CreateLeaf(
+            root, "android-device-01-rotated", CertificatePinning.ClientAuthenticationOid,
+            DateTimeOffset.UtcNow.AddMinutes(-5), DateTimeOffset.UtcNow.AddHours(2));
         using var expiredClient = CreateLeaf(
             root, "android-expired", CertificatePinning.ClientAuthenticationOid,
             DateTimeOffset.UtcNow.AddHours(-2), DateTimeOffset.UtcNow.AddHours(-1));
@@ -63,6 +66,21 @@ public sealed class MtlsHandshakeIntegrationTests
         Assert.True(await ExchangeAsync(
             serverCertificate, validClient, root, root, approvedPins, "localhost", serverPin, validDiagnostics),
             string.Join(" | ", validDiagnostics));
+        var originalClientPin = CertificatePinning.ComputeSha256Pin(validClient);
+        Assert.False(await ExchangeAsync(
+            serverCertificate, validClient, root, root, approvedPins, "localhost", serverPin));
+        approvedPins.Remove(originalClientPin);
+        Assert.False(await ExchangeAsync(
+            serverCertificate, validClient, root, root, approvedPins, "localhost", serverPin));
+        var rotatedClientPin = CertificatePinning.ComputeSha256Pin(rotatedClient);
+        approvedPins.Add(rotatedClientPin);
+        Assert.True(await ExchangeAsync(
+            serverCertificate, rotatedClient, root, root, approvedPins, "localhost", serverPin));
+        Assert.False(await ExchangeAsync(
+            serverCertificate, validClient, root, root, approvedPins, "localhost", serverPin));
+        Assert.False(await ExchangeAsync(
+            serverCertificate, rotatedClient, root, root, approvedPins, "localhost", serverPin,
+            clientProtocols: SslProtocols.Tls12));
         Assert.False(await ExchangeAsync(
             serverCertificate, validClient, root, root, approvedPins, "localhost", new string('0', 64)));
         Assert.False(await ExchangeAsync(
@@ -91,7 +109,8 @@ public sealed class MtlsHandshakeIntegrationTests
         IReadOnlySet<string> approvedClientPins,
         string targetHost,
         string expectedServerPin,
-        System.Collections.Concurrent.ConcurrentQueue<string>? diagnostics = null)
+        System.Collections.Concurrent.ConcurrentQueue<string>? diagnostics = null,
+        SslProtocols clientProtocols = SslProtocols.Tls13)
     {
         var listener = new TcpListener(IPAddress.Loopback, 0);
         listener.Start();
@@ -124,7 +143,7 @@ public sealed class MtlsHandshakeIntegrationTests
                 {
                     ServerCertificate = serverCertificate,
                     ClientCertificateRequired = true,
-                    EnabledSslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13,
+                    EnabledSslProtocols = SslProtocols.Tls13,
                     CertificateRevocationCheckMode = X509RevocationMode.NoCheck
                 }, timeout.Token);
 
@@ -175,7 +194,7 @@ public sealed class MtlsHandshakeIntegrationTests
             {
                 TargetHost = targetHost,
                 ClientCertificates = new X509CertificateCollection { clientCertificate },
-                EnabledSslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13,
+                EnabledSslProtocols = clientProtocols,
                 CertificateRevocationCheckMode = X509RevocationMode.NoCheck
             }, timeout.Token);
 
