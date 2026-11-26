@@ -107,9 +107,18 @@ def _is_safe_manual_debug_apk_workflow(path: Path, content: str) -> bool:
         ),
         re.search(r"(?m)^permissions:\s*\n\s+contents:\s*read\s*$", content),
         re.search(r"(?m)^\s+ref:\s*" + re.escape(AUTHORIZED_DEBUG_BRANCH) + r"\s*$", content),
-        re.search(r"(?m)^\s+gradle compileDebugKotlin testDebugUnitTest lintDebug assembleDebug --stacktrace\s*$", content),
+        re.search(r"(?m)^\s+gradle -PINFINITY_BUILD_FREERDP_NATIVE=true :freerdpCore:externalNativeBuildDebug compileDebugKotlin testDebugUnitTest lintDebug assembleDebug --stacktrace\s*$", content),
         re.search(r"(?m)^\s*\"?\$\{APKSIGNER\}\"? verify --verbose --print-certs", content),
         re.search(r"(?m)^\s+path: app/build/outputs/apk/debug/app-debug\.apk\s*$", content),
+        re.search(r"(?m)^\s+REQUIRED_FREERDP_LIBRARIES=\($", content),
+        re.search(r"(?m)^\s+libfreerdp-android\.so$", content),
+        re.search(r"(?m)^\s+libfreerdp3\.so$", content),
+        re.search(r"(?m)^\s+libfreerdp-client3\.so$", content),
+        re.search(r"(?m)^\s+libwinpr3\.so$", content),
+        re.search(r"(?m)^\s+libssl\.so$", content),
+        re.search(r"(?m)^\s+libcrypto\.so$", content),
+        re.search(r"(?m)^\s+liburiparser\.so$", content),
+        re.search(r"unzip -Z1", content),
     )
     if not all(required):
         return False
