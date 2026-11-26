@@ -57,10 +57,10 @@ internal class InfinityConnectRdpTunnel(
     }
 
     suspend fun open(config: Config): Handle {
-        InfinityConnectFeatureGates.requireRemoteDesktopEnabled()
         require(config.grantedCapabilities.containsAll(setOf("remote.display", "remote.input"))) {
             "Windows has not granted both remote.display and remote.input."
         }
+        InfinityConnectFeatureGates.requireRemoteDesktopEnabled()
         require(config.companionPort in 1024..65535) { "Companion port is invalid." }
         require(UUID.fromString(config.sessionId).toString() == config.sessionId) {
             "Session ID is invalid."
