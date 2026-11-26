@@ -2334,7 +2334,12 @@ Spacer(Modifier.height(14.dp))
                         .padding(end = 14.dp, top = 76.dp, bottom = 112.dp)
                         .widthIn(max = infinityControlDevicePanelMaxWidthDp(maxW.value).dp)
                         .fillMaxWidth()
-                        .heightIn(max = infinityControlPanelMaxHeightDp(maxH.value).dp)
+                        .heightIn(
+                            max = minOf(
+                                infinityControlPanelMaxHeightDp(maxH.value),
+                                (maxH.value - 188f).coerceAtLeast(1f)
+                            ).dp
+                        )
                 ) {
                     InfinityControlCenterPanel(
                         snapshot = controlSnapshot,
