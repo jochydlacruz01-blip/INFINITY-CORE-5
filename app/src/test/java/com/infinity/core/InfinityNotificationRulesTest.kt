@@ -146,4 +146,33 @@ class InfinityNotificationRulesTest {
         assertFalse(infinityNotificationAccessEnabled(false, true))
         assertTrue(infinityNotificationAccessEnabled(true, true))
     }
+
+
+    @Test
+    fun enablingPrivacyRedactsExistingFeedAndDisablingCannotRestoreErasedText() {
+        val private = InfinityNotification(
+            key = "notification-1",
+            packageName = "com.example.mail",
+            appName = "Mail",
+            title = "Private subject",
+            message = "Private message",
+            timestamp = 123L,
+            ongoing = false,
+            clearable = true,
+            contentIntent = null
+        )
+        val public = private.copy(key = "notification-2", title = "", message = "")
+        val original = listOf(private, public)
+
+        val redacted = infinityNotificationApplyPrivacy(original, hideContent = true)
+
+        assertEquals(listOf("notification-1", "notification-2"), redacted.map { it.key })
+        assertEquals(listOf("Mail", "Mail"), redacted.map { it.appName })
+        assertTrue(redacted.all { it.title.isEmpty() && it.message.isEmpty() })
+        assertEquals("Private subject", original.first().title)
+
+        val afterPrivacyDisabled = infinityNotificationApplyPrivacy(redacted, hideContent = false)
+        assertEquals(redacted, afterPrivacyDisabled)
+        assertTrue(afterPrivacyDisabled.all { it.title.isEmpty() && it.message.isEmpty() })
+    }
 }
