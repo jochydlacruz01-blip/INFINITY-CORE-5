@@ -1559,10 +1559,10 @@ DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED"
                 Card(
                     Modifier.then(if (iconPack == "windows11") Modifier.align(Alignment.BottomCenter) else Modifier.align(Alignment.BottomStart))
                         .zIndex(15f)
-                        .fillMaxWidth(0.94f)
-                        .widthIn(max = 420.dp)
-                        .padding(bottom = 84.dp)
-                        .heightIn(max = (maxH - 116.dp).coerceAtLeast(220.dp))
+                        .fillMaxWidth(infinityStartPanelWidthFraction(maxW.value))
+                        .widthIn(max = infinityStartPanelMaxWidthDp(maxW.value).dp)
+                        .padding(bottom = infinityStartPanelBottomInsetDp(maxH.value).dp)
+                        .heightIn(max = infinityStartPanelMaxHeightDp(maxH.value).dp)
                         .animateContentSize()
                         .shadow(28.dp, RoundedCornerShape(28.dp)),
                     shape = RoundedCornerShape(if (iconPack == "windows11") 16.dp else 28.dp),
@@ -1575,10 +1575,44 @@ DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED"
                         else -> accent.copy(alpha = .28f)
                     })
                 ) {
-                    Column(Modifier.padding(18.dp)) {
-                        Text(if (iconPack == "windows11") "INICIO" else "INFINITY START", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Black)
-                        Text(if (iconPack == "windows11") "Aplicaciones ancladas y recomendadas" else "Tus herramientas y aplicaciones", color = InfinityMuted, fontSize = 10.sp)
-                        Spacer(Modifier.height(10.dp))
+                    Column(Modifier.padding(16.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier.size(42.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(
+                                        Brush.linearGradient(
+                                            listOf(accent.copy(alpha = .34f), Color(0xFF172C49))
+                                        )
+                                    )
+                                    .border(1.dp, accent.copy(alpha = .62f), RoundedCornerShape(12.dp)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text("∞", color = accent, fontSize = 27.sp, fontWeight = FontWeight.Black)
+                            }
+                            Column(
+                                modifier = Modifier.weight(1f).padding(start = 11.dp),
+                                verticalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                Text("INFINITY START", color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.Black)
+                                Text(
+                                    "CENTRO DE APLICACIONES · BEYOND LIMITS",
+                                    color = InfinityMuted,
+                                    fontSize = 8.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                            TextButton(
+                                onClick = { startOpen = false },
+                                modifier = Modifier.testTag("infinity-start-close")
+                            ) {
+                                Text("CERRAR", color = accent, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                        Spacer(Modifier.height(12.dp))
                         OutlinedTextField(
                             value = search,
                             onValueChange = { search = it },
