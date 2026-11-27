@@ -108,7 +108,18 @@ object InfinityNotificationStore {
     }
 
     fun dismiss(key: String) {
-        service?.dismissNotification(key)
+        if (key.isBlank()) return
+
+        // If Android has disconnected the listener (for example while the user
+        // revokes access in Settings), do not leave a dead action in the feed.
+        // Remove the local entry as a safe fallback; when connected, request the
+        // real system dismissal and let onNotificationRemoved reconcile the feed.
+        val activeService = service
+        if (activeService != null) {
+            activeService.dismissNotification(key)
+        } else {
+            remove(key)
+        }
     }
 
     fun clearAll() {

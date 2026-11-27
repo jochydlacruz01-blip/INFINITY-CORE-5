@@ -420,8 +420,18 @@ class InfinityDesktopEmulatorTest {
         allowedDismiss.performScrollTo()
         allowedDismiss.assertIsEnabled()
 
-        // LIMPIAR removes the local feed; it is distinct from dismissing an
-        // Android notification in the system notification shade.
+        // With the listener disconnected, DESCARTAR must still remove the stale
+        // local entry instead of silently doing nothing. With a live listener,
+        // Android remains the source of truth through onNotificationRemoved.
+        allowedDismiss.performClick()
+        compose.waitUntil(timeoutMillis = 5_000) {
+            InfinityNotificationStore.notifications.none { it.key == "clearable-notification" }
+        }
+        compose.onNodeWithTag("infinity-notification-dismiss-ongoing")
+            .assertIsNotEnabled()
+
+        // LIMPIAR removes the remaining local feed; it is distinct from dismissing
+        // all Android notifications in the system notification shade.
         val clearFeed = compose.onNodeWithTag("infinity-notifications-clear")
         clearFeed.performScrollTo()
         clearFeed.performClick()
@@ -448,12 +458,23 @@ class InfinityDesktopEmulatorTest {
             action.assertIsDisplayed().assertHasClickAction()
             action.performClick()
 
-            // These cards intentionally hand off to Android Settings. Return
-            // through the real system Back action and ensure the same desktop
-            // Activity and ADVANCED panel are still usable.
+            // Prove that the click really left INFINITY and opened an external
+            // Android Settings screen; a no-op click must not pass this test.
             device.waitForIdle()
+            val settingsPackage = device.currentPackageName
+            assertTrue(
+                "$tag must hand off to Android Settings, foreground was $settingsPackage",
+                !settingsPackage.isNullOrBlank() && settingsPackage != context.packageName
+            )
+
+            // Return through the real system Back action and ensure the same
+            // desktop Activity and ADVANCED panel are still usable.
             device.pressBack()
             device.waitForIdle()
+            assertTrue(
+                "$tag must return to the INFINITY Activity after Back",
+                device.currentPackageName == context.packageName
+            )
             settleComposeFrame()
             waitForTag("infinity-advanced-panel")
             compose.onNodeWithTag(tag).assertExists()
