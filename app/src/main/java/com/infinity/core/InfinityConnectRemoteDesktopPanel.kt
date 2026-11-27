@@ -106,7 +106,7 @@ internal fun InfinityConnectRemoteDesktopPanel(
                     frame = null
                     lifecycle.transition(InfinityConnectSessionState.DISCONNECTING)
                     lifecycle.transition(InfinityConnectSessionState.IDLE)
-                    status = "La sesión RDP se desconectó."
+                    status = "RDP desconectado · esperando confirmación de revocación de Windows."
                     CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
                         runCatching { disconnectedClient.closeSession() }
                     }

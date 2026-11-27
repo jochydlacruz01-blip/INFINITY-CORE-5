@@ -187,9 +187,10 @@ public sealed class AuthorizedSessionStoreTests
         });
 
         start.Set();
-        await Task.WhenAll(heartbeats.Append(revoke));
+        await Task.WhenAll(heartbeats);
+        var revocationResult = await revoke;
 
-        Assert.Contains(revoke.Result, new[]
+        Assert.Contains(revocationResult, new[]
         {
             AuthorizedSessionStore.SessionRevocationResult.Revoked,
             AuthorizedSessionStore.SessionRevocationResult.AlreadyInactive

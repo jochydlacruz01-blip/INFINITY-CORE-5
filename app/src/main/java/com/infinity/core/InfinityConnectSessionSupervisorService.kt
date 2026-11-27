@@ -40,8 +40,14 @@ internal class InfinityConnectSessionSupervisorService : Service() {
     private val networkAvailable = AtomicBoolean(true)
     private val networkGeneration = AtomicLong(0L)
     private val networkCallback = object : ConnectivityManager.NetworkCallback() {
-        override fun onAvailable(network: Network) = refreshNetworkAvailability()
-        override fun onLost(network: Network) = refreshNetworkAvailability()
+        override fun onAvailable(network: Network) {
+            networkGeneration.incrementAndGet()
+            refreshNetworkAvailability()
+        }
+        override fun onLost(network: Network) {
+            networkGeneration.incrementAndGet()
+            refreshNetworkAvailability()
+        }
         override fun onCapabilitiesChanged(network: Network, capabilities: NetworkCapabilities) =
             refreshNetworkAvailability()
     }
@@ -142,8 +148,7 @@ internal class InfinityConnectSessionSupervisorService : Service() {
     private fun refreshNetworkAvailability() {
         val manager = connectivityManager ?: return
         val activeNetwork = manager.activeNetwork
-        val capabilities = activeNetwork?.let(manager::getNetworkCapabilities)
-        val available = capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true
+        val available = activeNetwork != null
         val previous = networkAvailable.getAndSet(available)
         if (previous != available) {
             networkGeneration.incrementAndGet()
@@ -298,7 +303,9 @@ internal object InfinityConnectSessionSupervisorRuntime {
             if (current.get() == null) return
             val intent = Intent(context, InfinityConnectSessionSupervisorService::class.java)
                 .setAction(InfinityConnectSessionSupervisorService.ACTION_REVOKE)
-            if (Build.VERSION.SDK_INT >= 26) context.startForegroundService(intent) else context.startService(intent)
+            // The foreground supervisor is already running for this in-memory grant.
+            // startService updates its command without attempting a second background FGS start.
+            context.startService(intent)
         }
     }
 
