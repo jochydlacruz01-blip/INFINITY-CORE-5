@@ -38,8 +38,10 @@ import androidx.compose.ui.unit.dp
 import org.json.JSONArray
 import org.json.JSONObject
 import kotlinx.coroutines.launch
+import java.util.UUID
 
 private data class InfinityConnectionProfile(
+    val profileId: String,
     val name: String,
     val host: String,
     val port: String,
@@ -75,6 +77,7 @@ private fun loadInfinityProfiles(
 
             val profile = try {
                 val item = json.optJSONObject(index) ?: continue
+                val profileId = item.optString("profileId", "").trim().ifBlank { UUID.randomUUID().toString() }
                 val name = item.optString("name", "").trim()
                 val host = item.optString("host", "").trim()
                 val port = parseInfinityPort(item.optString("port", "3389"))
@@ -89,6 +92,7 @@ private fun loadInfinityProfiles(
                 }
 
                 InfinityConnectionProfile(
+                    profileId = profileId,
                     name = name,
                     host = host,
                     port = port.toString(),
@@ -118,6 +122,7 @@ private fun saveInfinityProfiles(
     profiles.take(INFINITY_CONNECT_MAX_PROFILES).forEach { profile ->
         json.put(
             JSONObject().apply {
+                put("profileId", profile.profileId)
                 put("name", profile.name)
                 put("host", profile.host)
                 put("port", profile.port)
@@ -140,7 +145,9 @@ fun InfinityConnectPanel() {
 
     val profiles = remember(context) {
         mutableStateListOf<InfinityConnectionProfile>().apply {
-            addAll(loadInfinityProfiles(context))
+            val loaded = loadInfinityProfiles(context)
+            addAll(loaded)
+            saveInfinityProfiles(context, loaded)
         }
     }
 
@@ -311,7 +318,7 @@ fun InfinityConnectPanel() {
                                             editingHost.value = profile.host
                                             editingPort.value = profile.port
                                             editingUsername.value = profile.username
-                                            editingPassword.value = credentialVault.retrieve(profile.address) ?: ""
+                                            editingPassword.value = credentialVault.retrieve(profile.profileId, profile.address) ?: ""
                                             showEditor.value = true
                                         },
                                         modifier = Modifier.weight(1f)
@@ -324,7 +331,7 @@ fun InfinityConnectPanel() {
                                 OutlinedButton(
                                     onClick = {
                                         profiles.remove(profile)
-                                        credentialVault.delete(profile.address)
+                                        credentialVault.delete(profile.profileId, profile.address)
                                         saveInfinityProfiles(context, profiles)
                                         notifyUser("Perfil eliminado")
                                     },
@@ -343,7 +350,7 @@ fun InfinityConnectPanel() {
                                         editingHost.value = profile.host
                                         editingPort.value = profile.port
                                         editingUsername.value = profile.username
-                                        editingPassword.value = credentialVault.retrieve(profile.address) ?: ""
+                                        editingPassword.value = credentialVault.retrieve(profile.profileId, profile.address) ?: ""
                                         showEditor.value = true
                                     },
                                     modifier = Modifier.weight(1f)
@@ -355,7 +362,7 @@ fun InfinityConnectPanel() {
                                 OutlinedButton(
                                     onClick = {
                                         profiles.remove(profile)
-                                        credentialVault.delete(profile.address)
+                                        credentialVault.delete(profile.profileId, profile.address)
                                         saveInfinityProfiles(context, profiles)
                                         notifyUser("Perfil eliminado")
                                     },
@@ -534,7 +541,9 @@ fun InfinityConnectPanel() {
                         } else if (duplicate) {
                             notifyUser("Ya existe un perfil con ese equipo y puerto")
                         } else {
+                            val previousProfile = profiles.getOrNull(editingIndex.intValue)
                             val profile = InfinityConnectionProfile(
+                                profileId = previousProfile?.profileId ?: UUID.randomUUID().toString(),
                                 name = editingName.value.trim(),
                                 host = host,
                                 port = portNumber.toString(),
@@ -542,9 +551,8 @@ fun InfinityConnectPanel() {
                             )
 
                             // Remove the old encrypted credential when an edited profile changes endpoint.
-                            val previousProfile = profiles.getOrNull(editingIndex.intValue)
                             if (previousProfile != null && previousProfile.address != profile.address) {
-                                credentialVault.delete(previousProfile.address)
+                                credentialVault.delete(previousProfile.profileId, previousProfile.address)
                             }
                             if (editingIndex.intValue in profiles.indices) {
                                 profiles[editingIndex.intValue] = profile
@@ -552,7 +560,7 @@ fun InfinityConnectPanel() {
                                 profiles.add(profile)
                             }
                             saveInfinityProfiles(context, profiles)
-                            val credentialSaved = credentialVault.save(profile.address, editingPassword.value)
+                            val credentialSaved = credentialVault.save(profile.profileId, profile.address, editingPassword.value)
 
                             editingPassword.value = ""
                             showEditor.value = false
