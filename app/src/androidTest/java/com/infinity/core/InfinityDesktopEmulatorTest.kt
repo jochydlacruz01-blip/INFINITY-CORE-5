@@ -124,6 +124,14 @@ class InfinityDesktopEmulatorTest {
         compose.onNodeWithContentDescription("START").performClick()
         settleComposeFrame()
         waitForText("INFINITY START")
+        val startPanelBottom = compose.onNodeWithTag("infinity-start-panel")
+            .fetchSemanticsNode().boundsInRoot.bottom
+        val dockStartTop = compose.onNodeWithTag("infinity-dock-start")
+            .fetchSemanticsNode().boundsInRoot.top
+        assertTrue(
+            "INFINITY START must stay completely above the Dock: panelBottom=$startPanelBottom dockTop=$dockStartTop",
+            startPanelBottom <= dockStartTop
+        )
         capture("02-start-open")
         compose.onNode(hasSetTextAction()).performTextInput("Notas")
         settleComposeFrame()

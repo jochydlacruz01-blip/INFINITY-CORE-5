@@ -1740,10 +1740,11 @@ DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED"
                         .zIndex(15f)
                         .fillMaxWidth(0.94f)
                         .widthIn(max = 420.dp)
-                        .padding(bottom = if (fluentTaskbar) 96.dp else 84.dp)
-                        .heightIn(max = (maxH - 116.dp).coerceAtLeast(220.dp))
+                        .padding(bottom = infinityStartPanelBottomPaddingDp(maxH.value, dockSafeBottom).dp)
+                        .heightIn(max = infinityStartPanelMaxHeightDp(dockSafeBottom).dp)
                         .animateContentSize()
-                        .shadow(28.dp, RoundedCornerShape(28.dp)),
+                        .shadow(28.dp, RoundedCornerShape(28.dp))
+                        .testTag("infinity-start-panel"),
                     shape = RoundedCornerShape(if (iconPack == "windows11") 16.dp else 28.dp),
                     colors = CardDefaults.cardColors(containerColor = when (iconPack) {
                         "windows11" -> Color(0xF0254563)
