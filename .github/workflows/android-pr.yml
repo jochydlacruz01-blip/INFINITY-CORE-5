@@ -149,7 +149,7 @@ jobs:
 
   emulator-ui:
     # Run phone/tablet acceptance only after development is complete and explicitly dispatched.
-    if: github.event_name == 'workflow_dispatch' # Manual only; device simulations are deferred until ADVANCED implementation is complete.
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request' # PR acceptance includes real Android 14 phone/tablet emulator UI checks.
     # Final emulator validation runs only after source, unit-test and lint gates pass.
     name: Instrumented Android UI (${{ matrix.device }})
     needs: verify
