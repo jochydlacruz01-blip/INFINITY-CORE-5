@@ -40,6 +40,7 @@ import com.infinity.core.advanced.domain.capabilities.InfinityCapabilityId
 import com.infinity.core.advanced.domain.capabilities.InfinityThemeCapability
 import com.infinity.core.advanced.domain.usecases.InfinityAdvancedOverviewSnapshot
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
 import androidx.compose.runtime.rememberCoroutineScope
 import java.text.DateFormat
 import java.util.Date
@@ -65,6 +66,7 @@ fun InfinityAdvancedAutomationCard(
     var consent by remember { mutableStateOf(preferences.getBoolean("consent", false)) }
     var status by remember { mutableStateOf("La automatización solo se ejecuta cuando pulsas el botón.") }
     var executing by remember { mutableStateOf(false) }
+    var executionJob by remember { mutableStateOf<Job?>(null) }
     val scope = rememberCoroutineScope()
 
     Card(
@@ -97,9 +99,15 @@ fun InfinityAdvancedAutomationCard(
                 Switch(
                     modifier = Modifier.testTag("advanced-automation-enabled"),
                     checked = enabled,
-                    onCheckedChange = {
-                        enabled = it
-                        check(preferences.edit().putBoolean("enabled", it).commit()) { "Unable to persist automation rule state" }
+                    onCheckedChange = { isEnabled ->
+                        enabled = isEnabled
+                        if (!isEnabled) {
+                            executionJob?.cancel()
+                            executionJob = null
+                        }
+                        check(preferences.edit().putBoolean("enabled", isEnabled).commit()) {
+                            "Unable to persist automation rule state"
+                        }
                     }
                 )
             }
@@ -115,6 +123,8 @@ fun InfinityAdvancedAutomationCard(
                         // cannot survive process death or panel recreation.
                         if (!it) {
                             enabled = false
+                            executionJob?.cancel()
+                            executionJob = null
                             editor.putBoolean("enabled", false)
                         }
                         check(editor.commit()) { "Unable to persist automation consent" }
@@ -131,7 +141,7 @@ fun InfinityAdvancedAutomationCard(
                 onClick = {
                     if (executing) return@Button
                     executing = true
-                    scope.launch {
+                    executionJob = scope.launch {
                         try {
                             val now = System.currentTimeMillis()
                             // Snapshot the user's current authorization before suspending.
@@ -170,9 +180,11 @@ fun InfinityAdvancedAutomationCard(
                             status = when (result) {
                                 InfinityAutomationExecutionResult.Executed -> {
                                     val updatedHistory = InfinityAutomationExecutionLedger.recordExecution(history, now)
-                                    preferences.edit()
-                                        .putString("execution_timestamps", updatedHistory.joinToString(","))
-                                        .apply()
+                                    check(
+                                        preferences.edit()
+                                            .putString("execution_timestamps", updatedHistory.joinToString(","))
+                                            .commit()
+                                    ) { "Unable to persist automation rate-limit history" }
                                     "Aplicación abierta correctamente."
                                 }
                                 InfinityAutomationExecutionResult.CapabilityUnavailable -> "La capacidad de apertura no está disponible."
@@ -195,6 +207,7 @@ fun InfinityAdvancedAutomationCard(
                             status = "No se pudo completar la acción. Revisa la aplicación y vuelve a intentarlo."
                         } finally {
                             executing = false
+                            executionJob = null
                         }
                     }
                 }
