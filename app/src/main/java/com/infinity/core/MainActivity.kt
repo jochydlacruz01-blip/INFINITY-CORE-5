@@ -983,7 +983,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                         val selected = workspace == targetWorkspace
                         Box(
                             Modifier
-                                .widthIn(min = 48.dp)
+                                .widthIn(min = 48.dp * iconScale)
                                 .heightIn(min = 48.dp)
                                 .clip(RoundedCornerShape(12.dp))
                                 .background(
@@ -1617,14 +1617,10 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                 else if (maxW >= 600.dp && futuristicDesktop) Arrangement.SpaceEvenly
                 else if (iconPack == "windows11") Arrangement.Center
                 else Arrangement.spacedBy(
-                    dockSpacing.dp.coerceIn(2.dp, 24.dp).let { configured -> when {
-                        maxW < 380.dp -> 5.dp
-                        maxW < 600.dp -> 8.dp
-                        else -> configured
-                    } }
+                    dockSpacing.dp.coerceIn(2.dp, 24.dp)
                 )
             ) {
-                DockAction(if (futuristicDesktop && maxW >= 600.dp) "▦" else "⌂", "HOME", accent, iconPack, compact = maxW < 390.dp, referenceStyle = futuristicDesktop && maxW >= 600.dp, fluentStyle = fluentTaskbar, active = dashboardOpen) {
+                DockAction(if (futuristicDesktop && maxW >= 600.dp) "▦" else "⌂", "HOME", accent, iconPack, iconScale = dockIconScale, compact = maxW < 390.dp, referenceStyle = futuristicDesktop && maxW >= 600.dp, fluentStyle = fluentTaskbar, active = dashboardOpen) {
                     dashboardOpen = true
                     startOpen = false
                     orbitOpen = false
@@ -1632,7 +1628,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                     advancedOpen = false
                 }
 
-                DockAction(if (futuristicDesktop && maxW >= 600.dp) "⌕" else "✦", "START", accent, iconPack, compact = maxW < 390.dp, referenceStyle = futuristicDesktop && maxW >= 600.dp, fluentStyle = fluentTaskbar, active = startOpen) {
+                DockAction(if (futuristicDesktop && maxW >= 600.dp) "⌕" else "✦", "START", accent, iconPack, iconScale = dockIconScale, compact = maxW < 390.dp, referenceStyle = futuristicDesktop && maxW >= 600.dp, fluentStyle = fluentTaskbar, active = startOpen) {
                     startOpen = !startOpen
                     if (startOpen) {
                         search = ""
@@ -1664,7 +1660,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                     }
                 }
 
-                DockAction(if (futuristicDesktop && maxW >= 600.dp) "∞" else "◎", "ORBIT", Color(0xFFB69CFF), iconPack, compact = maxW < 390.dp, referenceStyle = futuristicDesktop && maxW >= 600.dp, fluentStyle = fluentTaskbar, active = orbitOpen) {
+                DockAction(if (futuristicDesktop && maxW >= 600.dp) "∞" else "◎", "ORBIT", Color(0xFFB69CFF), iconPack, iconScale = dockIconScale, compact = maxW < 390.dp, referenceStyle = futuristicDesktop && maxW >= 600.dp, fluentStyle = fluentTaskbar, active = orbitOpen) {
                     // ORBIT is an explicit launcher command: repeated activation must never
                     // cancel the opening transition while accessibility dispatch is settling.
                     orbitOpen = true
@@ -1673,14 +1669,14 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                     advancedOpen = false
                 }
 
-                DockAction(if (futuristicDesktop && maxW >= 600.dp) "⬡" else "☷", "CONTROL", Color(0xFFFFC27A), iconPack, compact = maxW < 390.dp, referenceStyle = futuristicDesktop && maxW >= 600.dp, fluentStyle = fluentTaskbar, active = controlOpen) {
+                DockAction(if (futuristicDesktop && maxW >= 600.dp) "⬡" else "☷", "CONTROL", Color(0xFFFFC27A), iconPack, iconScale = dockIconScale, compact = maxW < 390.dp, referenceStyle = futuristicDesktop && maxW >= 600.dp, fluentStyle = fluentTaskbar, active = controlOpen) {
                     controlOpen = !controlOpen
                     if (controlOpen) controlMode = "personalization"
                     startOpen = false
                     orbitOpen = false
                     advancedOpen = false
                 }
-DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED", accent, iconPack, compact = maxW < 390.dp, referenceStyle = futuristicDesktop && maxW >= 600.dp, fluentStyle = fluentTaskbar, active = advancedOpen) {
+DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED", accent, iconPack, iconScale = dockIconScale, compact = maxW < 390.dp, referenceStyle = futuristicDesktop && maxW >= 600.dp, fluentStyle = fluentTaskbar, active = advancedOpen) {
     advancedOpen = !advancedOpen
     startOpen = false
     orbitOpen = false
@@ -1699,6 +1695,7 @@ DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED"
                     DockInstalledAppAction(
                         app = app,
                         accent = accent,
+                        iconScale = dockIconScale,
                         compact = maxW < 390.dp,
                         onClick = {
                             launchApp(app.packageName)
@@ -1720,7 +1717,7 @@ DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED"
                     val visibleTaskIds = infinityDockVisibleTaskIds(allTaskIds, visibleTaskLimit)
                     visibleTaskIds.forEach { taskId ->
                         val task = workspaceWindows.firstOrNull { it.id == taskId } ?: return@forEach
-                        DockAction(if (task.minimized) "□" else "▣", infinityDockLabel(task.title), accent, iconPack, compact = maxW < 390.dp, fluentStyle = fluentTaskbar, active = !task.minimized && focusedWindowId == task.id) {
+                        DockAction(if (task.minimized) "□" else "▣", infinityDockLabel(task.title), accent, iconPack, iconScale = dockIconScale, showRunningIndicator = dockIndicatorsEnabled, running = !task.minimized, compact = maxW < 390.dp, fluentStyle = fluentTaskbar, active = !task.minimized && focusedWindowId == task.id) {
                             val idx = windows.indexOfFirst { it.id == task.id }
                             if (idx >= 0) {
                                 val tappedTask = windows[idx]
@@ -2890,6 +2887,9 @@ private fun DockAction(
     referenceStyle: Boolean = false,
     fluentStyle: Boolean = false,
     active: Boolean = false,
+    running: Boolean = active,
+    showRunningIndicator: Boolean = true,
+    iconScale: Float = 1f,
     onClick: () -> Unit
 ) {
     val actionRadius = when {
@@ -2905,7 +2905,7 @@ private fun DockAction(
     Column(
         Modifier
             // Tablet reference dock keeps every primary action comfortably touchable.
-            .widthIn(min = if (fluentStyle) 44.dp else if (referenceStyle) 48.dp else if (compact) 40.dp else 48.dp)
+             .widthIn(min = (if (fluentStyle) 44.dp else if (referenceStyle) 48.dp else if (compact) 40.dp else 48.dp) * iconScale)
             .clip(RoundedCornerShape(actionRadius))
             .background(actionSurface, RoundedCornerShape(actionRadius))
             .then(
@@ -2918,8 +2918,8 @@ private fun DockAction(
             )
             .clickable(role = Role.Button, onClick = onClick)
             .padding(
-                horizontal = if (fluentStyle || referenceStyle) 4.dp else if (compact) 2.dp else 5.dp,
-                vertical = if (fluentStyle || referenceStyle) 4.dp else if (compact) 4.dp else 6.dp
+                horizontal = (if (fluentStyle || referenceStyle) 4.dp else if (compact) 2.dp else 5.dp) * iconScale,
+                vertical = (if (fluentStyle || referenceStyle) 4.dp else if (compact) 4.dp else 6.dp) * iconScale
             )
             // Keep the test/accessibility identity on the same node that owns the real click action.
             .testTag("infinity-dock-${description.lowercase()}")
@@ -2930,7 +2930,7 @@ private fun DockAction(
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Box(
-            Modifier.size(if (fluentStyle || referenceStyle) 40.dp else if (compact) 30.dp else 36.dp)
+            Modifier.size((if (fluentStyle || referenceStyle) 40.dp else if (compact) 30.dp else 36.dp) * iconScale)
                 .background(
                     if (fluentStyle) Brush.linearGradient(
                         listOf(Color.White.copy(alpha = .055f), Color.White.copy(alpha = .025f))
@@ -2956,17 +2956,17 @@ private fun DockAction(
                     imageVector = dockIcon,
                     contentDescription = description,
                     tint = tint,
-                    modifier = Modifier.size(23.dp)
+                    modifier = Modifier.size(23.dp * iconScale)
                 )
             } else {
-                Text(glyph, color = tint, fontSize = if (referenceStyle) 29.sp else 22.sp, fontWeight = FontWeight.Bold)
+                Text(glyph, color = tint, fontSize = (if (referenceStyle) 29f else 22f).times(iconScale).sp, fontWeight = FontWeight.Bold)
             }
         }
         if (!compact && !referenceStyle && !fluentStyle) {
             Text(
                 description,
                 color = Color.White.copy(.94f),
-                fontSize = 8.sp,
+                fontSize = (8f * iconScale).sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = .35.sp,
                 maxLines = 1
@@ -2977,8 +2977,8 @@ private fun DockAction(
                 Modifier.width(14.dp).height(3.dp)
                     .background(Color(0xFF38BDF8), RoundedCornerShape(999.dp))
             )
-        } else if (!fluentStyle && !referenceStyle) {
-            Box(Modifier.width(if (compact) 12.dp else 18.dp).height(2.dp).background(tint.copy(alpha = .65f), RoundedCornerShape(2.dp)))
+        } else if (showRunningIndicator && running && !fluentStyle && !referenceStyle) {
+            Box(Modifier.width(if (compact) 12.dp else 18.dp).height(2.dp).background(tint.copy(alpha = .85f), RoundedCornerShape(2.dp)))
         }
     }
 }
@@ -2989,6 +2989,7 @@ private fun DockInstalledAppAction(
     accent: Color,
     active: Boolean = false,
     compact: Boolean = false,
+    iconScale: Float = 1f,
     onClick: () -> Unit
 ) {
     val context = LocalContext.current
@@ -3013,7 +3014,7 @@ private fun DockInstalledAppAction(
             .widthIn(min = 48.dp)
             .clip(RoundedCornerShape(13.dp))
             .clickable(role = Role.Button, onClick = onClick)
-            .padding(horizontal = 4.dp, vertical = 3.dp)
+            .padding(horizontal = 4.dp * iconScale, vertical = 3.dp * iconScale)
             .testTag("infinity-dock-app-${app.packageName}")
             .semantics(mergeDescendants = true) {
                 contentDescription = "Abrir ${app.label}"
@@ -3022,7 +3023,7 @@ private fun DockInstalledAppAction(
         verticalArrangement = Arrangement.spacedBy(3.dp)
     ) {
         Box(
-            Modifier.size(38.dp)
+            Modifier.size(38.dp * iconScale)
                 .clip(RoundedCornerShape(10.dp))
                 .background(Color(0xFF22364F))
                 .border(1.dp, accent.copy(alpha = .48f), RoundedCornerShape(10.dp)),
@@ -3043,7 +3044,7 @@ private fun DockInstalledAppAction(
             Text(
                 app.label,
                 color = Color.White.copy(alpha = .94f),
-                fontSize = 8.sp,
+                fontSize = (8f * iconScale).sp,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
