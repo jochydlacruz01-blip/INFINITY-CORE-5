@@ -2623,7 +2623,7 @@ private fun DockAction(
     onClick: () -> Unit
 ) {
     val actionRadius = if (desktopTheme == "windows11") 9.dp else 14.dp
-    val actionSurface = if (referenceStyle) Color.Transparent else if (desktopTheme == "windows11") Color(0xFF345574).copy(alpha = .48f) else Color.White.copy(alpha = .045f)
+    val actionSurface = if (referenceStyle) Color.Transparent else tint.copy(alpha = if (desktopTheme == "windows11") .18f else .09f)
     Column(
         Modifier
             // Tablet reference dock keeps every primary action comfortably touchable.
