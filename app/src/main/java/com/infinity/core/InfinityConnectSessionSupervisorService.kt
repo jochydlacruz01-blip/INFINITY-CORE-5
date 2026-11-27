@@ -50,7 +50,7 @@ internal class InfinityConnectSessionSupervisorService : Service() {
         return START_NOT_STICKY
     }
 
-    private suspend fun supervise(config: SessionConfig, startId: Int) {
+    private suspend fun supervise(config: InfinityConnectSessionConfig, startId: Int) {
         while (scope.isActive) {
             if (revokeRequested) {
                 val confirmed = runCatching {

@@ -80,7 +80,7 @@ internal fun InfinityConnectRemoteDesktopPanel(
                 InfinityConnectSessionSupervisorRuntime.start(
                     context.applicationContext,
                     InfinityConnectSessionConfig(
-                        baseUrl = companionBaseUrl(companionHost, companionPort),
+                        baseUrl = buildCompanionSessionBaseUrl(companionHost, companionPort),
                         clientKeyAlias = clientKeyAlias,
                         serverPin = companionServerPin,
                         expectedDeviceId = expectedWindowsDeviceId,
@@ -406,4 +406,16 @@ internal fun InfinityConnectRemoteDesktopPanel(
             Text(status, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
         }
     }
+}
+
+
+/** Builds the HTTPS base URL while preserving IPv6 literal authority syntax. */
+private fun buildCompanionSessionBaseUrl(hostValue: String, port: Int): String {
+    val host = hostValue.trim().removePrefix("[").removeSuffix("]")
+    require(host.isNotBlank() && host.none { it.isWhitespace() || it == '/' || it == '@' }) {
+        "La dirección del Companion no es válida."
+    }
+    require(port in 1..65535) { "El puerto del Companion no es válido." }
+    val authorityHost = if (host.contains(':')) "[$host]" else host
+    return "https://$authorityHost:$port"
 }
