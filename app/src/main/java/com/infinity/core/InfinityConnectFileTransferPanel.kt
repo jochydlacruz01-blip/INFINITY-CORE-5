@@ -81,7 +81,8 @@ internal fun InfinityConnectFileTransferPanel(
                     files = result.getOrThrow()
                     status = "Archivos disponibles: ${files.size}"
                 } else {
-                    status = "No se pudo consultar el PC: ${result.exceptionOrNull()?.message ?: "error"}"
+                    status = if (cancellation.isCanceled) "Consulta cancelada." else
+                        "No se pudo consultar el PC: ${result.exceptionOrNull()?.message ?: "error"}"
                 }
             } finally {
                 finishTransferOperation(cancellation)
@@ -132,7 +133,11 @@ internal fun InfinityConnectFileTransferPanel(
                         status = "Archivo enviado y verificado: ${receipt.fileName} · ID ${receipt.fileId}"
                         refreshFiles()
                     } else {
-                        status = "Transferencia rechazada: ${result.exceptionOrNull()?.message ?: "error"}"
+                        status = if (cancellation.isCanceled) {
+                            "Transferencia cancelada · Windows descarta los datos temporales incompletos."
+                        } else {
+                            "Transferencia rechazada: ${result.exceptionOrNull()?.message ?: "error"}"
+                        }
                     }
                 } finally {
                     finishTransferOperation(cancellation)
@@ -179,7 +184,11 @@ internal fun InfinityConnectFileTransferPanel(
                         status = "Archivo descargado y verificado: ${selected.fileName}"
                     } else {
                         runCatching { DocumentsContract.deleteDocument(context.contentResolver, uri) }
-                        status = "Descarga incompleta eliminada: ${result.exceptionOrNull()?.message ?: "error"}"
+                        status = if (cancellation.isCanceled) {
+                            "Descarga cancelada · archivo parcial eliminado de la tablet."
+                        } else {
+                            "Descarga incompleta eliminada: ${result.exceptionOrNull()?.message ?: "error"}"
+                        }
                     }
                 } finally {
                     finishTransferOperation(cancellation)
@@ -205,6 +214,16 @@ internal fun InfinityConnectFileTransferPanel(
                 onClick = { refreshFiles() },
                 modifier = Modifier.fillMaxWidth()
             ) { Text("Actualizar archivos del PC") }
+
+            if (busy && activeTransferCancellation != null) {
+                OutlinedButton(
+                    onClick = {
+                        status = "Cancelando la operación actual…"
+                        activeTransferCancellation?.cancel()
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("Cancelar transferencia actual") }
+            }
 
             files.forEach { file ->
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
