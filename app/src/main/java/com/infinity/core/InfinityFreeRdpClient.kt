@@ -295,7 +295,7 @@ internal class InfinityFreeRdpClient(
         mainHandler.post {
             if (!closed.get()) listener.onResolutionChanged(width, height)
         }
-        dispatchLatestFrame(replacement)
+        dispatchLatestFrame()
     }
 
     private fun dispatchLatestFrame() {
