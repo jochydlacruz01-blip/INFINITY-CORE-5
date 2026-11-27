@@ -737,12 +737,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
     val installedPackageNames = remember(installedApps) { installedApps.map { it.packageName }.toSet() }
     var dockFavorites by remember {
         mutableStateOf(
-            prefs.getString("dock_favorites", "")
-                .orEmpty()
-                .split('\n')
-                .map(String::trim)
-                .filter(String::isNotEmpty)
-                .distinct()
+            infinityDockParseFavorites(prefs.getString("dock_favorites", ""))
         )
     }
     LaunchedEffect(installedPackageNames) {
