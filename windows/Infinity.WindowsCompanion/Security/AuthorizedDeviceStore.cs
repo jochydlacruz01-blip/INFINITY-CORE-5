@@ -38,6 +38,15 @@ public sealed class AuthorizedDeviceStore
         return string.Equals(key?.GetValue(pin) as string, "approved", StringComparison.Ordinal);
     }
 
+    public bool IsFingerprintRevoked(string fingerprint)
+    {
+        if (!OperatingSystem.IsWindows()) return false;
+        var pin = CertificatePinning.NormalizeSha256Pin(fingerprint);
+        if (pin is null) return false;
+        using var key = Registry.LocalMachine.OpenSubKey(RegistryPath, writable: false);
+        return string.Equals(key?.GetValue(pin) as string, "revoked", StringComparison.Ordinal);
+    }
+
     public IReadOnlyList<AuthorizedDeviceInfo> ListAuthorizedDevices()
     {
         if (!OperatingSystem.IsWindows()) return Array.Empty<AuthorizedDeviceInfo>();
