@@ -77,18 +77,42 @@ internal fun InfinityConnectRemoteDesktopPanel(
                 if (client == null) return
                 lifecycle.transition(InfinityConnectSessionState.CONNECTED)
                 connected = true
-                InfinityConnectSessionSupervisorRuntime.start(
-                    context.applicationContext,
-                    InfinityConnectSessionConfig(
-                        baseUrl = buildCompanionSessionBaseUrl(companionHost, companionPort),
-                        clientKeyAlias = clientKeyAlias,
-                        serverPin = companionServerPin,
-                        expectedDeviceId = expectedWindowsDeviceId,
-                        sessionId = remoteSessionId,
-                        sessionToken = remoteSessionToken
+                try {
+                    InfinityConnectSessionSupervisorRuntime.start(
+                        context.applicationContext,
+                        InfinityConnectSessionConfig(
+                            baseUrl = buildCompanionSessionBaseUrl(companionHost, companionPort),
+                            clientKeyAlias = clientKeyAlias,
+                            serverPin = companionServerPin,
+                            expectedDeviceId = expectedWindowsDeviceId,
+                            sessionId = remoteSessionId,
+                            sessionToken = remoteSessionToken
+                        )
                     )
-                )
-                status = "Escritorio Windows conectado mediante NLA y certificado fijado."
+                    status = "Escritorio Windows conectado mediante NLA y certificado fijado."
+                } catch (_: RuntimeException) {
+                    // Do not let Android foreground-service startup failures escape a
+                    // FreeRDP callback. Fail closed and ask Windows to revoke the grant.
+                    connected = false
+                    lifecycle.transition(
+                        InfinityConnectSessionState.FAILED,
+                        "No se pudo iniciar la supervisión segura de la sesión."
+                    )
+                    status = "No se pudo iniciar la supervisión segura. Cerrando la sesión remota."
+                    runCatching {
+                        InfinityConnectSessionSupervisorRuntime.requestAuthenticatedRevocation(
+                            context.applicationContext
+                        )
+                    }
+                    val failedClient = client
+                    client = null
+                    frame = null
+                    if (failedClient != null) {
+                        CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+                            runCatching { failedClient.closeSession() }
+                        }
+                    }
+                }
             }
 
             override fun onAuthenticating() {
