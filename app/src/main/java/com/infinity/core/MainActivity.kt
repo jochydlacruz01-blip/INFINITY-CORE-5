@@ -1682,7 +1682,7 @@ DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED"
                     DockInstalledAppAction(
                         app = app,
                         accent = accent,
-                        active = false,
+                        compact = maxW < 390.dp,
                         onClick = {
                             launchApp(app.packageName)
                             dashboardOpen = false
@@ -2883,6 +2883,78 @@ private fun DockAction(
             )
         } else if (!fluentStyle && !referenceStyle) {
             Box(Modifier.width(if (compact) 12.dp else 18.dp).height(2.dp).background(tint.copy(alpha = .65f), RoundedCornerShape(2.dp)))
+        }
+    }
+}
+
+@Composable
+private fun DockInstalledAppAction(
+    app: InstalledApp,
+    accent: Color,
+    active: Boolean = false,
+    compact: Boolean = false,
+    onClick: () -> Unit
+) {
+    val context = LocalContext.current
+    val appIcon = remember(app.packageName, app.activityName) {
+        runCatching {
+            val component = ComponentName(app.packageName, app.activityName)
+            val drawable = runCatching {
+                context.packageManager.getActivityIcon(component)
+            }.getOrElse {
+                context.packageManager.getApplicationIcon(app.packageName)
+            }
+            val iconSize = 128
+            val bitmap = Bitmap.createBitmap(iconSize, iconSize, Bitmap.Config.ARGB_8888)
+            val canvas = Canvas(bitmap)
+            drawable.setBounds(0, 0, iconSize, iconSize)
+            drawable.draw(canvas)
+            bitmap.asImageBitmap()
+        }.getOrNull()
+    }
+    Column(
+        Modifier
+            .widthIn(min = 48.dp)
+            .clip(RoundedCornerShape(13.dp))
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = 4.dp, vertical = 3.dp)
+            .testTag("infinity-dock-app-${app.packageName}")
+            .semantics(mergeDescendants = true) {
+                contentDescription = "Abrir ${app.label}"
+            },
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(3.dp)
+    ) {
+        Box(
+            Modifier.size(38.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(Color(0xFF22364F))
+                .border(1.dp, accent.copy(alpha = .48f), RoundedCornerShape(10.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            if (appIcon != null) {
+                Image(
+                    bitmap = appIcon,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize().padding(2.dp),
+                    contentScale = ContentScale.Fit
+                )
+            } else {
+                Icon(Icons.Filled.Apps, contentDescription = null, tint = accent)
+            }
+        }
+        if (!compact) {
+            Text(
+                app.label,
+                color = Color.White.copy(alpha = .94f),
+                fontSize = 8.sp,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+        if (active) {
+            Box(Modifier.width(14.dp).height(2.dp).background(accent, RoundedCornerShape(2.dp)))
         }
     }
 }
