@@ -47,14 +47,33 @@ class InfinityAndroidDeviceMonitoringAdapterTest {
     }
 
     @Test
-    fun metricsAllowUnavailableCpuTelemetry() {
+    fun metricsExposeBatteryAndThermalTelemetry() {
         val metrics = InfinityDeviceMetrics(
             capturedAtEpochMillis = 1L,
             cpuUsagePercent = null,
             memoryUsagePercent = 50f,
-            storageUsagePercent = null
+            storageUsagePercent = 75f,
+            batteryLevelPercent = 83f,
+            batteryTemperatureCelsius = 34.5f,
+            isCharging = true,
+            thermalStatus = "Normal"
         )
         assertNull(metrics.cpuUsagePercent)
         assertEquals(50f, metrics.memoryUsagePercent!!, 0f)
+        assertEquals(83f, metrics.batteryLevelPercent!!, 0f)
+        assertEquals(34.5f, metrics.batteryTemperatureCelsius!!, 0f)
+        assertEquals(true, metrics.isCharging)
+        assertEquals("Normal", metrics.thermalStatus)
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun metricsRejectBatteryPercentageOutsideRange() {
+        InfinityDeviceMetrics(
+            capturedAtEpochMillis = 1L,
+            cpuUsagePercent = null,
+            memoryUsagePercent = null,
+            storageUsagePercent = null,
+            batteryLevelPercent = 101f
+        )
     }
 }

@@ -3,11 +3,12 @@
 ## Alcance implementado en esta entrega
 
 - Agrega un único panel que consume las capacidades existentes de notificaciones, métricas del dispositivo, conectividad y preferencias del escritorio.
-- Muestra memoria y almacenamiento cuando Android permite obtenerlos. CPU se mantiene como "No disponible": la API estándar no ofrece una medición app-scoped fiable.
+- Muestra memoria, porcentaje de batería, estado de carga, temperatura de batería y estado térmico cuando Android permite obtenerlos. CPU se mantiene como "No disponible": la API estándar no ofrece una medición app-scoped fiable.
+- El porcentaje de almacenamiento corresponde al volumen de datos del dispositivo, no al tamaño exclusivo ocupado por la aplicación.
 - Permite abrir los ajustes oficiales de Android para Wi-Fi, Bluetooth, pantalla, sonido y acceso a notificaciones; no simula controles que Android no expone.
 - Mantiene el feed de notificaciones existente, con modo privado activado por defecto y sin persistir títulos ni cuerpos cuando la protección está activa.
 - Permite seleccionar los cinco temas que ya soporta el escritorio: midnight, ocean, violet, emerald y sunset.
-- Incluye una automatización de bajo riesgo: abrir una aplicación instalada solo mediante acción manual, con regla habilitada, consentimiento explícito, validación de paquete, cooldown de 60 segundos y límite de diez ejecuciones por hora.
+- Incluye una automatización de bajo riesgo: abrir una aplicación instalada solo mediante acción manual, con regla habilitada, consentimiento explícito, validación de paquete, cooldown de 60 segundos y límite de diez ejecuciones dentro de una ventana móvil de 60 minutos.
 - Genera un informe compartible con métricas actuales y metadatos no sensibles. No inventa históricos ni exporta contenido de notificaciones.
 
 ## Límites deliberados de seguridad

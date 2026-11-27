@@ -33,7 +33,6 @@ import com.infinity.core.advanced.domain.automation.ExecuteInfinityAutomationAct
 import com.infinity.core.advanced.domain.automation.InfinityAutomationAction
 import com.infinity.core.advanced.domain.automation.InfinityAutomationDecision
 import com.infinity.core.advanced.domain.automation.InfinityAutomationExecutionResult
-import com.infinity.core.advanced.domain.automation.InfinityAutomationPolicy
 import com.infinity.core.advanced.domain.automation.InfinityAutomationRequest
 import com.infinity.core.advanced.domain.automation.InfinityAutomationExecutionLedger
 import com.infinity.core.advanced.domain.capabilities.InfinityCapabilityRegistry
@@ -47,7 +46,6 @@ import java.util.Date
 
 private const val AUTOMATION_PREFS = "infinity_advanced_automation"
 private const val AUTOMATION_RULE_ID = "user_launch_application"
-private const val HOUR_MILLIS = 60L * 60L * 1000L
 
 @Composable
 fun InfinityAdvancedAutomationCard(
@@ -124,55 +122,65 @@ fun InfinityAdvancedAutomationCard(
                     if (executing) return@Button
                     executing = true
                     scope.launch {
-                        val now = System.currentTimeMillis()
-                        val history = InfinityAutomationExecutionLedger.recentExecutions(
-                            preferences.getString("execution_timestamps", "").orEmpty()
-                                .split(',')
-                                .mapNotNull { it.toLongOrNull() },
-                            now
-                        )
-                        val count = history.size
-                        val lastExecution = history.lastOrNull()
-                        val request = InfinityAutomationRequest(
-                            ruleId = AUTOMATION_RULE_ID,
-                            action = InfinityAutomationAction.LAUNCH_APPLICATION,
-                            enabled = enabled,
-                            userConsentGranted = consent,
-                            targetPackageName = targetPackage,
-                            nowEpochMillis = now,
-                            lastExecutionEpochMillis = lastExecution,
-                            executionsInLastHour = count
-                        )
-                        val result = try {
-                            runCatching {
+                        try {
+                            val now = System.currentTimeMillis()
+                            // Snapshot the user's current authorization before suspending.
+                            val targetPackageSnapshot = targetPackage
+                            val enabledSnapshot = enabled
+                            val consentSnapshot = consent
+                            val history = InfinityAutomationExecutionLedger.recentExecutions(
+                                preferences.getString("execution_timestamps", "").orEmpty()
+                                    .split(',')
+                                    .takeLast(64)
+                                    .mapNotNull { it.toLongOrNull() },
+                                now
+                            )
+                            val request = InfinityAutomationRequest(
+                                ruleId = AUTOMATION_RULE_ID,
+                                action = InfinityAutomationAction.LAUNCH_APPLICATION,
+                                enabled = enabledSnapshot,
+                                userConsentGranted = consentSnapshot,
+                                targetPackageName = targetPackageSnapshot,
+                                nowEpochMillis = now,
+                                lastExecutionEpochMillis = history.lastOrNull(),
+                                executionsInLastHour = history.size
+                            )
+                            val result = try {
                                 ExecuteInfinityAutomationAction(registry)(request)
-                            }.getOrElse { InfinityAutomationExecutionResult.ExecutionFailed }
-                        } finally {
-                            // The button state is restored below after the result is rendered.
-                        }
-                        status = when (result) {
-                            InfinityAutomationExecutionResult.Executed -> {
-                                val updatedHistory = InfinityAutomationExecutionLedger.recordExecution(history, now)
-                                preferences.edit()
-                                    .putString("execution_timestamps", updatedHistory.joinToString(","))
-                                    .apply()
-                                "Aplicación abierta correctamente."
+                            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                                throw cancelled
+                            } catch (_: Exception) {
+                                InfinityAutomationExecutionResult.ExecutionFailed
                             }
-                            InfinityAutomationExecutionResult.CapabilityUnavailable -> "La capacidad de apertura no está disponible."
-                            InfinityAutomationExecutionResult.TargetNotFound -> "No se encontró una aplicación con ese paquete."
-                            InfinityAutomationExecutionResult.ExecutionFailed -> "Android no permitió abrir la aplicación."
-                            is InfinityAutomationExecutionResult.Rejected -> when (result.decision) {
-                                InfinityAutomationDecision.Allowed -> "Acción autorizada."
-                                is InfinityAutomationDecision.Rejected -> when (result.decision.reason) {
-                                    InfinityAutomationDecision.Reason.RULE_DISABLED -> "Habilita la regla antes de ejecutarla."
-                                    InfinityAutomationDecision.Reason.CONSENT_REQUIRED -> "Debes autorizar esta acción."
-                                    InfinityAutomationDecision.Reason.RATE_LIMIT_EXCEEDED -> "Límite alcanzado: espera una hora."
-                                    InfinityAutomationDecision.Reason.COOLDOWN_ACTIVE -> "Espera un minuto antes de repetir la acción."
-                                    else -> "La solicitud no superó las validaciones de seguridad."
+                            status = when (result) {
+                                InfinityAutomationExecutionResult.Executed -> {
+                                    val updatedHistory = InfinityAutomationExecutionLedger.recordExecution(history, now)
+                                    preferences.edit()
+                                        .putString("execution_timestamps", updatedHistory.joinToString(","))
+                                        .apply()
+                                    "Aplicación abierta correctamente."
+                                }
+                                InfinityAutomationExecutionResult.CapabilityUnavailable -> "La capacidad de apertura no está disponible."
+                                InfinityAutomationExecutionResult.TargetNotFound -> "No se encontró una aplicación con ese paquete."
+                                InfinityAutomationExecutionResult.ExecutionFailed -> "Android no permitió abrir la aplicación."
+                                is InfinityAutomationExecutionResult.Rejected -> when (result.decision) {
+                                    InfinityAutomationDecision.Allowed -> "Acción autorizada."
+                                    is InfinityAutomationDecision.Rejected -> when (result.decision.reason) {
+                                        InfinityAutomationDecision.Reason.RULE_DISABLED -> "Habilita la regla antes de ejecutarla."
+                                        InfinityAutomationDecision.Reason.CONSENT_REQUIRED -> "Debes autorizar esta acción."
+                                        InfinityAutomationDecision.Reason.RATE_LIMIT_EXCEEDED -> "Límite alcanzado: espera una hora."
+                                        InfinityAutomationDecision.Reason.COOLDOWN_ACTIVE -> "Espera un minuto antes de repetir la acción."
+                                        else -> "La solicitud no superó las validaciones de seguridad."
+                                    }
                                 }
                             }
+                        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                            throw cancelled
+                        } catch (_: Exception) {
+                            status = "No se pudo completar la acción. Revisa la aplicación y vuelve a intentarlo."
+                        } finally {
+                            executing = false
                         }
-                        executing = false
                     }
                 }
             ) {
@@ -257,6 +265,7 @@ fun InfinityAdvancedThemeCard(
     }
     val scope = rememberCoroutineScope()
     var status by remember { mutableStateOf("Elige un tema para actualizar el escritorio INFINITY.") }
+    var selectingTheme by remember { mutableStateOf(false) }
     val themes = listOf(
         "midnight" to "Medianoche",
         "ocean" to "Océano",
@@ -283,14 +292,20 @@ fun InfinityAdvancedThemeCard(
                     pair.forEach { (id, label) ->
                         Button(
                             modifier = Modifier.weight(1f).testTag("advanced-theme-$id"),
-                            enabled = themeCapability != null && id != selectedThemeId,
+                            enabled = themeCapability != null && id != selectedThemeId && !selectingTheme,
                             onClick = {
+                                if (selectingTheme) return@Button
+                                selectingTheme = true
                                 scope.launch {
-                                    status = runCatching {
+                                    try {
                                         themeCapability?.selectTheme(id)
-                                        "Tema $label aplicado."
-                                    }.getOrElse {
-                                        "No se pudo aplicar el tema. El escritorio conserva su configuración anterior."
+                                        status = "Tema $label aplicado."
+                                    } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                                        throw cancelled
+                                    } catch (_: Exception) {
+                                        status = "No se pudo aplicar el tema. El escritorio conserva su configuración anterior."
+                                    } finally {
+                                        selectingTheme = false
                                     }
                                 }
                             }
