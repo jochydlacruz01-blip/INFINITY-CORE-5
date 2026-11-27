@@ -60,7 +60,7 @@ class InfinityConnectCredentialVault(context: Context) {
         return try {
             val cipher = Cipher.getInstance(TRANSFORMATION)
             cipher.init(Cipher.ENCRYPT_MODE, key())
-            cipher.updateAAD(aad(profileId, endpoint))
+            cipher.updateAAD(infinityConnectCredentialAad(profileId, endpoint))
             val iv = cipher.iv
             val encrypted = cipher.doFinal(clear)
             val payload = byteArrayOf(VERSION) + iv + encrypted
@@ -119,7 +119,7 @@ class InfinityConnectCredentialVault(context: Context) {
             try {
                 val cipher = Cipher.getInstance(TRANSFORMATION)
                 cipher.init(Cipher.DECRYPT_MODE, key(), GCMParameterSpec(TAG_BITS, iv))
-                cipher.updateAAD(aad(profileId, endpoint))
+                cipher.updateAAD(infinityConnectCredentialAad(profileId, endpoint))
                 val clear = cipher.doFinal(encrypted)
                 return try {
                     String(clear, StandardCharsets.UTF_8)
@@ -167,13 +167,15 @@ class InfinityConnectCredentialVault(context: Context) {
         }
     }
 
-    private fun decodeBounded(encoded: String): ByteArray? = try {
+    private fun decodeBounded(encoded: String): ByteArray? {
         if (encoded.length > MAX_ENCODED_LENGTH) return null
-        Base64.decode(encoded, Base64.NO_WRAP).takeIf {
-            it.size in LEGACY_MIN_PAYLOAD_LENGTH..MAX_PAYLOAD_LENGTH
+        return try {
+            Base64.decode(encoded, Base64.NO_WRAP).takeIf {
+                it.size in LEGACY_MIN_PAYLOAD_LENGTH..MAX_PAYLOAD_LENGTH
+            }
+        } catch (_: Exception) {
+            null
         }
-    } catch (_: Exception) {
-        null
     }
 
     private fun isValidIdentity(profileId: String, endpoint: String): Boolean =
