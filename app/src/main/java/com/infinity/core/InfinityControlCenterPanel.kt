@@ -331,8 +331,12 @@ private fun StatusLine(icon: ImageVector, label: String, value: String) {
         )
         Text(
             text = value,
+            modifier = Modifier.weight(1f),
             style = MaterialTheme.typography.labelMedium,
-            color = Color.White
+            color = Color.White,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = androidx.compose.ui.text.style.TextAlign.End
         )
     }
 }
