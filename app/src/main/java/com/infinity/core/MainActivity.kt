@@ -672,8 +672,8 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                 Brush.linearGradient(
                     when {
                         iconPack == "windows11" -> if (lightMode)
-                            listOf(Color(0xFFEAF4FF), Color(0xFFB7D8F7), Color(0xFF6FA9DE))
-                            else listOf(Color(0xFF020B1A), Color(0xFF073A70), Color(0xFF06152B))
+                            infinityThemeBackgroundStops(themeChoice, lightMode = true)
+                            else listOf(Color(0xFF020B1A), accent.copy(alpha = .42f), Color(0xFF06152B))
                         backgroundPreset == "punk" -> listOf(Color(0xFF24051F), Color(0xFF631B43), Color(0xFF102338))
                         backgroundPreset == "interstellar" -> listOf(Color(0xFF030713), Color(0xFF17265D), Color(0xFF46246A))
                         backgroundPreset == "aurora" -> listOf(Color(0xFF062E36), Color(0xFF174E60), Color(0xFF102238))
