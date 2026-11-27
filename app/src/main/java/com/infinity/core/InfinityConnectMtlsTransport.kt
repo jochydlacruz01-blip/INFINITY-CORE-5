@@ -267,6 +267,84 @@ internal class InfinityConnectMtlsTransport(
         }
     }
 
+
+    data class AuthorizedDeviceStatus(
+        val fingerprint: String,
+        val deviceId: String,
+        val subject: String,
+        val serialNumber: String,
+        val status: String,
+        val approvedAtUtc: String,
+        val lastSeenUtc: String?,
+        val notBeforeUtc: String,
+        val notAfterUtc: String
+    )
+
+    fun fetchCurrentDeviceStatus(
+        baseUrl: String,
+        clientKeyAlias: String,
+        trustedServerSha256: String,
+        expectedDeviceId: String
+    ): AuthorizedDeviceStatus {
+        require(fetchWindowsIdentity(baseUrl, clientKeyAlias, trustedServerSha256, expectedDeviceId).deviceId == expectedDeviceId) {
+            "The authenticated Companion identity changed before device status lookup."
+        }
+        val connection = openMtlsConnection(
+            baseUrl.trimEnd('/') + "/v1/device/self",
+            clientKeyAlias,
+            trustedServerSha256
+        )
+        try {
+            connection.requestMethod = "GET"
+            connection.setRequestProperty("Accept", "application/json")
+            require(connection.responseCode == 200) {
+                "Windows rejected the device status request (HTTP ${connection.responseCode})."
+            }
+            val json = JSONObject(readBoundedResponse(connection).toString(Charsets.UTF_8))
+            val result = AuthorizedDeviceStatus(
+                fingerprint = normalizePin(json.getString("fingerprint"))
+                    ?: throw IllegalArgumentException("Windows returned an invalid device fingerprint."),
+                deviceId = json.getString("deviceId"),
+                subject = json.getString("subject"),
+                serialNumber = json.getString("serialNumber"),
+                status = json.getString("status"),
+                approvedAtUtc = json.getString("approvedAtUtc"),
+                lastSeenUtc = json.optString("lastSeenUtc").takeUnless { it.isBlank() || it == "null" },
+                notBeforeUtc = json.getString("notBeforeUtc"),
+                notAfterUtc = json.getString("notAfterUtc")
+            )
+            require(result.deviceId == expectedDeviceId && result.status == "approved") {
+                "Windows device status does not match the expected active identity."
+            }
+            return result
+        } finally {
+            connection.disconnect()
+        }
+    }
+
+    /** Revokes this Android certificate on Windows using only the current mTLS identity. */
+    fun revokeCurrentDevice(
+        baseUrl: String,
+        clientKeyAlias: String,
+        trustedServerSha256: String,
+        expectedDeviceId: String
+    ): Boolean {
+        require(fetchWindowsIdentity(baseUrl, clientKeyAlias, trustedServerSha256, expectedDeviceId).deviceId == expectedDeviceId) {
+            "The authenticated Companion identity changed before device revocation."
+        }
+        val connection = openMtlsConnection(
+            baseUrl.trimEnd('/') + "/v1/device/self",
+            clientKeyAlias,
+            trustedServerSha256
+        )
+        try {
+            connection.requestMethod = "DELETE"
+            return connection.responseCode == 204
+        } finally {
+            connection.disconnect()
+        }
+    }
+
     data class FileTransferReceipt(
         val fileId: String,
         val fileName: String,

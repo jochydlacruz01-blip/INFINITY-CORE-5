@@ -164,4 +164,73 @@ public sealed class AuthorizedDeviceStoreTests
             DateTimeOffset.UtcNow.AddMinutes(-1),
             DateTimeOffset.UtcNow.AddHours(1));
     }
+
+    [Fact]
+    public void DeviceCanBeListedBlockedAndReenabledButRevokedCertificateIsTerminal()
+    {
+        if (!OperatingSystem.IsWindows()) return;
+
+        LocalEnrollmentCertificateAuthority.Initialize();
+        using var certificate = CreateIssuedClientCertificate();
+        var path = Path.Combine(Path.GetTempPath(), $"infinity-managed-{Guid.NewGuid():N}.cer");
+        var pin = CertificatePinning.ComputeSha256Pin(certificate);
+        try
+        {
+            File.WriteAllBytes(path, certificate.Export(X509ContentType.Cert));
+            AuthorizedDeviceStore.ApproveFromLocalConsole(path);
+            var store = new AuthorizedDeviceStore();
+            var approved = store.GetDevice(pin);
+            Assert.NotNull(approved);
+            Assert.Equal("approved", approved!.Status);
+            Assert.Equal("infinity-authorized-device-test", approved.DeviceId);
+            Assert.Equal(pin, approved.Fingerprint);
+            Assert.Contains(store.ListAuthorizedDevices(), item => item.Fingerprint == pin);
+
+            Assert.True(AuthorizedDeviceStore.BlockFromLocalConsole(pin));
+            Assert.False(store.IsAuthorized(certificate));
+            Assert.Equal("blocked", store.GetDevice(pin)?.Status);
+
+            Assert.True(AuthorizedDeviceStore.EnableFromLocalConsole(pin));
+            Assert.True(store.IsAuthorized(certificate));
+            Assert.Equal("approved", store.GetDevice(pin)?.Status);
+
+            Assert.True(AuthorizedDeviceStore.RevokeFromLocalConsole(pin));
+            Assert.False(store.IsAuthorized(certificate));
+            Assert.Equal("revoked", store.GetDevice(pin)?.Status);
+            Assert.False(AuthorizedDeviceStore.EnableFromLocalConsole(pin));
+            Assert.False(AuthorizedDeviceStore.RevokeFromLocalConsole(pin));
+        }
+        finally
+        {
+            AuthorizedDeviceStore.RevokeFromLocalConsole(pin);
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void AuthenticatedDeviceCanOnlyRevokeItsOwnFingerprint()
+    {
+        if (!OperatingSystem.IsWindows()) return;
+
+        LocalEnrollmentCertificateAuthority.Initialize();
+        using var certificate = CreateIssuedClientCertificate();
+        var path = Path.Combine(Path.GetTempPath(), $"infinity-self-revoke-{Guid.NewGuid():N}.cer");
+        var pin = CertificatePinning.ComputeSha256Pin(certificate);
+        try
+        {
+            File.WriteAllBytes(path, certificate.Export(X509ContentType.Cert));
+            AuthorizedDeviceStore.ApproveFromLocalConsole(path);
+            var store = new AuthorizedDeviceStore();
+            Assert.False(store.RevokeAuthenticatedDevice("not-a-fingerprint"));
+            Assert.True(store.RevokeAuthenticatedDevice(pin));
+            Assert.False(store.IsFingerprintAuthorized(pin));
+            Assert.Equal("revoked", store.GetDevice(pin)?.Status);
+            Assert.False(store.RevokeAuthenticatedDevice(pin));
+        }
+        finally
+        {
+            AuthorizedDeviceStore.RevokeFromLocalConsole(pin);
+            File.Delete(path);
+        }
+    }
 }

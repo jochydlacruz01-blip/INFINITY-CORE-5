@@ -78,6 +78,26 @@ if (args.Length == 2 && args[0] == "--revoke-client-cert")
     Console.WriteLine(revoked ? "Device certificate revoked." : "No matching authorized device was found.");
     return;
 }
+if (args.Length == 1 && args[0] == "--list-authorized-devices")
+{
+    var devices = new AuthorizedDeviceStore().ListAuthorizedDevices();
+    Console.WriteLine("STATUS\tDEVICE_ID\tFINGERPRINT\tLAST_SEEN_UTC");
+    foreach (var device in devices)
+        Console.WriteLine($"{device.Status}\t{device.DeviceId}\t{device.Fingerprint}\t{device.LastSeenUtc ?? "never"}");
+    return;
+}
+if (args.Length == 2 && args[0] == "--block-client-cert")
+{
+    var blocked = AuthorizedDeviceStore.BlockFromLocalConsole(args[1]);
+    Console.WriteLine(blocked ? "Device blocked; active sessions are being cancelled." : "No approved device matched this fingerprint.");
+    return;
+}
+if (args.Length == 2 && args[0] == "--enable-client-cert")
+{
+    var enabled = AuthorizedDeviceStore.EnableFromLocalConsole(args[1]);
+    Console.WriteLine(enabled ? "Previously blocked device re-enabled." : "No blocked device matched this fingerprint. Revoked certificates cannot be re-enabled.");
+    return;
+}
 
 var settings = CompanionSettings.LoadFromEnvironment();
 var authorizedDevices = new AuthorizedDeviceStore();
@@ -180,6 +200,7 @@ app.Use(async (context, next) =>
     }
 
     operationRegistry.ActivateDevice(fingerprint);
+    authorizedDevices.TouchLastSeen(fingerprint);
     auditLog.Write("request.authenticated", fingerprint, null, "allowed");
     await next();
 });
@@ -191,6 +212,35 @@ app.MapGet("/v1/identity", () => Results.Ok(new CompanionIdentity(
     "TLS 1.3 mutual certificate authentication",
     "Remote capabilities are administrator-policy gated and default-deny",
     capabilityPolicy.GetAllowedCapabilities().OrderBy(value => value, StringComparer.Ordinal).ToArray())));
+
+app.MapGet("/v1/device/self", async (HttpContext context) =>
+{
+    var clientCertificate = await context.Connection.GetClientCertificateAsync();
+    if (clientCertificate is null) return Results.Unauthorized();
+    var fingerprint = CertificatePinning.ComputeSha256Pin(clientCertificate);
+    var device = authorizedDevices.GetDevice(fingerprint);
+    return device is null ? Results.Unauthorized() : Results.Ok(device);
+});
+
+app.MapDelete("/v1/device/self", async (HttpContext context) =>
+{
+    var clientCertificate = await context.Connection.GetClientCertificateAsync();
+    if (clientCertificate is null) return Results.Unauthorized();
+    var fingerprint = CertificatePinning.ComputeSha256Pin(clientCertificate);
+    if (!authorizedDevices.RevokeAuthenticatedDevice(fingerprint))
+        return Results.NotFound();
+
+    // Remove authorization and close admitted work before acknowledging self-revocation.
+    var sessionsRevoked = authorizedSessions.RevokeDevice(fingerprint);
+    var operationsCancelled = operationRegistry.RevokeDevice(fingerprint);
+    auditLog.Write("device.self-revoked", fingerprint, null, "revoked");
+    auditLog.Write(
+        "device.self-revocation-cleanup",
+        fingerprint,
+        null,
+        $"sessions={sessionsRevoked};operations-cancelled={operationsCancelled}");
+    return Results.NoContent();
+});
 
 app.MapPost("/v1/sessions", async (HttpContext context, SessionCreateRequest request) =>
 {

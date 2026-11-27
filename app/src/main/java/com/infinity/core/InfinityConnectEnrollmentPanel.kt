@@ -56,6 +56,8 @@ fun InfinityConnectEnrollmentPanel() {
     var status by remember { mutableStateOf("Enrolamiento pendiente. Todavía no hay una identidad Windows verificada.") }
     var busy by remember { mutableStateOf(false) }
     var confirmForget by remember { mutableStateOf(false) }
+    var confirmDeviceRevocation by remember { mutableStateOf(false) }
+    var deviceStatus by remember { mutableStateOf<String?>(null) }
     var confirmSessionConsent by remember { mutableStateOf(false) }
     var identityVerified by remember { mutableStateOf(false) }
     var sessionActive by remember { mutableStateOf(false) }
@@ -268,6 +270,38 @@ fun InfinityConnectEnrollmentPanel() {
                 modifier = Modifier.fillMaxWidth()
             ) { Text("3 · Verificar identidad Windows con mTLS") }
             Text(status, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
+            if (identityVerified) {
+                OutlinedButton(
+                    enabled = !busy,
+                    onClick = {
+                        scope.launch {
+                            busy = true
+                            val result = runCatching {
+                                withContext(Dispatchers.IO) {
+                                    InfinityConnectMtlsTransport().fetchCurrentDeviceStatus(
+                                        companionBaseUrl(companionHost, companionPort),
+                                        CONNECT_CLIENT_KEY_ALIAS,
+                                        serverPin,
+                                        expectedServerId
+                                    )
+                                }
+                            }
+                            busy = false
+                            deviceStatus = result.getOrNull()?.let { device ->
+                                "Estado: ${device.status} · ID: ${device.deviceId} · Última conexión: ${device.lastSeenUtc ?: "sin registro"}"
+                            }
+                            if (result.isFailure) status = "No se pudo consultar el dispositivo: ${result.exceptionOrNull()?.message ?: "error mTLS"}"
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("Consultar dispositivo autorizado") }
+                deviceStatus?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+                OutlinedButton(
+                    enabled = !busy,
+                    onClick = { confirmDeviceRevocation = true },
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("Revocar este dispositivo en Windows") }
+            }
             if (identityVerified && !sessionActive) {
                 OutlinedButton(
                     enabled = !busy,
@@ -430,6 +464,64 @@ fun InfinityConnectEnrollmentPanel() {
             ) { Text("Eliminar identidad y confianza de esta tablet") }
         }
     }
+    if (confirmDeviceRevocation) {
+        AlertDialog(
+            onDismissRequest = { if (!busy) confirmDeviceRevocation = false },
+            title = { Text("Revocar este dispositivo") },
+            text = { Text("Windows marcará este certificado como revocado, cancelará sus sesiones y rechazará conexiones futuras. Después se eliminará la clave privada de Android Keystore. Esta acción no se puede deshacer; para volver a conectar habrá que emitir y aprobar un certificado nuevo.") },
+            confirmButton = {
+                TextButton(
+                    enabled = !busy,
+                    onClick = {
+                        confirmDeviceRevocation = false
+                        scope.launch {
+                            busy = true
+                            val revoked = runCatching {
+                                withContext(Dispatchers.IO) {
+                                    InfinityConnectMtlsTransport().revokeCurrentDevice(
+                                        companionBaseUrl(companionHost, companionPort),
+                                        CONNECT_CLIENT_KEY_ALIAS,
+                                        serverPin,
+                                        expectedServerId
+                                    )
+                                }
+                            }
+                            if (revoked.getOrDefault(false)) {
+                                runCatching { InfinityConnectIdentityKeyStore().delete(CONNECT_CLIENT_KEY_ALIAS) }
+                                val vault = InfinityConnectCredentialVault(context)
+                                vault.delete("identity-session:$expectedServerId")
+                                vault.delete("remote-session:$expectedServerId")
+                                vault.delete("file-session:$expectedServerId")
+                                prefs.edit().clear().apply()
+                                identityVerified = false
+                                sessionActive = false
+                                activeSessionId = ""
+                                remoteSessionActive = false
+                                remoteSessionId = ""
+                                remoteSessionToken = ""
+                                fileSessionActive = false
+                                fileSessionId = ""
+                                fileSessionToken = ""
+                                allowedCapabilities = setOf("identity.read")
+                                deviceStatus = "Revocado"
+                                status = "Dispositivo revocado en Windows. Sesiones canceladas y clave local eliminada."
+                            } else {
+                                status = "Windows no confirmó la revocación. La identidad local se conserva para permitir reintentar."
+                            }
+                            busy = false
+                        }
+                    }
+                ) { Text("Revocar definitivamente") }
+            },
+            dismissButton = {
+                TextButton(
+                    enabled = !busy,
+                    onClick = { confirmDeviceRevocation = false }
+                ) { Text("Cancelar") }
+            }
+        )
+    }
+
     if (confirmSessionConsent) {
         AlertDialog(
             onDismissRequest = { confirmSessionConsent = false },
