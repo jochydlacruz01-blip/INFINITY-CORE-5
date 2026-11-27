@@ -148,8 +148,7 @@ jobs:
           retention-days: 14
 
   emulator-ui:
-    # Run full tablet/phone acceptance on the final PACK14 branch push; keep other
-    # branches and routine PR updates source-only to control emulator cost.
+    # Run phone/tablet acceptance only after development is complete and explicitly dispatched.
     if: github.event_name == 'workflow_dispatch' # Manual only; device simulations are deferred until ADVANCED implementation is complete.
     # Final emulator validation runs only after source, unit-test and lint gates pass.
     name: Instrumented Android UI (${{ matrix.device }})
