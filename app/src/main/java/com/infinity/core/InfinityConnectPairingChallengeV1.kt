@@ -68,7 +68,8 @@ internal object InfinityConnectPairingChallengeV1 {
             cert.checkValidity(Date(nowMillis))
             if (cert.basicConstraints < 0) return false
             val usage = cert.keyUsage
-            if (usage != null && (usage.size <= 5 || !usage[5])) return false
+            // A pinned certificate must explicitly authorize certificate signing; absent KeyUsage is not trusted.
+            if (usage == null || usage.size <= 5 || !usage[5]) return false
             val key = cert.publicKey as? ECPublicKey ?: return false
             if (key.params.curve.field.fieldSize != 384) return false
             Signature.getInstance("SHA384withECDSA").run {
