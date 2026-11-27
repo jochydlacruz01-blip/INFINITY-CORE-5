@@ -10,6 +10,7 @@ import com.infinity.core.advanced.domain.capabilities.InfinityUserPreferencesCap
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.map
 
 private const val DESKTOP_PREFERENCES = "infinity_desktop"
 private const val ADVANCED_PREFERENCES = "infinity_advanced_preferences"
@@ -44,9 +45,7 @@ internal class InfinitySharedPreferencesCapabilityAdapter(
 
     override val selectedThemeId: Flow<String> =
         observePreference(desktopPreferences, THEME_KEY, "midnight")
-            .let { flow ->
-                kotlinx.coroutines.flow.map(flow, ::infinityNormalizeAdvancedThemeId)
-            }
+            .map(::infinityNormalizeAdvancedThemeId)
 
     override suspend fun selectTheme(themeId: String) {
         val normalized = infinityNormalizeAdvancedThemeId(themeId)
