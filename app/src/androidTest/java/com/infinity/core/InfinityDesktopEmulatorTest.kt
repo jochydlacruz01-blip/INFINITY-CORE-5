@@ -802,4 +802,73 @@ class InfinityDesktopEmulatorTest {
         compose.onNodeWithTag("advanced-automation-run").assertIsNotEnabled()
     }
 
+
+    @Test(timeout = 120_000)
+    fun notificationPrivacyRedactsExistingAndFutureContent() {
+        val privacyPreferences = context.getSharedPreferences("infinity_privacy", 0)
+        privacyPreferences.edit().putBoolean("hide_notification_content", false).commit()
+        InfinityNotificationStore.setHideContent(false)
+        InfinityNotificationStore.update(
+            InfinityNotification(
+                key = "privacy-existing-acceptance",
+                packageName = context.packageName,
+                appName = "PRIVATE SOURCE",
+                title = "Private title",
+                message = "Private body",
+                timestamp = System.currentTimeMillis(),
+                ongoing = false,
+                clearable = true,
+                contentIntent = null
+            )
+        )
+        compose.waitUntil(timeoutMillis = 5_000) {
+            InfinityNotificationStore.notifications.any { it.key == "privacy-existing-acceptance" }
+        }
+
+        compose.onNodeWithContentDescription("ADVANCED").performClick()
+        settleComposeFrame()
+        waitForTag("infinity-advanced-panel")
+        compose.onNodeWithText("PRIVATE SOURCE").assertExists()
+        compose.onNodeWithText("Private title").assertExists()
+        compose.onNodeWithText("Private body").assertExists()
+
+        compose.onNodeWithTag("advanced-privacy-hide-content").performClick()
+        settleComposeFrame()
+        assertTrue(privacyPreferences.getBoolean("hide_notification_content", false))
+        assertTrue(
+            "Enabling privacy must scrub existing titles and messages",
+            InfinityNotificationStore.notifications.first { it.key == "privacy-existing-acceptance" }
+                .let { it.title.isEmpty() && it.message.isEmpty() }
+        )
+        compose.onNodeWithText("PRIVATE SOURCE").assertDoesNotExist()
+        compose.onNodeWithText("Private title").assertDoesNotExist()
+        compose.onNodeWithText("Private body").assertDoesNotExist()
+        compose.onNodeWithText("Aplicación").assertExists()
+
+        InfinityNotificationStore.update(
+            InfinityNotification(
+                key = "privacy-future-acceptance",
+                packageName = context.packageName,
+                appName = "FUTURE PRIVATE SOURCE",
+                title = "Future private title",
+                message = "Future private body",
+                timestamp = System.currentTimeMillis() + 1,
+                ongoing = false,
+                clearable = true,
+                contentIntent = null
+            )
+        )
+        compose.waitUntil(timeoutMillis = 5_000) {
+            InfinityNotificationStore.notifications.any { it.key == "privacy-future-acceptance" }
+        }
+        assertTrue(
+            "Privacy must redact newly received content before it is retained",
+            InfinityNotificationStore.notifications.first { it.key == "privacy-future-acceptance" }
+                .let { it.title.isEmpty() && it.message.isEmpty() }
+        )
+        compose.onNodeWithText("FUTURE PRIVATE SOURCE").assertDoesNotExist()
+        compose.onNodeWithText("Future private title").assertDoesNotExist()
+        compose.onNodeWithText("Future private body").assertDoesNotExist()
+    }
+
 }
