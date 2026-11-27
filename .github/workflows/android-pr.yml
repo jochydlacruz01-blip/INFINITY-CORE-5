@@ -1,0 +1,216 @@
+name: PROJECT INFINITY - Pull Request Verification
+
+on:
+  pull_request:
+    branches:
+      - INFINITY-0.9
+      - INFINITY-AURORA-NEXT-INTEGRATED
+      - INFINITY-PACK-01-FILES-REVIEWED
+      - INFINITY-PACK-02-ORBIT-WORKSPACES
+      - INFINITY-PACK-03-DOCK-RESPONSIVE
+      - INFINITY-PACK-04-START-CATALOG
+      - INFINITY-PACK-05-AURORA-WINDOWS
+      - INFINITY-PACK-06-CONNECT-SECURITY
+      - INFINITY-PACK-07-CONTROL-CENTER
+      - INFINITY-PACK-08-ORBIT-SPACES
+      - INFINITY-PACK-09-SECURITY-AUDIT
+      - INFINITY-PACK-10-FINAL-INTEGRATION
+      - INFINITY-PACK-11-SECURE-PAIRING
+      - INFINITY-PACK-12-WINDOWS-COMPANION
+      - INFINITY-PACK-13-FUTURISTIC-DESKTOP-VISUAL
+      - INFINITY-PACK-14-REMOTE-FRAME-PIPELINE
+  push:
+    branches:
+      - INFINITY-PACK-01-FILES-REVIEWED
+      - INFINITY-PACK-02-ORBIT-WORKSPACES
+      - INFINITY-PACK-03-DOCK-RESPONSIVE
+      - INFINITY-PACK-04-START-CATALOG
+      - INFINITY-PACK-05-AURORA-WINDOWS
+      - INFINITY-PACK-06-CONNECT-SECURITY
+      - INFINITY-PACK-07-CONTROL-CENTER
+      - INFINITY-PACK-08-ORBIT-SPACES
+      - INFINITY-PACK-09-SECURITY-AUDIT
+      - INFINITY-PACK-10-FINAL-INTEGRATION
+      - INFINITY-PACK-11-SECURE-PAIRING
+      - INFINITY-PACK-12-WINDOWS-COMPANION
+      - INFINITY-PACK-13-FUTURISTIC-DESKTOP-VISUAL
+      - INFINITY-PACK-14-REMOTE-FRAME-PIPELINE
+    paths:
+      - "app/**"
+      - "freerdp-core/**"
+      - "external/FreeRDP/**"
+      - "scripts/**"
+      - "gradle/**"
+      - "*.gradle.kts"
+      - "gradle.properties"
+      - "settings.gradle.kts"
+      - ".gitmodules"
+      - "codemagic.yaml"
+      - ".github/workflows/android.yml"
+      - ".github/workflows/android-pr.yml"
+      - ".github/workflows/freerdp-android.yml"
+  workflow_dispatch:
+    inputs:
+      instrumentation_test:
+        description: "Instrumented test to run on the Android 14 emulator"
+        required: true
+        type: choice
+        default: orbitMinimizeAllOnlyAffectsTheActiveWorkspace
+        options:
+          - orbitMinimizeAllOnlyAffectsTheActiveWorkspace
+          - exerciseDesktopCaptureRealScreensAcrossOrientations
+          - all
+
+permissions:
+  contents: read
+
+concurrency:
+  # Each dispatch/push is isolated so independent verification sends can run concurrently.
+  group: infinity-pr-${{ github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: Verify source (unit tests and lint only; no APK)
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    steps:
+      - name: Checkout pull request
+        uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - name: Configure Java 17
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - name: Configure Gradle 8.9
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: '8.9'
+
+      - name: Verify project structure and security defaults
+        run: |
+          set -euo pipefail
+          test -f settings.gradle.kts
+          test -f build.gradle.kts
+          test -f app/build.gradle.kts
+          test -f app/src/main/java/com/infinity/core/MainActivity.kt
+          test -f app/src/main/AndroidManifest.xml
+          grep -q 'android:allowBackup="false"' app/src/main/AndroidManifest.xml
+          grep -q 'android:usesCleartextTraffic="false"' app/src/main/AndroidManifest.xml
+
+      - name: Enforce source-only development policy
+        run: |
+          set -euo pipefail
+          python3 scripts/verify_no_apk_builds.py .github/workflows
+          python3 scripts/verify_no_apk_builds.py codemagic.yaml
+
+      - name: Verify integrated INFINITY package inventory
+        run: |
+          set -euo pipefail
+          python3 scripts/verify_infinity_pack_inventory.py .
+          python3 -m unittest discover -s scripts/tests -p 'test_*.py' -v
+
+      - name: Audit Android manifest security boundaries
+        run: |
+          set -euo pipefail
+          python3 scripts/verify_android_security_manifest.py app/src/main/AndroidManifest.xml
+          python3 -m unittest discover -s scripts/tests -p 'test_*.py' -v
+
+      - name: Run source compilation and unit tests (no APK)
+        run: gradle compileDebugKotlin compileDebugAndroidTestKotlin testDebugUnitTest testReleaseUnitTest --stacktrace
+
+      - name: Verify pinned FreeRDP source revision
+        run: |
+          set -euo pipefail
+          test -f external/FreeRDP/client/Android/Studio/freeRDPCore/src/main/cpp/CMakeLists.txt
+          test "$(git -C external/FreeRDP rev-parse HEAD)" = "65bcca1913a28cbdd7eb913599f692bd2b707991"
+
+      - name: Run Android lint (no APK)
+        run: gradle lintDebug lintRelease --stacktrace
+
+      - name: Preserve Android unit test reports (no APK)
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: INFINITY-ANDROID-TEST-REPORTS-${{ github.sha }}
+          path: |
+            app/build/test-results/**
+            app/build/reports/tests/**
+            app/build/reports/lint-results*.html
+            freerdp-core/build/reports/lint-results*.html
+          if-no-files-found: warn
+          retention-days: 14
+
+  emulator-ui:
+    if: github.event_name == 'workflow_dispatch' # Manual only; never flood PR pushes with emulator jobs.
+    # Final emulator validation runs only after source, unit-test and lint gates pass.
+    name: Instrumented Android UI (${{ matrix.device }})
+    needs: verify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    strategy:
+      fail-fast: false
+      # Avoid simultaneous emulator jobs flooding Maven Central with identical UTP dependencies.
+      max-parallel: 1
+      matrix:
+        include:
+          - device: tablet
+            profile: pixel_tablet
+          - device: compact-phone
+            profile: pixel_2
+    steps:
+      - name: Enable KVM for the Android emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Checkout PR branch
+        uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - name: Configure Java 17
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - name: Configure Gradle 8.9
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: '8.9'
+
+      - name: Run real app on Android emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: ${{ matrix.profile }}
+          force-avd-creation: true
+          emulator-boot-timeout: 900
+          ram-size: 2048M
+          heap-size: 512M
+          disable-animations: true
+          # Keep the runner's maintained emulator flags; custom camera options can prevent AVD boot.
+          # Keep this as one command: android-emulator-runner invokes its script through sh -c.
+          # Capture the real test exit code and preserve screenshots without masking failures.
+          script: >-
+            set -u; evidence="artifacts/emulator-screenshots/${{ matrix.device }}"; mkdir -p "$evidence"; adb devices -l > "$evidence/adb-before.txt" 2>&1 || true; adb wait-for-device; booted=0; for attempt in $(seq 1 90); do if [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\\r')" = "1" ]; then booted=1; break; fi; sleep 2; done; if [ "$booted" -ne 1 ]; then echo "Emulator did not report sys.boot_completed=1." > "$evidence/emulator-boot-failure.txt"; adb devices -l >> "$evidence/emulator-boot-failure.txt" 2>&1 || true; exit 70; fi; adb shell getprop > "$evidence/device-properties.txt" 2>&1 || true; case "${{ inputs.instrumentation_test }}" in all) gradle connectedDebugAndroidTest --stacktrace ;; *) gradle connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.infinity.core.InfinityDesktopEmulatorTest#${{ inputs.instrumentation_test }} --stacktrace ;; esac; test_exit=$?; adb devices -l > "$evidence/adb-after.txt" 2>&1 || true; adb logcat -d -v threadtime ComposeTest:D INFINITY_DEBUG:D INFINITY_TEST_DIAGNOSTIC:D AndroidRuntime:E '*:S' > "$evidence/logcat-diagnostics.txt" 2>&1 || echo "ADB/logcat unavailable after test execution." >> "$evidence/logcat-diagnostics.txt"; export_exit=0; if adb shell test -d /sdcard/Pictures/infinity-ui-captures; then if adb pull /sdcard/Pictures/infinity-ui-captures "$evidence/"; then echo "Shared MediaStore screenshots exported." >> "$evidence/logcat-diagnostics.txt"; else echo "Failed to pull shared MediaStore screenshots." >> "$evidence/logcat-diagnostics.txt"; export_exit=1; fi; else echo "Shared MediaStore screenshot directory was not created." >> "$evidence/logcat-diagnostics.txt"; fi; if [ "$test_exit" -ne 0 ]; then exit "$test_exit"; fi; exit "$export_exit"
+
+      - name: Upload real emulator screenshots
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: INFINITY-EMULATOR-SCREENSHOTS-${{ matrix.device }}-${{ github.sha }}
+          path: artifacts/emulator-screenshots/
+          if-no-files-found: warn
+          retention-days: 1

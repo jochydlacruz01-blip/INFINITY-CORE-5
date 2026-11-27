@@ -1,0 +1,3 @@
+# Desktop context menu integration
+
+Connected a visible desktop toolbar trigger to the reusable Compose context menu. The menu routes arrangement, grid alignment, refresh, visibility, icon-size, wallpaper, appearance and workspace requests through the command-plan/reducer layer. Arrangement positions and visibility preferences are persisted with existing SharedPreferences. The desktop icon drag implementation and window/Dock/Orbit code paths are retained. UI/device validation remains required.

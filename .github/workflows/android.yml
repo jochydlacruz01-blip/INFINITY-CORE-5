@@ -1,0 +1,129 @@
+name: PROJECT INFINITY 0.10 - DEBUG TEST APK
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: infinity-debug-apk-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-debug-test-apk:
+    # Manual dispatch is allowed only when the selected ref is the authorized PR #87 branch.
+    if: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/INFINITY-PACK-14-REMOTE-FRAME-PIPELINE' }}
+    name: Build and verify DEBUG test APK only
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout authorized PR #87 branch
+        uses: actions/checkout@v7
+        with:
+          ref: INFINITY-PACK-14-REMOTE-FRAME-PIPELINE
+          submodules: recursive
+          persist-credentials: false
+
+      - name: Verify checked-out branch and commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git branch --show-current)" = "INFINITY-PACK-14-REMOTE-FRAME-PIPELINE"
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          echo "Validated source ref: ${GITHUB_REF}"
+          echo "Validated source SHA: ${GITHUB_SHA}"
+
+      - name: Configure Java 17
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - name: Configure Gradle 8.9
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: '8.9'
+
+      - name: Verify project structure and secure manifest defaults
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f settings.gradle.kts
+          test -f app/build.gradle.kts
+          test -f app/src/main/java/com/infinity/core/MainActivity.kt
+          test -f app/src/main/AndroidManifest.xml
+          test "$(git -C external/FreeRDP rev-parse HEAD)" = "65bcca1913a28cbdd7eb913599f692bd2b707991"
+          grep -q 'android:allowBackup="false"' app/src/main/AndroidManifest.xml
+          grep -q 'android:usesCleartextTraffic="false"' app/src/main/AndroidManifest.xml
+
+      - name: Initialize Android SDK and accept licenses
+        uses: android-actions/setup-android@v4
+        with:
+          packages: "platform-tools"
+
+      - name: Install required Android platform, NDK and CMake
+        shell: bash
+        run: |
+          set -euo pipefail
+          sdkmanager --install "platforms;android-35" "build-tools;35.0.0" "ndk;27.0.12077973" "cmake;3.22.1"
+
+      - name: Compile, test, lint, build FreeRDP native libraries and assemble DEBUG only
+        shell: bash
+        run: |
+          set -euo pipefail
+          gradle -PINFINITY_BUILD_FREERDP_NATIVE=true :freerdpCore:externalNativeBuildDebug compileDebugKotlin testDebugUnitTest lintDebug assembleDebug --stacktrace
+
+      - name: Verify DEBUG APK and Android debug certificate
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="app/build/outputs/apk/debug/app-debug.apk"
+          test -s "${APK}"
+          APKSIGNER="$(find "${ANDROID_HOME}/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          test -n "${APKSIGNER}"
+          "${APKSIGNER}" verify --verbose --print-certs "${APK}" | tee app-debug-signature.txt
+          grep -Fq 'CN=Android Debug' app-debug-signature.txt
+          APK_ENTRIES="$(unzip -Z1 "${APK}")"
+          REQUIRED_FREERDP_LIBRARIES=(
+            libfreerdp-android.so
+            libfreerdp3.so
+            libfreerdp-client3.so
+            libwinpr3.so
+            libssl.so
+            libcrypto.so
+            liburiparser.so
+          )
+          : > app-debug-freerdp-libraries.txt
+          mkdir -p apk-native-inspection
+          for library in "${REQUIRED_FREERDP_LIBRARIES[@]}"; do
+            entry="lib/arm64-v8a/${library}"
+            if ! grep -Fxq "${entry}" <<< "${APK_ENTRIES}"; then
+              echo "Missing required FreeRDP native library in DEBUG APK: ${entry}" >&2
+              exit 1
+            fi
+            extracted="apk-native-inspection/${library}"
+            unzip -p "${APK}" "${entry}" > "${extracted}"
+            test -s "${extracted}"
+            header="$(readelf -h "${extracted}")"
+            elf_class="$(printf '%s\n' "${header}" | awk -F: '/Class:/ { gsub(/^[[:space:]]+/, "", $2); print $2; exit }')"
+            elf_machine="$(printf '%s\n' "${header}" | awk -F: '/Machine:/ { gsub(/^[[:space:]]+/, "", $2); print $2; exit }')"
+            test "${elf_class}" = "ELF64"
+            case "${elf_machine}" in AArch64*) ;; *) echo "Unexpected APK ELF architecture for ${library}: ${elf_machine}" >&2; exit 1 ;; esac
+            printf '%s class=%s machine=%s bytes=%s\n' "${entry}" "${elf_class}" "${elf_machine}" "$(stat --format='%s' "${extracted}")" | tee -a app-debug-freerdp-libraries.txt
+          done
+          sha256sum "${APK}" | tee app-debug-sha256.txt
+          stat --format='APK_SIZE_BYTES=%s' "${APK}" | tee app-debug-size.txt
+
+      - name: Upload DEBUG APK verification evidence
+        uses: actions/upload-artifact@v7
+        with:
+          name: PROJECT-INFINITY-0.10-DEBUG-APK-EVIDENCE
+          path: |
+            app-debug-sha256.txt
+            app-debug-size.txt
+            app-debug-signature.txt
+            app-debug-freerdp-libraries.txt
+          if-no-files-found: error
+          retention-days: 14
