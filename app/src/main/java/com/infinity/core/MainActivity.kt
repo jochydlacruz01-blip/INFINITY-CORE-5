@@ -115,18 +115,24 @@ class MainActivity : ComponentActivity() {
 private data class DeskItem(val id: String, val label: String, val glyph: String)
 
 @Composable
-private fun InfinityAppBadge(item: DeskItem, size: androidx.compose.ui.unit.Dp, accent: Color, iconPack: String = "infinity") {
+private fun InfinityAppBadge(
+    item: DeskItem,
+    size: androidx.compose.ui.unit.Dp,
+    accent: Color,
+    iconPack: String = "infinity"
+) {
     val identity = when (item.id) {
-        "files" -> Color(0xFF48B5FF)
-        "notes" -> Color(0xFFFFC66D)
-        "apps" -> Color(0xFFB69CFF)
-        "connect" -> Color(0xFF55D6A4)
-        "settings" -> Color(0xFFFF8E78)
-        "orbit" -> Color(0xFFB69CFF)
+        "files" -> Color(0xFFFFC34D)
+        "notes" -> Color(0xFFFFB45C)
+        "apps" -> Color(0xFF8F7CFF)
+        "connect" -> Color(0xFF37D8FF)
+        "settings" -> Color(0xFF55D6A4)
+        "orbit" -> Color(0xFFB78BFF)
+        "about" -> Color(0xFF35DFFF)
         else -> Color(0xFF56D6C9)
     }
     val appIcon = when (item.id) {
-        "files" -> Icons.Filled.Computer
+        "files" -> Icons.Filled.FolderOpen
         "notes" -> Icons.Filled.EditNote
         "apps" -> Icons.Filled.Apps
         "connect" -> Icons.Filled.Computer
@@ -134,29 +140,79 @@ private fun InfinityAppBadge(item: DeskItem, size: androidx.compose.ui.unit.Dp, 
         "orbit" -> Icons.Filled.Apps
         else -> Icons.Filled.Info
     }
-    Box(
-        Modifier.size(size).shadow(14.dp, RoundedCornerShape(size * if (iconPack == "windows11") .22f else .25f))
-            .background(
-                Brush.linearGradient(
-                    when (iconPack) {
-                        "windows11" -> listOf(Color(0xFFB9E4FF), Color(0xFF1687D9), Color(0xFF07549B))
-                        else -> listOf(identity.copy(.36f), Color(0xFF142A43), Color(0xFF101827))
-                    }
-                ), RoundedCornerShape(size * if (iconPack == "windows11") .22f else .25f)
+    val radius = RoundedCornerShape(size * if (iconPack == "windows11") .22f else .27f)
+    val tileBrush = if (iconPack == "windows11") {
+        Brush.linearGradient(listOf(Color(0xFFB9E4FF), Color(0xFF1687D9), Color(0xFF07549B)))
+    } else {
+        Brush.linearGradient(
+            listOf(
+                identity.copy(alpha = .48f),
+                Color(0xFF102B50),
+                Color(0xFF080F25)
             )
-            .border(1.4.dp, if (iconPack == "windows11") Color(0xFFBDEBFF) else identity.copy(.82f), RoundedCornerShape(size * .25f)),
+        )
+    }
+    Box(
+        Modifier
+            .size(size)
+            .shadow(if (iconPack == "windows11") 8.dp else 16.dp, radius)
+            .clip(radius)
+            .background(tileBrush)
+            .border(
+                1.4.dp,
+                if (iconPack == "windows11") Color(0xFFBDEBFF) else identity.copy(alpha = .9f),
+                radius
+            ),
         contentAlignment = Alignment.Center
     ) {
-        Box(Modifier.fillMaxSize().padding(size * .12f).border(1.dp, Color.White.copy(.08f), RoundedCornerShape(size * .2f)))
+        // Glass highlight and inset edge give the INFINITY pack its own identity
+        // without using a flattened poster image or changing app launch behavior.
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .fillMaxHeight(.42f)
+                .background(
+                    Brush.verticalGradient(
+                        listOf(Color.White.copy(alpha = if (iconPack == "windows11") .22f else .16f), Color.Transparent)
+                    )
+                )
+                .align(Alignment.TopCenter)
+        )
+        Box(
+            Modifier
+                .fillMaxSize()
+                .padding(size * .075f)
+                .border(1.dp, Color.White.copy(alpha = .12f), RoundedCornerShape(size * .21f))
+        )
         if (item.id in setOf("about", "settings", "orbit", "connect")) {
-            Text(item.glyph, color = if (iconPack == "windows11") Color(0xFFF4FAFF) else identity,
-                fontSize = (size.value * .60f).sp, fontWeight = FontWeight.Black)
+            val symbol = when (item.id) {
+                "about" -> "∞"
+                "settings" -> "⚙"
+                "orbit" -> "◎"
+                else -> "◉"
+            }
+            Text(
+                symbol,
+                color = if (iconPack == "windows11") Color(0xFFF4FAFF) else Color.White,
+                fontSize = (size.value * if (item.id == "about") .70f else .58f).sp,
+                fontWeight = FontWeight.Black
+            )
         } else {
-            Icon(imageVector = appIcon, contentDescription = item.label,
-                tint = if (iconPack == "windows11") Color(0xFFF4FAFF) else identity,
-                modifier = Modifier.size(size * .53f))
+            Icon(
+                imageVector = appIcon,
+                contentDescription = item.label,
+                tint = if (iconPack == "windows11") Color(0xFFF4FAFF) else Color.White,
+                modifier = Modifier.size(size * .55f)
+            )
         }
-        Box(Modifier.align(Alignment.BottomEnd).padding(size * .10f).size(size * .10f).background(accent, CircleShape))
+        Box(
+            Modifier
+                .align(Alignment.BottomEnd)
+                .padding(size * .10f)
+                .size(size * .105f)
+                .shadow(4.dp, CircleShape)
+                .background(if (iconPack == "windows11") Color(0xFFBDEBFF) else identity, CircleShape)
+        )
     }
 }
 
