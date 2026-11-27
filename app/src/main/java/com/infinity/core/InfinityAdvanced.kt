@@ -508,7 +508,11 @@ fun InfinityAdvancedPanel(
                                                     InfinityNotificationStore.dismiss(
                                                         notification.key
                                                     )
-                                                }
+                                                },
+                                                modifier = Modifier.testTag(
+                                                    "infinity-notification-dismiss-${notification.key}"
+                                                ),
+                                                enabled = notification.clearable
                                             ) {
                                                 Text("DESCARTAR", color = AdvancedMuted)
                                             }

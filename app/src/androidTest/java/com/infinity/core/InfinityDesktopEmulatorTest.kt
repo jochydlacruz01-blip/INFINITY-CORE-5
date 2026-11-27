@@ -10,6 +10,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -362,6 +364,69 @@ class InfinityDesktopEmulatorTest {
             capture("01-desktop-tablet-portrait-after-rotation")
         } else {
             capture("10-desktop-compact-phone-landscape")
+        }
+    }
+
+    @Test(timeout = 120_000)
+    fun notificationDismissActionRespectsAndroidClearability() {
+        context.getSharedPreferences("infinity_privacy", 0).edit()
+            .putBoolean("hide_notification_content", false)
+            .commit()
+        InfinityNotificationStore.setHideContent(false)
+
+        InfinityNotificationStore.update(
+            InfinityNotification(
+                key = "ongoing-notification",
+                packageName = context.packageName,
+                appName = "ONGOING TEST",
+                title = "Persistent service",
+                message = "This notification cannot be dismissed by the user",
+                timestamp = System.currentTimeMillis(),
+                ongoing = true,
+                clearable = false,
+                contentIntent = null
+            )
+        )
+        InfinityNotificationStore.update(
+            InfinityNotification(
+                key = "clearable-notification",
+                packageName = context.packageName,
+                appName = "CLEARABLE TEST",
+                title = "Normal notification",
+                message = "This notification can be dismissed",
+                timestamp = System.currentTimeMillis() + 1,
+                ongoing = false,
+                clearable = true,
+                contentIntent = null
+            )
+        )
+        compose.waitUntil(timeoutMillis = 5_000) {
+            InfinityNotificationStore.notifications.size == 2
+        }
+
+        compose.onNodeWithContentDescription("ADVANCED").performClick()
+        settleComposeFrame()
+        waitForTag("infinity-advanced-panel")
+
+        val protectedDismiss = compose.onNodeWithTag(
+            "infinity-notification-dismiss-ongoing"
+        )
+        protectedDismiss.performScrollTo()
+        protectedDismiss.assertIsNotEnabled()
+
+        val allowedDismiss = compose.onNodeWithTag(
+            "infinity-notification-dismiss-clearable"
+        )
+        allowedDismiss.performScrollTo()
+        allowedDismiss.assertIsEnabled()
+
+        // LIMPIAR removes the local feed; it is distinct from dismissing an
+        // Android notification in the system notification shade.
+        val clearFeed = compose.onNodeWithTag("infinity-notifications-clear")
+        clearFeed.performScrollTo()
+        clearFeed.performClick()
+        compose.waitUntil(timeoutMillis = 5_000) {
+            InfinityNotificationStore.notifications.isEmpty()
         }
     }
 
