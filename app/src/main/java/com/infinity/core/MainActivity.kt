@@ -3291,13 +3291,10 @@ private fun Infinity08Window(
     val foreground = if (lightMode) Color(0xFF203149) else Color.White
 
     val windowRadius = if (desktopTheme == "windows11") 12.dp else 20.dp
-    val windowSurface = if (desktopTheme == "windows11") {
-        if (lightMode) Color(0xF2F3F8FC) else Color(0xF21A3652)
-    } else if (lightMode) Color(0xF2F5F8FC) else Color(0xF21B2B40)
-    val titleBarSurface = if (desktopTheme == "windows11") {
-        if (lightMode) Color(0xFFE2EDF8) else Color(0xFF24496B)
-    } else if (lightMode) Color(0xFFE0EAF5) else Color(0xFF263D57)
-    val windowBorder = if (desktopTheme == "windows11") Color(0xFF8BCBFA).copy(.58f) else accent.copy(.38f)
+    val windowThemeStops = infinityThemeBackgroundStops(themeChoice, lightMode)
+    val windowSurface = windowThemeStops.first().copy(alpha = .95f)
+    val titleBarSurface = windowThemeStops[1]
+    val windowBorder = accent.copy(if (desktopTheme == "windows11") .58f else .38f)
     val controlRadius = if (desktopTheme == "windows11") 8.dp else 14.dp
 
  
