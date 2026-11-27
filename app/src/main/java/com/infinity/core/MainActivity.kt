@@ -2603,7 +2603,8 @@ Spacer(Modifier.height(14.dp))
                 ) {
                     InfinityAdvancedPanel(
                         onClose = { advancedOpen = false },
-                        desktopTheme = iconPack
+                        desktopTheme = iconPack,
+                        themeId = themeChoice
                     )
                 }
             }
