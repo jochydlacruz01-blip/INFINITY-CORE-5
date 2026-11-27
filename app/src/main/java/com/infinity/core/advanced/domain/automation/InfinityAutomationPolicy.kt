@@ -42,6 +42,7 @@ sealed interface InfinityAutomationDecision {
 object InfinityAutomationPolicy {
     const val MAX_EXECUTIONS_PER_HOUR = 10
     const val MIN_INTERVAL_MILLIS = 60_000L
+    const val MAX_PACKAGE_NAME_LENGTH = 255
 
     private val packageNamePattern =
         Regex("^[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z][A-Za-z0-9_]*)+$")
@@ -54,6 +55,7 @@ object InfinityAutomationPolicy {
             return rejected(InfinityAutomationDecision.Reason.INVALID_RULE_ID)
         }
         if (request.action != InfinityAutomationAction.LAUNCH_APPLICATION ||
+            request.targetPackageName.length > MAX_PACKAGE_NAME_LENGTH ||
             !packageNamePattern.matches(request.targetPackageName)) {
             return rejected(InfinityAutomationDecision.Reason.UNSUPPORTED_TARGET)
         }

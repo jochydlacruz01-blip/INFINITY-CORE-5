@@ -55,6 +55,38 @@ class InfinityAutomationPolicyTest {
         )
     }
 
+    @Test fun rejectsPackageNamesLongerThanAndroidSafeLimit() {
+        val result = InfinityAutomationPolicy.evaluate(
+            request(packageName = "com.example." + "a".repeat(InfinityAutomationPolicy.MAX_PACKAGE_NAME_LENGTH))
+        )
+        assertEquals(
+            InfinityAutomationDecision.Rejected(InfinityAutomationDecision.Reason.UNSUPPORTED_TARGET),
+            result
+        )
+    }
+
+    @Test fun rejectsFutureAndNegativeExecutionTimestamps() {
+        assertEquals(
+            InfinityAutomationDecision.Rejected(InfinityAutomationDecision.Reason.INVALID_TIMESTAMP),
+            InfinityAutomationPolicy.evaluate(request(now = -1L))
+        )
+        assertEquals(
+            InfinityAutomationDecision.Rejected(InfinityAutomationDecision.Reason.INVALID_TIMESTAMP),
+            InfinityAutomationPolicy.evaluate(request(now = 10L, last = 11L))
+        )
+    }
+
+    @Test fun rejectsBlankAndOversizedRuleIdentifiers() {
+        assertEquals(
+            InfinityAutomationDecision.Rejected(InfinityAutomationDecision.Reason.INVALID_RULE_ID),
+            InfinityAutomationPolicy.evaluate(request().copy(ruleId = " "))
+        )
+        assertEquals(
+            InfinityAutomationDecision.Rejected(InfinityAutomationDecision.Reason.INVALID_RULE_ID),
+            InfinityAutomationPolicy.evaluate(request().copy(ruleId = "r".repeat(65)))
+        )
+    }
+
     @Test fun enforcesCooldownAndHourlyLimit() {
         assertEquals(
             InfinityAutomationDecision.Rejected(InfinityAutomationDecision.Reason.COOLDOWN_ACTIVE),
