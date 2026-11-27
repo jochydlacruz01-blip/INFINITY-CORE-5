@@ -13,13 +13,23 @@ on:
       - "settings.gradle.kts"
       - "build.gradle.kts"
       - ".github/workflows/freerdp-android.yml"
+  pull_request:
+    paths:
+      - ".gitmodules"
+      - "external/FreeRDP"
+      - "external/FreeRDP/**"
+      - "freerdp-core/**"
+      - "app/build.gradle.kts"
+      - "settings.gradle.kts"
+      - "build.gradle.kts"
+      - ".github/workflows/freerdp-android.yml"
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: infinity-freerdp-native-${{ github.ref }}
+  group: infinity-freerdp-native-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -59,8 +69,9 @@ jobs:
           test -f external/FreeRDP/client/Android/Studio/freeRDPCore/src/main/cpp/CMakeLists.txt
           test "$(git -C external/FreeRDP rev-parse HEAD)" = "65bcca1913a28cbdd7eb913599f692bd2b707991"
 
-      - name: Build native FreeRDP library only (no APK)
-        run: gradle -PINFINITY_BUILD_FREERDP_NATIVE=true :freerdpCore:externalNativeBuildDebug --no-daemon --max-workers=2 --stacktrace
+      - name: Build native FreeRDP library and Android AAR (no APK)
+        run: |
+          gradle -PINFINITY_BUILD_FREERDP_NATIVE=true :freerdpCore:externalNativeBuildDebug :freerdpCore:bundleDebugAar --no-daemon --max-workers=2 --stacktrace
 
       - name: Verify required arm64-v8a shared libraries and ELF architecture
         shell: bash
@@ -92,9 +103,35 @@ jobs:
               exit 1
             fi
             header="$(readelf -h "$path")"
-            elf_class="$(printf '%s\n' "$header" | awk -F: '/Class:/ { gsub(/^[[:space:]]+/, "", $2); print $2; exit }')"
-            elf_machine="$(printf '%s\n' "$header" | awk -F: '/Machine:/ { gsub(/^[[:space:]]+/, "", $2); print $2; exit }')"
-            printf '%s: %s class=%s machine=%s\n' "$library" "$path" "$elf_class" "$elf_machine"
+            elf_class="$(printf '%s\\n' "$header" | awk -F: '/Class:/ { gsub(/^[[:space:]]+/, "", $2); print $2; exit }')"
+            elf_machine="$(printf '%s\\n' "$header" | awk -F: '/Machine:/ { gsub(/^[[:space:]]+/, "", $2); print $2; exit }')"
+            printf '%s: %s class=%s machine=%s\\n' "$library" "$path" "$elf_class" "$elf_machine"
             test "$elf_class" = "ELF64"
             case "$elf_machine" in AArch64*) ;; *) echo "Unexpected ELF architecture for $library: $elf_machine" >&2; exit 1 ;; esac
           done
+
+      - name: Verify native libraries are packaged in the Android AAR
+        shell: bash
+        run: |
+          set -euo pipefail
+          AAR="freerdp-core/build/outputs/aar/freerdp-core-debug.aar"
+          test -s "$AAR"
+          unzip -l "$AAR" | tee aar-contents.txt
+          for library in libfreerdp-android.so libfreerdp3.so libfreerdp-client3.so libwinpr3.so libssl.so libcrypto.so liburiparser.so; do
+            unzip -Z1 "$AAR" | grep -Fx "jni/arm64-v8a/$library" >/dev/null || {
+              echo "AAR is missing jni/arm64-v8a/$library" >&2
+              exit 1
+            }
+          done
+          mkdir -p artifacts/native
+          cp "$AAR" artifacts/native/
+          find freerdp-core/build -type f -name '*.so' -path '*/obj/arm64-v8a/*' -exec cp {} artifacts/native/ ;
+          cp aar-contents.txt artifacts/native/
+
+      - name: Upload ARM64 native and AAR evidence
+        uses: actions/upload-artifact@v7
+        with:
+          name: INFINITY-FREERDP-ARM64-NATIVE-${{ github.sha }}
+          path: artifacts/native/
+          if-no-files-found: error
+          retention-days: 14
