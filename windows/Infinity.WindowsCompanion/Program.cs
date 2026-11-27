@@ -323,7 +323,12 @@ app.MapPost("/v1/sessions/{sessionId}/heartbeat", async (HttpContext context, st
     if (clientCertificate is null) return Results.Unauthorized();
     var fingerprint = CertificatePinning.ComputeSha256Pin(clientCertificate);
     var token = ReadBearerToken(context);
-    var expiresAt = token is null ? null : authorizedSessions.Heartbeat(sessionId, token, fingerprint);
+    SessionHeartbeatRequest? heartbeat = null;
+    try { heartbeat = await context.Request.ReadFromJsonAsync<SessionHeartbeatRequest>(); }
+    catch (System.Text.Json.JsonException) { }
+    var expiresAt = token is null || heartbeat is null
+        ? null
+        : authorizedSessions.Heartbeat(sessionId, token, fingerprint, heartbeat.Sequence, heartbeat.UserActivity);
     if (expiresAt is null)
     {
         auditLog.Write("session.heartbeat-denied", fingerprint, sessionId, "denied");
@@ -345,8 +350,10 @@ app.MapDelete("/v1/sessions/{sessionId}", async (HttpContext context, string ses
 
     // Close admission and cancel active operations before removing the bearer grant.
     // A request that raced past IsAuthorized must still fail BeginOperation after this point.
-    var operationRevoked = operationRegistry.RevokeSession(fingerprint, sessionId);
+    // Remove the authoritative bearer grant first. A concurrent heartbeat either commits
+    // before this lock transition and is then invalidated, or observes the missing session.
     var authorizationRevoked = authorizedSessions.Revoke(sessionId, fingerprint);
+    var operationRevoked = operationRegistry.RevokeSession(fingerprint, sessionId);
     var revoked = operationRevoked || authorizationRevoked;
     auditLog.Write("session.revoked", fingerprint, sessionId, revoked ? "revoked" : "failed");
     return revoked ? Results.NoContent() : Results.NotFound();
@@ -713,6 +720,7 @@ static async Task PumpRdpToWebSocketAsync(
 }
 
 internal sealed record SessionCreateRequest(bool Consent, string[]? RequestedCapabilities);
+internal sealed record SessionHeartbeatRequest(long Sequence, bool UserActivity);
 
 internal sealed record CompanionIdentity(
     string DeviceId,

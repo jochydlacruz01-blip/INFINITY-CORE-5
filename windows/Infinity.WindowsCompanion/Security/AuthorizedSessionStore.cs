@@ -7,6 +7,8 @@ public sealed class AuthorizedSessionStore
 {
     private const int MaximumSessions = 256;
     private static readonly TimeSpan SessionLifetime = TimeSpan.FromMinutes(15);
+    private static readonly TimeSpan MaximumSessionLifetime = TimeSpan.FromHours(8);
+    private static readonly TimeSpan MaximumIdleInterval = TimeSpan.FromMinutes(2);
     private readonly object gate = new();
     private readonly Dictionary<Guid, SessionRecord> sessions = new();
     private readonly Queue<ExpiredSession> expiredSessions = new();
@@ -57,6 +59,7 @@ public sealed class AuthorizedSessionStore
             sessions.Add(sessionId, new SessionRecord(
                 fingerprint,
                 tokenHash,
+                now,
                 expiresAt,
                 new HashSet<string>(requestedCapabilities, StringComparer.Ordinal)));
             return new SessionGrant(sessionId.ToString("D"), token, expiresAt, requestedCapabilities.ToArray());
@@ -105,7 +108,9 @@ public sealed class AuthorizedSessionStore
     public DateTimeOffset? Heartbeat(
         string sessionId,
         string bearerToken,
-        string clientCertificateSha256)
+        string clientCertificateSha256,
+        long sequence,
+        bool userActivity)
     {
         if (!Guid.TryParseExact(sessionId, "D", out var parsedId)) return null;
         var fingerprint = CertificatePinning.NormalizeSha256Pin(clientCertificateSha256);
@@ -132,10 +137,18 @@ public sealed class AuthorizedSessionStore
                 if (!sessions.TryGetValue(parsedId, out var session) ||
                     !string.Equals(session.ClientFingerprint, fingerprint, StringComparison.Ordinal) ||
                     !session.Capabilities.Contains("identity.read") ||
-                    !CryptographicOperations.FixedTimeEquals(session.TokenHash, suppliedHash))
+                    !CryptographicOperations.FixedTimeEquals(session.TokenHash, suppliedHash) ||
+                    !userActivity ||
+                    sequence <= session.LastHeartbeatSequence ||
+                    now - session.LastUserActivityUtc > MaximumIdleInterval ||
+                    now - session.CreatedAtUtc >= MaximumSessionLifetime)
                     return null;
 
-                session.ExpiresAt = now.Add(SessionLifetime);
+                // Sequence numbers make heartbeat replay ineffective. A fresh consent grant
+                // is required after the absolute eight-hour lifetime.
+                session.LastHeartbeatSequence = sequence;
+                session.LastUserActivityUtc = now;
+                session.ExpiresAt = Min(now.Add(SessionLifetime), session.CreatedAtUtc.Add(MaximumSessionLifetime));
                 return session.ExpiresAt;
             }
             finally
@@ -229,6 +242,8 @@ public sealed class AuthorizedSessionStore
         }
     }
 
+    private static DateTimeOffset Min(DateTimeOffset left, DateTimeOffset right) => left <= right ? left : right;
+
     private static string Base64UrlEncode(byte[] bytes) =>
         Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
 
@@ -245,11 +260,15 @@ public sealed class AuthorizedSessionStore
     private sealed class SessionRecord(
         string clientFingerprint,
         byte[] tokenHash,
+        DateTimeOffset createdAtUtc,
         DateTimeOffset expiresAt,
         HashSet<string> capabilities)
     {
         public string ClientFingerprint { get; } = clientFingerprint;
         public byte[] TokenHash { get; } = tokenHash;
+        public DateTimeOffset CreatedAtUtc { get; } = createdAtUtc;
+        public DateTimeOffset LastUserActivityUtc { get; set; } = createdAtUtc;
+        public long LastHeartbeatSequence { get; set; }
         public DateTimeOffset ExpiresAt { get; set; } = expiresAt;
         public HashSet<string> Capabilities { get; } = capabilities;
         public void Clear() => CryptographicOperations.ZeroMemory(TokenHash);

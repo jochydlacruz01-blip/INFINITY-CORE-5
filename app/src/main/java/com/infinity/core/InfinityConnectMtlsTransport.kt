@@ -232,6 +232,56 @@ internal class InfinityConnectMtlsTransport(
         setOf("identity.read", "file.transfer")
     )
 
+    data class SessionHeartbeatReceipt(val sessionId: String, val expiresAtUtc: String)
+
+    /** Authenticated, monotonic heartbeat. The caller must report recent user activity. */
+    fun heartbeatSession(
+        baseUrl: String,
+        clientKeyAlias: String,
+        trustedServerSha256: String,
+        sessionId: String,
+        sessionToken: String,
+        expectedDeviceId: String,
+        sequence: Long,
+        userActivity: Boolean,
+        cancellationSignal: CancellationSignal? = null
+    ): SessionHeartbeatReceipt {
+        validateSessionCredentials(sessionId, sessionToken)
+        require(sequence > 0L && userActivity) { "A fresh sequence and recent user activity are required." }
+        require(fetchWindowsIdentity(
+            baseUrl, clientKeyAlias, trustedServerSha256, expectedDeviceId, cancellationSignal
+        ).deviceId == expectedDeviceId) { "Windows identity changed before session heartbeat." }
+        val connection = openMtlsConnection(
+            baseUrl.trimEnd('/') + "/v1/sessions/$sessionId/heartbeat",
+            clientKeyAlias, trustedServerSha256, cancellationSignal
+        )
+        try {
+            connection.requestMethod = "POST"
+            connection.doOutput = true
+            connection.setRequestProperty("Content-Type", "application/json")
+            connection.setRequestProperty("Accept", "application/json")
+            connection.setRequestProperty("Authorization", "Bearer $sessionToken")
+            val payload = JSONObject().put("sequence", sequence).put("userActivity", true)
+                .toString().toByteArray(Charsets.UTF_8)
+            connection.outputStream.use { it.write(payload) }
+            require(connection.responseCode == 200) {
+                "Windows rechazó la renovación de sesión (HTTP ${connection.responseCode})."
+            }
+            val json = JSONObject(readBoundedResponse(connection).toString(Charsets.UTF_8))
+            val receipt = SessionHeartbeatReceipt(json.getString("sessionId"), json.getString("expiresAtUtc"))
+            require(receipt.sessionId == sessionId)
+            val expiry = java.time.Instant.parse(receipt.expiresAtUtc)
+            require(expiry.isAfter(java.time.Instant.now()) &&
+                expiry.isBefore(java.time.Instant.now().plusSeconds(16 * 60))) {
+                "Windows devolvió una expiración de sesión inválida."
+            }
+            return receipt
+        } finally {
+            connection.disconnect()
+            clearCancellation(cancellationSignal)
+        }
+    }
+
     fun revokeIdentitySession(
         baseUrl: String,
         clientKeyAlias: String,

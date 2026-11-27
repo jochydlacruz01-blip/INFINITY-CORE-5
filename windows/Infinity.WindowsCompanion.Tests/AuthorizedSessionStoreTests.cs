@@ -122,6 +122,24 @@ public sealed class AuthorizedSessionStoreTests
         Assert.Single(store.DrainExpiredSessions());
     }
 
+
+    [Fact]
+    public void HeartbeatRequiresRecentActivityAndCannotExtendBeyondAbsoluteLifetime()
+    {
+        var now = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
+        var store = new AuthorizedSessionStore(() => now);
+        var grant = store.Create(DevicePin, true, new[] { "identity.read" });
+
+        Assert.Null(store.Heartbeat(grant.SessionId, grant.Token, DevicePin, 1, false));
+        Assert.Null(store.Heartbeat(grant.SessionId, grant.Token, DevicePin, 1, true));
+        now = now.AddMinutes(1);
+        Assert.NotNull(store.Heartbeat(grant.SessionId, grant.Token, DevicePin, 1, true));
+
+        now = now.AddHours(8);
+        Assert.Null(store.Heartbeat(grant.SessionId, grant.Token, DevicePin, 2, true));
+        Assert.False(store.IsAuthorized(grant.SessionId, grant.Token, DevicePin, "identity.read"));
+    }
+
     [Fact]
     public async Task DeviceRevocationInvalidatesAllOldTokensAfterConcurrentAuthorizationChecks()
     {
