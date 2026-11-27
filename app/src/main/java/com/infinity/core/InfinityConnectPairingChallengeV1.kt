@@ -67,8 +67,7 @@ internal object InfinityConnectPairingChallengeV1 {
                 .generateCertificate(pinnedCaDer.inputStream()) as? X509Certificate ?: return false
             cert.checkValidity(Date(nowMillis))
             if (cert.basicConstraints < 0) return false
-            val usage = cert.keyUsage
-            if (usage != null && (usage.size <= 5 || !usage[5])) return false
+            if (!hasCaSigningKeyUsage(cert.keyUsage)) return false
             val key = cert.publicKey as? ECPublicKey ?: return false
             if (key.params.curve.field.fieldSize != 384) return false
             Signature.getInstance("SHA384withECDSA").run {
@@ -78,6 +77,10 @@ internal object InfinityConnectPairingChallengeV1 {
             }
         } catch (_: Exception) { false }
     }
+
+    /** A pinned CA must explicitly assert keyCertSign; an absent KeyUsage extension is not trusted. */
+    internal fun hasCaSigningKeyUsage(keyUsage: BooleanArray?): Boolean =
+        keyUsage != null && keyUsage.size > 5 && keyUsage[5]
 
     internal fun signatureInput(c: Challenge): ByteArray {
         val domain = DOMAIN.toByteArray(Charsets.US_ASCII)

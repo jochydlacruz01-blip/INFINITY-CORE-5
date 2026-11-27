@@ -12,6 +12,17 @@ class InfinityConnectPairingChallengeV1Test {
     private val signature = Base64.getUrlEncoder().withoutPadding().encodeToString(ByteArray(70) { 1 })
     private fun payload(extra: String = "") = """{"protocolVersion":1,"requestId":"$request","companionDeviceId":"$companion","issuedAtUnixMs":1000,"expiresAtUnixMs":301000,"nonce":"$nonce","caSha256":"ABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABAB","signature":"$signature"$extra}""".toByteArray()
 
+    @Test fun caKeyUsageMustExplicitlyAllowCertificateSigning() {
+        assertNullKeyUsageRejected()
+        org.junit.Assert.assertTrue(InfinityConnectPairingChallengeV1.hasCaSigningKeyUsage(BooleanArray(6).also { it[5] = true }))
+        org.junit.Assert.assertFalse(InfinityConnectPairingChallengeV1.hasCaSigningKeyUsage(BooleanArray(6)))
+        org.junit.Assert.assertFalse(InfinityConnectPairingChallengeV1.hasCaSigningKeyUsage(BooleanArray(5).also { it[4] = true }))
+    }
+
+    private fun assertNullKeyUsageRejected() {
+        org.junit.Assert.assertFalse(InfinityConnectPairingChallengeV1.hasCaSigningKeyUsage(null))
+    }
+
     @Test fun parsesValidShapeWithoutClaimingSignatureValid() {
         assertNotNull(InfinityConnectPairingChallengeV1.parse(payload()))
     }
