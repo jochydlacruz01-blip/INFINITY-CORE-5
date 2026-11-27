@@ -102,7 +102,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          AAR="$(find freerdp-core/build -type f -name 'freerdp-core-debug.aar' -print -quit)"
+          AAR="$(find freerdp-core/build -type f -name '*.aar' -print -quit)"
           test -s "$AAR"
           unzip -l "$AAR" | tee aar-contents.txt
           for library in libfreerdp-android.so libfreerdp3.so libfreerdp-client3.so libwinpr3.so libssl.so libcrypto.so liburiparser.so; do

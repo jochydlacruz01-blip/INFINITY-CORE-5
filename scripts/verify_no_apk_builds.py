@@ -234,7 +234,7 @@ def _is_safe_freerdp_native_workflow(path: Path, content: str) -> bool:
         re.search(r"(?m)^\s+workflow_dispatch:\s*$", content),
         re.search(r"(?m)^permissions:\s*\n\s+contents:\s*read\s*$", content),
         re.search(r"(?m)^\s+gradle -PINFINITY_BUILD_FREERDP_NATIVE=true :freerdpCore:externalNativeBuildDebug :freerdpCore:bundleDebugAar --no-daemon --max-workers=2 --stacktrace\s*$", content),
-        """AAR="$(find freerdp-core/build -type f -name 'freerdp-core-debug.aar' -print -quit)" """ .strip() in content,
+        """AAR="$(find freerdp-core/build -type f -name '*.aar' -print -quit)" """ .strip() in content,
         'unzip -Z1 "$AAR"' in content,
         "readelf -h" in content,
         "ELF64" in content,

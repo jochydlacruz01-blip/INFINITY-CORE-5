@@ -203,7 +203,7 @@ jobs:
       - run: |
           readelf -h library.so
           echo "ELF64 AArch64"
-          AAR="$(find freerdp-core/build -type f -name 'freerdp-core-debug.aar' -print -quit)"
+          AAR="$(find freerdp-core/build -type f -name '*.aar' -print -quit)"
           unzip -Z1 "$AAR" | grep -Fx "jni/arm64-v8a/$library"
 """
 
