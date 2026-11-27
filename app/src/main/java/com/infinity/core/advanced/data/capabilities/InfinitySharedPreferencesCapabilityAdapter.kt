@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import com.infinity.core.advanced.domain.capabilities.DefaultInfinityCapabilityRegistry
 import com.infinity.core.advanced.domain.capabilities.InfinityCapabilityId
 import com.infinity.core.advanced.domain.capabilities.InfinityCapabilityRegistry
+import com.infinity.core.advanced.domain.capabilities.InfinityConnectivityCapability
 import com.infinity.core.advanced.domain.capabilities.InfinityApplicationLauncherCapability
 import com.infinity.core.advanced.domain.capabilities.InfinityDeviceMonitoringCapability
 import com.infinity.core.advanced.domain.capabilities.InfinityNotificationCapability
@@ -101,11 +102,13 @@ internal fun createInfinityAdvancedCapabilityRegistry(
     )
     val deviceMonitoringAdapter = InfinityAndroidDeviceMonitoringAdapter(appContext)
     val applicationLauncherAdapter = InfinityAndroidApplicationLauncherAdapter(appContext)
+    val connectivityAdapter = InfinityAndroidConnectivityCapabilityAdapter(appContext)
     return DefaultInfinityCapabilityRegistry(
         mapOf(
             InfinityCapabilityId.NOTIFICATIONS to InfinityNotificationCapabilityAdapter(),
             InfinityCapabilityId.DEVICE_MONITORING to deviceMonitoringAdapter,
             InfinityCapabilityId.APPLICATION_LAUNCHER to applicationLauncherAdapter,
+            InfinityCapabilityId.CONNECTIVITY to connectivityAdapter,
             InfinityCapabilityId.THEME to preferencesAdapter,
             InfinityCapabilityId.USER_PREFERENCES to preferencesAdapter
         )
