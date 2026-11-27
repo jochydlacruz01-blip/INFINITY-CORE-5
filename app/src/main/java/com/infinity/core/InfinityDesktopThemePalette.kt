@@ -3,12 +3,21 @@ package com.infinity.core
 import androidx.compose.ui.graphics.Color
 
 /** Shared five-theme palette used by the desktop shell and its window surfaces. */
-internal fun infinityThemeAccentColor(themeId: String): Color = when (themeId) {
-    "ocean" -> Color(0xFF45B7FF)
-    "violet" -> Color(0xFFB69CFF)
-    "emerald" -> Color(0xFF55D6A4)
-    "sunset" -> Color(0xFFFFA66B)
-    else -> Color(0xFF56D6C9)
+internal fun infinityThemeAccentColor(themeId: String, lightMode: Boolean = false): Color {
+    if (lightMode) return when (themeId) {
+        "ocean" -> Color(0xFF0069A8)
+        "violet" -> Color(0xFF6840A8)
+        "emerald" -> Color(0xFF147A4B)
+        "sunset" -> Color(0xFFA64A13)
+        else -> Color(0xFF087D74)
+    }
+    return when (themeId) {
+        "ocean" -> Color(0xFF45B7FF)
+        "violet" -> Color(0xFFB69CFF)
+        "emerald" -> Color(0xFF55D6A4)
+        "sunset" -> Color(0xFFFFA66B)
+        else -> Color(0xFF56D6C9)
+    }
 }
 
 /** Background stops intentionally change with the selected theme, not just its label/accent. */
