@@ -131,10 +131,11 @@ public sealed class AuthorizedSessionStoreTests
         var store = new AuthorizedSessionStore(() => now);
         var grant = store.Create(DevicePin, true, new[] { "identity.read" });
 
+        // A heartbeat without user activity is rejected and does not consume its sequence.
         Assert.Null(store.Heartbeat(grant.SessionId, grant.Token, DevicePin, 1, false));
-        Assert.Null(store.Heartbeat(grant.SessionId, grant.Token, DevicePin, 1, true));
-        now = now.AddMinutes(1);
         Assert.NotNull(store.Heartbeat(grant.SessionId, grant.Token, DevicePin, 1, true));
+        now = now.AddMinutes(1);
+        Assert.NotNull(store.Heartbeat(grant.SessionId, grant.Token, DevicePin, 2, true));
 
         now = now.AddHours(8);
         Assert.Null(store.Heartbeat(grant.SessionId, grant.Token, DevicePin, 2, true));
