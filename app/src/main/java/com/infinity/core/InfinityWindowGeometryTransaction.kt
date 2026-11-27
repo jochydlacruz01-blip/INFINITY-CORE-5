@@ -46,3 +46,22 @@ internal fun infinityCommitWindowGeometryTransaction(
 internal fun infinityCancelWindowGeometryTransaction(
     transaction: InfinityWindowGeometryTransaction
 ): InfinityWindowGeometry = transaction.original
+
+
+/** Compose-independent owner for in-flight geometry transaction lifecycle. */
+internal class InfinityWindowGeometryTransactionRegistry<T>(
+    private val transactions: MutableMap<String, T>
+) {
+    fun remove(windowId: String): T? = transactions.remove(windowId)
+    fun activeWindowIds(): Set<String> = transactions.keys.toSet()
+    fun removeAll(): Map<String, T> {
+        val removed = transactions.toMap()
+        transactions.clear()
+        return removed
+    }
+    fun retainOnly(activeWindowIds: Set<String>): Map<String, T> {
+        val orphaned = transactions.filterKeys { it !in activeWindowIds }
+        orphaned.keys.forEach(transactions::remove)
+        return orphaned
+    }
+}

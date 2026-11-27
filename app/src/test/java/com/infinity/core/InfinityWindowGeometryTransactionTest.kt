@@ -73,3 +73,42 @@ class InfinityWindowGeometryTransactionTest {
         assertNotEquals(preview.current, rolledBack)
     }
 }
+
+
+class InfinityWindowGeometryTransactionRegistryTest {
+    @Test fun removingClosedWindowDiscardsOnlyItsTransaction() {
+        val first = infinityBeginWindowGeometryTransaction("notes-w1", InfinityWindowGeometry(10f, 20f, 300f, 220f))
+        val second = infinityBeginWindowGeometryTransaction("files-w1", InfinityWindowGeometry(30f, 40f, 400f, 280f))
+        val registry = InfinityWindowGeometryTransactionRegistry(linkedMapOf(first.windowId to first, second.windowId to second))
+        assertEquals(first, registry.remove("notes-w1"))
+        assertEquals(setOf("files-w1"), registry.activeWindowIds())
+        assertEquals(null, registry.remove("missing"))
+    }
+
+    @Test fun workspaceExitCanEnumerateAndCancelEveryActiveTransaction() {
+        val first = infinityBeginWindowGeometryTransaction("notes-w1", InfinityWindowGeometry(10f, 20f, 300f, 220f))
+        val second = infinityBeginWindowGeometryTransaction("files-w1", InfinityWindowGeometry(30f, 40f, 400f, 280f))
+        val registry = InfinityWindowGeometryTransactionRegistry(linkedMapOf(first.windowId to first, second.windowId to second))
+        val idsToCancel = registry.activeWindowIds()
+        val restored = idsToCancel.associateWith { id -> infinityCancelWindowGeometryTransaction(registry.remove(id)!!) }
+        assertEquals(setOf("notes-w1", "files-w1"), idsToCancel)
+        assertEquals(first.original, restored["notes-w1"])
+        assertEquals(second.original, restored["files-w1"])
+        assertTrue(registry.activeWindowIds().isEmpty())
+    }
+
+    @Test fun retainOnlyRemovesTransactionsForWindowsThatNoLongerExist() {
+        val active = infinityBeginWindowGeometryTransaction("notes-w1", InfinityWindowGeometry(10f, 20f, 300f, 220f))
+        val orphan = infinityBeginWindowGeometryTransaction("closed-w1", InfinityWindowGeometry(30f, 40f, 400f, 280f))
+        val registry = InfinityWindowGeometryTransactionRegistry(linkedMapOf(active.windowId to active, orphan.windowId to orphan))
+        assertEquals(mapOf("closed-w1" to orphan), registry.retainOnly(setOf("notes-w1")))
+        assertEquals(setOf("notes-w1"), registry.activeWindowIds())
+    }
+
+    @Test fun removeAllReturnsSnapshotAndLeavesRegistryEmpty() {
+        val transaction = infinityBeginWindowGeometryTransaction("notes-w1", InfinityWindowGeometry(10f, 20f, 300f, 220f))
+        val registry = InfinityWindowGeometryTransactionRegistry(linkedMapOf(transaction.windowId to transaction))
+        assertEquals(mapOf("notes-w1" to transaction), registry.removeAll())
+        assertTrue(registry.activeWindowIds().isEmpty())
+    }
+}

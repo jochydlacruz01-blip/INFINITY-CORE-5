@@ -473,6 +473,7 @@ private fun Infinity08App() {
 
     // Geometry transactions keep preview frames out of SharedPreferences until commit.
     val geometryTransactions = remember { mutableStateMapOf<String, InfinityDeskWindowGeometryTransaction>() }
+    val geometryTransactionRegistry = remember { InfinityWindowGeometryTransactionRegistry(geometryTransactions) }
 
     fun beginWindowGeometryTransaction(windowId: String) {
         val window = windows.firstOrNull { it.id == windowId } ?: return
@@ -485,7 +486,7 @@ private fun Infinity08App() {
     fun commitWindowGeometryTransaction(
         windowId: String, viewportWidth: Float, viewportHeight: Float, safeBottom: Float
     ) {
-        val transaction = geometryTransactions.remove(windowId) ?: return
+        val transaction = geometryTransactionRegistry.remove(windowId) ?: return
         val index = windows.indexOfFirst { it.id == windowId }
         if (index < 0) return
         val current = windows[index]
@@ -500,7 +501,7 @@ private fun Infinity08App() {
     }
 
     fun cancelWindowGeometryTransaction(windowId: String) {
-        val transaction = geometryTransactions.remove(windowId) ?: return
+        val transaction = geometryTransactionRegistry.remove(windowId) ?: return
         val index = windows.indexOfFirst { it.id == windowId }
         if (index < 0) return
         val restored = infinityCancelDeskWindowGeometryTransaction(transaction)
@@ -578,6 +579,8 @@ private fun Infinity08App() {
     }
 
     fun switchWorkspace(target: Int) {
+        // A workspace transition ends every in-flight gesture atomically.
+        geometryTransactionRegistry.activeWindowIds().forEach(::cancelWindowGeometryTransaction)
         val normalizedTarget = infinityNormalizeWorkspace(target)
         workspace = normalizedTarget
         prefs.edit().putInt("active_workspace", normalizedTarget).apply()
@@ -1283,6 +1286,8 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                         onChooseFolder = { folderPicker.launch(null) },
                         onLaunchApp = ::launchApp,
                         onClose = {
+                            // Discard the gesture transaction before removing its window.
+                            geometryTransactionRegistry.remove(win.id)
                             windows.removeAll { item -> item.id == win.id }
                             focusedWindowId = infinityResolveFocusAfterWindowDeactivation(
                                 win.id,
@@ -1294,6 +1299,8 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                             )
                         },
                         onMinimize = {
+                            // Roll back any in-flight gesture before minimizing.
+                            cancelWindowGeometryTransaction(win.id)
                             val index = windows.indexOfFirst { it.id == win.id }
                             if (index >= 0) windows[index] = windows[index].copy(minimized = true)
                             focusedWindowId = infinityResolveFocusAfterWindowDeactivation(
