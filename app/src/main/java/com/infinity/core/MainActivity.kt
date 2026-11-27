@@ -308,6 +308,16 @@ private fun Infinity08App(resumeSignal: Int) {
     var themeChoice by remember {
         mutableStateOf(infinityNormalizeThemeChoice(prefs.getString("theme_choice", "midnight")))
     }
+    // The taskbar presentation is independent from the desktop color theme and icon pack.
+    var taskbarStyle by remember {
+        mutableStateOf(
+            if (prefs.getString("taskbar_style", "infinity") == "fluent_acrylic") {
+                "fluent_acrylic"
+            } else {
+                "infinity"
+            }
+        )
+    }
 
     // Keep the desktop's live Compose theme synchronized with preference changes
     // made by ADVANCED and other modules, not only changes made inside this screen.
@@ -330,6 +340,7 @@ private fun Infinity08App(resumeSignal: Int) {
     val lightMode = appearance == "light"
     val accent = infinityThemeAccentColor(themeChoice, lightMode)
     val foreground = if (lightMode) Color(0xFF203149) else Color.White
+    val fluentTaskbar = taskbarStyle == "fluent_acrylic"
 
     var clockText by remember { mutableStateOf("--:--") }
     var dateText by remember { mutableStateOf("") }
@@ -697,11 +708,10 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
             val maxH = maxHeight
             val density = LocalDensity.current
             // The measured Dock top is authoritative; use a conservative estimate for frame one.
-            var dockSafeBottom by remember(maxW, maxH, futuristicDesktop, iconPack) {
-                mutableFloatStateOf(
-                    (maxH.value - infinityDockReservedHeightDp(maxW.value, futuristicDesktop, iconPack))
-                        .coerceAtLeast(0f)
-                )
+            var dockSafeBottom by remember(maxW, maxH, futuristicDesktop, iconPack, taskbarStyle) {
+                val reservedHeight = if (fluentTaskbar) 88f
+                else infinityDockReservedHeightDp(maxW.value, futuristicDesktop, iconPack)
+                mutableFloatStateOf((maxH.value - reservedHeight).coerceAtLeast(0f))
             }
             val desktopIconMetrics = remember(maxW, maxH, density, desktopItems.size) {
                 infinityDesktopIconLayoutMetrics(
@@ -1448,48 +1458,60 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                     }
                     // A floating glass rail preserves the full action surface while leaving
                     // a visible spatial margin around the desktop on every side.
-                    .padding(horizontal = if (maxW >= 600.dp && futuristicDesktop) 14.dp else 0.dp,
-                        vertical = if (maxW >= 600.dp && futuristicDesktop) 12.dp else 0.dp)
+                    .padding(
+                        horizontal = if (fluentTaskbar) 12.dp else if (maxW >= 600.dp && futuristicDesktop) 14.dp else 0.dp,
+                        vertical = if (fluentTaskbar) 12.dp else if (maxW >= 600.dp && futuristicDesktop) 12.dp else 0.dp
+                    )
                     // Phone layouts scroll; tablet layouts use the task overflow affordance.
                     .then(
                         if (infinityDockRequiresHorizontalScroll(maxW.value)) {
                             Modifier.horizontalScroll(dockScrollState)
                         } else Modifier
                     )
-                    .then(if (iconPack == "windows11" || (maxW >= 600.dp && futuristicDesktop)) Modifier.fillMaxWidth() else Modifier)
-                    .then(if (maxW >= 600.dp && futuristicDesktop) Modifier.widthIn(max = 1500.dp) else Modifier)
+                    .then(if (fluentTaskbar || iconPack == "windows11" || (maxW >= 600.dp && futuristicDesktop)) Modifier.fillMaxWidth() else Modifier)
+                    .then(
+                        if (fluentTaskbar) Modifier.widthIn(max = 720.dp)
+                        else if (maxW >= 600.dp && futuristicDesktop) Modifier.widthIn(max = 1500.dp)
+                        else Modifier
+                    )
                     .padding(
-                        horizontal = if (iconPack == "windows11" || (maxW >= 600.dp && futuristicDesktop)) 0.dp else 12.dp,
-                        vertical = if (iconPack == "windows11" || (maxW >= 600.dp && futuristicDesktop)) 0.dp else 12.dp
+                        horizontal = if (fluentTaskbar || iconPack == "windows11" || (maxW >= 600.dp && futuristicDesktop)) 0.dp else 12.dp,
+                        vertical = if (fluentTaskbar || iconPack == "windows11" || (maxW >= 600.dp && futuristicDesktop)) 0.dp else 12.dp
                     )
                     .shadow(
-                        if (iconPack == "windows11") 0.dp else 30.dp,
-                        RoundedCornerShape(if (iconPack == "windows11") 0.dp else 28.dp)
+                        if (fluentTaskbar) 20.dp else if (iconPack == "windows11") 0.dp else 30.dp,
+                        RoundedCornerShape(if (fluentTaskbar) 24.dp else if (iconPack == "windows11") 0.dp else 28.dp)
                     )
                     .background(
-                        if (maxW >= 600.dp && futuristicDesktop) Brush.verticalGradient(
-                            listOf(Color(0xF20C1B35), Color(0xE908142A), Color(0xF20A1730))
-                        ) else when {
+                        when {
+                            fluentTaskbar -> Brush.verticalGradient(
+                                listOf(Color(0xCC182236), Color(0xE60C1321))
+                            )
+                            maxW >= 600.dp && futuristicDesktop -> Brush.verticalGradient(
+                                listOf(Color(0xF20C1B35), Color(0xE908142A), Color(0xF20A1730))
+                            )
                             iconPack == "windows11" -> Brush.verticalGradient(listOf(Color(0xF20B1829), Color(0xF20B1829)))
                             else -> Brush.verticalGradient(listOf(Color(0xF016263D), Color(0xF016263D)))
                         },
-                        if (maxW >= 600.dp && futuristicDesktop) RoundedCornerShape(28.dp)
-                        else RoundedCornerShape(20.dp)
+                        RoundedCornerShape(if (fluentTaskbar) 24.dp else if (maxW >= 600.dp && futuristicDesktop) 28.dp else 20.dp)
                     )
                     .border(
-                        if (maxW >= 600.dp && futuristicDesktop) 1.dp else if (iconPack == "windows11") 0.dp else 1.dp,
-                        if (maxW >= 600.dp && futuristicDesktop) Brush.linearGradient(
+                        if (iconPack == "windows11" && !fluentTaskbar) 0.dp else 1.dp,
+                        if (fluentTaskbar) Brush.linearGradient(
+                            listOf(Color(0x66FFFFFF), Color(0x22FFFFFF), Color(0x44FFFFFF))
+                        ) else if (maxW >= 600.dp && futuristicDesktop) Brush.linearGradient(
                             listOf(Color(0xCC43D9FF), Color(0x665A7DFF), Color(0x998F68FF), Color(0x6643D9FF))
                         ) else Brush.linearGradient(listOf(Color(0xFF6686B5), Color(0xFF6686B5))),
-                        if (maxW >= 600.dp && futuristicDesktop) RoundedCornerShape(28.dp) else RoundedCornerShape(20.dp)
+                        RoundedCornerShape(if (fluentTaskbar) 24.dp else if (maxW >= 600.dp && futuristicDesktop) 28.dp else 20.dp)
                     )
                     .padding(
-                        horizontal = if (iconPack == "windows11") 12.dp else if (maxW < 600.dp) 6.dp else 18.dp,
-                        vertical = if (maxW >= 600.dp && futuristicDesktop) 8.dp else if (iconPack == "windows11") 7.dp else 10.dp
+                        horizontal = if (fluentTaskbar) 14.dp else if (iconPack == "windows11") 12.dp else if (maxW < 600.dp) 6.dp else 18.dp,
+                        vertical = if (fluentTaskbar) 6.dp else if (maxW >= 600.dp && futuristicDesktop) 8.dp else if (iconPack == "windows11") 7.dp else 10.dp
                     )
-                    .heightIn(min = if (maxW >= 600.dp && futuristicDesktop) 72.dp else 60.dp),
+                    .heightIn(min = if (fluentTaskbar) 56.dp else if (maxW >= 600.dp && futuristicDesktop) 72.dp else 60.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = if (maxW >= 600.dp && futuristicDesktop) Arrangement.SpaceEvenly
+                horizontalArrangement = if (fluentTaskbar) Arrangement.SpaceBetween
+                else if (maxW >= 600.dp && futuristicDesktop) Arrangement.SpaceEvenly
                 else if (iconPack == "windows11") Arrangement.Center
                 else Arrangement.spacedBy(
                     when {
@@ -1499,7 +1521,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                     }
                 )
             ) {
-                DockAction(if (futuristicDesktop && maxW >= 600.dp) "▦" else "⌂", "HOME", accent, iconPack, compact = maxW < 390.dp, referenceStyle = futuristicDesktop && maxW >= 600.dp) {
+                DockAction(if (futuristicDesktop && maxW >= 600.dp) "▦" else "⌂", "HOME", accent, iconPack, compact = maxW < 390.dp, referenceStyle = futuristicDesktop && maxW >= 600.dp, fluentStyle = fluentTaskbar) {
                     dashboardOpen = true
                     startOpen = false
                     orbitOpen = false
@@ -1507,7 +1529,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                     advancedOpen = false
                 }
 
-                DockAction(if (futuristicDesktop && maxW >= 600.dp) "⌕" else "✦", "START", accent, iconPack, compact = maxW < 390.dp, referenceStyle = futuristicDesktop && maxW >= 600.dp) {
+                DockAction(if (futuristicDesktop && maxW >= 600.dp) "⌕" else "✦", "START", accent, iconPack, compact = maxW < 390.dp, referenceStyle = futuristicDesktop && maxW >= 600.dp, fluentStyle = fluentTaskbar) {
                     startOpen = !startOpen
                     if (startOpen) {
                         search = ""
@@ -1539,7 +1561,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                     }
                 }
 
-                DockAction(if (futuristicDesktop && maxW >= 600.dp) "∞" else "◎", "ORBIT", Color(0xFFB69CFF), iconPack, compact = maxW < 390.dp, referenceStyle = futuristicDesktop && maxW >= 600.dp) {
+                DockAction(if (futuristicDesktop && maxW >= 600.dp) "∞" else "◎", "ORBIT", Color(0xFFB69CFF), iconPack, compact = maxW < 390.dp, referenceStyle = futuristicDesktop && maxW >= 600.dp, fluentStyle = fluentTaskbar) {
                     // ORBIT is an explicit launcher command: repeated activation must never
                     // cancel the opening transition while accessibility dispatch is settling.
                     orbitOpen = true
@@ -1548,14 +1570,14 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                     advancedOpen = false
                 }
 
-                DockAction(if (futuristicDesktop && maxW >= 600.dp) "⬡" else "☷", "CONTROL", Color(0xFFFFC27A), iconPack, compact = maxW < 390.dp, referenceStyle = futuristicDesktop && maxW >= 600.dp) {
+                DockAction(if (futuristicDesktop && maxW >= 600.dp) "⬡" else "☷", "CONTROL", Color(0xFFFFC27A), iconPack, compact = maxW < 390.dp, referenceStyle = futuristicDesktop && maxW >= 600.dp, fluentStyle = fluentTaskbar) {
                     controlOpen = !controlOpen
                     if (controlOpen) controlMode = "personalization"
                     startOpen = false
                     orbitOpen = false
                     advancedOpen = false
                 }
-DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED", accent, iconPack, compact = maxW < 390.dp, referenceStyle = futuristicDesktop && maxW >= 600.dp) {
+DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED", accent, iconPack, compact = maxW < 390.dp, referenceStyle = futuristicDesktop && maxW >= 600.dp, fluentStyle = fluentTaskbar) {
     advancedOpen = !advancedOpen
     startOpen = false
     orbitOpen = false
@@ -1577,7 +1599,7 @@ DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED"
                     val visibleTaskIds = infinityDockVisibleTaskIds(allTaskIds, visibleTaskLimit)
                     visibleTaskIds.forEach { taskId ->
                         val task = workspaceWindows.firstOrNull { it.id == taskId } ?: return@forEach
-                        DockAction(if (task.minimized) "□" else "▣", infinityDockLabel(task.title), accent, iconPack, compact = maxW < 390.dp) {
+                        DockAction(if (task.minimized) "□" else "▣", infinityDockLabel(task.title), accent, iconPack, compact = maxW < 390.dp, fluentStyle = fluentTaskbar) {
                             val idx = windows.indexOfFirst { it.id == task.id }
                             if (idx >= 0) {
                                 val tappedTask = windows[idx]
@@ -1606,7 +1628,7 @@ DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED"
                     }
                     val hiddenTaskCount = infinityDockHiddenTaskCount(allTaskIds.size, visibleTaskIds.size)
                     if (hiddenTaskCount > 0) {
-                        DockAction("⋯", "MÁS VENTANAS: $hiddenTaskCount", accent, iconPack, compact = maxW < 390.dp, referenceStyle = futuristicDesktop && maxW >= 600.dp) {
+                        DockAction("⋯", "MÁS VENTANAS: $hiddenTaskCount", accent, iconPack, compact = maxW < 390.dp, referenceStyle = futuristicDesktop && maxW >= 600.dp, fluentStyle = fluentTaskbar) {
                             orbitOpen = true
                             dashboardOpen = false
                             startOpen = false
@@ -1616,7 +1638,7 @@ DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED"
                     }
                 }
 
-                if (maxW >= 600.dp && futuristicDesktop) {
+                if ((maxW >= 600.dp && futuristicDesktop) || fluentTaskbar) {
                     InfinityReferenceSystemTray(
                         modifier = Modifier.padding(horizontal = 6.dp)
                     )
@@ -1658,11 +1680,11 @@ DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED"
             // INFINITY START: búsqueda y catálogo de aplicaciones.
             if (startOpen) {
                 Card(
-                    Modifier.then(if (iconPack == "windows11") Modifier.align(Alignment.BottomCenter) else Modifier.align(Alignment.BottomStart))
+                    Modifier.then(if (fluentTaskbar || iconPack == "windows11") Modifier.align(Alignment.BottomCenter) else Modifier.align(Alignment.BottomStart))
                         .zIndex(15f)
                         .fillMaxWidth(0.94f)
                         .widthIn(max = 420.dp)
-                        .padding(bottom = 84.dp)
+                        .padding(bottom = if (fluentTaskbar) 96.dp else 84.dp)
                         .heightIn(max = (maxH - 116.dp).coerceAtLeast(220.dp))
                         .animateContentSize()
                         .shadow(28.dp, RoundedCornerShape(28.dp)),
@@ -2523,6 +2545,28 @@ Spacer(Modifier.height(14.dp))
                                 FilterChip(selected = iconPack == pack, onClick = { val normalizedPack = infinityNormalizeDesktopTheme(pack); iconPack = normalizedPack; prefs.edit().putString("icon_pack", normalizedPack).apply() }, label = { Text(label) })
                             }
                         }
+                        Text("BARRA DE TAREAS", color = accent, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        Row(
+                            Modifier.horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            FilterChip(
+                                selected = taskbarStyle == "infinity",
+                                onClick = {
+                                    taskbarStyle = "infinity"
+                                    prefs.edit().putString("taskbar_style", taskbarStyle).apply()
+                                },
+                                label = { Text("INFINITY") }
+                            )
+                            FilterChip(
+                                selected = taskbarStyle == "fluent_acrylic",
+                                onClick = {
+                                    taskbarStyle = "fluent_acrylic"
+                                    prefs.edit().putString("taskbar_style", taskbarStyle).apply()
+                                },
+                                label = { Text("Fluent Acrylic") }
+                            )
+                        }
                         Text("ESTILO DEL ESCRITORIO", color = accent, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             listOf(
@@ -2620,19 +2664,38 @@ private fun DockAction(
     desktopTheme: String = "infinity",
     compact: Boolean = false,
     referenceStyle: Boolean = false,
+    fluentStyle: Boolean = false,
     onClick: () -> Unit
 ) {
-    val actionRadius = if (desktopTheme == "windows11") 9.dp else 14.dp
-    val actionSurface = if (referenceStyle) Color.Transparent else tint.copy(alpha = if (desktopTheme == "windows11") .18f else .09f)
+    val actionRadius = when {
+        fluentStyle -> 12.dp
+        desktopTheme == "windows11" -> 9.dp
+        else -> 14.dp
+    }
+    val actionSurface = when {
+        referenceStyle -> Color.Transparent
+        fluentStyle -> Color.White.copy(alpha = .045f)
+        else -> tint.copy(alpha = if (desktopTheme == "windows11") .18f else .09f)
+    }
     Column(
         Modifier
             // Tablet reference dock keeps every primary action comfortably touchable.
-            .widthIn(min = if (referenceStyle) 48.dp else if (compact) 40.dp else 48.dp)
+            .widthIn(min = if (fluentStyle) 44.dp else if (referenceStyle) 48.dp else if (compact) 40.dp else 48.dp)
             .clip(RoundedCornerShape(actionRadius))
             .background(actionSurface, RoundedCornerShape(actionRadius))
-            .then(if (referenceStyle) Modifier else Modifier.border(1.dp, tint.copy(alpha = .22f), RoundedCornerShape(actionRadius)))
+            .then(
+                if (referenceStyle) Modifier
+                else Modifier.border(
+                    1.dp,
+                    if (fluentStyle) Color.White.copy(alpha = .10f) else tint.copy(alpha = .22f),
+                    RoundedCornerShape(actionRadius)
+                )
+            )
             .clickable(role = Role.Button, onClick = onClick)
-            .padding(horizontal = if (referenceStyle) 4.dp else if (compact) 2.dp else 5.dp, vertical = if (referenceStyle) 4.dp else if (compact) 4.dp else 6.dp)
+            .padding(
+                horizontal = if (fluentStyle || referenceStyle) 4.dp else if (compact) 2.dp else 5.dp,
+                vertical = if (fluentStyle || referenceStyle) 4.dp else if (compact) 4.dp else 6.dp
+            )
             // Keep the test/accessibility identity on the same node that owns the real click action.
             .testTag("infinity-dock-${description.lowercase()}")
             .semantics(mergeDescendants = true) {
@@ -2642,15 +2705,20 @@ private fun DockAction(
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Box(
-            Modifier.size(if (referenceStyle) 40.dp else if (compact) 30.dp else 36.dp)
+            Modifier.size(if (fluentStyle || referenceStyle) 40.dp else if (compact) 30.dp else 36.dp)
                 .background(
-                    Brush.linearGradient(listOf(tint.copy(alpha = .24f), tint.copy(alpha = .08f))),
-                    RoundedCornerShape(if (desktopTheme == "windows11") 8.dp else 12.dp)
+                    if (fluentStyle) Color.White.copy(alpha = .035f)
+                    else Brush.linearGradient(listOf(tint.copy(alpha = .24f), tint.copy(alpha = .08f))),
+                    RoundedCornerShape(if (desktopTheme == "windows11" || fluentStyle) 10.dp else 12.dp)
                 )
-                .border(1.dp, tint.copy(alpha = .58f), RoundedCornerShape(if (desktopTheme == "windows11") 8.dp else 12.dp)),
+                .border(
+                    1.dp,
+                    if (fluentStyle) Color.White.copy(alpha = .10f) else tint.copy(alpha = .58f),
+                    RoundedCornerShape(if (desktopTheme == "windows11" || fluentStyle) 10.dp else 12.dp)
+                ),
             contentAlignment = Alignment.Center
         ) {
-            val dockIcon = if (referenceStyle) when (description) {
+            val dockIcon = if (referenceStyle || fluentStyle) when (description) {
                 "HOME" -> Icons.Filled.Apps
                 "START" -> Icons.Filled.Search
                 "CONTROL" -> Icons.Filled.Computer
@@ -2668,7 +2736,7 @@ private fun DockAction(
                 Text(glyph, color = tint, fontSize = if (referenceStyle) 29.sp else 22.sp, fontWeight = FontWeight.Bold)
             }
         }
-        if (!compact && !referenceStyle) {
+        if (!compact && !referenceStyle && !fluentStyle) {
             Text(
                 description,
                 color = Color.White.copy(.94f),
@@ -2678,7 +2746,14 @@ private fun DockAction(
                 maxLines = 1
             )
         }
-        if (!referenceStyle) Box(Modifier.width(if (compact) 12.dp else 18.dp).height(2.dp).background(tint.copy(alpha = .65f), RoundedCornerShape(2.dp)))
+        if (fluentStyle) {
+            Box(
+                Modifier.width(14.dp).height(3.dp)
+                    .background(Color(0xFF38BDF8), RoundedCornerShape(999.dp))
+            )
+        } else if (!referenceStyle) {
+            Box(Modifier.width(if (compact) 12.dp else 18.dp).height(2.dp).background(tint.copy(alpha = .65f), RoundedCornerShape(2.dp)))
+        }
     }
 }
 
