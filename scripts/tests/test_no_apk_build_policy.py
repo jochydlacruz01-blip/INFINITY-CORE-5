@@ -173,6 +173,40 @@ class NoApkBuildPolicyTest(unittest.TestCase):
 """
         self.assertEqual(audit_text(content), [])
 
+
+    def test_safe_freerdp_native_workflow_is_allowed(self):
+        self.assertEqual(
+            audit_named_workflow("freerdp-android.yml", self._freerdp_native_workflow_fixture()),
+            [],
+        )
+
+    def test_freerdp_native_workflow_cannot_build_an_apk(self):
+        content = self._freerdp_native_workflow_fixture().replace(
+            ":freerdpCore:bundleDebugAar", ":freerdpCore:bundleDebugAar assembleDebug"
+        )
+        self.assertTrue(audit_named_workflow("freerdp-android.yml", content))
+
+    def _freerdp_native_workflow_fixture(self):
+        return """name: INFINITY FreeRDP Android Native Verification
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  android-arm64-native:
+    steps:
+      - run: sdkmanager --install "ndk;27.0.12077973" "cmake;3.22.1"
+      - run: |
+          test "$(git -C external/FreeRDP rev-parse HEAD)" = "65bcca1913a28cbdd7eb913599f692bd2b707991"
+          gradle -PINFINITY_BUILD_FREERDP_NATIVE=true :freerdpCore:externalNativeBuildDebug :freerdpCore:bundleDebugAar --no-daemon --max-workers=2 --stacktrace
+      - run: |
+          readelf -h library.so
+          echo "ELF64 AArch64"
+          AAR="$(find freerdp-core/build -type f -name 'freerdp-core-debug.aar' -print -quit)"
+          unzip -Z1 "$AAR" | grep -Fx "jni/arm64-v8a/$library"
+"""
+
     def test_codmagic_release_apk_build_route_is_rejected(self):
         content = """workflows:
   infinity-core-android:

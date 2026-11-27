@@ -1,18 +1,6 @@
 name: INFINITY FreeRDP Android Native Verification
 
 on:
-  push:
-    branches:
-      - INFINITY-PACK-14-REMOTE-FRAME-PIPELINE
-    paths:
-      - ".gitmodules"
-      - "external/FreeRDP"
-      - "external/FreeRDP/**"
-      - "freerdp-core/**"
-      - "app/build.gradle.kts"
-      - "settings.gradle.kts"
-      - "build.gradle.kts"
-      - ".github/workflows/freerdp-android.yml"
   pull_request:
     paths:
       - ".gitmodules"
@@ -114,7 +102,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          AAR="freerdp-core/build/outputs/aar/freerdp-core-debug.aar"
+          AAR="$(find freerdp-core/build -type f -name 'freerdp-core-debug.aar' -print -quit)"
           test -s "$AAR"
           unzip -l "$AAR" | tee aar-contents.txt
           for library in libfreerdp-android.so libfreerdp3.so libfreerdp-client3.so libwinpr3.so libssl.so libcrypto.so liburiparser.so; do
@@ -123,15 +111,4 @@ jobs:
               exit 1
             }
           done
-          mkdir -p artifacts/native
-          cp "$AAR" artifacts/native/
-          find freerdp-core/build -type f -name '*.so' -path '*/obj/arm64-v8a/*' -exec cp {} artifacts/native/ ;
-          cp aar-contents.txt artifacts/native/
 
-      - name: Upload ARM64 native and AAR evidence
-        uses: actions/upload-artifact@v7
-        with:
-          name: INFINITY-FREERDP-ARM64-NATIVE-${{ github.sha }}
-          path: artifacts/native/
-          if-no-files-found: error
-          retention-days: 14

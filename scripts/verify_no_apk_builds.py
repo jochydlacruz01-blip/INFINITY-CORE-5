@@ -224,6 +224,34 @@ def _is_safe_manual_release_validation_workflow(path: Path, content: str) -> boo
         and "if-no-files-found: error" in artifact_block
     )
 
+
+def _is_safe_freerdp_native_workflow(path: Path, content: str) -> bool:
+    """Allow only the narrowly-scoped FreeRDP arm64 native build and AAR inspection; never an APK."""
+    if path.name != "freerdp-android.yml":
+        return False
+    required = (
+        re.search(r"(?m)^on:\s*\n\s+pull_request:", content),
+        re.search(r"(?m)^\s+workflow_dispatch:\s*$", content),
+        re.search(r"(?m)^permissions:\s*\n\s+contents:\s*read\s*$", content),
+        re.search(r"(?m)^\s+gradle -PINFINITY_BUILD_FREERDP_NATIVE=true :freerdpCore:externalNativeBuildDebug :freerdpCore:bundleDebugAar --no-daemon --max-workers=2 --stacktrace\s*$", content),
+        """AAR="$(find freerdp-core/build -type f -name 'freerdp-core-debug.aar' -print -quit)" """ .strip() in content,
+        'unzip -Z1 "$AAR"' in content,
+        "readelf -h" in content,
+        "ELF64" in content,
+        "AArch64" in content,
+        "65bcca1913a28cbdd7eb913599f692bd2b707991" in content,
+        "ndk;27.0.12077973" in content,
+        "cmake;3.22.1" in content,
+        "jni/arm64-v8a/$library" in content,
+    )
+    forbidden = re.compile(
+        r"(?i)assemble\w*|package\w*|install\w*|publish\w*|\.apk\b|"
+        r"signingConfig|signingConfigs|apksigner|jarsigner|secrets\.|"
+        r"actions/upload-artifact|app/build/outputs|softprops/action-gh-release|gh\s+release"
+    )
+    return all(required) and not forbidden.search(content)
+
+
 def _audit_file(workflow: Path) -> list[str]:
     try:
         content = workflow.read_text(encoding="utf-8")
@@ -235,6 +263,7 @@ def _audit_file(workflow: Path) -> list[str]:
     disabled_apk_workflow = _is_temporarily_disabled_apk_workflow(workflow, content)
     safe_debug_workflow = _is_safe_manual_debug_apk_workflow(workflow, content)
     safe_release_validation = _is_safe_manual_release_validation_workflow(workflow, content)
+    safe_freerdp_native = _is_safe_freerdp_native_workflow(workflow, content)
     if workflow.name == MANUAL_DEBUG_APK_WORKFLOW and not safe_debug_workflow:
         return [f"{workflow}: manual DEBUG APK workflow does not satisfy the strict PR #87 allowlist"]
     if workflow.name == MANUAL_RELEASE_VALIDATION_WORKFLOW and not safe_release_validation:
@@ -250,10 +279,10 @@ def _audit_file(workflow: Path) -> list[str]:
         pattern.search(content)
         for pattern in (APK_REFERENCE, GENERIC_OUTPUT, SIGNING, RELEASE_UPLOAD)
     )
-    if (gradle_build or has_apk_output) and not (disabled_apk_workflow or safe_debug_workflow or safe_release_validation):
+    if (gradle_build or has_apk_output) and not (disabled_apk_workflow or safe_debug_workflow or safe_release_validation or safe_freerdp_native):
         findings.append(f"{workflow}: APK build, signing, or publication route is not disabled")
 
-    if not (disabled_apk_workflow or safe_debug_workflow or safe_release_validation):
+    if not (disabled_apk_workflow or safe_debug_workflow or safe_release_validation or safe_freerdp_native):
         for block in _artifact_steps(content):
             path_match = re.search(
                 r"(?ims)^[ ]*path[ ]*:[ ]*(.*?)(?=^[ ]*[a-zA-Z_-]+[ ]*:|\Z)",
@@ -301,4 +330,4 @@ if __name__ == "__main__":
     if errors:
         print("\n".join("FAIL: " + error for error in errors))
         raise SystemExit(1)
-    print("Workflow policy passed: only branch-pinned manual DEBUG and ephemeral-signed Release validation APK workflows are enabled; commercial Release/publication remains blocked")
+    print("Workflow policy passed: APK routes remain restricted; FreeRDP exception is limited to native ARM64 libraries and AAR inspection")
