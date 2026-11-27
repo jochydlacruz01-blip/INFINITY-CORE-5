@@ -979,7 +979,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                         val selected = workspace == targetWorkspace
                         Box(
                             Modifier
-                                .widthIn(min = 48.dp * iconScale)
+                                .widthIn(min = 48.dp)
                                 .heightIn(min = 48.dp)
                                 .clip(RoundedCornerShape(12.dp))
                                 .background(
