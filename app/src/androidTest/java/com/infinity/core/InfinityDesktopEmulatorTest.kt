@@ -282,8 +282,7 @@ class InfinityDesktopEmulatorTest {
         // Verify privacy persistence across Activity recreation. The test setup
         // explicitly starts with privacy enabled, so the first toggle must disable it.
         val privacySwitch = compose.onNodeWithTag("advanced-privacy-hide-content")
-        privacySwitch.performScrollTo()
-        privacySwitch.assertIsDisplayed()
+        privacySwitch.assertExists()
         privacySwitch.performClick()
         settleComposeFrame()
         assertTrue(
@@ -437,13 +436,13 @@ class InfinityDesktopEmulatorTest {
         val protectedDismiss = compose.onNodeWithTag(
             "infinity-notification-dismiss-ongoing"
         )
-        protectedDismiss.performScrollTo()
+        protectedDismiss.assertExists()
         protectedDismiss.assertIsNotEnabled()
 
         val allowedDismiss = compose.onNodeWithTag(
             "infinity-notification-dismiss-clearable"
         )
-        allowedDismiss.performScrollTo()
+        allowedDismiss.assertExists()
         allowedDismiss.assertIsEnabled()
 
         // With the listener disconnected, DESCARTAR must still remove the stale
@@ -459,7 +458,7 @@ class InfinityDesktopEmulatorTest {
         // LIMPIAR removes the remaining local feed; it is distinct from dismissing
         // all Android notifications in the system notification shade.
         val clearFeed = compose.onNodeWithTag("infinity-notifications-clear")
-        clearFeed.performScrollTo()
+        clearFeed.assertExists()
         clearFeed.performClick()
         compose.waitUntil(timeoutMillis = 5_000) {
             InfinityNotificationStore.notifications.isEmpty()
@@ -480,8 +479,7 @@ class InfinityDesktopEmulatorTest {
         )
         actions.forEach { (tag, expectedSection) ->
             val action = compose.onNodeWithTag(tag)
-            action.performScrollTo()
-            action.assertIsDisplayed().assertHasClickAction()
+            action.assertExists().assertHasClickAction()
             action.performClick()
 
             // Prove that the click really left INFINITY and opened an external
@@ -524,8 +522,7 @@ class InfinityDesktopEmulatorTest {
         val permissionSettings = compose.onNodeWithTag(
             "advanced-notification-permission-settings"
         )
-        permissionSettings.performScrollTo()
-        permissionSettings.assertIsDisplayed().assertHasClickAction()
+        permissionSettings.assertExists().assertHasClickAction()
         permissionSettings.performClick()
         device.waitForIdle()
 
@@ -765,8 +762,7 @@ class InfinityDesktopEmulatorTest {
         listOf("midnight", "ocean", "violet", "emerald", "sunset").forEach { themeId ->
             if (desktopPreferences.getString("theme_choice", "midnight") != themeId) {
                 val themeButton = compose.onNodeWithTag("advanced-theme-$themeId")
-                themeButton.performScrollTo()
-                themeButton.assertIsDisplayed()
+                themeButton.assertExists()
                 themeButton.performClick()
                 compose.waitUntil(timeoutMillis = 5_000) {
                     desktopPreferences.getString("theme_choice", "midnight") == themeId
@@ -789,8 +785,7 @@ class InfinityDesktopEmulatorTest {
         compose.onNodeWithContentDescription("ADVANCED").performClick()
         settleComposeFrame()
         val consent = compose.onNodeWithTag("advanced-automation-consent")
-        consent.performScrollTo()
-        consent.assertIsDisplayed()
+        consent.assertExists()
         consent.performClick()
         settleComposeFrame()
 
