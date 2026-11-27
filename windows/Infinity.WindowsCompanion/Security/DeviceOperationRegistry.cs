@@ -23,9 +23,26 @@ public sealed class DeviceOperationRegistry
 
         lock (gate)
         {
+            if (revokedDevices.Contains(fingerprint))
+                throw new InvalidOperationException("A revoked device certificate cannot be reactivated.");
             if (devices.ContainsKey(fingerprint)) return;
-            revokedDevices.Remove(fingerprint);
             devices.Add(fingerprint, new DeviceState());
+        }
+    }
+
+    /// <summary>Admits a device only while its authoritative authorization remains current.</summary>
+    public bool ActivateDeviceIfAuthorized(string certificateSha256, Func<bool> isCurrentlyAuthorized)
+    {
+        ArgumentNullException.ThrowIfNull(isCurrentlyAuthorized);
+        var fingerprint = CertificatePinning.NormalizeSha256Pin(certificateSha256)
+            ?? throw new ArgumentException("A valid device fingerprint is required.", nameof(certificateSha256));
+
+        lock (gate)
+        {
+            if (revokedDevices.Contains(fingerprint) || !isCurrentlyAuthorized()) return false;
+            if (devices.ContainsKey(fingerprint)) return true;
+            devices.Add(fingerprint, new DeviceState());
+            return true;
         }
     }
 
@@ -97,7 +114,12 @@ public sealed class DeviceOperationRegistry
         return true;
     }
 
-    public bool RevokeDevice(string certificateSha256)
+    public bool RevokeDevice(string certificateSha256) => ChangeDeviceState(certificateSha256, terminal: true);
+
+    /// <summary>Closes a blocked device's active work without making the block terminal.</summary>
+    public bool DeactivateDevice(string certificateSha256) => ChangeDeviceState(certificateSha256, terminal: false);
+
+    private bool ChangeDeviceState(string certificateSha256, bool terminal)
     {
         var fingerprint = CertificatePinning.NormalizeSha256Pin(certificateSha256);
         if (fingerprint is null) return false;
@@ -106,10 +128,10 @@ public sealed class DeviceOperationRegistry
 
         lock (gate)
         {
-            if (revokedDevices.Contains(fingerprint)) return false;
-            revokedDevices.Add(fingerprint);
+            if (terminal && revokedDevices.Contains(fingerprint)) return false;
+            if (terminal) revokedDevices.Add(fingerprint);
             devices.Remove(fingerprint, out device);
-            if (device is null) return true;
+            if (device is null) return terminal;
             if (device.ActiveOperations > 0)
                 drainingDevices[fingerprint] = device;
             sessionCancellations = device.Sessions.Values
