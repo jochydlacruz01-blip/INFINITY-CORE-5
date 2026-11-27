@@ -460,7 +460,7 @@ fun InfinityAdvancedPanel(
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
                                             Text(
-                                                notification.appName,
+                                                if (hideNotificationContent) "Aplicación" else notification.appName,
                                                 color = AdvancedAccent,
                                                 fontSize = 10.sp,
                                                 modifier = Modifier.weight(1f)
