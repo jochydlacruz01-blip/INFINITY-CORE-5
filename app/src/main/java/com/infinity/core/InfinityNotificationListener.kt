@@ -61,15 +61,22 @@ object InfinityNotificationStore {
     private var hideContent = true
 
     internal fun setHideContent(enabled: Boolean) {
+        // Flip the volatile gate before touching the feed so new notifications
+        // are redacted immediately, including during a thread hop.
         hideContent = enabled
         if (enabled) {
-            mainHandler.post {
+            val redactExisting = Runnable {
                 notifications.indices.forEach { index ->
                     val current = notifications[index]
                     if (current.title.isNotEmpty() || current.message.isNotEmpty()) {
                         notifications[index] = current.copy(title = "", message = "")
                     }
                 }
+            }
+            if (Looper.myLooper() == Looper.getMainLooper()) {
+                redactExisting.run()
+            } else {
+                mainHandler.post(redactExisting)
             }
         }
     }
