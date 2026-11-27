@@ -765,4 +765,35 @@ class InfinityDesktopEmulatorTest {
         }
     }
 
+
+    @Test(timeout = 120_000)
+    fun automationConsentRevocationPersistsAndDisablesExecution() {
+        val automationPrefs = context.getSharedPreferences("infinity_advanced_automation", 0)
+        automationPrefs.edit()
+            .putString("target_package", "com.android.settings")
+            .putBoolean("enabled", true)
+            .putBoolean("consent", true)
+            .commit()
+
+        compose.onNodeWithContentDescription("ADVANCED").performClick()
+        settleComposeFrame()
+        val consent = compose.onNodeWithTag("advanced-automation-consent")
+        consent.performScrollTo()
+        consent.assertIsDisplayed()
+        consent.performClick()
+        settleComposeFrame()
+
+        assertTrue("Consent revocation must persist immediately", !automationPrefs.getBoolean("consent", true))
+        assertTrue("Consent revocation must disable the rule", !automationPrefs.getBoolean("enabled", true))
+        compose.onNodeWithTag("advanced-automation-run").assertIsNotEnabled()
+
+        // A fresh Activity must not silently restore the previous authorization.
+        compose.activityRule.scenario.recreate()
+        settleComposeFrame()
+        compose.onNodeWithTag("infinity-advanced-panel").assertExists()
+        assertTrue("Consent must remain revoked after Activity recreation", !automationPrefs.getBoolean("consent", true))
+        assertTrue("Rule must remain disabled after Activity recreation", !automationPrefs.getBoolean("enabled", true))
+        compose.onNodeWithTag("advanced-automation-run").assertIsNotEnabled()
+    }
+
 }
