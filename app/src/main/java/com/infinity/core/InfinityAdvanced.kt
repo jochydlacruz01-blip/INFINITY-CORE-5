@@ -28,6 +28,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.rememberCoroutineScope
+import com.infinity.core.advanced.data.capabilities.createInfinityAdvancedCapabilityRegistry
+import com.infinity.core.advanced.domain.usecases.ObserveInfinityAdvancedOverview
+import com.infinity.core.advanced.presentation.InfinityAdvancedOverviewPresenter
+import com.infinity.core.advanced.presentation.InfinityAdvancedOverviewUiState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,6 +49,20 @@ fun InfinityAdvancedPanel(
     desktopTheme: String = "infinity"
 ) {
     val context = LocalContext.current
+    // ADVANCED consumes capabilities already owned by the desktop. The
+    // composition scope closes notification/network flows when this panel exits.
+    val advancedScope = rememberCoroutineScope()
+    val capabilityRegistry = remember(context) {
+        createInfinityAdvancedCapabilityRegistry(context)
+    }
+    val observeOverview = remember(capabilityRegistry) {
+        ObserveInfinityAdvancedOverview(capabilityRegistry)
+    }
+    val overviewPresenter = remember(observeOverview, advancedScope) {
+        InfinityAdvancedOverviewPresenter(observeOverview, advancedScope)
+    }
+    val overviewState by overviewPresenter.state.collectAsState()
+    val overview = (overviewState as? InfinityAdvancedOverviewUiState.Content)?.snapshot
     val AdvancedBackground = when (desktopTheme) {
         "windows11" -> Color(0xF21B3554)
         else -> Color(0xF20D1B30)
@@ -118,6 +138,64 @@ fun InfinityAdvancedPanel(
 
                 TextButton(onClick = onClose) {
                     Text("CERRAR", color = AdvancedAccent)
+                }
+            }
+
+            Text(
+                "ESTADO DEL SISTEMA",
+                color = AdvancedAccent,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold
+            )
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(sectionShape),
+                colors = CardDefaults.cardColors(containerColor = sectionSurface)
+            ) {
+                Column(
+                    modifier = Modifier.padding(15.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    when (overviewState) {
+                        InfinityAdvancedOverviewUiState.Loading ->
+                            Text("Conectando capacidades del sistema…", color = AdvancedMuted, fontSize = 11.sp)
+                        InfinityAdvancedOverviewUiState.Unavailable ->
+                            Text("Estado del sistema temporalmente no disponible.", color = AdvancedMuted, fontSize = 11.sp)
+                        is InfinityAdvancedOverviewUiState.Content -> {
+                            val metrics = overview?.deviceMetrics
+                            val connection = overview?.connectionState
+                            Text(
+                                "Memoria: ${metrics?.memoryUsagePercent?.let { "%.0f%%".format(Locale.ROOT, it) } ?: "No disponible"}",
+                                color = Color.White,
+                                fontSize = 12.sp
+                            )
+                            Text(
+                                "Almacenamiento: ${metrics?.storageUsagePercent?.let { "%.0f%%".format(Locale.ROOT, it) } ?: "No disponible"}",
+                                color = Color.White,
+                                fontSize = 12.sp
+                            )
+                            Text(
+                                "CPU: ${metrics?.cpuUsagePercent?.let { "%.0f%%".format(Locale.ROOT, it) } ?: "No disponible"}",
+                                color = AdvancedMuted,
+                                fontSize = 11.sp
+                            )
+                            Text(
+                                "Red: ${when {
+                                    connection == null -> "No disponible"
+                                    !connection.hasNetwork -> "Sin conexión"
+                                    else -> "${connection.transport ?: "Conectada"}${if (connection.isMetered) " · medida" else " · no medida"}"
+                                }}",
+                                color = AdvancedMuted,
+                                fontSize = 11.sp
+                            )
+                            Text(
+                                "Notificaciones: ${overview?.notifications?.size ?: 0} · Tema: ${overview?.selectedThemeId ?: "midnight"}",
+                                color = AdvancedMuted,
+                                fontSize = 11.sp
+                            )
+                        }
+                    }
                 }
             }
 
