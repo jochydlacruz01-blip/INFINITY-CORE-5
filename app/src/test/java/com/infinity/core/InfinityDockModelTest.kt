@@ -66,8 +66,8 @@ class InfinityDockModelTest {
             spacingDp = 8f,
             horizontalInsetDp = 12f
         )
-        assertEquals(5, viewport.visibleItemCapacity)
-        assertEquals(2, infinityDockCountHiddenTasks(total = 7, visible = 5))
+        assertEquals(6, viewport.visibleItemCapacity)
+        assertEquals(1, infinityDockCountHiddenTasks(total = 7, visible = 6))
         assertTrue(infinityDockSelectVisibleTaskIds(listOf("a", "b", "c", "d"), 2) == listOf("c", "d"))
         assertFalse(infinityDockSelectVisibleTaskIds(listOf("a", "b"), 0).isNotEmpty())
     }
