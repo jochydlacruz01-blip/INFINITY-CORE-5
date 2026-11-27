@@ -13,7 +13,7 @@ public static class EnrollmentProofV1
     private const int ExpectedChallengeSignatureInputLength = 152;
     private const int MaximumCsrBytes = 16 * 1024;
     private static readonly byte[] DomainPrefix =
-        Encoding.ASCII.GetBytes("INFINITY-CONNECT-ENROLLMENT-PROOF-V1\\0");
+        Encoding.ASCII.GetBytes("INFINITY-CONNECT-ENROLLMENT-PROOF-V1\0");
 
     public static byte[] BuildSignatureInput(
         ReadOnlySpan<byte> verifiedChallengeSignatureInput,
