@@ -53,6 +53,7 @@ object InfinityNotificationStore {
         // Re-check on every Activity resume: if the user revoked listener
         // access in Android Settings, immediately discard the in-memory feed.
         if (!accessGranted.value) {
+            service = null
             clearAll()
         }
     }
