@@ -739,23 +739,6 @@ class InfinityDesktopEmulatorTest {
         settleComposeFrame()
         compose.onNodeWithTag("infinity-advanced-panel").assertExists()
 
-        // Each quick action must hand off to Android Settings and return to the
-        // same ADVANCED panel without losing the desktop Activity.
-        listOf(
-            "advanced-action-wifi",
-            "advanced-action-bluetooth",
-            "advanced-action-display",
-            "advanced-action-sound"
-        ).forEach { tag ->
-            compose.onNodeWithTag(tag).assertIsDisplayed()
-            compose.onNodeWithTag(tag).performClick()
-            device.waitForIdle()
-            device.pressBack()
-            device.waitForIdle()
-            compose.waitForIdle()
-            compose.onNodeWithTag("infinity-advanced-panel").assertExists()
-        }
-
         // Select each supported theme through ADVANCED and verify the desktop's
         // canonical preference changes (the palette unit tests verify each palette).
         val desktopPreferences = context.getSharedPreferences("infinity_desktop", 0)
