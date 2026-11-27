@@ -122,7 +122,10 @@ internal fun InfinityConnectRemoteDesktopPanel(
             }
 
             override fun onFrame(frameBitmap: Bitmap) {
-                if (client == null) return
+                if (client == null) {
+                    frameBitmap.recycle()
+                    return
+                }
                 frame = frameBitmap
                 frameRevision++
             }
@@ -172,6 +175,15 @@ internal fun InfinityConnectRemoteDesktopPanel(
                     runCatching { current.closeSession() }
                 }
             }
+        }
+    }
+
+    // Each delivered frame is an immutable snapshot owned by this composition.
+    // Dispose the previous snapshot only after Compose has switched to the new one.
+    DisposableEffect(frame) {
+        val displayedFrame = frame
+        onDispose {
+            if (displayedFrame != null && !displayedFrame.isRecycled) displayedFrame.recycle()
         }
     }
 
