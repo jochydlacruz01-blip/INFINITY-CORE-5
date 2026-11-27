@@ -49,8 +49,8 @@ internal fun infinityNormalizeDockPreferences(
 ): InfinityDockPreferences {
     val favorites = preferences.favoritePackageNames
         .asSequence()
-        .map(String::trim)
-        .filter(String::isNotEmpty)
+        .map { it.trim() }
+        .filter { it.isNotEmpty() }
         .filter { installedPackages == null || it in installedPackages }
         .distinct()
         .take(64)
@@ -108,3 +108,12 @@ internal fun infinityDockSelectVisibleTaskIds(
 
 internal fun infinityDockCountHiddenTasks(total: Int, visible: Int): Int =
     (total.coerceAtLeast(0) - visible.coerceAtLeast(0)).coerceAtLeast(0)
+
+/** Stable text encoding keeps favorite order intact in SharedPreferences. */
+internal fun infinityDockSerializeFavorites(favorites: List<String>): String =
+    favorites.map { it.trim() }.filter { it.isNotEmpty() }.distinct().joinToString("\n")
+
+/** Tolerant reader for older or partially written preference values. */
+internal fun infinityDockParseFavorites(serialized: String?): List<String> =
+    serialized.orEmpty().lineSequence().map { it.trim() }
+        .filter { it.isNotEmpty() }.distinct().take(64).toList()
