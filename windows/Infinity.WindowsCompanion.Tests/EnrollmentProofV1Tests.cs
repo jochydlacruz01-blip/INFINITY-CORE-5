@@ -36,10 +36,14 @@ public sealed class EnrollmentProofV1Tests
     }
 
     [Fact]
-    public void RejectsMissingChallengeEmptyDeviceAndOversizedCsr()
+    public void RejectsMalformedChallengeTranscriptAndInvalidEnrollmentInputs()
     {
         Assert.Throws<CryptographicException>(() =>
             EnrollmentProofV1.BuildSignatureInput([], Guid.NewGuid(), [1]));
+        Assert.Throws<CryptographicException>(() =>
+            EnrollmentProofV1.BuildSignatureInput(new byte[151], Guid.NewGuid(), [1]));
+        Assert.Throws<CryptographicException>(() =>
+            EnrollmentProofV1.BuildSignatureInput(new byte[153], Guid.NewGuid(), [1]));
         Assert.Throws<CryptographicException>(() =>
             EnrollmentProofV1.BuildSignatureInput(ChallengeInput, Guid.Empty, [1]));
         Assert.Throws<CryptographicException>(() =>

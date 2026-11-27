@@ -10,17 +10,18 @@ namespace Infinity.WindowsCompanion.Security;
 /// </summary>
 public static class EnrollmentProofV1
 {
+    private const int ExpectedChallengeSignatureInputLength = 152;
     private const int MaximumCsrBytes = 16 * 1024;
     private static readonly byte[] DomainPrefix =
-        Encoding.ASCII.GetBytes("INFINITY-CONNECT-ENROLLMENT-PROOF-V1\0");
+        Encoding.ASCII.GetBytes("INFINITY-CONNECT-ENROLLMENT-PROOF-V1\\0");
 
     public static byte[] BuildSignatureInput(
         ReadOnlySpan<byte> verifiedChallengeSignatureInput,
         Guid androidDeviceId,
         ReadOnlySpan<byte> csrDer)
     {
-        if (verifiedChallengeSignatureInput.IsEmpty)
-            throw new CryptographicException("Verified challenge transcript is required.");
+        if (verifiedChallengeSignatureInput.Length != ExpectedChallengeSignatureInputLength)
+            throw new CryptographicException("Verified v1 challenge transcript must be exactly 152 bytes.");
         if (androidDeviceId == Guid.Empty)
             throw new CryptographicException("Android device ID must not be empty.");
         if (csrDer.IsEmpty || csrDer.Length > MaximumCsrBytes)
