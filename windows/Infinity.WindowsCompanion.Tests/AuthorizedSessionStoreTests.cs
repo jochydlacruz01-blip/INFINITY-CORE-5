@@ -104,20 +104,21 @@ public sealed class AuthorizedSessionStoreTests
         var store = new AuthorizedSessionStore(() => now);
         var grant = store.Create(DevicePin, true, new[] { "identity.read" });
 
-        Assert.Null(store.Heartbeat(grant.SessionId, grant.Token, OtherDevicePin));
-        Assert.Null(store.Heartbeat(grant.SessionId, "invalid", DevicePin));
+        Assert.Null(store.Heartbeat(grant.SessionId, grant.Token, OtherDevicePin, 1, true));
+        Assert.Null(store.Heartbeat(grant.SessionId, "invalid", DevicePin, 1, true));
         Assert.True(store.IsAuthorized(grant.SessionId, grant.Token, DevicePin, "identity.read"));
 
-        now = now.AddMinutes(14);
-        var renewed = store.Heartbeat(grant.SessionId, grant.Token, DevicePin);
+        // Heartbeats require recent user activity; idle sessions cannot be kept alive.
+        now = now.AddMinutes(1);
+        var renewed = store.Heartbeat(grant.SessionId, grant.Token, DevicePin, 1, true);
         Assert.Equal(now.AddMinutes(15), renewed);
 
-        now = now.AddMinutes(14);
+        now = now.AddMinutes(1);
         Assert.True(store.IsAuthorized(grant.SessionId, grant.Token, DevicePin, "identity.read"));
-        Assert.NotNull(store.Heartbeat(grant.SessionId, grant.Token, DevicePin));
+        Assert.NotNull(store.Heartbeat(grant.SessionId, grant.Token, DevicePin, 2, true));
 
         now = now.AddMinutes(16);
-        Assert.Null(store.Heartbeat(grant.SessionId, grant.Token, DevicePin));
+        Assert.Null(store.Heartbeat(grant.SessionId, grant.Token, DevicePin, 3, true));
         Assert.False(store.IsAuthorized(grant.SessionId, grant.Token, DevicePin, "identity.read"));
         Assert.Single(store.DrainExpiredSessions());
     }
