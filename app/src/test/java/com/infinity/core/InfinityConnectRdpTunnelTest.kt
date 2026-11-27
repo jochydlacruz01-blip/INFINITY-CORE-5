@@ -28,7 +28,15 @@ class InfinityConnectRdpTunnelTest {
 
     @Test fun validRemoteCapabilitiesAreStillBlockedByLocalFeatureGate() = runBlocking {
         val error = runCatching {
-            InfinityConnectRdpTunnel().open(
+            InfinityConnectRdpTunnel(
+                remoteDesktopGate = {
+                    InfinityConnectFeatureGates.requireRemoteDesktopEnabled(
+                        isValidationBuild = false,
+                        expiresAtEpochSeconds = 0L,
+                        nowEpochSeconds = 1_000L
+                    )
+                }
+            ).open(
                 InfinityConnectRdpTunnel.Config(
                     companionHost = "127.0.0.1",
                     companionPort = 7443,

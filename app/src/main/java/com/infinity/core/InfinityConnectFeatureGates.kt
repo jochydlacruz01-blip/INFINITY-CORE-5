@@ -23,15 +23,24 @@ internal object InfinityConnectFeatureGates {
     ): Boolean = REMOTE_DESKTOP_VALIDATED ||
         isValidationWindowOpen(isValidationBuild, expiresAtEpochSeconds, nowEpochSeconds)
 
-    internal fun requireCapabilitiesEnabled(requestedCapabilities: Set<String>) {
+    internal fun requireCapabilitiesEnabled(
+        requestedCapabilities: Set<String>,
+        isValidationBuild: Boolean = BuildConfig.INFINITY_REMOTE_ACCEPTANCE_BUILD,
+        expiresAtEpochSeconds: Long = BuildConfig.INFINITY_REMOTE_ACCEPTANCE_EXPIRES_AT_EPOCH,
+        nowEpochSeconds: Long = System.currentTimeMillis() / 1_000L
+    ) {
         if (requestedCapabilities.any { it == "remote.display" || it == "remote.input" }) {
-            requireRemoteDesktopEnabled()
+            requireRemoteDesktopEnabled(isValidationBuild, expiresAtEpochSeconds, nowEpochSeconds)
         }
         if ("file.transfer" in requestedCapabilities) requireFileTransferEnabled()
     }
 
-    internal fun requireRemoteDesktopEnabled() {
-        check(isRemoteDesktopEnabled()) {
+    internal fun requireRemoteDesktopEnabled(
+        isValidationBuild: Boolean = BuildConfig.INFINITY_REMOTE_ACCEPTANCE_BUILD,
+        expiresAtEpochSeconds: Long = BuildConfig.INFINITY_REMOTE_ACCEPTANCE_EXPIRES_AT_EPOCH,
+        nowEpochSeconds: Long = System.currentTimeMillis() / 1_000L
+    ) {
+        check(isRemoteDesktopEnabled(isValidationBuild, expiresAtEpochSeconds, nowEpochSeconds)) {
             "INFINITY remote desktop is blocked outside its approved physical-validation window."
         }
     }

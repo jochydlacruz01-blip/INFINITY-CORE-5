@@ -7,6 +7,8 @@ on:
       - INFINITY-PACK-14-REMOTE-FRAME-PIPELINE
     paths:
       - '.github/workflows/android-validation-release.yml'
+      - 'app/**'
+      - 'freerdpCore/**'
 
 permissions:
   contents: read

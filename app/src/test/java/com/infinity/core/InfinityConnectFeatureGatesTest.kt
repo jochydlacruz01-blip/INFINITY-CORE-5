@@ -31,7 +31,10 @@ class InfinityConnectFeatureGatesTest {
     @Test fun remoteSessionCreationIsBlockedAtTransportBoundary() {
         assertThrows(IllegalStateException::class.java) {
             InfinityConnectFeatureGates.requireCapabilitiesEnabled(
-                setOf("identity.read", "remote.display", "remote.input")
+                setOf("identity.read", "remote.display", "remote.input"),
+                isValidationBuild = false,
+                expiresAtEpochSeconds = 0L,
+                nowEpochSeconds = 1_000L
             )
         }
     }
@@ -46,7 +49,11 @@ class InfinityConnectFeatureGatesTest {
 
     @Test fun directRemoteTunnelOpeningIsBlocked() {
         assertThrows(IllegalStateException::class.java) {
-            InfinityConnectFeatureGates.requireRemoteDesktopEnabled()
+            InfinityConnectFeatureGates.requireRemoteDesktopEnabled(
+                isValidationBuild = false,
+                expiresAtEpochSeconds = 0L,
+                nowEpochSeconds = 1_000L
+            )
         }
     }
 

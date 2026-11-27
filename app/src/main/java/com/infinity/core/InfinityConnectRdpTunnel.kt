@@ -32,7 +32,8 @@ import okio.ByteString.Companion.toByteString
  * The Companion server can reach only 127.0.0.1:3389; this client binds only 127.0.0.1.
  */
 internal class InfinityConnectRdpTunnel(
-    private val transportFactory: () -> InfinityConnectMtlsTransport = { InfinityConnectMtlsTransport() }
+    private val transportFactory: () -> InfinityConnectMtlsTransport = { InfinityConnectMtlsTransport() },
+    private val remoteDesktopGate: () -> Unit = { InfinityConnectFeatureGates.requireRemoteDesktopEnabled() }
 ) {
     data class Config(
         val companionHost: String,
@@ -60,7 +61,7 @@ internal class InfinityConnectRdpTunnel(
         require(config.grantedCapabilities.containsAll(setOf("remote.display", "remote.input"))) {
             "Windows has not granted both remote.display and remote.input."
         }
-        InfinityConnectFeatureGates.requireRemoteDesktopEnabled()
+        remoteDesktopGate()
         require(config.companionPort in 1024..65535) { "Companion port is invalid." }
         require(UUID.fromString(config.sessionId).toString() == config.sessionId) {
             "Session ID is invalid."
