@@ -1499,12 +1499,15 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
             }
 
           
-            // DOCK INFINITY 0.10 — DISEÑO MEJORADO
+            // DOCK INFINITY — barra adaptable y desplazable en todos los tamaños.
+            // El viewport ocupa el ancho disponible; el contenido interno puede desplazarse
+            // sin recortar accesos primarios ni depender de un umbral de pantalla.
             val dockScrollState = rememberScrollState()
             Row(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .zIndex(20f)
+                    .testTag("infinity-dock")
                     .onGloballyPositioned { coordinates ->
                         val measuredTop = with(density) { coordinates.positionInParent().y.toDp().value }
                         val nextSafeBottom = (measuredTop - 8f).coerceIn(0f, maxH.value)
@@ -1518,13 +1521,11 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                         horizontal = if (fluentTaskbar) 12.dp else if (maxW >= 600.dp && futuristicDesktop) 14.dp else 0.dp,
                         vertical = if (fluentTaskbar) 12.dp else if (maxW >= 600.dp && futuristicDesktop) 12.dp else 0.dp
                     )
-                    // Phone layouts scroll; tablet layouts use the task overflow affordance.
-                    .then(
-                        if (fluentTaskbar || infinityDockRequiresHorizontalScroll(maxW.value)) {
-                            Modifier.horizontalScroll(dockScrollState)
-                        } else Modifier
-                    )
-                    .then(if (fluentTaskbar || iconPack == "windows11" || (maxW >= 600.dp && futuristicDesktop)) Modifier.fillMaxWidth() else Modifier)
+                    // Todos los formatos conservan el mismo viewport desplazable.
+                    // Esto evita que los accesos fijos, las ventanas y la bandeja se pisen
+                    // cuando la tablet cambia de orientación o hay varias ventanas abiertas.
+                    .fillMaxWidth()
+                    .horizontalScroll(dockScrollState)
                     .then(
                         if (fluentTaskbar) Modifier.widthIn(max = 720.dp)
                         else if (maxW >= 600.dp && futuristicDesktop) Modifier.widthIn(max = 1500.dp)
