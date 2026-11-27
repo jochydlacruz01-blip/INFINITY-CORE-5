@@ -2,6 +2,7 @@ package com.infinity.core
 
 import android.content.Context
 import android.util.Base64
+import java.nio.ByteBuffer
 import java.nio.charset.StandardCharsets
 import java.security.KeyStore
 import java.security.MessageDigest
@@ -209,6 +210,12 @@ class InfinityConnectCredentialVault(context: Context) {
 /** Canonical AAD contract shared by the vault and cryptographic regression tests. */
 internal fun infinityConnectCredentialAad(profileId: String, endpoint: String): ByteArray {
     require(profileId.isNotBlank() && endpoint.isNotBlank())
-    return "PROJECT-INFINITY|CONNECT|credential|v2|profile=$profileId|endpoint=$endpoint"
-        .toByteArray(StandardCharsets.UTF_8)
+    val domain = "PROJECT-INFINITY|CONNECT|credential|v2".toByteArray(StandardCharsets.UTF_8)
+    val profile = profileId.toByteArray(StandardCharsets.UTF_8)
+    val target = endpoint.toByteArray(StandardCharsets.UTF_8)
+    return ByteBuffer.allocate(12 + domain.size + profile.size + target.size)
+        .putInt(domain.size).put(domain)
+        .putInt(profile.size).put(profile)
+        .putInt(target.size).put(target)
+        .array()
 }
