@@ -158,6 +158,46 @@ public sealed class AuthorizedSessionStore
         }
     }
 
+    /// <summary>Authenticated, idempotent session revocation.</summary>
+    public SessionRevocationResult RevokeAuthenticated(string sessionId, string bearerToken, string clientCertificateSha256)
+    {
+        if (!Guid.TryParseExact(sessionId, "D", out var parsedId))
+            return SessionRevocationResult.AlreadyInactive;
+        var fingerprint = CertificatePinning.NormalizeSha256Pin(clientCertificateSha256);
+        if (fingerprint is null || string.IsNullOrWhiteSpace(bearerToken))
+            return SessionRevocationResult.Unauthorized;
+
+        byte[] suppliedHash;
+        try
+        {
+            var tokenBytes = Base64UrlDecode(bearerToken);
+            try { suppliedHash = SHA256.HashData(tokenBytes); }
+            finally { CryptographicOperations.ZeroMemory(tokenBytes); }
+        }
+        catch (FormatException)
+        {
+            return SessionRevocationResult.Unauthorized;
+        }
+
+        lock (gate)
+        {
+            try
+            {
+                PurgeExpired(utcNow());
+                if (!sessions.TryGetValue(parsedId, out var session))
+                    return SessionRevocationResult.AlreadyInactive;
+                if (!string.Equals(session.ClientFingerprint, fingerprint, StringComparison.Ordinal) ||
+                    !CryptographicOperations.FixedTimeEquals(session.TokenHash, suppliedHash))
+                    return SessionRevocationResult.Unauthorized;
+
+                sessions.Remove(parsedId);
+                session.Clear();
+                return SessionRevocationResult.Revoked;
+            }
+            finally { CryptographicOperations.ZeroMemory(suppliedHash); }
+        }
+    }
+
     public bool Revoke(string sessionId, string clientCertificateSha256)
     {
         if (!Guid.TryParseExact(sessionId, "D", out var parsedId)) return false;
@@ -273,6 +313,8 @@ public sealed class AuthorizedSessionStore
         public HashSet<string> Capabilities { get; } = capabilities;
         public void Clear() => CryptographicOperations.ZeroMemory(TokenHash);
     }
+
+    public enum SessionRevocationResult { Revoked, AlreadyInactive, Unauthorized }
 
     public sealed record ExpiredSession(string SessionId, string ClientFingerprint);
 

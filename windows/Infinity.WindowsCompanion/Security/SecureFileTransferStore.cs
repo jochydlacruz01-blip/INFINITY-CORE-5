@@ -14,6 +14,7 @@ public sealed class SecureFileTransferStore
     public const long MaximumFileBytes = 50L * 1024 * 1024;
     private const int MaximumFileNameLength = 128;
     private readonly string rootPath;
+    private readonly Func<Guid> fileIdFactory;
     private readonly SemaphoreSlim writeGate = new(1, 1);
     private const int MaximumFilesPerDevice = 100;
     private const long MaximumBytesPerDevice = 500L * 1024 * 1024;

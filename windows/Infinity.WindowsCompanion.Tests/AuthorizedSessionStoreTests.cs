@@ -23,6 +23,32 @@ public sealed class AuthorizedSessionStoreTests
     }
 
     [Fact]
+    public void AuthenticatedRevocationIsIdempotentAndRejectsWrongTokenForLiveSession()
+    {
+        var store = new AuthorizedSessionStore();
+        var grant = store.Create(DevicePin, true, new[] { "identity.read" });
+        Assert.Equal(AuthorizedSessionStore.SessionRevocationResult.Unauthorized,
+            store.RevokeAuthenticated(grant.SessionId, "wrong-token", DevicePin));
+        Assert.True(store.IsAuthorized(grant.SessionId, grant.Token, DevicePin, "identity.read"));
+        Assert.Equal(AuthorizedSessionStore.SessionRevocationResult.Revoked,
+            store.RevokeAuthenticated(grant.SessionId, grant.Token, DevicePin));
+        Assert.Equal(AuthorizedSessionStore.SessionRevocationResult.AlreadyInactive,
+            store.RevokeAuthenticated(grant.SessionId, grant.Token, DevicePin));
+        Assert.False(store.IsAuthorized(grant.SessionId, grant.Token, DevicePin, "identity.read"));
+    }
+
+    [Fact]
+    public void AuthenticatedRevocationTreatsExpiredGrantAsAlreadyInactive()
+    {
+        var now = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
+        var store = new AuthorizedSessionStore(() => now);
+        var grant = store.Create(DevicePin, true, new[] { "identity.read" });
+        now = now.AddMinutes(16);
+        Assert.Equal(AuthorizedSessionStore.SessionRevocationResult.AlreadyInactive,
+            store.RevokeAuthenticated(grant.SessionId, grant.Token, DevicePin));
+    }
+
+    [Fact]
     public void RequiresExplicitConsentAndRejectsRemoteCapabilities()
     {
         var store = new AuthorizedSessionStore();

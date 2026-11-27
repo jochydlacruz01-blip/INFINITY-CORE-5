@@ -41,16 +41,16 @@ internal class InfinityConnectSessionSupervisorService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val config = InfinityConnectSessionSupervisorRuntime.current.get()
         if (config == null) {
-            stopSelf(startId)
+            stopSelf()
             return START_NOT_STICKY
         }
         if (intent?.action == ACTION_REVOKE) revokeRequested = true
         startAsForeground("Sesión remota autorizada · supervisando conexión")
-        if (worker?.isActive != true) worker = scope.launch { supervise(config, startId) }
+        if (worker?.isActive != true) worker = scope.launch { supervise(config) }
         return START_STICKY
     }
 
-    private suspend fun supervise(config: InfinityConnectSessionConfig, startId: Int) {
+    private suspend fun supervise(config: InfinityConnectSessionConfig) {
         while (scope.isActive) {
             if (revokeRequested) {
                 val confirmed = runCatching {
@@ -65,7 +65,7 @@ internal class InfinityConnectSessionSupervisorService : Service() {
                     InfinityConnectSessionSupervisorRuntime.clear(config.sessionId)
                     updateNotification("Sesión revocada por Windows · conexión cerrada")
                     stopForeground(STOP_FOREGROUND_REMOVE)
-                    stopSelf(startId)
+                    stopSelf()
                     return
                 }
                 updateNotification("Desconexión pendiente · esperando confirmación de Windows")
@@ -76,7 +76,7 @@ internal class InfinityConnectSessionSupervisorService : Service() {
 
             val activityAt = InfinityConnectSessionSupervisorRuntime.lastActivityElapsed.get()
             val now = android.os.SystemClock.elapsedRealtime()
-            if (activityAt > 0L && now - activityAt <= MAX_IDLE_MILLIS) {
+            if (InfinityConnectSessionActivityPolicy.isHumanActivityRecent(activityAt, now, MAX_IDLE_MILLIS)) {
                 val result = runCatching {
                     withContext(Dispatchers.IO) {
                         InfinityConnectMtlsTransport().heartbeatSession(
@@ -96,15 +96,25 @@ internal class InfinityConnectSessionSupervisorService : Service() {
                 }
             } else {
                 val sessionStartedAt = InfinityConnectSessionSupervisorRuntime.startedElapsed.get()
-                val idleSince = if (activityAt > 0L) activityAt else sessionStartedAt
-                if (idleSince > 0L && now - idleSince >= MAX_IDLE_MILLIS) {
+                if (InfinityConnectSessionActivityPolicy.hasIdleTimeoutExpired(
+                        activityAt, sessionStartedAt, now, MAX_IDLE_MILLIS
+                    )) {
                     revokeRequested = true
                     updateNotification("Sesión inactiva · revocando autorización")
                     continue
                 }
                 updateNotification("Esperando actividad humana · no se renueva la autorización")
             }
-            delay(HEARTBEAT_INTERVAL_MILLIS)
+            waitForNextHeartbeat()
+        }
+    }
+
+    private suspend fun waitForNextHeartbeat() {
+        val deadline = android.os.SystemClock.elapsedRealtime() + HEARTBEAT_INTERVAL_MILLIS
+        while (scope.isActive && !revokeRequested) {
+            val remaining = deadline - android.os.SystemClock.elapsedRealtime()
+            if (remaining <= 0L) return
+            delay(remaining.coerceAtMost(500L))
         }
     }
 

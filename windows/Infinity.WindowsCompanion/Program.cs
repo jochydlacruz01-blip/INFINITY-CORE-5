@@ -345,18 +345,19 @@ app.MapDelete("/v1/sessions/{sessionId}", async (HttpContext context, string ses
     if (clientCertificate is null) return Results.Unauthorized();
     var fingerprint = CertificatePinning.ComputeSha256Pin(clientCertificate);
     var token = ReadBearerToken(context);
-    if (token is null || !authorizedSessions.IsAuthorized(sessionId, token, fingerprint, "identity.read"))
+    if (token is null) return Results.Unauthorized();
+
+    var revocation = authorizedSessions.RevokeAuthenticated(sessionId, token, fingerprint);
+    if (revocation == AuthorizedSessionStore.SessionRevocationResult.Unauthorized)
         return Results.Unauthorized();
 
-    // Close admission and cancel active operations before removing the bearer grant.
-    // A request that raced past IsAuthorized must still fail BeginOperation after this point.
-    // Remove the authoritative bearer grant first. A concurrent heartbeat either commits
-    // before this lock transition and is then invalidated, or observes the missing session.
-    var authorizationRevoked = authorizedSessions.Revoke(sessionId, fingerprint);
+    // Close residual operation leases even if the authorization grant already expired or
+    // a previous DELETE completed before its response reached the Android client.
     var operationRevoked = operationRegistry.RevokeSession(fingerprint, sessionId);
-    var revoked = operationRevoked || authorizationRevoked;
-    auditLog.Write("session.revoked", fingerprint, sessionId, revoked ? "revoked" : "failed");
-    return revoked ? Results.NoContent() : Results.NotFound();
+    auditLog.Write("session.revoked", fingerprint, sessionId,
+        revocation == AuthorizedSessionStore.SessionRevocationResult.Revoked || operationRevoked
+            ? "revoked" : "already-inactive");
+    return Results.NoContent();
 });
 
 app.MapPost("/v1/files", async (HttpContext context) =>
