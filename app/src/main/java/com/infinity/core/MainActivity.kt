@@ -414,12 +414,13 @@ private fun Infinity08App(resumeSignal: Int) {
     val foreground = if (lightMode) Color(0xFF203149) else Color.White
     val fluentTaskbar = taskbarStyle == "fluent_acrylic"
 
+    var clock24h by remember { mutableStateOf(prefs.getBoolean("clock_24h", false)) }
     var clockText by remember { mutableStateOf("--:--") }
     var dateText by remember { mutableStateOf("") }
-    LaunchedEffect(Unit) {
+    LaunchedEffect(clock24h) {
         while (true) {
             val now = Date()
-            clockText = SimpleDateFormat("hh:mm a", Locale.US).format(now)
+            clockText = SimpleDateFormat(if (clock24h) "HH:mm" else "hh:mm a", Locale("es", "DO")).format(now)
             dateText = SimpleDateFormat("EEE, dd MMM yyyy", Locale("es", "DO")).format(now)
             delay(30_000)
         }
@@ -2811,6 +2812,16 @@ Spacer(Modifier.height(14.dp))
                             )
                         }
                         Text("Posición: inferior (área segura Android)", color = InfinityMuted, fontSize = 9.sp)
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Text("Formato de hora 24 h", color = InfinityMuted, fontSize = 10.sp, modifier = Modifier.weight(1f))
+                            Switch(
+                                checked = clock24h,
+                                onCheckedChange = {
+                                    clock24h = it
+                                    prefs.edit().putBoolean("clock_24h", it).apply()
+                                }
+                            )
+                        }
                         Text("ESTILO DEL ESCRITORIO", color = accent, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             listOf(
