@@ -50,7 +50,8 @@ import androidx.compose.ui.unit.sp
 @Composable
 fun InfinityAdvancedPanel(
     onClose: () -> Unit,
-    desktopTheme: String = "infinity"
+    desktopTheme: String = "infinity",
+    themeId: String = "midnight"
 ) {
     val context = LocalContext.current
     // ADVANCED consumes capabilities already owned by the desktop. The
@@ -67,22 +68,23 @@ fun InfinityAdvancedPanel(
     }
     val overviewState by overviewPresenter.state.collectAsState()
     val overview = (overviewState as? InfinityAdvancedOverviewUiState.Content)?.snapshot
+    val themeBackgroundStops = infinityThemeBackgroundStops(themeId, lightMode = false)
     val AdvancedBackground = when (desktopTheme) {
         "windows11" -> Color(0xF21B3554)
-        else -> Color(0xF20D1B30)
+        else -> themeBackgroundStops.first().copy(alpha = .95f)
     }
     val AdvancedAccent = when (desktopTheme) {
         "windows11" -> Color(0xFF8BCBFA)
-        else -> Color(0xFF56D6C9)
+        else -> infinityThemeAccentColor(themeId)
     }
     val AdvancedMuted = Color(0xFFB7C7D9)
     val sectionSurface = when (desktopTheme) {
         "windows11" -> Color(0xFF203F5D)
-        else -> Color(0xFF1B304A)
+        else -> themeBackgroundStops[1]
     }
     val notificationSurface = when (desktopTheme) {
         "windows11" -> Color(0xFF294D6D)
-        else -> Color(0xFF263D57)
+        else -> themeBackgroundStops[2]
     }
     val panelShape = when (desktopTheme) {
         "windows11" -> 18.dp
