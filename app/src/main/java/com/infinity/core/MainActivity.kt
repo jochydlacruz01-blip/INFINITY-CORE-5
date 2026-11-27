@@ -52,6 +52,7 @@ import androidx.compose.material.icons.filled.Minimize
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -279,7 +280,7 @@ private fun Infinity08App(resumeSignal: Int) {
     var controlOpen by remember { mutableStateOf(false) }
     var controlMode by remember { mutableStateOf("personalization") }
     var controlSnapshot by remember { mutableStateOf(InfinityControlCenterSnapshot.unavailable()) }
-    var advancedOpen by remember { mutableStateOf(false) }
+    var advancedOpen by rememberSaveable { mutableStateOf(false) }
     var contextMenuExpanded by remember { mutableStateOf(false) }
     var desktopIconsVisible by remember { mutableStateOf(prefs.getBoolean("desktop_icons_visible", true)) }
     var desktopContextState by remember {
@@ -2593,14 +2594,18 @@ Spacer(Modifier.height(14.dp))
             }
               // INFINITY ADVANCED — CENTRO DE NOTIFICACIONES Y ACCIONES RÁPIDAS.
             if (advancedOpen) {
+                // In landscape, reclaim vertical space for the scrollable ADVANCED
+                // panel instead of stacking portrait-only top/bottom reservations.
+                val advancedTopInset = if (maxH < 420.dp) 44.dp else 68.dp
+                val advancedBottomInset = if (maxH < 420.dp) 64.dp else 104.dp
                 Box(
                     Modifier
                         .align(Alignment.TopEnd)
                         .zIndex(15f)
-                        .padding(top = 68.dp, end = 10.dp, bottom = 104.dp)
+                        .padding(top = advancedTopInset, end = 10.dp, bottom = advancedBottomInset)
                         .widthIn(max = 430.dp)
                         .fillMaxWidth()
-                        .heightIn(max = (maxH - 200.dp).coerceAtLeast(220.dp))
+                        .heightIn(max = (maxH - advancedTopInset - advancedBottomInset - 12.dp).coerceAtLeast(160.dp))
                 ) {
                     InfinityAdvancedPanel(
                         onClose = { advancedOpen = false },
