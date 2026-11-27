@@ -585,14 +585,14 @@ private fun openAdvancedSettings(
     extra: Pair<String, String>? = null
 ) {
     try {
-        val intent = Intent(action)
+        val intent = Intent(action).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         extra?.let {
             intent.putExtra(it.first, it.second)
         }
         context.startActivity(intent)
     } catch (_: Exception) {
         try {
-            context.startActivity(Intent(Settings.ACTION_SETTINGS))
+            context.startActivity(Intent(Settings.ACTION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         } catch (fallbackException: Exception) {
             val report = infinityGuardReport("Apertura de ajustes", fallbackException)
             android.widget.Toast.makeText(
