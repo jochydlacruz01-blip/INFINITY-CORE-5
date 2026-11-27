@@ -214,7 +214,7 @@ internal fun InfinityConnectRemoteDesktopPanel(
         sessionToken = remoteSessionToken
     ))
         }.onFailure {
-            status = "No se pudo iniciar el supervisor seguro de sesión: ${it.message ?: "error"}"
+            status = "No se pudo iniciar el supervisor seguro de sesión. Verifica los permisos y vuelve a intentarlo."
         }
     }
 
@@ -328,7 +328,7 @@ internal fun InfinityConnectRemoteDesktopPanel(
                                 } ?: tunnel?.close()
                                 credentials.clear()
                                 client = null
-                                val message = "No se pudo abrir el escritorio: ${result.exceptionOrNull()?.message ?: "error"}"
+                                val message = "No se pudo abrir el escritorio. Verifica la autorización y la conectividad."
                                 lifecycle.transition(InfinityConnectSessionState.FAILED, message)
                                 status = message
                             } else {
