@@ -55,7 +55,9 @@ public static class PairingChallengeV1
             duration.TotalMilliseconds != Math.Truncate(duration.TotalMilliseconds))
             throw new ArgumentOutOfRangeException(nameof(lifetime), "Challenge lifetime must be 1 ms to 5 minutes.");
         var durationMs = checked((long)duration.TotalMilliseconds);
-        var expiresAt = checked(issuedAtUnixMs + durationMs);
+        if (issuedAtUnixMs > long.MaxValue - durationMs)
+            throw new ArgumentOutOfRangeException(nameof(issuedAtUnixMs), "Challenge expiry exceeds the supported timestamp range.");
+        var expiresAt = issuedAtUnixMs + durationMs;
         var requestId = Guid.NewGuid();
         var nonce = RandomNumberGenerator.GetBytes(32);
         var caHash = SHA256.HashData(caCertificateDer);
@@ -100,8 +102,8 @@ public static class PairingChallengeV1
             nowUnixMs >= challenge.ExpiresAtUnixMs)
             return false;
 
-        if (!TryDecodeBase64Url(challenge.Nonce, 32, out var nonce) ||
-            !TryDecodeBase64Url(challenge.Signature, 8, out var signature) ||
+        if (!TryDecodeBase64Url(challenge.Nonce, 32, 32, out var nonce) ||
+            !TryDecodeBase64Url(challenge.Signature, 8, 104, out var signature) ||
             !TryDecodeFingerprint(challenge.CaSha256, out var suppliedCaHash))
             return false;
 
@@ -179,10 +181,11 @@ public static class PairingChallengeV1
     private static string EncodeBase64Url(ReadOnlySpan<byte> bytes) =>
         Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
 
-    private static bool TryDecodeBase64Url(string value, int exactLength, out byte[] bytes)
+    private static bool TryDecodeBase64Url(string value, int minimumLength, int maximumLength, out byte[] bytes)
     {
         bytes = Array.Empty<byte>();
-        if (string.IsNullOrEmpty(value) || value.Contains('=') ||
+        var maximumEncodedLength = (maximumLength * 4 + 2) / 3;
+        if (string.IsNullOrEmpty(value) || value.Length > maximumEncodedLength || value.Contains('=') ||
             value.Any(character => !(character is >= 'A' and <= 'Z' or >= 'a' and <= 'z' or
                 >= '0' and <= '9' or '-' or '_')))
             return false;
@@ -191,7 +194,7 @@ public static class PairingChallengeV1
             var normalized = value.Replace('-', '+').Replace('_', '/');
             normalized += new string('=', (4 - normalized.Length % 4) % 4);
             bytes = Convert.FromBase64String(normalized);
-            if (bytes.Length == exactLength && EncodeBase64Url(bytes) == value) return true;
+            if (bytes.Length >= minimumLength && bytes.Length <= maximumLength && EncodeBase64Url(bytes) == value) return true;
             CryptographicOperations.ZeroMemory(bytes);
             bytes = Array.Empty<byte>();
             return false;

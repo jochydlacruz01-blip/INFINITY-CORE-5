@@ -58,6 +58,8 @@ public sealed class PairingChallengeV1Tests
 
         Assert.False(PairingChallengeV1.Verify(challenge with { Nonce = "bad" }, ca, CaDer, companionId, 4_001_000));
         Assert.False(PairingChallengeV1.Verify(challenge with { Signature = "bad" }, ca, CaDer, companionId, 4_001_000));
+        Assert.False(PairingChallengeV1.Verify(challenge with { Signature = new string('A', 100_000) },
+            ca, CaDer, companionId, 4_001_000));
         Assert.False(PairingChallengeV1.Verify(challenge with { CaSha256 = challenge.CaSha256.ToLowerInvariant() },
             ca, CaDer, companionId, 4_001_000));
         Assert.False(PairingChallengeV1.Verify(challenge with { ProtocolVersion = 2 },
@@ -78,5 +80,7 @@ public sealed class PairingChallengeV1Tests
                 TimeSpan.FromMilliseconds(PairingChallengeV1.MaximumLifetimeMilliseconds + 1)));
         Assert.Throws<ArgumentOutOfRangeException>(() =>
             PairingChallengeV1.Create(p384, companionId, CaDer, long.MaxValue));
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            PairingChallengeV1.Create(p384, companionId, CaDer, long.MaxValue - 100));
     }
 }
