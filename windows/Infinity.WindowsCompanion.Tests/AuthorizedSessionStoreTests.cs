@@ -98,6 +98,31 @@ public sealed class AuthorizedSessionStoreTests
     }
 
     [Fact]
+    public void HeartbeatExtendsOnlyAnUnexpiredSessionBoundToTheSameCertificateAndToken()
+    {
+        var now = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
+        var store = new AuthorizedSessionStore(() => now);
+        var grant = store.Create(DevicePin, true, new[] { "identity.read" });
+
+        Assert.Null(store.Heartbeat(grant.SessionId, grant.Token, OtherDevicePin));
+        Assert.Null(store.Heartbeat(grant.SessionId, "invalid", DevicePin));
+        Assert.True(store.IsAuthorized(grant.SessionId, grant.Token, DevicePin, "identity.read"));
+
+        now = now.AddMinutes(14);
+        var renewed = store.Heartbeat(grant.SessionId, grant.Token, DevicePin);
+        Assert.Equal(now.AddMinutes(15), renewed);
+
+        now = now.AddMinutes(14);
+        Assert.True(store.IsAuthorized(grant.SessionId, grant.Token, DevicePin, "identity.read"));
+        Assert.NotNull(store.Heartbeat(grant.SessionId, grant.Token, DevicePin));
+
+        now = now.AddMinutes(16);
+        Assert.Null(store.Heartbeat(grant.SessionId, grant.Token, DevicePin));
+        Assert.False(store.IsAuthorized(grant.SessionId, grant.Token, DevicePin, "identity.read"));
+        Assert.Single(store.DrainExpiredSessions());
+    }
+
+    [Fact]
     public async Task DeviceRevocationInvalidatesAllOldTokensAfterConcurrentAuthorizationChecks()
     {
         var store = new AuthorizedSessionStore();

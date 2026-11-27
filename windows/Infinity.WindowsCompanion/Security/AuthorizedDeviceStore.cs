@@ -126,8 +126,8 @@ public sealed class AuthorizedDeviceStore
     /// <summary>Revokes only the fingerprint bound to the caller's authenticated mTLS certificate.</summary>
     public bool RevokeAuthenticatedDevice(string fingerprint)
     {
-        var pin = CertificatePinning.NormalizeSha256Pin(fingerprint)
-            ?? throw new ArgumentException("A SHA-256 certificate fingerprint is required.", nameof(fingerprint));
+        var pin = CertificatePinning.NormalizeSha256Pin(fingerprint);
+        if (pin is null) return false;
         using var key = OpenWritableAuthorizationKey();
         var status = key.GetValue(pin) as string;
         if (status is not ("approved" or "blocked")) return false;

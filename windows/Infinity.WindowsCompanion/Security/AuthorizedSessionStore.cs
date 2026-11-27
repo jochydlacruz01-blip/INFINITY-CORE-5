@@ -101,6 +101,50 @@ public sealed class AuthorizedSessionStore
         }
     }
 
+    /// <summary>Extends a live session only when its certificate and bearer token both match.</summary>
+    public DateTimeOffset? Heartbeat(
+        string sessionId,
+        string bearerToken,
+        string clientCertificateSha256)
+    {
+        if (!Guid.TryParseExact(sessionId, "D", out var parsedId)) return null;
+        var fingerprint = CertificatePinning.NormalizeSha256Pin(clientCertificateSha256);
+        if (fingerprint is null || string.IsNullOrWhiteSpace(bearerToken)) return null;
+
+        byte[] suppliedHash;
+        try
+        {
+            var tokenBytes = Base64UrlDecode(bearerToken);
+            try { suppliedHash = SHA256.HashData(tokenBytes); }
+            finally { CryptographicOperations.ZeroMemory(tokenBytes); }
+        }
+        catch (FormatException)
+        {
+            return null;
+        }
+
+        lock (gate)
+        {
+            try
+            {
+                var now = utcNow();
+                PurgeExpired(now);
+                if (!sessions.TryGetValue(parsedId, out var session) ||
+                    !string.Equals(session.ClientFingerprint, fingerprint, StringComparison.Ordinal) ||
+                    !session.Capabilities.Contains("identity.read") ||
+                    !CryptographicOperations.FixedTimeEquals(session.TokenHash, suppliedHash))
+                    return null;
+
+                session.ExpiresAt = now.Add(SessionLifetime);
+                return session.ExpiresAt;
+            }
+            finally
+            {
+                CryptographicOperations.ZeroMemory(suppliedHash);
+            }
+        }
+    }
+
     public bool Revoke(string sessionId, string clientCertificateSha256)
     {
         if (!Guid.TryParseExact(sessionId, "D", out var parsedId)) return false;
@@ -206,7 +250,7 @@ public sealed class AuthorizedSessionStore
     {
         public string ClientFingerprint { get; } = clientFingerprint;
         public byte[] TokenHash { get; } = tokenHash;
-        public DateTimeOffset ExpiresAt { get; } = expiresAt;
+        public DateTimeOffset ExpiresAt { get; set; } = expiresAt;
         public HashSet<string> Capabilities { get; } = capabilities;
         public void Clear() => CryptographicOperations.ZeroMemory(TokenHash);
     }

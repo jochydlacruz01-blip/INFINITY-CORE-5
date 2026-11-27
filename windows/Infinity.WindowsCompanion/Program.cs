@@ -300,6 +300,23 @@ app.MapGet("/v1/sessions/{sessionId}", async (HttpContext context, string sessio
     return Results.Ok(new { sessionId, active = true, capability = "identity.read" });
 });
 
+app.MapPost("/v1/sessions/{sessionId}/heartbeat", async (HttpContext context, string sessionId) =>
+{
+    var clientCertificate = await context.Connection.GetClientCertificateAsync();
+    if (clientCertificate is null) return Results.Unauthorized();
+    var fingerprint = CertificatePinning.ComputeSha256Pin(clientCertificate);
+    var token = ReadBearerToken(context);
+    var expiresAt = token is null ? null : authorizedSessions.Heartbeat(sessionId, token, fingerprint);
+    if (expiresAt is null)
+    {
+        auditLog.Write("session.heartbeat-denied", fingerprint, sessionId, "denied");
+        return Results.Unauthorized();
+    }
+
+    auditLog.Write("session.heartbeat", fingerprint, sessionId, "renewed");
+    return Results.Ok(new { sessionId, active = true, expiresAtUtc = expiresAt.Value });
+});
+
 app.MapDelete("/v1/sessions/{sessionId}", async (HttpContext context, string sessionId) =>
 {
     var clientCertificate = await context.Connection.GetClientCertificateAsync();
