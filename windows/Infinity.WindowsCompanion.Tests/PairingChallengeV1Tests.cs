@@ -83,4 +83,25 @@ public sealed class PairingChallengeV1Tests
         Assert.Throws<ArgumentOutOfRangeException>(() =>
             PairingChallengeV1.Create(p384, companionId, CaDer, long.MaxValue - 100));
     }
+    [Fact]
+    public void SignatureInputMatchesSharedV1CrossPlatformVector()
+    {
+        var challenge = new PairingChallengeV1.Challenge(
+            1,
+            "abcdefab-cdef-abcd-efab-cdefabcdefab",
+            "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+            1_700_000_000_123,
+            1_700_000_300_123,
+            Convert.ToBase64String(Enumerable.Range(0, 32).Select(value => (byte)value).ToArray())
+                .TrimEnd('=').Replace('+', '-').Replace('/', '_'),
+            Convert.ToHexString(Enumerable.Range(0, 32).Select(value => (byte)(0xA0 + value)).ToArray()),
+            Convert.ToBase64String(Enumerable.Repeat((byte)1, 70).ToArray())
+                .TrimEnd('=').Replace('+', '-').Replace('/', '_'));
+        var nonce = Enumerable.Range(0, 32).Select(value => (byte)value).ToArray();
+        var caHash = Enumerable.Range(0, 32).Select(value => (byte)(0xA0 + value)).ToArray();
+        var actual = Convert.ToHexString(PairingChallengeV1.GetSignatureInput(challenge, nonce, caHash))
+            .ToLowerInvariant();
+        Assert.Equal("494e46494e4954592d434f4e4e4543542d50414952494e472d4348414c4c454e47452d5631000001abcdefabcdefabcdefabcdefabcdefabaaaaaaaabbbbccccddddeeeeeeeeeeee0000018bcfe5687b0000018bcfe9fc5b000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebf", actual);
+    }
+
 }

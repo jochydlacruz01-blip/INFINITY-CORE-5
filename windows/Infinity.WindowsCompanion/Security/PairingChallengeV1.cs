@@ -140,7 +140,7 @@ public static class PairingChallengeV1
         return payload;
     }
 
-    private static byte[] GetSignatureInput(Challenge challenge, ReadOnlySpan<byte> nonce, ReadOnlySpan<byte> caHash)
+    internal static byte[] GetSignatureInput(Challenge challenge, ReadOnlySpan<byte> nonce, ReadOnlySpan<byte> caHash)
     {
         if (!TryCanonicalGuid(challenge.RequestId, out var requestId) ||
             !TryCanonicalGuid(challenge.CompanionDeviceId, out var companionId) ||
