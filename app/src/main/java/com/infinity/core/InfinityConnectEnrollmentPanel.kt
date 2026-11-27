@@ -346,7 +346,7 @@ fun InfinityConnectEnrollmentPanel() {
                             scope.launch {
                                 busy = true
                                 val vault = InfinityConnectCredentialVault(context)
-                                val token = vault.retrieve("remote-session:$expectedServerId")
+                                val token = vault.retrieve("windows-device:$expectedServerId", "remote-session:$expectedServerId")
                                 val revoked = runCatching {
                                     withContext(Dispatchers.IO) {
                                         token != null && InfinityConnectMtlsTransport().revokeIdentitySession(
@@ -357,7 +357,7 @@ fun InfinityConnectEnrollmentPanel() {
                                 }.getOrDefault(false)
                                 busy = false
                                 if (revoked) {
-                                    vault.delete("remote-session:$expectedServerId")
+                                    vault.delete("windows-device:$expectedServerId", "remote-session:$expectedServerId")
                                     remoteSessionActive = false
                                     remoteSessionId = ""
                                     remoteSessionToken = ""
@@ -384,7 +384,7 @@ fun InfinityConnectEnrollmentPanel() {
                             scope.launch {
                                 busy = true
                                 val vault = InfinityConnectCredentialVault(context)
-                                val token = vault.retrieve("file-session:$expectedServerId")
+                                val token = vault.retrieve("windows-device:$expectedServerId", "file-session:$expectedServerId")
                                 val revoked = runCatching {
                                     withContext(Dispatchers.IO) {
                                         token != null && InfinityConnectMtlsTransport().revokeIdentitySession(
@@ -395,7 +395,7 @@ fun InfinityConnectEnrollmentPanel() {
                                 }.getOrDefault(false)
                                 busy = false
                                 if (revoked) {
-                                    vault.delete("file-session:$expectedServerId")
+                                    vault.delete("windows-device:$expectedServerId", "file-session:$expectedServerId")
                                     fileSessionActive = false
                                     fileSessionId = ""
                                     fileSessionToken = ""
@@ -425,7 +425,7 @@ fun InfinityConnectEnrollmentPanel() {
                         scope.launch {
                             busy = true
                             val tokenVault = InfinityConnectCredentialVault(context)
-                            val token = tokenVault.retrieve("identity-session:$expectedServerId")
+                            val token = tokenVault.retrieve("windows-device:$expectedServerId", "identity-session:$expectedServerId")
                             val revoked = runCatching {
                                 withContext(Dispatchers.IO) {
                                     token != null && InfinityConnectMtlsTransport().revokeIdentitySession(
@@ -440,7 +440,7 @@ fun InfinityConnectEnrollmentPanel() {
                             }.getOrDefault(false)
                             busy = false
                             if (revoked) {
-                                tokenVault.delete("identity-session:$expectedServerId")
+                                tokenVault.delete("windows-device:$expectedServerId", "identity-session:$expectedServerId")
                                 prefs.edit().remove("session_id").remove("session_expiry").apply()
                                 sessionActive = false
                                 activeSessionId = ""
@@ -489,9 +489,9 @@ fun InfinityConnectEnrollmentPanel() {
                             if (revoked.getOrDefault(false)) {
                                 runCatching { InfinityConnectIdentityKeyStore().delete(CONNECT_CLIENT_KEY_ALIAS) }
                                 val vault = InfinityConnectCredentialVault(context)
-                                vault.delete("identity-session:$expectedServerId")
-                                vault.delete("remote-session:$expectedServerId")
-                                vault.delete("file-session:$expectedServerId")
+                                vault.delete("windows-device:$expectedServerId", "identity-session:$expectedServerId")
+                                vault.delete("windows-device:$expectedServerId", "remote-session:$expectedServerId")
+                                vault.delete("windows-device:$expectedServerId", "file-session:$expectedServerId")
                                 prefs.edit().clear().apply()
                                 identityVerified = false
                                 sessionActive = false
@@ -597,7 +597,7 @@ fun InfinityConnectEnrollmentPanel() {
                         if (result.isSuccess) {
                             val grant = result.getOrThrow()
                             val saved = InfinityConnectCredentialVault(context).save(
-                                "remote-session:$expectedServerId", grant.token
+                                "windows-device:$expectedServerId", "remote-session:$expectedServerId", grant.token
                             )
                             if (saved) {
                                 remoteSessionId = grant.sessionId
@@ -636,7 +636,7 @@ fun InfinityConnectEnrollmentPanel() {
                         if (result.isSuccess) {
                             val grant = result.getOrThrow()
                             val saved = InfinityConnectCredentialVault(context).save(
-                                "file-session:$expectedServerId", grant.token
+                                "windows-device:$expectedServerId", "file-session:$expectedServerId", grant.token
                             )
                             if (saved) {
                                 fileSessionId = grant.sessionId
@@ -662,9 +662,9 @@ fun InfinityConnectEnrollmentPanel() {
                 TextButton(onClick = {
                     runCatching { InfinityConnectIdentityKeyStore().delete(CONNECT_CLIENT_KEY_ALIAS) }
                     val vault = InfinityConnectCredentialVault(context)
-                    vault.delete("identity-session:$expectedServerId")
-                    vault.delete("remote-session:$expectedServerId")
-                    vault.delete("file-session:$expectedServerId")
+                    vault.delete("windows-device:$expectedServerId", "identity-session:$expectedServerId")
+                    vault.delete("windows-device:$expectedServerId", "remote-session:$expectedServerId")
+                    vault.delete("windows-device:$expectedServerId", "file-session:$expectedServerId")
                     identityVerified = false
                     allowedCapabilities = setOf("identity.read")
                     sessionActive = false
