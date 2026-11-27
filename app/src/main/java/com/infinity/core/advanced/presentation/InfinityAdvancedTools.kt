@@ -35,6 +35,7 @@ import com.infinity.core.advanced.domain.automation.InfinityAutomationDecision
 import com.infinity.core.advanced.domain.automation.InfinityAutomationExecutionResult
 import com.infinity.core.advanced.domain.automation.InfinityAutomationPolicy
 import com.infinity.core.advanced.domain.automation.InfinityAutomationRequest
+import com.infinity.core.advanced.domain.automation.InfinityAutomationExecutionLedger
 import com.infinity.core.advanced.domain.capabilities.InfinityCapabilityRegistry
 import com.infinity.core.advanced.domain.capabilities.InfinityCapabilityId
 import com.infinity.core.advanced.domain.capabilities.InfinityThemeCapability
@@ -65,6 +66,7 @@ fun InfinityAdvancedAutomationCard(
     var enabled by remember { mutableStateOf(preferences.getBoolean("enabled", false)) }
     var consent by remember { mutableStateOf(preferences.getBoolean("consent", false)) }
     var status by remember { mutableStateOf("La automatización solo se ejecuta cuando pulsas el botón.") }
+    var executing by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
     Card(
@@ -117,15 +119,20 @@ fun InfinityAdvancedAutomationCard(
             }
             Button(
                 modifier = Modifier.fillMaxWidth().testTag("advanced-automation-run"),
-                enabled = enabled && consent && targetPackage.isNotBlank(),
+                enabled = enabled && consent && targetPackage.isNotBlank() && !executing,
                 onClick = {
+                    if (executing) return@Button
+                    executing = true
                     scope.launch {
                         val now = System.currentTimeMillis()
-                        val windowStart = preferences.getLong("window_start", 0L)
-                        val storedCount = preferences.getInt("hour_count", 0)
-                        val count = if (windowStart <= 0L || now - windowStart >= HOUR_MILLIS) 0 else storedCount
-                        val lastExecution = preferences.getLong("last_execution", 0L)
-                            .takeIf { it > 0L }
+                        val history = InfinityAutomationExecutionLedger.recentExecutions(
+                            preferences.getString("execution_timestamps", "").orEmpty()
+                                .split(',')
+                                .mapNotNull { it.toLongOrNull() },
+                            now
+                        )
+                        val count = history.size
+                        val lastExecution = history.lastOrNull()
                         val request = InfinityAutomationRequest(
                             ruleId = AUTOMATION_RULE_ID,
                             action = InfinityAutomationAction.LAUNCH_APPLICATION,
@@ -136,15 +143,18 @@ fun InfinityAdvancedAutomationCard(
                             lastExecutionEpochMillis = lastExecution,
                             executionsInLastHour = count
                         )
-                        val result = runCatching {
-                            ExecuteInfinityAutomationAction(registry)(request)
-                        }.getOrElse { InfinityAutomationExecutionResult.ExecutionFailed }
+                        val result = try {
+                            runCatching {
+                                ExecuteInfinityAutomationAction(registry)(request)
+                            }.getOrElse { InfinityAutomationExecutionResult.ExecutionFailed }
+                        } finally {
+                            // The button state is restored below after the result is rendered.
+                        }
                         status = when (result) {
                             InfinityAutomationExecutionResult.Executed -> {
+                                val updatedHistory = InfinityAutomationExecutionLedger.recordExecution(history, now)
                                 preferences.edit()
-                                    .putLong("window_start", if (count == 0) now else windowStart)
-                                    .putInt("hour_count", count + 1)
-                                    .putLong("last_execution", now)
+                                    .putString("execution_timestamps", updatedHistory.joinToString(","))
                                     .apply()
                                 "Aplicación abierta correctamente."
                             }
@@ -162,10 +172,11 @@ fun InfinityAdvancedAutomationCard(
                                 }
                             }
                         }
+                        executing = false
                     }
                 }
             ) {
-                Text("EJECUTAR AHORA")
+                Text(if (executing) "EJECUTANDO…" else "EJECUTAR AHORA")
             }
             Text(status, color = muted, modifier = Modifier.testTag("advanced-automation-status"))
         }

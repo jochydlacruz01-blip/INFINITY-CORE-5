@@ -29,6 +29,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
 import com.infinity.core.advanced.data.capabilities.createInfinityAdvancedCapabilityRegistry
 import com.infinity.core.advanced.domain.usecases.ObserveInfinityAdvancedOverview
@@ -103,6 +104,12 @@ fun InfinityAdvancedPanel(
         mutableStateOf(
             privacyPrefs.getBoolean("hide_notification_content", true)
         )
+    }
+
+    // Restore the persisted privacy choice into the live notification store on
+    // every panel entry; otherwise a saved "show content" choice silently resets.
+    LaunchedEffect(hideNotificationContent) {
+        InfinityNotificationStore.setHideContent(hideNotificationContent)
     }
 
     Card(
