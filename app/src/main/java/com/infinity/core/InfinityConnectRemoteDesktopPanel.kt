@@ -203,20 +203,9 @@ internal fun InfinityConnectRemoteDesktopPanel(
         }
     }
 
-    LaunchedEffect(remoteSessionId) {
-        runCatching {
-            InfinityConnectSessionSupervisorRuntime.start(context.applicationContext, InfinityConnectSessionConfig(
-        baseUrl = buildCompanionSessionBaseUrl(companionHost, companionPort),
-        clientKeyAlias = clientKeyAlias,
-        serverPin = companionServerPin,
-        expectedDeviceId = expectedWindowsDeviceId,
-        sessionId = remoteSessionId,
-        sessionToken = remoteSessionToken
-    ))
-        }.onFailure {
-            status = "No se pudo iniciar el supervisor seguro de sesión. Verifica los permisos y vuelve a intentarlo."
-        }
-    }
+    // The authenticated-session supervisor starts only after FreeRDP reports a
+    // successfully connected, authorized desktop. Never start heartbeat work merely
+    // because this panel was composed or a session identifier became available.
 
     LaunchedEffect(frameRevision) {
         if (frameRevision > 0) runCatching { focusRequester.requestFocus() }
