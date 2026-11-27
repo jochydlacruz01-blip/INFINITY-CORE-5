@@ -52,6 +52,7 @@ object InfinityNotificationStore {
         )
     }
 
+    @Volatile
     internal var service: InfinityNotificationListener? = null
 
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -147,6 +148,9 @@ class InfinityNotificationListener : NotificationListenerService() {
             if (key.isBlank()) return
             cancelNotification(key)
         } catch (error: Exception) {
+            // Keep the INFINITY feed usable even if Android rejects the system
+            // dismissal request; the Toast still makes the partial failure clear.
+            InfinityNotificationStore.remove(key)
             val report = infinityGuardReport("Descartar notificación", error)
             android.widget.Toast.makeText(
                 this,

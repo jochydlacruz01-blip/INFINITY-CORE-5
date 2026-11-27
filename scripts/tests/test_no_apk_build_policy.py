@@ -310,12 +310,12 @@ jobs:
 
     def test_release_validation_workflow_with_commercial_secret_is_rejected(self):
         content = self._authorized_release_validation_workflow_fixture().replace(
-            "keytool -genkeypair", "echo \\${{ secrets.INFINITY_KEYSTORE_PASSWORD }}\n      - run: keytool -genkeypair"
+            "keytool -genkeypair", "echo \${{ secrets.INFINITY_KEYSTORE_PASSWORD }}\n      - run: keytool -genkeypair"
         )
         self.assertTrue(audit_named_workflow("android-validation-release.yml", content))
 
     def _authorized_release_validation_workflow_fixture(self):
-        return r"""name: PROJECT INFINITY 0.10 - RELEASE VALIDATION APK (EPHEMERAL SIGNING)
+        return """name: PROJECT INFINITY 0.10 - RELEASE VALIDATION APK (EPHEMERAL SIGNING)
 on:
   workflow_dispatch:
 permissions:
