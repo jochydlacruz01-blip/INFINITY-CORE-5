@@ -20,6 +20,18 @@ class InfinityDesktopThemePaletteTest {
     }
 
     @Test
+    fun lightModeUsesDistinctHighContrastAccents() {
+        val themes = listOf("midnight", "ocean", "violet", "emerald", "sunset")
+        assertEquals(5, themes.map { infinityThemeAccentColor(it, lightMode = true) }.distinct().size)
+        themes.forEach { theme ->
+            assertNotEquals(
+                infinityThemeAccentColor(theme, lightMode = false),
+                infinityThemeAccentColor(theme, lightMode = true)
+            )
+        }
+    }
+
+    @Test
     fun lightAndDarkModesUseDifferentBackgroundPalettes() {
         listOf("midnight", "ocean", "violet", "emerald", "sunset").forEach { theme ->
             assertNotEquals(
