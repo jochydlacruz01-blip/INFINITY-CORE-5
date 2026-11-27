@@ -1756,11 +1756,34 @@ DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED"
                     }
                 }
 
-                if ((maxW >= 600.dp && futuristicDesktop) || fluentTaskbar) {
-                    InfinityReferenceSystemTray(
-                        modifier = Modifier.padding(horizontal = 6.dp)
-                    )
+                val pendingNotificationCount = InfinityNotificationStore.notifications.size
+                DockAction(
+                    if (pendingNotificationCount > 0) pendingNotificationCount.coerceAtMost(99).toString() else "♢",
+                    "NOTIFICACIONES",
+                    Color(0xFF69D9FF),
+                    iconPack,
+                    iconScale = dockIconScale,
+                    compact = maxW < 390.dp,
+                    referenceStyle = futuristicDesktop && maxW >= 600.dp,
+                    fluentStyle = fluentTaskbar,
+                    active = advancedOpen
+                ) {
+                    advancedOpen = true
+                    startOpen = false
+                    orbitOpen = false
+                    controlOpen = false
+                    dashboardOpen = false
                 }
+
+                InfinityReferenceSystemTray(
+                    modifier = Modifier.padding(horizontal = 6.dp).clickable {
+                        controlOpen = true
+                        controlMode = "personalization"
+                        startOpen = false
+                        orbitOpen = false
+                        advancedOpen = false
+                    }
+                )
 
                 Column(
                     modifier = Modifier
