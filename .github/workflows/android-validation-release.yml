@@ -2,6 +2,11 @@ name: PROJECT INFINITY 0.10 - RELEASE VALIDATION APK (EPHEMERAL SIGNING)
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - INFINITY-PACK-14-REMOTE-FRAME-PIPELINE
+    paths:
+      - '.github/workflows/android-validation-release.yml'
 
 permissions:
   contents: read
@@ -12,7 +17,7 @@ concurrency:
 
 jobs:
   build-release-validation:
-    if: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/INFINITY-PACK-14-REMOTE-FRAME-PIPELINE' }}
+    if: ${{ (github.event_name == 'workflow_dispatch' || github.event_name == 'push') && github.ref == 'refs/heads/INFINITY-PACK-14-REMOTE-FRAME-PIPELINE' }}
     name: Build and verify ephemeral-signed Release validation APK
     runs-on: ubuntu-latest
     timeout-minutes: 90
