@@ -145,7 +145,9 @@ public sealed class AuthorizedDeviceStore
         using var key = OpenWritableAuthorizationKey();
         var current = key.GetValue(pin) as string;
         if (current is null || !expectedStatuses.Contains(current, StringComparer.Ordinal)) return false;
-        UpdateMetadataStatus(pin, newStatus);
+        // Authorization state is the security source of truth. Persist it before
+        // notifying the service; metadata is descriptive and ListAuthorizedDevices
+        // overlays this authoritative status when reading records.
         key.SetValue(pin, newStatus, RegistryValueKind.String);
         key.Flush();
         DeviceRevocationSignal.NotifyService();
@@ -177,12 +179,6 @@ public sealed class AuthorizedDeviceStore
         using var key = OpenWritableMetadataKey();
         key.SetValue(fingerprint, JsonSerializer.Serialize(metadata), RegistryValueKind.String);
         key.Flush();
-    }
-
-    private static void UpdateMetadataStatus(string fingerprint, string status)
-    {
-        var metadata = ReadMetadata(fingerprint);
-        if (metadata is not null) WriteMetadata(fingerprint, metadata with { Status = status });
     }
 
     private static RegistryKey OpenWritableAuthorizationKey() => OpenWritableKey(RegistryPath);
