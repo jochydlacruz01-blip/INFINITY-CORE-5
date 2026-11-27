@@ -447,12 +447,12 @@ class InfinityDesktopEmulatorTest {
         waitForTag("infinity-advanced-panel")
 
         val actions = listOf(
-            "advanced-action-wifi",
-            "advanced-action-bluetooth",
-            "advanced-action-display",
-            "advanced-action-sound"
+            "advanced-action-wifi" to "Wi-Fi",
+            "advanced-action-bluetooth" to "Bluetooth",
+            "advanced-action-display" to "Display",
+            "advanced-action-sound" to "Sound"
         )
-        actions.forEach { tag ->
+        actions.forEach { (tag, expectedSection) ->
             val action = compose.onNodeWithTag(tag)
             action.performScrollTo()
             action.assertIsDisplayed().assertHasClickAction()
@@ -465,6 +465,11 @@ class InfinityDesktopEmulatorTest {
             assertTrue(
                 "$tag must hand off to Android Settings, foreground was $settingsPackage",
                 !settingsPackage.isNullOrBlank() && settingsPackage != context.packageName
+            )
+            val settingsHierarchy = device.dumpWindowHierarchy()
+            assertTrue(
+                "$tag must open the $expectedSection settings section",
+                settingsHierarchy.contains(expectedSection, ignoreCase = true)
             )
 
             // Return through the real system Back action and ensure the same

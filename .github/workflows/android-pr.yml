@@ -148,7 +148,9 @@ jobs:
           retention-days: 14
 
   emulator-ui:
-    if: github.event_name == 'workflow_dispatch' # Manual only; never flood PR pushes with emulator jobs.
+    # Run full tablet/phone acceptance on the final PACK14 branch push; keep other
+    # branches and routine PR updates source-only to control emulator cost.
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref_name == 'INFINITY-PACK-14-REMOTE-FRAME-PIPELINE')
     # Final emulator validation runs only after source, unit-test and lint gates pass.
     name: Instrumented Android UI (${{ matrix.device }})
     needs: verify
