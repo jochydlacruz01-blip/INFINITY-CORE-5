@@ -282,7 +282,7 @@ internal class InfinityFreeRdpClient(
                 return
             }
             val old = frameBitmap
-            pendingFrames.clear()
+            pendingFrames.clear { it.recycle() }
             frameBitmap = replacement
             owner.surface = BitmapDrawable(context.resources, replacement)
             old?.recycle()
@@ -295,11 +295,21 @@ internal class InfinityFreeRdpClient(
 
     private fun dispatchLatestFrame(bitmap: Bitmap) {
         if (closed.get()) return
-        if (pendingFrames.offer(bitmap)) {
-            mainHandler.post {
+        // FreeRDP mutates its framebuffer in-place on subsequent updates. Publish an
+        // immutable snapshot so Compose never races the native decoder or sees a
+        // bitmap recycled during a resolution change.
+        val snapshot = synchronized(instanceLock) {
+            if (closed.get() || bitmap.isRecycled) null
+            else runCatching { bitmap.copy(Bitmap.Config.ARGB_8888, false) }.getOrNull()
+        } ?: return
+
+        if (pendingFrames.offer(snapshot) { it.recycle() }) {
+            val posted = mainHandler.post {
                 val latest = pendingFrames.takeLatest()
-                if (!closed.get() && latest != null) listener.onFrame(latest)
+                if (latest == null) return@post
+                if (!closed.get()) listener.onFrame(latest) else latest.recycle()
             }
+            if (!posted) pendingFrames.clear { it.recycle() }
         }
     }
 
@@ -382,7 +392,7 @@ internal class InfinityFreeRdpClient(
                 }
             } finally {
                 synchronized(instanceLock) {
-                    pendingFrames.clear()
+                    pendingFrames.clear { it.recycle() }
                     frameBitmap?.recycle()
                     frameBitmap = null
                 }
