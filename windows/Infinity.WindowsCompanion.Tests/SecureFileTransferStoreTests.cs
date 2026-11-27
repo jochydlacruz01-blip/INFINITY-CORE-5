@@ -47,6 +47,31 @@ public sealed class SecureFileTransferStoreTests : IDisposable
     }
 
     [Fact]
+    public async Task StartupReconciliationRemovesInterruptedArtifactsAndPreservesCompleteTransfers()
+    {
+        var bytes = "durable transfer"u8.ToArray();
+        var digest = Convert.ToHexString(SHA256.HashData(bytes));
+        await using var source = new MemoryStream(bytes);
+        var receipt = await store.SaveAsync(
+            source, DevicePin, "complete.txt", bytes.Length, digest, CancellationToken.None);
+
+        var deviceDirectory = Path.Combine(root, DevicePin);
+        var staleId = Guid.NewGuid().ToString("N");
+        var orphanDataId = Guid.NewGuid().ToString("N");
+        var orphanMetadataId = Guid.NewGuid().ToString("N");
+        await File.WriteAllBytesAsync(Path.Combine(deviceDirectory, staleId + ".tmp"), new byte[] { 1 });
+        await File.WriteAllBytesAsync(Path.Combine(deviceDirectory, orphanDataId + ".bin"), new byte[] { 2 });
+        await File.WriteAllTextAsync(Path.Combine(deviceDirectory, orphanMetadataId + ".json"), "{}");
+
+        var restartedStore = new SecureFileTransferStore(root);
+
+        Assert.NotNull(restartedStore.Find(receipt.FileId, DevicePin));
+        Assert.False(File.Exists(Path.Combine(deviceDirectory, staleId + ".tmp")));
+        Assert.False(File.Exists(Path.Combine(deviceDirectory, orphanDataId + ".bin")));
+        Assert.False(File.Exists(Path.Combine(deviceDirectory, orphanMetadataId + ".json")));
+    }
+
+    [Fact]
     public async Task DeleteReportsLockedFileFailureAndPreservesItsMetadata()
     {
         var bytes = "locked file"u8.ToArray();
