@@ -34,6 +34,8 @@ import com.infinity.core.advanced.data.capabilities.createInfinityAdvancedCapabi
 import com.infinity.core.advanced.domain.usecases.ObserveInfinityAdvancedOverview
 import com.infinity.core.advanced.presentation.InfinityAdvancedOverviewPresenter
 import com.infinity.core.advanced.presentation.InfinityAdvancedOverviewUiState
+import com.infinity.core.advanced.presentation.InfinityAdvancedAutomationCard
+import com.infinity.core.advanced.presentation.InfinityAdvancedSystemReportCard
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -279,6 +281,20 @@ fun InfinityAdvancedPanel(
                     openAdvancedSettings(context, Settings.ACTION_SOUND_SETTINGS)
                 }
             }
+
+            InfinityAdvancedAutomationCard(
+                registry = capabilityRegistry,
+                accent = AdvancedAccent,
+                muted = AdvancedMuted,
+                surface = sectionSurface
+            )
+
+            InfinityAdvancedSystemReportCard(
+                snapshot = overview,
+                accent = AdvancedAccent,
+                muted = AdvancedMuted,
+                surface = sectionSurface
+            )
 
             Text(
                 "NOTIFICACIONES",
