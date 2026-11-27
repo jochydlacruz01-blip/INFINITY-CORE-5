@@ -314,7 +314,7 @@ fun InfinityConnectEnrollmentPanel() {
                     "Capacidades habilitadas por Windows: ${allowedCapabilities.sorted().joinToString()}",
                     style = MaterialTheme.typography.bodySmall
                 )
-                if (InfinityConnectFeatureGates.REMOTE_DESKTOP_VALIDATED && !remoteSessionActive &&
+                if (InfinityConnectFeatureGates.isRemoteDesktopEnabled() && !remoteSessionActive &&
                     allowedCapabilities.containsAll(setOf("remote.display", "remote.input"))) {
                     OutlinedButton(
                         enabled = !busy,
@@ -324,7 +324,7 @@ fun InfinityConnectEnrollmentPanel() {
                 }
                 if (remoteSessionActive) {
                     Text("Permisos de escritorio concedidos · vence: $remoteSessionExpiry")
-                    if (InfinityConnectFeatureGates.REMOTE_DESKTOP_VALIDATED && remoteSessionToken.isNotBlank()) {
+                    if (InfinityConnectFeatureGates.isRemoteDesktopEnabled() && remoteSessionToken.isNotBlank()) {
                         InfinityConnectRemoteDesktopPanel(
                             companionHost = companionHost,
                             companionPort = companionPort.toInt(),

@@ -16,12 +16,12 @@ internal object InfinityConnectFeatureGates {
     ): Boolean = isValidationBuild && expiresAtEpochSeconds > 0L &&
         nowEpochSeconds > 0L && nowEpochSeconds < expiresAtEpochSeconds
 
-    internal fun isRemoteDesktopEnabled(nowEpochSeconds: Long = System.currentTimeMillis() / 1_000L): Boolean =
-        REMOTE_DESKTOP_VALIDATED || isValidationWindowOpen(
-            BuildConfig.INFINITY_REMOTE_ACCEPTANCE_BUILD,
-            BuildConfig.INFINITY_REMOTE_ACCEPTANCE_EXPIRES_AT_EPOCH,
-            nowEpochSeconds
-        )
+    internal fun isRemoteDesktopEnabled(
+        isValidationBuild: Boolean = BuildConfig.INFINITY_REMOTE_ACCEPTANCE_BUILD,
+        expiresAtEpochSeconds: Long = BuildConfig.INFINITY_REMOTE_ACCEPTANCE_EXPIRES_AT_EPOCH,
+        nowEpochSeconds: Long = System.currentTimeMillis() / 1_000L
+    ): Boolean = REMOTE_DESKTOP_VALIDATED ||
+        isValidationWindowOpen(isValidationBuild, expiresAtEpochSeconds, nowEpochSeconds)
 
     internal fun requireCapabilitiesEnabled(requestedCapabilities: Set<String>) {
         if (requestedCapabilities.any { it == "remote.display" || it == "remote.input" }) {

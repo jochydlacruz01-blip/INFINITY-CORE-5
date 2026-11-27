@@ -18,6 +18,12 @@ class InfinityConnectFeatureGatesTest {
         assertTrue(InfinityConnectFeatureGates.isValidationWindowOpen(true, 2_000L, 1_000L))
     }
 
+    @Test fun remoteDesktopControlsFollowTheShortLivedValidationBuildWindow() {
+        assertFalse(InfinityConnectFeatureGates.isRemoteDesktopEnabled(false, 2_000L, 1_000L))
+        assertFalse(InfinityConnectFeatureGates.isRemoteDesktopEnabled(true, 1_000L, 1_000L))
+        assertTrue(InfinityConnectFeatureGates.isRemoteDesktopEnabled(true, 2_000L, 1_000L))
+    }
+
     @Test fun identityOnlySessionDoesNotRequireRemoteFeatureGates() {
         InfinityConnectFeatureGates.requireCapabilitiesEnabled(setOf("identity.read"))
     }
