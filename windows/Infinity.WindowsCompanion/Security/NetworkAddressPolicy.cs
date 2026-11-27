@@ -9,13 +9,12 @@ public static class NetworkAddressPolicy
     {
         if (IPAddress.IsLoopback(address)) return true;
 
+        // Match the Android endpoint policy exactly: only IPv6 ULA is accepted.
+        // Link-local and IPv4-mapped IPv6 literals are not valid cross-network endpoints.
         if (address.AddressFamily == AddressFamily.InterNetworkV6)
         {
-            if (address.IsIPv4MappedToIPv6)
-                return IsAllowedBindAddress(address.MapToIPv4());
-
             var bytes = address.GetAddressBytes();
-            return address.IsIPv6LinkLocal || (bytes[0] & 0xFE) == 0xFC;
+            return (bytes[0] & 0xFE) == 0xFC;
         }
 
         if (address.AddressFamily != AddressFamily.InterNetwork) return false;

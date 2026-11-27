@@ -32,9 +32,9 @@ if ($address.AddressFamily -eq [System.Net.Sockets.AddressFamily]::InterNetwork)
         ($octets[0] -eq 192 -and $octets[1] -eq 168) -or
         ($octets[0] -eq 100 -and $octets[1] -ge 64 -and $octets[1] -le 127)
 } elseif ($address.AddressFamily -eq [System.Net.Sockets.AddressFamily]::InterNetworkV6) {
-    $privateAddress = $privateAddress -or $address.IsIPv6LinkLocal -or (($octets[0] -band 0xFE) -eq 0xFC)
+    $privateAddress = $privateAddress -or (($octets[0] -band 0xFE) -eq 0xFC)
 }
-if (-not $privateAddress) { throw "BindAddress must be loopback, RFC1918, CGNAT, IPv6 link-local or IPv6 ULA. Public addresses are rejected." }
+if (-not $privateAddress) { throw "BindAddress must be loopback, RFC1918, CGNAT or IPv6 ULA. Public and link-local addresses are rejected." }
 if ($DeviceId -eq [guid]::Empty) { throw "DeviceId must be a non-empty GUID." }
 if (-not [System.Net.IPAddress]::IsLoopback($address) -and
     -not (Get-NetIPAddress -IPAddress $BindAddress -ErrorAction SilentlyContinue)) {
