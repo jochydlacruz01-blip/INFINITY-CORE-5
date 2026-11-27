@@ -231,7 +231,7 @@ fun InfinityAdvancedPanel(
                 horizontalArrangement = Arrangement.spacedBy(9.dp)
             ) {
                 AdvancedActionTile(
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f).testTag("advanced-action-wifi"),
                     glyph = "◉",
                     title = "Wi-Fi",
                     subtitle = "Redes e Internet",
@@ -247,7 +247,7 @@ fun InfinityAdvancedPanel(
                 }
 
                 AdvancedActionTile(
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f).testTag("advanced-action-bluetooth"),
                     glyph = "ᛒ",
                     title = "Bluetooth",
                     subtitle = "Dispositivos",
@@ -268,7 +268,7 @@ fun InfinityAdvancedPanel(
                 horizontalArrangement = Arrangement.spacedBy(9.dp)
             ) {
                 AdvancedActionTile(
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f).testTag("advanced-action-display"),
                     glyph = "☼",
                     title = "Pantalla",
                     subtitle = "Brillo y visualización",
@@ -284,7 +284,7 @@ fun InfinityAdvancedPanel(
                 }
 
                 AdvancedActionTile(
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f).testTag("advanced-action-sound"),
                     glyph = "♫",
                     title = "Sonido",
                     subtitle = "Volumen y audio",
@@ -400,6 +400,7 @@ fun InfinityAdvancedPanel(
                         }
 
                         Switch(
+                            modifier = Modifier.testTag("advanced-privacy-hide-content"),
                             checked = hideNotificationContent,
                             onCheckedChange = { enabled ->
                                 hideNotificationContent = enabled

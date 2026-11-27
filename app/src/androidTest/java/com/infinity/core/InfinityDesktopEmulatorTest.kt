@@ -270,6 +270,56 @@ class InfinityDesktopEmulatorTest {
         settleComposeFrame()
         compose.onNodeWithText("Todavía no hay notificaciones disponibles.").assertExists()
 
+        // Verify quick-action controls expose real click targets. Each action
+        // delegates to Android Settings; return to INFINITY after the handoff.
+        listOf(
+            "advanced-action-wifi",
+            "advanced-action-bluetooth",
+            "advanced-action-display",
+            "advanced-action-sound"
+        ).forEach { tag ->
+            advancedPanel.performTouchInput { swipeUp() }
+            settleComposeFrame()
+            compose.onNodeWithTag(tag).assertExists().assertHasClickAction()
+        }
+
+        // Verify privacy preference persistence and immediate in-memory redaction.
+        val privacySwitch = compose.onNodeWithTag("advanced-privacy-hide-content")
+        for (attempt in 0 until 8) {
+            if (runCatching { privacySwitch.assertIsDisplayed() }.isSuccess) break
+            advancedPanel.performTouchInput { swipeUp() }
+            settleComposeFrame()
+        }
+        privacySwitch.assertIsDisplayed()
+        privacySwitch.performClick()
+        settleComposeFrame()
+        assertTrue(
+            "Privacy preference should persist after toggling",
+            context.getSharedPreferences("infinity_privacy", 0)
+                .getBoolean("hide_notification_content", true)
+        )
+        InfinityNotificationStore.update(
+            InfinityNotification(
+                key = "privacy-redaction-regression",
+                packageName = context.packageName,
+                appName = "PRIVACY TEST",
+                title = "Sensitive title",
+                message = "Sensitive message",
+                timestamp = System.currentTimeMillis(),
+                ongoing = false,
+                clearable = true,
+                contentIntent = null
+            )
+        )
+        compose.waitUntil(timeoutMillis = 5_000) {
+            InfinityNotificationStore.notifications.any { it.key == "privacy-redaction-regression" }
+        }
+        assertTrue(
+            "Private content must be redacted before it is retained",
+            InfinityNotificationStore.notifications.first { it.key == "privacy-redaction-regression" }
+                .let { it.title.isEmpty() && it.message.isEmpty() }
+        )
+
         // Dock stays reachable after opening and closing the desktop panels.
         compose.onNodeWithContentDescription("HOME").performClick()
         settleComposeFrame()
