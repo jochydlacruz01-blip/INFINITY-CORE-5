@@ -142,19 +142,31 @@ def _is_safe_manual_debug_apk_workflow(path: Path, content: str) -> bool:
     if re.search(forbidden, content) or "secrets." in content:
         return False
 
-    # The DEBUG APK is inspected in-place but never uploaded or published.
+    # Permit exactly two narrowly-scoped artifacts: evidence plus the verified DEBUG APK.
     artifact_blocks = _artifact_steps(content)
-    if len(artifact_blocks) != 1:
+    if len(artifact_blocks) != 2:
         return False
-    evidence_block = artifact_blocks[0]
+    evidence_blocks = [
+        block for block in artifact_blocks
+        if re.search(r"(?m)^\s+name:\s*PROJECT-INFINITY-0\.10-DEBUG-APK-EVIDENCE\s*$", block)
+    ]
+    apk_blocks = [
+        block for block in artifact_blocks
+        if re.search(r"(?m)^\s+name:\s*PROJECT-INFINITY-0\.10-DEBUG-APK\s*$", block)
+    ]
+    if len(evidence_blocks) != 1 or len(apk_blocks) != 1:
+        return False
+    evidence_block, apk_block = evidence_blocks[0], apk_blocks[0]
     return bool(
         "app/build/outputs/apk/debug/app-debug.apk" not in evidence_block
         and ".apk" not in evidence_block.lower()
         and "app/build/outputs" not in evidence_block
-        and re.search(r"(?m)^\s+name:\s*PROJECT-INFINITY-0\.10-DEBUG-APK-EVIDENCE\s*$", evidence_block)
         and "app-debug-signature.txt" in evidence_block
         and "app-debug-size.txt" in evidence_block
         and "app-debug-freerdp-libraries.txt" in evidence_block
+        and re.search(r"(?m)^\s+path:\s*app/build/outputs/apk/debug/app-debug\.apk\s*$", apk_block)
+        and "if-no-files-found: error" in apk_block
+        and re.search(r"(?m)^\s+retention-days:\s*14\s*$", apk_block)
     )
 
 
