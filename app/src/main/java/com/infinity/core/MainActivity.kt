@@ -2927,7 +2927,7 @@ private fun DockAction(
                 contentDescription = description
             },
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp)
+        verticalArrangement = Arrangement.spacedBy(4.dp * iconScale)
     ) {
         Box(
             Modifier.size((if (fluentStyle || referenceStyle) 40.dp else if (compact) 30.dp else 36.dp) * iconScale)
@@ -2977,7 +2977,7 @@ private fun DockAction(
                 Modifier.width(14.dp).height(3.dp)
                     .background(Color(0xFF38BDF8), RoundedCornerShape(999.dp))
             )
-        } else if (showRunningIndicator && running && !fluentStyle && !referenceStyle) {
+        } else if (showRunningIndicator && running && !fluentStyle) {
             Box(Modifier.width(if (compact) 12.dp else 18.dp).height(2.dp).background(tint.copy(alpha = .85f), RoundedCornerShape(2.dp)))
         }
     }
@@ -3011,7 +3011,7 @@ private fun DockInstalledAppAction(
     }
     Column(
         Modifier
-            .widthIn(min = 48.dp)
+            .widthIn(min = 48.dp * iconScale)
             .clip(RoundedCornerShape(13.dp))
             .clickable(role = Role.Button, onClick = onClick)
             .padding(horizontal = 4.dp * iconScale, vertical = 3.dp * iconScale)
