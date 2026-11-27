@@ -36,6 +36,7 @@ import com.infinity.core.advanced.presentation.InfinityAdvancedOverviewPresenter
 import com.infinity.core.advanced.presentation.InfinityAdvancedOverviewUiState
 import com.infinity.core.advanced.presentation.InfinityAdvancedAutomationCard
 import com.infinity.core.advanced.presentation.InfinityAdvancedSystemReportCard
+import com.infinity.core.advanced.presentation.InfinityAdvancedThemeCard
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -281,6 +282,14 @@ fun InfinityAdvancedPanel(
                     openAdvancedSettings(context, Settings.ACTION_SOUND_SETTINGS)
                 }
             }
+
+            InfinityAdvancedThemeCard(
+                registry = capabilityRegistry,
+                selectedThemeId = overview?.selectedThemeId ?: "midnight",
+                accent = AdvancedAccent,
+                muted = AdvancedMuted,
+                surface = sectionSurface
+            )
 
             InfinityAdvancedAutomationCard(
                 registry = capabilityRegistry,

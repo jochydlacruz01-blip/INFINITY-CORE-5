@@ -36,6 +36,8 @@ import com.infinity.core.advanced.domain.automation.InfinityAutomationExecutionR
 import com.infinity.core.advanced.domain.automation.InfinityAutomationPolicy
 import com.infinity.core.advanced.domain.automation.InfinityAutomationRequest
 import com.infinity.core.advanced.domain.capabilities.InfinityCapabilityRegistry
+import com.infinity.core.advanced.domain.capabilities.InfinityCapabilityId
+import com.infinity.core.advanced.domain.capabilities.InfinityThemeCapability
 import com.infinity.core.advanced.domain.usecases.InfinityAdvancedOverviewSnapshot
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
@@ -224,6 +226,70 @@ fun InfinityAdvancedSystemReportCard(
             ) {
                 Text("COMPARTIR INFORME")
             }
+        }
+    }
+}
+
+@Composable
+fun InfinityAdvancedThemeCard(
+    registry: InfinityCapabilityRegistry,
+    selectedThemeId: String,
+    accent: Color,
+    muted: Color,
+    surface: Color
+) {
+    val themeCapability = remember(registry) {
+        registry.find(InfinityCapabilityId.THEME, InfinityThemeCapability::class.java)
+    }
+    val scope = rememberCoroutineScope()
+    var status by remember { mutableStateOf("Elige un tema para actualizar el escritorio INFINITY.") }
+    val themes = listOf(
+        "midnight" to "Medianoche",
+        "ocean" to "Océano",
+        "violet" to "Violeta",
+        "emerald" to "Esmeralda",
+        "sunset" to "Atardecer"
+    )
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = surface)
+    ) {
+        Column(
+            modifier = Modifier.padding(15.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text("PERSONALIZACIÓN DEL ESCRITORIO", color = accent, fontWeight = FontWeight.Bold)
+            Text("Tema activo: $selectedThemeId", color = muted)
+            themes.chunked(2).forEach { pair ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    pair.forEach { (id, label) ->
+                        Button(
+                            modifier = Modifier.weight(1f).testTag("advanced-theme-$id"),
+                            enabled = themeCapability != null && id != selectedThemeId,
+                            onClick = {
+                                scope.launch {
+                                    status = runCatching {
+                                        themeCapability?.selectTheme(id)
+                                        "Tema $label aplicado."
+                                    }.getOrElse {
+                                        "No se pudo aplicar el tema. El escritorio conserva su configuración anterior."
+                                    }
+                                }
+                            }
+                        ) {
+                            Text(if (id == selectedThemeId) "$label ✓" else label)
+                        }
+                    }
+                    if (pair.size == 1) {
+                        androidx.compose.foundation.layout.Spacer(Modifier.weight(1f))
+                    }
+                }
+            }
+            Text(status, color = muted, modifier = Modifier.testTag("advanced-theme-status"))
         }
     }
 }
