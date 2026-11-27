@@ -688,4 +688,55 @@ class InfinityDesktopEmulatorTest {
             bitmap.recycle()
         }
     }
+
+    @Test(timeout = 180_000)
+    fun advancedPanelSurvivesRotationAndAndroidSettingsRoundTrips() {
+        compose.onNodeWithContentDescription("ADVANCED").performClick()
+        settleComposeFrame()
+        compose.onNodeWithTag("infinity-advanced-panel").assertExists()
+
+        val panel = compose.onNodeWithTag("infinity-advanced-panel")
+        compose.onNodeWithTag("advanced-share-report").performScrollTo()
+        compose.onNodeWithTag("advanced-share-report").assertIsDisplayed()
+
+        device.setOrientationLeft()
+        device.waitForIdle()
+        compose.waitUntil(timeoutMillis = 10_000) {
+            compose.activity.resources.configuration.orientation ==
+                android.content.res.Configuration.ORIENTATION_LANDSCAPE
+        }
+        settleComposeFrame()
+        compose.onNodeWithTag("infinity-advanced-panel").assertExists()
+        compose.onNodeWithTag("advanced-share-report").performScrollTo()
+        compose.onNodeWithTag("advanced-share-report").assertIsDisplayed()
+
+        device.setOrientationNatural()
+        device.waitForIdle()
+        compose.waitUntil(timeoutMillis = 10_000) {
+            compose.activity.resources.configuration.orientation ==
+                android.content.res.Configuration.ORIENTATION_PORTRAIT
+        }
+        settleComposeFrame()
+        compose.onNodeWithTag("infinity-advanced-panel").assertExists()
+
+        // Each quick action must hand off to Android Settings and return to the
+        // same ADVANCED panel without losing the desktop Activity.
+        listOf(
+            "advanced-action-wifi",
+            "advanced-action-bluetooth",
+            "advanced-action-display",
+            "advanced-action-sound",
+            "advanced-notification-permission-settings"
+        ).forEach { tag ->
+            compose.onNodeWithTag(tag).performScrollTo()
+            compose.onNodeWithTag(tag).assertIsDisplayed()
+            compose.onNodeWithTag(tag).performClick()
+            device.waitForIdle()
+            device.pressBack()
+            device.waitForIdle()
+            compose.waitForIdle()
+            compose.onNodeWithTag("infinity-advanced-panel").assertExists()
+        }
+    }
+
 }
