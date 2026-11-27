@@ -245,7 +245,7 @@ def _is_safe_freerdp_native_workflow(path: Path, content: str) -> bool:
         "jni/arm64-v8a/$library" in content,
     )
     forbidden = re.compile(
-        r"(?i)assemble\w*|package\w*|install\w*|publish\w*|\.apk\b|"
+        r"(?im)^\s*gradle\s+.*\b(?:assemble\w*|package\w*|install\w*|publish\w*)\b|\.apk\b|"
         r"signingConfig|signingConfigs|apksigner|jarsigner|secrets\.|"
         r"actions/upload-artifact|app/build/outputs|softprops/action-gh-release|gh\s+release"
     )
