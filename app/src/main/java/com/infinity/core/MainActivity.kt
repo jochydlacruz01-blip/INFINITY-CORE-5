@@ -307,6 +307,18 @@ private fun Infinity08App(resumeSignal: Int) {
     var themeChoice by remember {
         mutableStateOf(infinityNormalizeThemeChoice(prefs.getString("theme_choice", "midnight")))
     }
+
+    // Keep the desktop's live Compose theme synchronized with preference changes
+    // made by ADVANCED and other modules, not only changes made inside this screen.
+    DisposableEffect(prefs) {
+        val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { source, key ->
+            if (key == "theme_choice") {
+                themeChoice = infinityNormalizeThemeChoice(source.getString(key, "midnight"))
+            }
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        onDispose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
     var iconPack by remember { mutableStateOf(infinityNormalizeDesktopTheme(prefs.getString("icon_pack", "infinity"))) }
     var backgroundPreset by remember { mutableStateOf(prefs.getString("background_preset", "nebula") ?: "nebula") }
     var desktopPreset by remember { mutableStateOf(infinityNormalizeWallpaperPreset(prefs.getString("desktop_wallpaper_preset", "futuristic"))) }

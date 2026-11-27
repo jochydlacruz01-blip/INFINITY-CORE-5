@@ -27,7 +27,7 @@ La aceptación de software requiere que el workflow `PROJECT INFINITY - Pull Req
 
 Antes de considerar el módulo completamente aceptado en producto, validar en teléfono y tablet reales:
 
-1. Cambiar cada tema y confirmar que escritorio, ventanas y dock se actualizan sin reiniciar.
+1. Cambiar cada tema desde ADVANCED y CONTROL CENTER; confirmar que escritorio, ventanas y dock se actualizan sin reiniciar y que ambos selectores muestran la misma selección.
 2. Abrir Wi-Fi, Bluetooth, pantalla, sonido y ajustes de notificaciones; volver a INFINITY sin cierre inesperado.
 3. Autorizar y revocar Notification Listener; comprobar conexión, reconexión, abrir y descartar notificaciones.
 4. Activar modo privado y confirmar que no aparecen títulos ni mensajes en el feed ni en el informe.
