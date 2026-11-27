@@ -36,3 +36,26 @@ Antes de considerar el módulo completamente aceptado en producto, validar en te
 7. Repetir en orientación vertical/horizontal y en pantalla de teléfono/tablet.
 
 No se habilita CONNECT remoto ni transferencia de archivos por esta entrega. Tampoco se declara un APK generado: los workflows de esta etapa son source-only.
+
+## Estado de aceptación — 27 de noviembre de 2026
+
+La implementación de ADVANCED se conserva en esta rama, pero la aceptación integral queda **ABIERTA**. Por decisión de planificación, las simulaciones Android y las pruebas físicas se aplazan hasta que termine la programación de todos los módulos. Este aplazamiento no significa que las pruebas hayan fallado ni que hayan sido aprobadas.
+
+### Validaciones pendientes (no ejecutar durante la fase de programación)
+
+- [ ] **Automatización:** en teléfono y tablet, probar ejecución manual con consentimiento; paquete inexistente; regla deshabilitada; revocación del consentimiento; cooldown de 60 segundos y límite de diez ejecuciones por ventana móvil de 60 minutos. Confirmar que no se ejecuta nada en segundo plano.
+- [ ] **Privacidad de notificaciones:** activar/desactivar el modo privado y comprobar el feed existente, notificaciones nuevas y entradas ya recibidas; confirmar que títulos y cuerpos sensibles no quedan visibles ni retenidos cuando la protección está activa.
+- [ ] **Permisos:** conceder y revocar Notification Listener desde Ajustes Android; comprobar conexión, reconexión, estado del permiso y recuperación del feed sin borrar datos locales ajenos al servicio.
+- [ ] **Informe compartido:** compartir mediante aplicaciones reales y revisar el contenido recibido; no deben aparecer textos de notificaciones, nombres de aplicaciones, package names, identificadores, rutas, credenciales ni tokens.
+- [ ] **Temas:** cambiar los cinco temas desde ADVANCED y CONTROL CENTER; confirmar coherencia inmediata en escritorio, ventanas, barras y dock, sin reiniciar.
+- [ ] **Ajustes del sistema:** abrir Wi-Fi, Bluetooth, pantalla, sonido y acceso a notificaciones; regresar a INFINITY y comprobar que la actividad y el estado del panel sobreviven.
+- [ ] **Orientación y tamaños:** repetir los recorridos en vertical y horizontal, en teléfono y tablet; revisar scroll, márgenes, controles accesibles y ausencia de recortes.
+- [ ] **Regresión final:** ejecutar la batería instrumentada Android y la aceptación física completa después de cerrar los demás módulos.
+
+### Evidencia requerida para cerrar
+
+Registrar dispositivo/modelo, versión Android, build/commit probado, pasos ejecutados, resultado esperado/observado y evidencia de cada caso. No marcar esta sección como completada por una compilación, lint o pruebas unitarias solamente. Hasta entonces, ADVANCED permanece **implementado en código, aceptación Android/física pendiente**.
+
+### Dependencia de CI
+
+La verificación de fuente/unit tests/lint del commit actual debe confirmarse en el workflow asociado a ese SHA. Las simulaciones instrumentadas permanecen diferidas. No se declara APK generado ni listo en esta etapa source-only.
