@@ -128,3 +128,10 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+      - name: Upload verified DEBUG APK
+        uses: actions/upload-artifact@v7
+        with:
+          name: PROJECT-INFINITY-0.10-DEBUG-APK
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
