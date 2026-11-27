@@ -255,7 +255,7 @@ def _audit_file(workflow: Path) -> list[str]:
     if not (disabled_apk_workflow or safe_debug_workflow or safe_release_validation):
         for block in _artifact_steps(content):
             path_match = re.search(
-                r"(?ims)^\s*path\s*:\s*(.*?)(?=^\s*[a-zA-Z_-]+\s*:|\Z)",
+                r"(?ims)^[ \\t]*path[ \\t]*:[ \\t]*(.*?)(?=^[ \\t]*[a-zA-Z_-]+[ \\t]*:|\\Z)",
                 block,
             )
             name_match = re.search(r"(?im)^\s*name\s*:\s*(.*?)\s*$", block)
