@@ -95,6 +95,7 @@ fun InfinityAdvancedAutomationCard(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("Regla habilitada", color = muted, modifier = Modifier.weight(1f))
                 Switch(
+                    modifier = Modifier.testTag("advanced-automation-enabled"),
                     checked = enabled,
                     onCheckedChange = {
                         enabled = it
@@ -104,6 +105,7 @@ fun InfinityAdvancedAutomationCard(
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Checkbox(
+                    modifier = Modifier.testTag("advanced-automation-consent"),
                     checked = consent,
                     onCheckedChange = {
                         consent = it
