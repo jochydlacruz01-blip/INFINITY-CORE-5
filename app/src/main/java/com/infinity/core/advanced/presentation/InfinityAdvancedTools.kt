@@ -199,24 +199,7 @@ fun InfinityAdvancedSystemReportCard(
     surface: Color
 ) {
     val context = LocalContext.current
-    val metrics = snapshot?.deviceMetrics
-    val connection = snapshot?.connectionState
-    val report = remember(snapshot) {
-        buildString {
-            appendLine("INFINITY ADVANCED — INFORME DEL SISTEMA")
-            appendLine("Generado: ${DateFormat.getDateTimeInstance().format(Date())}")
-            appendLine("Memoria: ${metrics?.memoryUsagePercent?.let { "%.1f%%".format(java.util.Locale.ROOT, it) } ?: "No disponible"}")
-            appendLine("Almacenamiento del volumen de datos: ${metrics?.storageUsagePercent?.let { "%.1f%%".format(java.util.Locale.ROOT, it) } ?: "No disponible"}")
-            appendLine("Batería: ${metrics?.batteryLevelPercent?.let { "%.1f%%".format(java.util.Locale.ROOT, it) } ?: "No disponible"}${when (metrics?.isCharging) { true -> " (cargando)"; false -> " (en batería)"; null -> "" }}")
-            appendLine("Temperatura de batería: ${metrics?.batteryTemperatureCelsius?.let { "%.1f °C".format(java.util.Locale.ROOT, it) } ?: "No disponible"}")
-            appendLine("Estado térmico: ${metrics?.thermalStatus ?: "No disponible"}")
-            appendLine("CPU: No disponible en la API estándar de Android")
-            appendLine("Red: ${when { connection == null -> "No disponible"; !connection.hasNetwork -> "Sin conexión"; else -> "${connection.transport ?: "Conectada"} · ${if (connection.isMetered) "medida" else "no medida"}" }}")
-            appendLine("Tema: ${snapshot?.selectedThemeId ?: "midnight"}")
-            appendLine("Notificaciones recibidas: ${snapshot?.notifications?.size ?: 0}")
-            appendLine("Privacidad: el informe no incluye títulos, mensajes ni datos personales de notificaciones.")
-        }
-    }
+    val report = remember(snapshot) { snapshot?.let(::buildInfinityAdvancedShareReport).orEmpty() }
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
