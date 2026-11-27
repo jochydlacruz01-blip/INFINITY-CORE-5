@@ -46,22 +46,22 @@ internal class InfinityConnectIdentityKeyStore(
         return PublicIdentityKey(alias, pair.public.algorithm, pair.public.encoded.copyOf())
     }
 
-    /** Signs a bounded, domain-separated enrollment transcript; private key bytes never leave Keystore. */
-    fun signEnrollmentTranscript(alias: String, transcript: ByteArray): ByteArray {
+    /** Signs the complete Enrollment Proof v1 transcript (including its domain prefix). */
+    fun signEnrollmentProofTranscript(alias: String, signatureInput: ByteArray): ByteArray {
         require(isValidAlias(alias)) { "Identity key alias is invalid." }
-        require(transcript.isNotEmpty() && transcript.size <= MAX_TRANSCRIPT_BYTES) {
-            "Enrollment transcript size is outside the supported range."
+        require(signatureInput.isNotEmpty() && signatureInput.size <= MAX_TRANSCRIPT_BYTES) {
+            "Enrollment proof transcript size is outside the supported range."
         }
         val privateKey = keyStore.getKey(alias, null)
             ?: throw IllegalStateException("Identity key has not been provisioned.")
         require(privateKey.algorithm.equals("EC", ignoreCase = true)) {
             "Identity key uses an unsupported algorithm."
         }
-        val signature = Signature.getInstance("SHA256withECDSA")
-        signature.initSign(privateKey as java.security.PrivateKey)
-        signature.update(DOMAIN_SEPARATOR)
-        signature.update(transcript)
-        return signature.sign()
+        return Signature.getInstance("SHA256withECDSA").run {
+            initSign(privateKey as java.security.PrivateKey)
+            update(signatureInput)
+            sign()
+        }
     }
 
     /** Signs the exact PKCS#10 CertificationRequestInfo bytes using the non-exportable key. */
@@ -106,6 +106,5 @@ internal class InfinityConnectIdentityKeyStore(
         private const val ANDROID_KEYSTORE = "AndroidKeyStore"
         private const val MAX_ALIAS_LENGTH = 80
         private const val MAX_TRANSCRIPT_BYTES = 16 * 1024
-        private val DOMAIN_SEPARATOR = "INFINITY-CONNECT-ENROLLMENT-V1\u0000".toByteArray(Charsets.US_ASCII)
     }
 }
