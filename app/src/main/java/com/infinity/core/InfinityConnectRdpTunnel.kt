@@ -74,7 +74,7 @@ internal class InfinityConnectRdpTunnel(
             it.isWhitespace() || it == '/' || it == '@' || it == '?' || it == '#'
         }) { "Companion host is invalid." }
         require(InfinityConnectPrivateEndpointPolicy.isAllowedHost(host)) {
-            "Companion must use a private LAN/VPN IP address; public IPs and DNS hostnames are blocked."
+            "Companion must use a private LAN/VPN IP address; loopback, public IPs and DNS hostnames are blocked."
         }
 
         val baseUrl = "https://${if (host.contains(':')) "[$host]" else host}:${config.companionPort}/"

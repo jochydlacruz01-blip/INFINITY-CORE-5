@@ -7,14 +7,19 @@ import org.junit.Test
 class InfinityConnectPrivateEndpointPolicyTest {
     @Test fun allowsPrivateLanAndOverlayIpv4Ranges() {
         listOf("10.0.0.8", "172.16.4.2", "172.31.255.254", "192.168.1.20",
-            "100.64.0.10", "100.127.255.254", "127.0.0.1").forEach {
+            "100.64.0.10", "100.127.255.254").forEach {
             assertTrue("Expected private address: $it", InfinityConnectPrivateEndpointPolicy.isAllowedHost(it))
         }
     }
 
-    @Test fun allowsIpv6UniqueLocalAndLoopback() {
+    @Test fun allowsIpv6UniqueLocalAddresses() {
         assertTrue(InfinityConnectPrivateEndpointPolicy.isAllowedHost("fd12:3456:789a::10"))
-        assertTrue(InfinityConnectPrivateEndpointPolicy.isAllowedHost("::1"))
+    }
+
+    @Test fun rejectsIpv4AndIpv6LoopbackAddresses() {
+        listOf("127.0.0.1", "127.255.255.255", "::1").forEach {
+            assertFalse("Expected loopback rejection: $it", InfinityConnectPrivateEndpointPolicy.isAllowedHost(it))
+        }
     }
 
     @Test fun rejectsPublicAddressesAndHostnames() {
