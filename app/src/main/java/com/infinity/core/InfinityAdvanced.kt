@@ -73,10 +73,7 @@ fun InfinityAdvancedPanel(
         "windows11" -> Color(0xF21B3554)
         else -> themeBackgroundStops.first().copy(alpha = .95f)
     }
-    val AdvancedAccent = when (desktopTheme) {
-        "windows11" -> Color(0xFF8BCBFA)
-        else -> infinityThemeAccentColor(themeId)
-    }
+    val AdvancedAccent = infinityThemeAccentColor(themeId)
     val AdvancedMuted = Color(0xFFB7C7D9)
     val sectionSurface = when (desktopTheme) {
         "windows11" -> Color(0xFF203F5D)
