@@ -212,6 +212,7 @@ fun InfinityAdvancedSystemReportCard(
     surface: Color
 ) {
     val context = LocalContext.current
+    val metrics = snapshot?.deviceMetrics
     val report = remember(snapshot) { snapshot?.let(::buildInfinityAdvancedShareReport).orEmpty() }
     Card(
         modifier = Modifier.fillMaxWidth(),
