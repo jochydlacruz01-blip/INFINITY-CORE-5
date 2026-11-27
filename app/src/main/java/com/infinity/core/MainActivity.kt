@@ -2707,8 +2707,9 @@ private fun DockAction(
         Box(
             Modifier.size(if (fluentStyle || referenceStyle) 40.dp else if (compact) 30.dp else 36.dp)
                 .background(
-                    if (fluentStyle) Color.White.copy(alpha = .035f)
-                    else Brush.linearGradient(listOf(tint.copy(alpha = .24f), tint.copy(alpha = .08f))),
+                    if (fluentStyle) Brush.linearGradient(
+                        listOf(Color.White.copy(alpha = .055f), Color.White.copy(alpha = .025f))
+                    ) else Brush.linearGradient(listOf(tint.copy(alpha = .24f), tint.copy(alpha = .08f))),
                     RoundedCornerShape(if (desktopTheme == "windows11" || fluentStyle) 10.dp else 12.dp)
                 )
                 .border(
