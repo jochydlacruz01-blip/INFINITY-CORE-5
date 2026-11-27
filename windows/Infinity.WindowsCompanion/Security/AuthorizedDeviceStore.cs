@@ -131,7 +131,6 @@ public sealed class AuthorizedDeviceStore
         using var key = OpenWritableAuthorizationKey();
         var status = key.GetValue(pin) as string;
         if (status is not ("approved" or "blocked")) return false;
-        UpdateMetadataStatus(pin, "revoked");
         key.SetValue(pin, "revoked", RegistryValueKind.String);
         key.Flush();
         DeviceRevocationSignal.NotifyService();
