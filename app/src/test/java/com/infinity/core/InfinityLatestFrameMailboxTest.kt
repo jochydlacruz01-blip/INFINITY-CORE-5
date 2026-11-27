@@ -24,6 +24,18 @@ class InfinityLatestFrameMailboxTest {
         assertEquals("fresh", mailbox.takeLatest())
     }
 
+    @Test fun replacingAndClearingPendingFramesReleasesDiscardedValues() {
+        val mailbox = InfinityLatestFrameMailbox<String>()
+        val discarded = mutableListOf<String>()
+        assertTrue(mailbox.offer("frame-1"))
+        assertFalse(mailbox.offer("frame-2", discarded::add))
+        assertEquals(listOf("frame-1"), discarded)
+        mailbox.clear(discarded::add)
+        assertEquals(listOf("frame-1", "frame-2"), discarded)
+        assertTrue(mailbox.offer("frame-3"))
+        assertEquals("frame-3", mailbox.takeLatest())
+    }
+
     @Test fun acceptsNewFrameAfterDrain() {
         val mailbox = InfinityLatestFrameMailbox<Int>()
         assertTrue(mailbox.offer(1))
