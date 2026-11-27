@@ -10,6 +10,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.semantics.SemanticsProperties
 import org.junit.Assert.assertTrue
@@ -23,6 +24,7 @@ import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.printToLog
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
@@ -62,6 +64,11 @@ class InfinityDesktopEmulatorTest {
         // so UI idleness is deterministic while gestures and state transitions are exercised.
         compose.mainClock.autoAdvance = false
         context.getSharedPreferences("infinity_desktop", 0).edit().clear().commit()
+        context.getSharedPreferences("infinity_privacy", 0).edit()
+            .putBoolean("hide_notification_content", true)
+            .commit()
+        InfinityNotificationStore.setHideContent(true)
+        InfinityNotificationStore.clearAll()
         compose.activityRule.scenario.recreate()
         compose.mainClock.advanceTimeBy(1_000)
         compose.waitForIdle()
@@ -270,33 +277,40 @@ class InfinityDesktopEmulatorTest {
         settleComposeFrame()
         compose.onNodeWithText("Todavía no hay notificaciones disponibles.").assertExists()
 
-        // Verify quick-action controls expose real click targets. Each action
-        // delegates to Android Settings; return to INFINITY after the handoff.
-        listOf(
-            "advanced-action-wifi",
-            "advanced-action-bluetooth",
-            "advanced-action-display",
-            "advanced-action-sound"
-        ).forEach { tag ->
-            advancedPanel.performTouchInput { swipeUp() }
-            settleComposeFrame()
-            compose.onNodeWithTag(tag).assertExists().assertHasClickAction()
-        }
-
-        // Verify privacy preference persistence and immediate in-memory redaction.
+        // Verify privacy persistence across Activity recreation. The test setup
+        // explicitly starts with privacy enabled, so the first toggle must disable it.
         val privacySwitch = compose.onNodeWithTag("advanced-privacy-hide-content")
-        for (attempt in 0 until 8) {
-            if (runCatching { privacySwitch.assertIsDisplayed() }.isSuccess) break
-            advancedPanel.performTouchInput { swipeUp() }
-            settleComposeFrame()
-        }
+        privacySwitch.performScrollTo()
         privacySwitch.assertIsDisplayed()
         privacySwitch.performClick()
         settleComposeFrame()
         assertTrue(
-            "Privacy preference should persist after toggling",
-            context.getSharedPreferences("infinity_privacy", 0)
+            "Disabling privacy must be persisted",
+            !context.getSharedPreferences("infinity_privacy", 0)
                 .getBoolean("hide_notification_content", true)
+        )
+
+        compose.activityRule.scenario.recreate()
+        settleComposeFrame()
+        compose.onNodeWithContentDescription("ADVANCED").performClick()
+        settleComposeFrame()
+        waitForTag("infinity-advanced-panel")
+        val restoredPrivacySwitch = compose.onNodeWithTag("advanced-privacy-hide-content")
+        restoredPrivacySwitch.performScrollTo()
+        restoredPrivacySwitch.assertIsOff()
+        assertTrue(
+            "Privacy preference must survive Activity recreation",
+            !context.getSharedPreferences("infinity_privacy", 0)
+                .getBoolean("hide_notification_content", true)
+        )
+
+        // Re-enable privacy and verify both persistence and immediate redaction.
+        restoredPrivacySwitch.performClick()
+        settleComposeFrame()
+        assertTrue(
+            "Re-enabling privacy must be persisted",
+            context.getSharedPreferences("infinity_privacy", 0)
+                .getBoolean("hide_notification_content", false)
         )
         InfinityNotificationStore.update(
             InfinityNotification(
@@ -348,6 +362,37 @@ class InfinityDesktopEmulatorTest {
             capture("01-desktop-tablet-portrait-after-rotation")
         } else {
             capture("10-desktop-compact-phone-landscape")
+        }
+    }
+
+    @Test(timeout = 180_000)
+    fun advancedQuickActionsReturnToInfinityAfterSettingsHandoff() {
+        compose.onNodeWithContentDescription("ADVANCED").performClick()
+        settleComposeFrame()
+        waitForTag("infinity-advanced-panel")
+
+        val actions = listOf(
+            "advanced-action-wifi",
+            "advanced-action-bluetooth",
+            "advanced-action-display",
+            "advanced-action-sound"
+        )
+        actions.forEach { tag ->
+            val action = compose.onNodeWithTag(tag)
+            action.performScrollTo()
+            action.assertIsDisplayed().assertHasClickAction()
+            action.performClick()
+
+            // These cards intentionally hand off to Android Settings. Return
+            // through the real system Back action and ensure the same desktop
+            // Activity and ADVANCED panel are still usable.
+            device.waitForIdle()
+            device.pressBack()
+            device.waitForIdle()
+            settleComposeFrame()
+            waitForTag("infinity-advanced-panel")
+            compose.onNodeWithTag(tag).assertExists()
+            compose.onNodeWithContentDescription("HOME").assertExists()
         }
     }
 
