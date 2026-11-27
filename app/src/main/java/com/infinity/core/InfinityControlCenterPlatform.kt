@@ -160,6 +160,15 @@ internal object InfinityControlCenterActions {
     fun setBrightness(context: Context, value: Int): Boolean {
         if (!Settings.System.canWrite(context)) return false
         return runCatching {
+            // Automatic brightness can immediately override a manually written
+            // SCREEN_BRIGHTNESS value. Switch to manual mode first so the slider
+            // has deterministic, visible effect on supported Android devices.
+            val manualModeApplied = Settings.System.putInt(
+                context.contentResolver,
+                Settings.System.SCREEN_BRIGHTNESS_MODE,
+                Settings.System.SCREEN_BRIGHTNESS_MODE_MANUAL
+            )
+            if (!manualModeApplied) return@runCatching false
             Settings.System.putInt(
                 context.contentResolver,
                 Settings.System.SCREEN_BRIGHTNESS,
