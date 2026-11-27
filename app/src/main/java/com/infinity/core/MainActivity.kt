@@ -717,6 +717,35 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
             .distinctBy { it.packageName }
             .sortedBy { it.label.lowercase(Locale.getDefault()) }
     }
+    val installedPackageNames = remember(installedApps) { installedApps.map { it.packageName }.toSet() }
+    var dockFavorites by remember {
+        mutableStateOf(
+            prefs.getString("dock_favorites", "")
+                .orEmpty()
+                .split('\n')
+                .map(String::trim)
+                .filter(String::isNotEmpty)
+                .distinct()
+        )
+    }
+    LaunchedEffect(installedPackageNames) {
+        val normalized = infinityNormalizeDockPreferences(
+            InfinityDockPreferences(favoritePackageNames = dockFavorites),
+            installedPackageNames
+        ).favoritePackageNames
+        if (normalized != dockFavorites) {
+            dockFavorites = normalized
+            prefs.edit().putString("dock_favorites", normalized.joinToString("\\n")).apply()
+        }
+    }
+    fun persistDockFavorites(next: List<String>) {
+        val normalized = infinityNormalizeDockPreferences(
+            InfinityDockPreferences(favoritePackageNames = next),
+            installedPackageNames
+        ).favoritePackageNames
+        dockFavorites = normalized
+        prefs.edit().putString("dock_favorites", normalized.joinToString("\\n")).apply()
+    }
 
     fun launchApp(packageName: String) {
         try {
@@ -1647,6 +1676,24 @@ DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED"
                         .background(Color.White.copy(alpha = 0.30f))
                 )
 
+                dockFavorites.mapNotNull { packageName ->
+                    installedApps.firstOrNull { it.packageName == packageName }
+                }.forEach { app ->
+                    DockInstalledAppAction(
+                        app = app,
+                        accent = accent,
+                        active = false,
+                        onClick = {
+                            launchApp(app.packageName)
+                            dashboardOpen = false
+                            startOpen = false
+                            orbitOpen = false
+                            controlOpen = false
+                            advancedOpen = false
+                        }
+                    )
+                }
+
                 infinityWorkspaceWindowIds(windows.map { it.id }, windows.associate { it.id to it.workspace }, workspace).mapNotNull { id -> windows.firstOrNull { it.id == id } }.let { workspaceWindows ->
                     val allTaskIds = infinityDockWindowIds(
                         workspaceWindows.map { it.id },
@@ -1837,10 +1884,7 @@ DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED"
                                 key = { it.packageName }
                             ) { app ->
                                 Row(
-                                    Modifier.fillMaxWidth().clickable {
-                                        launchApp(app.packageName)
-                                        startOpen = false
-                                    }.padding(vertical = 7.dp),
+                                    Modifier.fillMaxWidth().padding(vertical = 7.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     val appIcon = remember(app.packageName, app.activityName) {
@@ -1862,7 +1906,11 @@ DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED"
                                     Box(
                                         Modifier.size(42.dp)
                                             .clip(RoundedCornerShape(11.dp))
-                                            .background(Color(0xFF22364F)),
+                                            .background(Color(0xFF22364F))
+                                            .clickable {
+                                                launchApp(app.packageName)
+                                                startOpen = false
+                                            },
                                         contentAlignment = Alignment.Center
                                     ) {
                                         if (appIcon != null) {
@@ -1885,10 +1933,32 @@ DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED"
                                         app.label,
                                         color = Color.White,
                                         fontSize = 12.sp,
-                                        modifier = Modifier.padding(start = 9.dp),
+                                        modifier = Modifier.weight(1f).padding(start = 9.dp)
+                                            .clickable {
+                                                launchApp(app.packageName)
+                                                startOpen = false
+                                            },
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
                                     )
+                                    TextButton(
+                                        onClick = {
+                                            val next = if (app.packageName in dockFavorites) {
+                                                infinityDockRemoveFavorite(dockFavorites, app.packageName)
+                                            } else {
+                                                infinityDockAddFavorite(dockFavorites, app.packageName, installedPackageNames)
+                                            }
+                                            persistDockFavorites(next)
+                                        },
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                                    ) {
+                                        Text(
+                                            if (app.packageName in dockFavorites) "QUITAR" else "ANCLAR",
+                                            color = if (app.packageName in dockFavorites) Color(0xFFFFA78E) else accent,
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
                                 }
                                 HorizontalDivider(color = Color.White.copy(.07f))
                             }
