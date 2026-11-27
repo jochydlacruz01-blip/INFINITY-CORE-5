@@ -199,6 +199,44 @@ public sealed class DeviceOperationRegistryTests
             registry.BeginOperation(DevicePin, SessionId));
     }
 
+    [Fact]
+    public void TerminalRevocationCannotBeUndoneByDeviceActivation()
+    {
+        var registry = CreateRegistry();
+        Assert.True(registry.RevokeDevice(DevicePin));
+
+        Assert.Throws<InvalidOperationException>(() => registry.ActivateDevice(DevicePin));
+        Assert.False(registry.ActivateDeviceIfAuthorized(DevicePin, () => true));
+        Assert.Throws<OperationCanceledException>(() =>
+            registry.BeginOperation(DevicePin, SessionId));
+    }
+
+    [Fact]
+    public void BlockedDeviceCanBeReactivatedOnlyAfterCurrentAuthorizationReturns()
+    {
+        var registry = CreateRegistry();
+        using var active = registry.BeginOperation(DevicePin, SessionId);
+
+        Assert.True(registry.DeactivateDevice(DevicePin));
+        Assert.True(active.Token.IsCancellationRequested);
+        Assert.False(registry.ActivateDeviceIfAuthorized(DevicePin, () => false));
+        Assert.True(registry.ActivateDeviceIfAuthorized(DevicePin, () => true));
+        registry.ActivateSession(DevicePin, SessionId);
+        using var next = registry.BeginOperation(DevicePin, SessionId);
+        Assert.False(next.Token.IsCancellationRequested);
+    }
+
+    [Fact]
+    public void FailedCurrentAuthorizationCannotActivateAnInactiveDevice()
+    {
+        var registry = new DeviceOperationRegistry();
+
+        Assert.False(registry.ActivateDeviceIfAuthorized(DevicePin, () => false));
+        Assert.Empty(registry.ActiveDeviceFingerprints);
+        Assert.True(registry.ActivateDeviceIfAuthorized(DevicePin, () => true));
+        Assert.Contains(DevicePin, registry.ActiveDeviceFingerprints);
+    }
+
     private static DeviceOperationRegistry CreateRegistry()
     {
         var registry = new DeviceOperationRegistry();
