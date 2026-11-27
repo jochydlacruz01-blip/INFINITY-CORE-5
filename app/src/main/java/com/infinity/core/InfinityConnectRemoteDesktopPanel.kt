@@ -77,6 +77,17 @@ internal fun InfinityConnectRemoteDesktopPanel(
                 if (client == null) return
                 lifecycle.transition(InfinityConnectSessionState.CONNECTED)
                 connected = true
+                InfinityConnectSessionSupervisorRuntime.start(
+                    context.applicationContext,
+                    InfinityConnectSessionConfig(
+                        baseUrl = companionBaseUrl(companionHost, companionPort),
+                        clientKeyAlias = clientKeyAlias,
+                        serverPin = companionServerPin,
+                        expectedDeviceId = expectedWindowsDeviceId,
+                        sessionId = remoteSessionId,
+                        sessionToken = remoteSessionToken
+                    )
+                )
                 status = "Escritorio Windows conectado mediante NLA y certificado fijado."
             }
 
@@ -88,6 +99,7 @@ internal fun InfinityConnectRemoteDesktopPanel(
 
             override fun onDisconnected() {
                 connected = false
+                InfinityConnectSessionSupervisorRuntime.requestAuthenticatedRevocation(context.applicationContext)
                 val disconnectedClient = client
                 if (disconnectedClient != null) {
                     client = null
@@ -154,6 +166,7 @@ internal fun InfinityConnectRemoteDesktopPanel(
     fun disconnect() {
         val current = client ?: return
         lifecycle.transition(InfinityConnectSessionState.DISCONNECTING)
+        InfinityConnectSessionSupervisorRuntime.requestAuthenticatedRevocation(context.applicationContext)
         client = null
         connected = false
         frame = null
@@ -171,6 +184,7 @@ internal fun InfinityConnectRemoteDesktopPanel(
         onDispose {
             activeClient?.let { current ->
                 // The composition scope is cancelled on disposal; cleanup must outlive it.
+                InfinityConnectSessionSupervisorRuntime.requestAuthenticatedRevocation(context.applicationContext)
                 CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
                     runCatching { current.closeSession() }
                 }
@@ -315,7 +329,13 @@ internal fun InfinityConnectRemoteDesktopPanel(
                             .focusRequester(focusRequester)
                             .focusable()
                             .onPreviewKeyEvent { event ->
-                                event.nativeKeyEvent?.let { client?.processAndroidKeyEvent(it) } ?: false
+                                event.nativeKeyEvent?.let {
+                                    val accepted = client?.processAndroidKeyEvent(it) ?: false
+                                    if (accepted && it.action == android.view.KeyEvent.ACTION_DOWN) {
+                                        InfinityConnectSessionSupervisorRuntime.recordUserActivity()
+                                    }
+                                    accepted
+                                } ?: false
                             }
                             .pointerInput(client, bitmap.width, bitmap.height) {
                                 detectTapGestures(
@@ -325,6 +345,7 @@ internal fun InfinityConnectRemoteDesktopPanel(
                                         client?.sendMouseMove(x, y)
                                         client?.sendMouseButton(x, y, 1, true)
                                         client?.sendMouseButton(x, y, 1, false)
+                                        InfinityConnectSessionSupervisorRuntime.recordUserActivity()
                                     },
                                     onLongPress = { offset ->
                                         val x = (offset.x / size.width * bitmap.width).toInt().coerceIn(0, bitmap.width - 1)
@@ -332,6 +353,7 @@ internal fun InfinityConnectRemoteDesktopPanel(
                                         client?.sendMouseMove(x, y)
                                         client?.sendMouseButton(x, y, 3, true)
                                         client?.sendMouseButton(x, y, 3, false)
+                                        InfinityConnectSessionSupervisorRuntime.recordUserActivity()
                                     }
                                 )
                             }
@@ -343,12 +365,14 @@ internal fun InfinityConnectRemoteDesktopPanel(
                                         lastX = (offset.x / size.width * bitmap.width).toInt().coerceIn(0, bitmap.width - 1)
                                         lastY = (offset.y / size.height * bitmap.height).toInt().coerceIn(0, bitmap.height - 1)
                                         client?.sendMouseButton(lastX, lastY, 1, true)
+                                        InfinityConnectSessionSupervisorRuntime.recordUserActivity()
                                     },
                                     onDrag = { change, _ ->
                                         change.consume()
                                         lastX = (change.position.x / size.width * bitmap.width).toInt().coerceIn(0, bitmap.width - 1)
                                         lastY = (change.position.y / size.height * bitmap.height).toInt().coerceIn(0, bitmap.height - 1)
                                         client?.sendMouseMove(lastX, lastY)
+                                        InfinityConnectSessionSupervisorRuntime.recordUserActivity()
                                     },
                                     onDragEnd = { client?.sendMouseButton(lastX, lastY, 1, false) },
                                     onDragCancel = { client?.sendMouseButton(lastX, lastY, 1, false) }
