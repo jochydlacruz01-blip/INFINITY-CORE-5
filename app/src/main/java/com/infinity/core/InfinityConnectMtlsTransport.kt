@@ -52,8 +52,9 @@ internal class InfinityConnectMtlsTransport(
             ?: throw IllegalArgumentException("A valid Windows server SHA-256 fingerprint is required.")
         val url = URL(baseUrl.trimEnd('/') + "/v1/identity")
         require(url.protocol.equals("https", ignoreCase = true) &&
-            !url.host.isNullOrBlank() && url.userInfo == null && url.query == null && url.ref == null) {
-            "Only a direct HTTPS Companion URL is accepted."
+            !url.host.isNullOrBlank() && url.userInfo == null && url.query == null && url.ref == null &&
+            InfinityConnectPrivateEndpointPolicy.isAllowedHost(url.host)) {
+            "Only a direct HTTPS Companion URL on a private LAN/VPN address is accepted."
         }
         require(keyStore.getKey(clientKeyAlias, null) != null &&
             keyStore.getCertificateChain(clientKeyAlias)?.isNotEmpty() == true) {
@@ -648,8 +649,9 @@ internal class InfinityConnectMtlsTransport(
     ): HttpsURLConnection {
         val url = URL(endpoint)
         require(url.protocol.equals("https", ignoreCase = true) &&
-            !url.host.isNullOrBlank() && url.userInfo == null && url.query == null && url.ref == null) {
-            "Only a direct HTTPS Companion URL is accepted."
+            !url.host.isNullOrBlank() && url.userInfo == null && url.query == null && url.ref == null &&
+            InfinityConnectPrivateEndpointPolicy.isAllowedHost(url.host)) {
+            "Only a direct HTTPS Companion URL on a private LAN/VPN address is accepted."
         }
         val tls = createPinnedTls13Context(clientKeyAlias, trustedServerSha256)
         val connection = url.openConnection() as? HttpsURLConnection
