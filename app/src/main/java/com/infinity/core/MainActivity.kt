@@ -752,7 +752,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
         ).favoritePackageNames
         if (normalized != dockFavorites) {
             dockFavorites = normalized
-            prefs.edit().putString("dock_favorites", normalized.joinToString("\\n")).apply()
+            prefs.edit().putString("dock_favorites", normalized.joinToString("\n")).apply()
         }
     }
     fun persistDockFavorites(next: List<String>) {
@@ -761,7 +761,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
             installedPackageNames
         ).favoritePackageNames
         dockFavorites = normalized
-        prefs.edit().putString("dock_favorites", normalized.joinToString("\\n")).apply()
+        prefs.edit().putString("dock_favorites", normalized.joinToString("\n")).apply()
     }
 
     fun launchApp(packageName: String) {
