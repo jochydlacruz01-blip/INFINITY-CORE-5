@@ -375,6 +375,22 @@ private fun Infinity08App(resumeSignal: Int) {
         )
     }
 
+    // Dock preferences are independent from the five desktop color themes.
+    var dockScale by remember { mutableFloatStateOf(infinityNormalizeDockPreferences(
+        InfinityDockPreferences(dockScale = prefs.getFloat("dock_scale", 1f))
+    ).dockScale) }
+    var dockIconScale by remember { mutableFloatStateOf(infinityNormalizeDockPreferences(
+        InfinityDockPreferences(iconScale = prefs.getFloat("dock_icon_scale", 1f))
+    ).iconScale) }
+    var dockTransparency by remember { mutableFloatStateOf(infinityNormalizeDockPreferences(
+        InfinityDockPreferences(transparency = prefs.getFloat("dock_transparency", 0.12f))
+    ).transparency) }
+    var dockSpacing by remember { mutableFloatStateOf(infinityNormalizeDockPreferences(
+        InfinityDockPreferences(itemSpacingDp = prefs.getFloat("dock_spacing", 8f))
+    ).itemSpacingDp) }
+    var dockScrollEnabled by remember { mutableStateOf(prefs.getBoolean("dock_scroll_enabled", true)) }
+    var dockIndicatorsEnabled by remember { mutableStateOf(prefs.getBoolean("dock_indicators_enabled", true)) }
+
     // Keep the desktop's live Compose theme synchronized with preference changes
     // made by ADVANCED and other modules, not only changes made inside this screen.
     DisposableEffect(prefs) {
@@ -1554,7 +1570,8 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                     // Esto evita que los accesos fijos, las ventanas y la bandeja se pisen
                     // cuando la tablet cambia de orientación o hay varias ventanas abiertas.
                     .fillMaxWidth()
-                    .horizontalScroll(dockScrollState)
+                    .horizontalScroll(dockScrollState, enabled = dockScrollEnabled)
+                    .graphicsLayer { scaleX = dockScale; scaleY = dockScale }
                     .then(
                         if (fluentTaskbar) Modifier.widthIn(max = 720.dp)
                         else if (maxW >= 600.dp && futuristicDesktop) Modifier.widthIn(max = 1500.dp)
@@ -1571,13 +1588,13 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                     .background(
                         when {
                             fluentTaskbar -> Brush.verticalGradient(
-                                listOf(Color(0xCC182236), Color(0xE60C1321))
+                                listOf(Color(0xCC182236).copy(alpha = 1f - dockTransparency), Color(0xE60C1321).copy(alpha = 1f - dockTransparency))
                             )
                             maxW >= 600.dp && futuristicDesktop -> Brush.verticalGradient(
-                                listOf(Color(0xF20C1B35), Color(0xE908142A), Color(0xF20A1730))
+                                listOf(Color(0xF20C1B35).copy(alpha = 1f - dockTransparency), Color(0xE908142A).copy(alpha = 1f - dockTransparency), Color(0xF20A1730).copy(alpha = 1f - dockTransparency))
                             )
-                            iconPack == "windows11" -> Brush.verticalGradient(listOf(Color(0xF20B1829), Color(0xF20B1829)))
-                            else -> Brush.verticalGradient(listOf(Color(0xF016263D), Color(0xF016263D)))
+                            iconPack == "windows11" -> Brush.verticalGradient(listOf(Color(0xF20B1829).copy(alpha = 1f - dockTransparency), Color(0xF20B1829).copy(alpha = 1f - dockTransparency)))
+                            else -> Brush.verticalGradient(listOf(Color(0xF016263D).copy(alpha = 1f - dockTransparency), Color(0xF016263D).copy(alpha = 1f - dockTransparency)))
                         },
                         RoundedCornerShape(if (fluentTaskbar) 24.dp else if (maxW >= 600.dp && futuristicDesktop) 28.dp else 20.dp)
                     )
@@ -1600,11 +1617,11 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                 else if (maxW >= 600.dp && futuristicDesktop) Arrangement.SpaceEvenly
                 else if (iconPack == "windows11") Arrangement.Center
                 else Arrangement.spacedBy(
-                    when {
+                    dockSpacing.dp.coerceIn(2.dp, 24.dp).let { configured -> when {
                         maxW < 380.dp -> 5.dp
                         maxW < 600.dp -> 8.dp
-                        else -> 10.dp
-                    }
+                        else -> configured
+                    } }
                 )
             ) {
                 DockAction(if (futuristicDesktop && maxW >= 600.dp) "▦" else "⌂", "HOME", accent, iconPack, compact = maxW < 390.dp, referenceStyle = futuristicDesktop && maxW >= 600.dp, fluentStyle = fluentTaskbar, active = dashboardOpen) {
@@ -2716,6 +2733,64 @@ Spacer(Modifier.height(14.dp))
                                 label = { Text("Fluent Acrylic") }
                             )
                         }
+                        Text("DOCK INFINITY", color = accent, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Text("Escala del Dock: ${(dockScale * 100).toInt()}%", color = InfinityMuted, fontSize = 10.sp)
+                        Slider(
+                            value = dockScale,
+                            onValueChange = {
+                                dockScale = it
+                                prefs.edit().putFloat("dock_scale", it).apply()
+                            },
+                            valueRange = 0.75f..1.25f
+                        )
+                        Text("Tamaño de iconos: ${(dockIconScale * 100).toInt()}%", color = InfinityMuted, fontSize = 10.sp)
+                        Slider(
+                            value = dockIconScale,
+                            onValueChange = {
+                                dockIconScale = it
+                                prefs.edit().putFloat("dock_icon_scale", it).apply()
+                            },
+                            valueRange = 0.75f..1.35f
+                        )
+                        Text("Transparencia: ${(dockTransparency * 100).toInt()}%", color = InfinityMuted, fontSize = 10.sp)
+                        Slider(
+                            value = dockTransparency,
+                            onValueChange = {
+                                dockTransparency = it
+                                prefs.edit().putFloat("dock_transparency", it).apply()
+                            },
+                            valueRange = 0f..0.45f
+                        )
+                        Text("Separación: ${dockSpacing.toInt()} dp", color = InfinityMuted, fontSize = 10.sp)
+                        Slider(
+                            value = dockSpacing,
+                            onValueChange = {
+                                dockSpacing = it
+                                prefs.edit().putFloat("dock_spacing", it).apply()
+                            },
+                            valueRange = 2f..18f
+                        )
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Text("Desplazamiento horizontal", color = InfinityMuted, fontSize = 10.sp, modifier = Modifier.weight(1f))
+                            Switch(
+                                checked = dockScrollEnabled,
+                                onCheckedChange = {
+                                    dockScrollEnabled = it
+                                    prefs.edit().putBoolean("dock_scroll_enabled", it).apply()
+                                }
+                            )
+                        }
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Text("Indicadores de ventanas", color = InfinityMuted, fontSize = 10.sp, modifier = Modifier.weight(1f))
+                            Switch(
+                                checked = dockIndicatorsEnabled,
+                                onCheckedChange = {
+                                    dockIndicatorsEnabled = it
+                                    prefs.edit().putBoolean("dock_indicators_enabled", it).apply()
+                                }
+                            )
+                        }
+                        Text("Posición: inferior (área segura Android)", color = InfinityMuted, fontSize = 9.sp)
                         Text("ESTILO DEL ESCRITORIO", color = accent, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             listOf(
