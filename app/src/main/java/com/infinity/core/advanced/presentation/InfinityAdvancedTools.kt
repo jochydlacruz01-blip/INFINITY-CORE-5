@@ -41,6 +41,8 @@ import com.infinity.core.advanced.domain.capabilities.InfinityThemeCapability
 import com.infinity.core.advanced.domain.usecases.InfinityAdvancedOverviewSnapshot
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
+import java.text.DateFormat
+import java.util.Date
 
 private const val AUTOMATION_PREFS = "infinity_advanced_automation"
 private const val AUTOMATION_RULE_ID = "user_launch_application"
