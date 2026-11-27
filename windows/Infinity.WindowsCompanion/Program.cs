@@ -231,14 +231,9 @@ app.MapDelete("/v1/device/self", async (HttpContext context) =>
         return Results.NotFound();
 
     // Remove authorization and close admitted work before acknowledging self-revocation.
-    var sessionsRevoked = authorizedSessions.RevokeDevice(fingerprint);
-    var operationsCancelled = operationRegistry.RevokeDevice(fingerprint);
+    authorizedSessions.RevokeDevice(fingerprint);
+    operationRegistry.RevokeDevice(fingerprint);
     auditLog.Write("device.self-revoked", fingerprint, null, "revoked");
-    auditLog.Write(
-        "device.self-revocation-cleanup",
-        fingerprint,
-        null,
-        $"sessions={sessionsRevoked};operations-cancelled={operationsCancelled}");
     return Results.NoContent();
 });
 

@@ -87,8 +87,6 @@ public sealed class AuthorizedDeviceStore
         var existing = key.GetValue(pin) as string;
         if (string.Equals(existing, "revoked", StringComparison.Ordinal))
             throw new InvalidOperationException("A revoked certificate cannot be re-enabled; issue a new certificate.");
-        key.SetValue(pin, "approved", RegistryValueKind.String);
-        key.Flush();
         var now = DateTimeOffset.UtcNow.ToString("O");
         WriteMetadata(pin, new AuthorizedDeviceInfo(
             pin,
@@ -100,6 +98,8 @@ public sealed class AuthorizedDeviceStore
             now,
             null,
             "approved"));
+        key.SetValue(pin, "approved", RegistryValueKind.String);
+        key.Flush();
         DeviceRevocationSignal.NotifyService();
         return pin;
     }
@@ -131,9 +131,9 @@ public sealed class AuthorizedDeviceStore
         using var key = OpenWritableAuthorizationKey();
         var status = key.GetValue(pin) as string;
         if (status is not ("approved" or "blocked")) return false;
+        UpdateMetadataStatus(pin, "revoked");
         key.SetValue(pin, "revoked", RegistryValueKind.String);
         key.Flush();
-        UpdateMetadataStatus(pin, "revoked");
         DeviceRevocationSignal.NotifyService();
         return true;
     }
@@ -146,9 +146,9 @@ public sealed class AuthorizedDeviceStore
         using var key = OpenWritableAuthorizationKey();
         var current = key.GetValue(pin) as string;
         if (current is null || !expectedStatuses.Contains(current, StringComparer.Ordinal)) return false;
+        UpdateMetadataStatus(pin, newStatus);
         key.SetValue(pin, newStatus, RegistryValueKind.String);
         key.Flush();
-        UpdateMetadataStatus(pin, newStatus);
         DeviceRevocationSignal.NotifyService();
         new InfinityAuditLog().Write(auditEvent, pin, null, newStatus == "revoked" ? "revoked" : "allowed");
         return true;
