@@ -38,7 +38,7 @@ class InfinityDockModelTest {
         val encoded = infinityDockSerializeFavorites(favorites)
         assertEquals(listOf("com.alpha", "com.beta"), infinityDockParseFavorites(encoded))
         assertEquals(emptyList<String>(), infinityDockParseFavorites(null))
-        assertEquals(listOf("com.alpha", "com.beta"), infinityDockParseFavorites(" com.alpha \\n\\n com.beta "))
+        assertEquals(listOf("com.alpha", "com.beta"), infinityDockParseFavorites(" com.alpha \n\n com.beta "))
     }
 
     @Test
