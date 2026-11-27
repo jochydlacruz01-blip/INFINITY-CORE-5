@@ -6,7 +6,7 @@ import org.junit.Test
 import java.util.Base64
 
 class InfinityConnectPairingChallengeV1Test {
-    private val request = "11111111-2222-3333-4444-555555555555"
+    private val request = "abcdefab-cdef-abcd-efab-cdefabcdefab"
     private val companion = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
     private val nonce = Base64.getUrlEncoder().withoutPadding().encodeToString(ByteArray(32) { it.toByte() })
     private val signature = Base64.getUrlEncoder().withoutPadding().encodeToString(ByteArray(70) { 1 })
