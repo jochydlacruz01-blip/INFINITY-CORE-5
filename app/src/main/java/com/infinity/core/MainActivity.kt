@@ -2599,7 +2599,7 @@ Spacer(Modifier.height(14.dp))
                         .padding(top = advancedTopInset, end = 10.dp, bottom = advancedBottomInset)
                         .widthIn(max = 430.dp)
                         .fillMaxWidth()
-                        .heightIn(max = (maxH - advancedTopInset - advancedBottomInset - 12.dp).coerceAtLeast(160.dp))
+                        .heightIn(max = (maxH - advancedTopInset - advancedBottomInset - 12.dp).coerceAtLeast(120.dp))
                 ) {
                     InfinityAdvancedPanel(
                         onClose = { advancedOpen = false },
