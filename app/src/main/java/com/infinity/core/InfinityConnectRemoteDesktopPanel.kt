@@ -317,7 +317,7 @@ internal fun InfinityConnectRemoteDesktopPanel(
                             .onPreviewKeyEvent { event ->
                                 event.nativeKeyEvent?.let { client?.processAndroidKeyEvent(it) } ?: false
                             }
-                            .pointerInput(client, frameRevision) {
+                            .pointerInput(client, bitmap.width, bitmap.height) {
                                 detectTapGestures(
                                     onTap = { offset ->
                                         val x = (offset.x / size.width * bitmap.width).toInt().coerceIn(0, bitmap.width - 1)
@@ -335,7 +335,7 @@ internal fun InfinityConnectRemoteDesktopPanel(
                                     }
                                 )
                             }
-                            .pointerInput(client, frameRevision) {
+                            .pointerInput(client, bitmap.width, bitmap.height) {
                                 var lastX = 0
                                 var lastY = 0
                                 detectDragGestures(
