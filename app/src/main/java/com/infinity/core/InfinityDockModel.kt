@@ -97,7 +97,7 @@ internal fun infinityDockMoveFavorite(
 internal fun infinityDockVisibleTasks(tasks: List<InfinityDockTask>): List<InfinityDockTask> =
     tasks.distinctBy { it.id }
 
-internal fun infinityDockVisibleTaskIds(
+internal fun infinityDockSelectVisibleTaskIds(
     taskIds: List<String>,
     visibleLimit: Int
 ): List<String> {
@@ -106,5 +106,5 @@ internal fun infinityDockVisibleTaskIds(
     return unique.takeLast(visibleLimit)
 }
 
-internal fun infinityDockHiddenTaskCount(total: Int, visible: Int): Int =
+internal fun infinityDockCountHiddenTasks(total: Int, visible: Int): Int =
     (total.coerceAtLeast(0) - visible.coerceAtLeast(0)).coerceAtLeast(0)
