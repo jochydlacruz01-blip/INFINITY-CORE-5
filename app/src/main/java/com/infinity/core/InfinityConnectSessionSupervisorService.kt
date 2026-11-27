@@ -29,7 +29,7 @@ import java.util.concurrent.atomic.AtomicReference
 internal class InfinityConnectSessionSupervisorService : Service() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var worker: kotlinx.coroutines.Job? = null
-    private var revokeRequested = false
+    @Volatile private var revokeRequested = false
     private var sequence = 0L
     private var retrySeconds = INITIAL_RETRY_SECONDS
 
@@ -47,7 +47,7 @@ internal class InfinityConnectSessionSupervisorService : Service() {
         if (intent?.action == ACTION_REVOKE) revokeRequested = true
         startAsForeground("Sesión remota autorizada · supervisando conexión")
         if (worker?.isActive != true) worker = scope.launch { supervise(config, startId) }
-        return START_NOT_STICKY
+        return START_STICKY
     }
 
     private suspend fun supervise(config: InfinityConnectSessionConfig, startId: Int) {
@@ -95,7 +95,14 @@ internal class InfinityConnectSessionSupervisorService : Service() {
                     retrySeconds = (retrySeconds * 2).coerceAtMost(MAX_RETRY_SECONDS)
                 }
             } else {
-                updateNotification("Sesión inactiva · no se renueva la autorización")
+                val sessionStartedAt = InfinityConnectSessionSupervisorRuntime.startedElapsed.get()
+                val idleSince = if (activityAt > 0L) activityAt else sessionStartedAt
+                if (idleSince > 0L && now - idleSince >= MAX_IDLE_MILLIS) {
+                    revokeRequested = true
+                    updateNotification("Sesión inactiva · revocando autorización")
+                    continue
+                }
+                updateNotification("Esperando actividad humana · no se renueva la autorización")
             }
             delay(HEARTBEAT_INTERVAL_MILLIS)
         }
@@ -172,13 +179,33 @@ internal data class InfinityConnectSessionConfig(
 internal object InfinityConnectSessionSupervisorRuntime {
     internal val current = AtomicReference<InfinityConnectSessionConfig?>(null)
     internal val lastActivityElapsed = AtomicLong(0L)
+    internal val startedElapsed = AtomicLong(0L)
+    private val gate = Any()
 
     fun start(context: Context, config: InfinityConnectSessionConfig) {
         require(config.sessionId.isNotBlank() && config.sessionToken.isNotBlank())
-        current.set(config)
-        lastActivityElapsed.set(0L)
-        val intent = Intent(context, InfinityConnectSessionSupervisorService::class.java)
-        if (Build.VERSION.SDK_INT >= 26) context.startForegroundService(intent) else context.startService(intent)
+        synchronized(gate) {
+            val active = current.get()
+            check(active == null || active == config) {
+                "INFINITY CONNECT already supervises a different authorized session."
+            }
+            if (active == null) {
+                current.set(config)
+                lastActivityElapsed.set(0L)
+                startedElapsed.set(android.os.SystemClock.elapsedRealtime())
+            }
+            val intent = Intent(context, InfinityConnectSessionSupervisorService::class.java)
+            try {
+                if (Build.VERSION.SDK_INT >= 26) context.startForegroundService(intent) else context.startService(intent)
+            } catch (failure: RuntimeException) {
+                if (active == null) {
+                    current.compareAndSet(config, null)
+                    lastActivityElapsed.set(0L)
+                    startedElapsed.set(0L)
+                }
+                throw failure
+            }
+        }
     }
 
     /** Call only after a real keyboard, pointer, touch, or text-input event was accepted. */
@@ -187,15 +214,21 @@ internal object InfinityConnectSessionSupervisorRuntime {
     }
 
     fun requestAuthenticatedRevocation(context: Context) {
-        val intent = Intent(context, InfinityConnectSessionSupervisorService::class.java)
-            .setAction(InfinityConnectSessionSupervisorService.ACTION_REVOKE)
-        if (Build.VERSION.SDK_INT >= 26) context.startForegroundService(intent) else context.startService(intent)
+        synchronized(gate) {
+            if (current.get() == null) return
+            val intent = Intent(context, InfinityConnectSessionSupervisorService::class.java)
+                .setAction(InfinityConnectSessionSupervisorService.ACTION_REVOKE)
+            if (Build.VERSION.SDK_INT >= 26) context.startForegroundService(intent) else context.startService(intent)
+        }
     }
 
     fun clear(sessionId: String) {
-        if (current.get()?.sessionId == sessionId) {
-            current.set(null)
-            lastActivityElapsed.set(0L)
+        synchronized(gate) {
+            if (current.get()?.sessionId == sessionId) {
+                current.set(null)
+                lastActivityElapsed.set(0L)
+                startedElapsed.set(0L)
+            }
         }
     }
 }
