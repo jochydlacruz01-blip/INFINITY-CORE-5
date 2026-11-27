@@ -1959,6 +1959,27 @@ DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED"
                                             fontWeight = FontWeight.Bold
                                         )
                                     }
+                                    if (app.packageName in dockFavorites) {
+                                        val favoriteIndex = dockFavorites.indexOf(app.packageName)
+                                        TextButton(
+                                            onClick = {
+                                                persistDockFavorites(
+                                                    infinityDockMoveFavorite(dockFavorites, favoriteIndex, favoriteIndex - 1)
+                                                )
+                                            },
+                                            enabled = favoriteIndex > 0,
+                                            contentPadding = PaddingValues(horizontal = 2.dp, vertical = 0.dp)
+                                        ) { Text("↑", color = accent, fontSize = 14.sp) }
+                                        TextButton(
+                                            onClick = {
+                                                persistDockFavorites(
+                                                    infinityDockMoveFavorite(dockFavorites, favoriteIndex, favoriteIndex + 1)
+                                                )
+                                            },
+                                            enabled = favoriteIndex < dockFavorites.lastIndex,
+                                            contentPadding = PaddingValues(horizontal = 2.dp, vertical = 0.dp)
+                                        ) { Text("↓", color = accent, fontSize = 14.sp) }
+                                    }
                                 }
                                 HorizontalDivider(color = Color.White.copy(.07f))
                             }
