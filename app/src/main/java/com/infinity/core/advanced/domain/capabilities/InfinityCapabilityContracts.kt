@@ -18,51 +18,30 @@ enum class InfinityCapabilityId {
     USER_PREFERENCES
 }
 
-/**
- * Registry is intentionally read-only for consumers. Composition and registration
- * belong to the application assembly layer, not to ADVANCED feature screens.
- */
+/** Registry is read-only for consumers; registration belongs to app composition. */
 interface InfinityCapabilityRegistry {
-    fun <T : Any> find(
-        id: InfinityCapabilityId,
-        contract: Class<T>
-    ): T?
+    fun <T : Any> find(id: InfinityCapabilityId, contract: Class<T>): T?
 }
 
-/**
- * Immutable registry implementation. The constructor validates each binding so a
- * misconfigured adapter is detected during application composition, not at runtime
- * inside a feature screen.
- */
-class DefaultInfinityCapabilityRegistry(
-    bindings: Map<InfinityCapabilityId, Any>
-) : InfinityCapabilityRegistry {
-
+class DefaultInfinityCapabilityRegistry(bindings: Map<InfinityCapabilityId, Any>) : InfinityCapabilityRegistry {
     private val capabilities = bindings.toMap()
 
-    override fun <T : Any> find(
-        id: InfinityCapabilityId,
-        contract: Class<T>
-    ): T? {
+    override fun <T : Any> find(id: InfinityCapabilityId, contract: Class<T>): T? {
         val capability = capabilities[id] ?: return null
-        require(contract.isInstance(capability)) {
-            "Capability $id does not implement ${contract.name}"
-        }
+        require(contract.isInstance(capability)) { "Capability $id does not implement ${contract.name}" }
         return contract.cast(capability)
     }
 }
 
-/** Shared status model; unavailable capabilities must degrade gracefully. */
 sealed interface CapabilityAvailability {
     data object Available : CapabilityAvailability
     data object NotInstalled : CapabilityAvailability
     data class Unavailable(val reason: String) : CapabilityAvailability
 }
 
-/** BASIC/INTERMEDIATE notification adapter contract. */
+/** Read-only view of the notification feed owned by BASIC/INTERMEDIATE. */
 interface InfinityNotificationCapability {
     val notifications: Flow<List<InfinityNotificationSummary>>
-    suspend fun publish(title: String, message: String)
 }
 
 data class InfinityNotificationSummary(
@@ -73,7 +52,6 @@ data class InfinityNotificationSummary(
     val isSensitive: Boolean
 )
 
-/** INTERMEDIATE device-monitoring adapter contract. */
 interface InfinityDeviceMonitoringCapability {
     fun observeMetrics(): Flow<InfinityDeviceMetrics>
 }
@@ -91,13 +69,11 @@ data class InfinityDeviceMetrics(
     }
 }
 
-/** BASIC theme system adapter contract; ADVANCED may extend, not replace, themes. */
 interface InfinityThemeCapability {
     val selectedThemeId: Flow<String>
     suspend fun selectTheme(themeId: String)
 }
 
-/** BASIC application-launcher adapter contract. */
 interface InfinityApplicationLauncherCapability {
     suspend fun launch(packageName: String): LaunchCapabilityResult
 }
@@ -108,7 +84,6 @@ sealed interface LaunchCapabilityResult {
     data class Failed(val reason: String) : LaunchCapabilityResult
 }
 
-/** Existing connectivity status contract; it does not expose privileged toggles. */
 interface InfinityConnectivityCapability {
     val connectionState: Flow<InfinityConnectionState>
 }
@@ -119,7 +94,6 @@ data class InfinityConnectionState(
     val transport: String?
 )
 
-/** Existing preferences adapter contract. Sensitive credentials are excluded. */
 interface InfinityUserPreferencesCapability {
     fun observeString(key: String, defaultValue: String): Flow<String>
     suspend fun putString(key: String, value: String)

@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import com.infinity.core.advanced.domain.capabilities.DefaultInfinityCapabilityRegistry
 import com.infinity.core.advanced.domain.capabilities.InfinityCapabilityId
 import com.infinity.core.advanced.domain.capabilities.InfinityCapabilityRegistry
+import com.infinity.core.advanced.domain.capabilities.InfinityNotificationCapability
 import com.infinity.core.advanced.domain.capabilities.InfinityThemeCapability
 import com.infinity.core.advanced.domain.capabilities.InfinityUserPreferencesCapability
 import kotlinx.coroutines.channels.awaitClose
@@ -98,6 +99,7 @@ internal fun createInfinityAdvancedCapabilityRegistry(
     )
     return DefaultInfinityCapabilityRegistry(
         mapOf(
+            InfinityCapabilityId.NOTIFICATIONS to InfinityNotificationCapabilityAdapter(),
             InfinityCapabilityId.THEME to adapter,
             InfinityCapabilityId.USER_PREFERENCES to adapter
         )
