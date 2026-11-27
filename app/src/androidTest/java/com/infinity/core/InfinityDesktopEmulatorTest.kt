@@ -306,6 +306,25 @@ class InfinityDesktopEmulatorTest {
                 .getBoolean("hide_notification_content", true)
         )
 
+        // Seed an existing unredacted item, then verify enabling privacy
+        // scrubs already-retained content rather than only future notifications.
+        InfinityNotificationStore.update(
+            InfinityNotification(
+                key = "privacy-existing-item",
+                packageName = context.packageName,
+                appName = "PRIVATE SOURCE",
+                title = "Existing private title",
+                message = "Existing private body",
+                timestamp = System.currentTimeMillis(),
+                ongoing = false,
+                clearable = true,
+                contentIntent = null
+            )
+        )
+        compose.waitUntil(timeoutMillis = 5_000) {
+            InfinityNotificationStore.notifications.any { it.key == "privacy-existing-item" }
+        }
+
         // Re-enable privacy and verify both persistence and immediate redaction.
         restoredPrivacySwitch.performClick()
         settleComposeFrame()
@@ -335,6 +354,13 @@ class InfinityDesktopEmulatorTest {
             InfinityNotificationStore.notifications.first { it.key == "privacy-redaction-regression" }
                 .let { it.title.isEmpty() && it.message.isEmpty() }
         )
+        assertTrue(
+            "Enabling privacy must scrub content already in the feed",
+            InfinityNotificationStore.notifications.first { it.key == "privacy-existing-item" }
+                .let { it.title.isEmpty() && it.message.isEmpty() }
+        )
+        compose.onNodeWithText("PRIVACY TEST").assertDoesNotExist()
+        compose.onNodeWithText("Aplicación").performScrollTo().assertIsDisplayed()
 
         // Dock stays reachable after opening and closing the desktop panels.
         compose.onNodeWithContentDescription("HOME").performClick()
