@@ -284,6 +284,13 @@ jobs:
             app-debug-size.txt
             app-debug-signature.txt
             app-debug-freerdp-libraries.txt
+      - name: Upload verified DEBUG APK
+        uses: actions/upload-artifact@v7
+        with:
+          name: PROJECT-INFINITY-0.10-DEBUG-APK
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
 """
 
     def test_authorized_manual_ephemeral_release_validation_workflow_is_allowed(self):
