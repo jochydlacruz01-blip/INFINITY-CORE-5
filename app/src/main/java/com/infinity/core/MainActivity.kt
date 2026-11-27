@@ -328,13 +328,7 @@ private fun Infinity08App(resumeSignal: Int) {
         mutableStateOf(infinityNormalizeAppearance(prefs.getString("appearance", "dark")))
     }
     val lightMode = appearance == "light"
-    val accent = when (themeChoice) {
-        "ocean" -> Color(0xFF45B7FF)
-        "violet" -> Color(0xFFB69CFF)
-        "emerald" -> Color(0xFF55D6A4)
-        "sunset" -> Color(0xFFFFA66B)
-        else -> Color(0xFF56D6C9)
-    }
+    val accent = infinityThemeAccentColor(themeChoice)
     val foreground = if (lightMode) Color(0xFF203149) else Color.White
 
     var clockText by remember { mutableStateOf("--:--") }
@@ -683,7 +677,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                         backgroundPreset == "punk" -> listOf(Color(0xFF24051F), Color(0xFF631B43), Color(0xFF102338))
                         backgroundPreset == "interstellar" -> listOf(Color(0xFF030713), Color(0xFF17265D), Color(0xFF46246A))
                         backgroundPreset == "aurora" -> listOf(Color(0xFF062E36), Color(0xFF174E60), Color(0xFF102238))
-                        else -> if (lightMode) listOf(Color(0xFFEAF1FA), Color(0xFFD4E2F2), Color(0xFFB9CDE2)) else listOf(Color(0xFF030A17), Color(0xFF102A49), Color(0xFF08111F))
+                        else -> infinityThemeBackgroundStops(themeChoice, lightMode)
                     }
                 )
             )
