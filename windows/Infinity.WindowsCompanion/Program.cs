@@ -21,6 +21,7 @@ if (args.Length == 1 && args[0] == "--server-cert-sha256")
         serverSettings.ServerCertificatePath,
         serverSettings.ServerCertificatePassword,
         X509KeyStorageFlags.MachineKeySet | X509KeyStorageFlags.EphemeralKeySet);
+    serverSettings = serverSettings with { ServerCertificatePassword = string.Empty };
     if (!CertificatePinning.IsUsableServerCertificate(configuredCertificate))
         throw new InvalidOperationException("The configured Windows TLS server certificate is unusable.");
     Console.WriteLine($"Windows Companion server certificate SHA-256: {CertificatePinning.ComputeSha256Pin(configuredCertificate)}");
@@ -101,10 +102,11 @@ if (args.Length == 2 && args[0] == "--enable-client-cert")
 
 var settings = CompanionSettings.LoadFromEnvironment();
 var authorizedDevices = new AuthorizedDeviceStore();
-var serverCertificate = new X509Certificate2(
+using var serverCertificate = new X509Certificate2(
     settings.ServerCertificatePath,
     settings.ServerCertificatePassword,
     X509KeyStorageFlags.MachineKeySet | X509KeyStorageFlags.EphemeralKeySet);
+settings = settings with { ServerCertificatePassword = string.Empty };
 
 if (!CertificatePinning.IsUsableServerCertificate(serverCertificate))
 {

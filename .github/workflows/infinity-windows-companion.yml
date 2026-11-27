@@ -81,8 +81,39 @@ jobs:
         if: steps.windows_tests.outcome == 'failure'
         run: exit 1
 
-      - name: Publish Windows x64 companion
-        run: dotnet publish .\windows\Infinity.WindowsCompanion\Infinity.WindowsCompanion.csproj --configuration Release --runtime win-x64 --self-contained false --output .\artifacts\infinity-windows-companion
+      - name: Validate PowerShell installation scripts
+        shell: pwsh
+        run: |
+          $scripts = @(
+            ".\windows\scripts\Install-INFINITYCompanion.ps1",
+            ".\windows\scripts\Uninstall-INFINITYCompanion.ps1"
+          )
+          foreach ($script in $scripts) {
+            $tokens = $null
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $script), [ref]$tokens, [ref]$errors) | Out-Null
+            if ($errors.Count -gt 0) { $errors | ForEach-Object { Write-Error $_ }; exit 1 }
+          }
+
+      - name: Publish Windows x64 companion (self-contained)
+        run: dotnet publish .\windows\Infinity.WindowsCompanion\Infinity.WindowsCompanion.csproj --configuration Release --runtime win-x64 --self-contained true --output .\artifacts\infinity-windows-companion
+
+      - name: Publish Windows administration desktop (self-contained)
+        run: dotnet publish .\windows\Infinity.WindowsCompanion.Desktop\Infinity.WindowsCompanion.Desktop.csproj --configuration Release --runtime win-x64 --self-contained true --output .\artifacts\infinity-windows-companion-desktop
+
+      - name: Include service installation scripts and guide
+        shell: pwsh
+        run: |
+          Copy-Item .\windows\scripts\*.ps1 .\artifacts\infinity-windows-companion\ -Force
+          Copy-Item .\windows\README-INFINITY-CONNECT.md .\artifacts\infinity-windows-companion\ -Force
+
+      - name: Upload Windows administration desktop
+        uses: actions/upload-artifact@v7
+        with:
+          name: INFINITY-WINDOWS-COMPANION-DESKTOP-win-x64
+          path: artifacts/infinity-windows-companion-desktop/
+          if-no-files-found: error
+          retention-days: 14
 
       - name: Upload Windows companion
         uses: actions/upload-artifact@v7
