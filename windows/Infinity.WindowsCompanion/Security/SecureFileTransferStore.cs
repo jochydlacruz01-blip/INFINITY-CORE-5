@@ -28,6 +28,7 @@ public sealed class SecureFileTransferStore
             "WindowsCompanion",
             "Transfers"));
         EnsurePrivateDirectory(rootPath);
+        ReconcileInterruptedTransfers();
     }
 
     public async Task<FileReceipt> SaveAsync(
@@ -284,6 +285,39 @@ public sealed class SecureFileTransferStore
         var directory = Path.Combine(rootPath, fingerprint);
         if (!TryDelete(Path.Combine(directory, id + ".bin"))) return false;
         return TryDelete(Path.Combine(directory, id + ".json"));
+    }
+
+    /// <summary>
+    /// Removes incomplete artifacts left by a process or machine interruption.
+    /// Only GUID-named files inside a validated per-device directory are considered;
+    /// complete data/metadata pairs are preserved for normal integrity verification.
+    /// </summary>
+    private void ReconcileInterruptedTransfers()
+    {
+        foreach (var directory in Directory.EnumerateDirectories(rootPath))
+        {
+            var fingerprint = Path.GetFileName(directory);
+            if (CertificatePinning.NormalizeSha256Pin(fingerprint) is null) continue;
+
+            foreach (var temporary in Directory.EnumerateFiles(directory, "*.tmp"))
+                TryDelete(temporary);
+
+            foreach (var dataPath in Directory.EnumerateFiles(directory, "*.bin"))
+            {
+                var id = Path.GetFileNameWithoutExtension(dataPath);
+                if (!Guid.TryParseExact(id, "N", out _)) continue;
+                if (!File.Exists(Path.Combine(directory, id + ".json")))
+                    TryDelete(dataPath);
+            }
+
+            foreach (var metadataPath in Directory.EnumerateFiles(directory, "*.json"))
+            {
+                var id = Path.GetFileNameWithoutExtension(metadataPath);
+                if (!Guid.TryParseExact(id, "N", out _)) continue;
+                if (!File.Exists(Path.Combine(directory, id + ".bin")))
+                    TryDelete(metadataPath);
+            }
+        }
     }
 
     private static void EnsurePrivateDirectory(string path)
