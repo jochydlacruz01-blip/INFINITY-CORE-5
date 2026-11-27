@@ -145,6 +145,70 @@ public sealed class SecureFileTransferStoreTests : IDisposable
         }
     }
 
+
+    [Fact]
+    public async Task GuidCollisionOnTemporaryPathPreservesPreexistingFile()
+    {
+        var id = Guid.NewGuid();
+        var store = new SecureFileTransferStore(root, () => id);
+        var deviceDirectory = Path.Combine(root, DevicePin);
+        Directory.CreateDirectory(deviceDirectory);
+        var collisionPath = Path.Combine(deviceDirectory, id.ToString("N") + ".tmp");
+        var original = "pre-existing temporary data"u8.ToArray();
+        await File.WriteAllBytesAsync(collisionPath, original);
+        var payload = "new upload"u8.ToArray();
+
+        await using var source = new MemoryStream(payload);
+        await Assert.ThrowsAsync<IOException>(() => store.SaveAsync(
+            source, DevicePin, "collision.txt", payload.Length,
+            Convert.ToHexString(SHA256.HashData(payload)), CancellationToken.None));
+
+        Assert.Equal(original, await File.ReadAllBytesAsync(collisionPath));
+    }
+
+    [Fact]
+    public async Task GuidCollisionOnFinalPathPreservesPreexistingFile()
+    {
+        var id = Guid.NewGuid();
+        var store = new SecureFileTransferStore(root, () => id);
+        var deviceDirectory = Path.Combine(root, DevicePin);
+        Directory.CreateDirectory(deviceDirectory);
+        var collisionPath = Path.Combine(deviceDirectory, id.ToString("N") + ".bin");
+        var original = "existing stored content"u8.ToArray();
+        await File.WriteAllBytesAsync(collisionPath, original);
+        var payload = "new upload"u8.ToArray();
+
+        await using var source = new MemoryStream(payload);
+        await Assert.ThrowsAsync<IOException>(() => store.SaveAsync(
+            source, DevicePin, "collision.bin", payload.Length,
+            Convert.ToHexString(SHA256.HashData(payload)), CancellationToken.None));
+
+        Assert.Equal(original, await File.ReadAllBytesAsync(collisionPath));
+        Assert.False(File.Exists(Path.Combine(deviceDirectory, id.ToString("N") + ".tmp")));
+    }
+
+    [Fact]
+    public async Task GuidCollisionOnMetadataPathPreservesPreexistingMetadataAndRemovesOnlyOwnedPayload()
+    {
+        var id = Guid.NewGuid();
+        var store = new SecureFileTransferStore(root, () => id);
+        var deviceDirectory = Path.Combine(root, DevicePin);
+        Directory.CreateDirectory(deviceDirectory);
+        var collisionPath = Path.Combine(deviceDirectory, id.ToString("N") + ".json");
+        var original = "{\"owner\":\"existing\"}";
+        await File.WriteAllTextAsync(collisionPath, original);
+        var payload = "new upload"u8.ToArray();
+
+        await using var source = new MemoryStream(payload);
+        await Assert.ThrowsAsync<IOException>(() => store.SaveAsync(
+            source, DevicePin, "collision.json", payload.Length,
+            Convert.ToHexString(SHA256.HashData(payload)), CancellationToken.None));
+
+        Assert.Equal(original, await File.ReadAllTextAsync(collisionPath));
+        Assert.False(File.Exists(Path.Combine(deviceDirectory, id.ToString("N") + ".bin")));
+        Assert.False(File.Exists(Path.Combine(deviceDirectory, id.ToString("N") + ".json.tmp")));
+    }
+
     [Fact]
     public async Task RejectsTraversalNamesAndDigestMismatch()
     {

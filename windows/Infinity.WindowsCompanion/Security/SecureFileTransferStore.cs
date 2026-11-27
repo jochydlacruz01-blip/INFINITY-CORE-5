@@ -18,8 +18,9 @@ public sealed class SecureFileTransferStore
     private const int MaximumFilesPerDevice = 100;
     private const long MaximumBytesPerDevice = 500L * 1024 * 1024;
 
-    public SecureFileTransferStore(string? storageRoot = null)
+    public SecureFileTransferStore(string? storageRoot = null, Func<Guid>? fileIdFactory = null)
     {
+        this.fileIdFactory = fileIdFactory ?? Guid.NewGuid;
         if (!OperatingSystem.IsWindows())
             throw new PlatformNotSupportedException("Secure transfer storage requires Windows filesystem ACLs.");
         rootPath = Path.GetFullPath(storageRoot ?? Path.Combine(
@@ -74,12 +75,17 @@ public sealed class SecureFileTransferStore
         if (existingFiles.Length >= MaximumFilesPerDevice ||
             existingFiles.Sum(path => new FileInfo(path).Length) > MaximumBytesPerDevice - contentLength)
             throw new InvalidDataException("Per-device transfer storage quota has been reached.");
-        var fileId = Guid.NewGuid();
+        var fileId = fileIdFactory();
         var temporaryPath = Path.Combine(deviceDirectory, fileId.ToString("N") + ".tmp");
         var finalPath = Path.Combine(deviceDirectory, fileId.ToString("N") + ".bin");
         var metadataPath = Path.Combine(deviceDirectory, fileId.ToString("N") + ".json");
+        var metadataTemporaryPath = metadataPath + ".tmp";
         long written = 0;
         string actualHash;
+        var temporaryCreated = false;
+        var finalCreated = false;
+        var metadataTemporaryCreated = false;
+        var metadataCreated = false;
 
         try
         {
@@ -92,6 +98,7 @@ public sealed class SecureFileTransferStore
                 64 * 1024,
                 FileOptions.Asynchronous | FileOptions.WriteThrough))
             {
+                temporaryCreated = true;
                 var buffer = new byte[64 * 1024];
                 while (true)
                 {
@@ -126,6 +133,8 @@ public sealed class SecureFileTransferStore
 
             cancellationToken.ThrowIfCancellationRequested();
             File.Move(temporaryPath, finalPath);
+            temporaryCreated = false;
+            finalCreated = true;
             cancellationToken.ThrowIfCancellationRequested();
             var createdAt = DateTimeOffset.UtcNow;
             var metadata = new FileMetadata(
@@ -136,19 +145,35 @@ public sealed class SecureFileTransferStore
                 actualHash,
                 createdAt);
             var metadataJson = JsonSerializer.Serialize(metadata);
-            var metadataTemporaryPath = metadataPath + ".tmp";
-            await File.WriteAllTextAsync(metadataTemporaryPath, metadataJson, Encoding.UTF8, cancellationToken);
+            await using (var metadataOutput = new FileStream(
+                metadataTemporaryPath,
+                FileMode.CreateNew,
+                FileAccess.Write,
+                FileShare.None,
+                4096,
+                FileOptions.Asynchronous | FileOptions.WriteThrough))
+            {
+                metadataTemporaryCreated = true;
+                var metadataBytes = Encoding.UTF8.GetBytes(metadataJson);
+                await metadataOutput.WriteAsync(metadataBytes.AsMemory(), cancellationToken);
+                await metadataOutput.FlushAsync(cancellationToken);
+                metadataOutput.Flush(flushToDisk: true);
+            }
             cancellationToken.ThrowIfCancellationRequested();
             File.Move(metadataTemporaryPath, metadataPath);
+            metadataTemporaryCreated = false;
+            metadataCreated = true;
             cancellationToken.ThrowIfCancellationRequested();
             return new FileReceipt(metadata.FileId, metadata.FileName, metadata.Length, metadata.Sha256, metadata.CreatedAtUtc);
         }
         catch
         {
-            TryDelete(temporaryPath);
-            TryDelete(finalPath);
-            TryDelete(metadataPath);
-            TryDelete(metadataPath + ".tmp");
+            // Delete only paths successfully created by this operation. A GUID collision or
+            // pre-existing file must never cause cleanup to remove someone else's data.
+            if (temporaryCreated) TryDelete(temporaryPath);
+            if (finalCreated) TryDelete(finalPath);
+            if (metadataTemporaryCreated) TryDelete(metadataTemporaryPath);
+            if (metadataCreated) TryDelete(metadataPath);
             throw;
         }
     }
