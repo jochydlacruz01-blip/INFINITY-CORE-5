@@ -466,7 +466,9 @@ class InfinityDesktopEmulatorTest {
                 "$tag must hand off to Android Settings, foreground was $settingsPackage",
                 !settingsPackage.isNullOrBlank() && settingsPackage != context.packageName
             )
-            val settingsHierarchy = device.dumpWindowHierarchy()
+            val hierarchyOutput = java.io.ByteArrayOutputStream()
+            device.dumpWindowHierarchy(hierarchyOutput)
+            val settingsHierarchy = hierarchyOutput.toString(Charsets.UTF_8.name())
             assertTrue(
                 "$tag must open the $expectedSection settings section",
                 settingsHierarchy.contains(expectedSection, ignoreCase = true)
