@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import com.infinity.core.advanced.domain.capabilities.DefaultInfinityCapabilityRegistry
 import com.infinity.core.advanced.domain.capabilities.InfinityCapabilityId
 import com.infinity.core.advanced.domain.capabilities.InfinityCapabilityRegistry
+import com.infinity.core.advanced.domain.capabilities.InfinityDeviceMonitoringCapability
 import com.infinity.core.advanced.domain.capabilities.InfinityNotificationCapability
 import com.infinity.core.advanced.domain.capabilities.InfinityThemeCapability
 import com.infinity.core.advanced.domain.capabilities.InfinityUserPreferencesCapability
@@ -88,20 +89,22 @@ internal class InfinitySharedPreferencesCapabilityAdapter(
     }
 }
 
-/** Application composition root for the first concrete ADVANCED adapters. */
+/** Application composition root for the concrete ADVANCED capability adapters. */
 internal fun createInfinityAdvancedCapabilityRegistry(
     context: Context
 ): InfinityCapabilityRegistry {
     val appContext = context.applicationContext
-    val adapter = InfinitySharedPreferencesCapabilityAdapter(
+    val preferencesAdapter = InfinitySharedPreferencesCapabilityAdapter(
         desktopPreferences = appContext.getSharedPreferences(DESKTOP_PREFERENCES, Context.MODE_PRIVATE),
         advancedPreferences = appContext.getSharedPreferences(ADVANCED_PREFERENCES, Context.MODE_PRIVATE)
     )
+    val deviceMonitoringAdapter = InfinityAndroidDeviceMonitoringAdapter(appContext)
     return DefaultInfinityCapabilityRegistry(
         mapOf(
             InfinityCapabilityId.NOTIFICATIONS to InfinityNotificationCapabilityAdapter(),
-            InfinityCapabilityId.THEME to adapter,
-            InfinityCapabilityId.USER_PREFERENCES to adapter
+            InfinityCapabilityId.DEVICE_MONITORING to deviceMonitoringAdapter,
+            InfinityCapabilityId.THEME to preferencesAdapter,
+            InfinityCapabilityId.USER_PREFERENCES to preferencesAdapter
         )
     )
 }
