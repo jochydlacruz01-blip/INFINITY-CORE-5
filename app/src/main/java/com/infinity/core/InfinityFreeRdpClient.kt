@@ -14,7 +14,12 @@ import com.freerdp.freerdpcore.utils.KeyboardMapper
 import com.freerdp.freerdpcore.utils.Mouse
 import java.security.MessageDigest
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
@@ -72,7 +77,8 @@ internal class InfinityFreeRdpClient(
     private val closed = AtomicBoolean(false)
     @Volatile private var session: SessionState? = null
     private val keyboardMapper = KeyboardMapper()
-    private val pendingFrames = InfinityLatestFrameMailbox<Bitmap>()
+    private val frameSnapshotGate = InfinityFrameSnapshotGate()
+    private val frameCopyScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var frameBitmap: Bitmap? = null
     @Volatile private var connected = false
 
@@ -245,7 +251,7 @@ internal class InfinityFreeRdpClient(
                 val bitmap = frameBitmap ?: return
                 if (closed.get()) return
                 if (LibFreeRDP.updateGraphics(owner.instance, bitmap, x, y, width, height)) {
-                    dispatchLatestFrame(bitmap)
+                    dispatchLatestFrame()
                 }
             }
         }
@@ -282,7 +288,6 @@ internal class InfinityFreeRdpClient(
                 return
             }
             val old = frameBitmap
-            pendingFrames.clear { it.recycle() }
             frameBitmap = replacement
             owner.surface = BitmapDrawable(context.resources, replacement)
             old?.recycle()
@@ -293,23 +298,37 @@ internal class InfinityFreeRdpClient(
         dispatchLatestFrame(replacement)
     }
 
-    private fun dispatchLatestFrame(bitmap: Bitmap) {
-        if (closed.get()) return
-        // FreeRDP mutates its framebuffer in-place on subsequent updates. Publish an
-        // immutable snapshot so Compose never races the native decoder or sees a
-        // bitmap recycled during a resolution change.
-        val snapshot = synchronized(instanceLock) {
-            if (closed.get() || bitmap.isRecycled) null
-            else runCatching { bitmap.copy(Bitmap.Config.ARGB_8888, false) }.getOrNull()
-        } ?: return
-
-        if (pendingFrames.offer(snapshot) { it.recycle() }) {
-            val posted = mainHandler.post {
-                val latest = pendingFrames.takeLatest()
-                if (latest == null) return@post
-                if (!closed.get()) listener.onFrame(latest) else latest.recycle()
+    private fun dispatchLatestFrame() {
+        if (closed.get() || !frameSnapshotGate.tryAcquire()) return
+        frameCopyScope.launch {
+            var gateReleased = false
+            try {
+                // Coalesce FreeRDP's rectangle updates and cap full-frame snapshots at
+                // about 30 FPS. Copy off the UI thread, then publish only the newest
+                // immutable bitmap to Compose.
+                delay(FRAME_SNAPSHOT_INTERVAL_MS)
+                val snapshot = synchronized(instanceLock) {
+                    val current = frameBitmap
+                    val copy = if (!closed.get() && current != null && !current.isRecycled) {
+                        runCatching { current.copy(Bitmap.Config.ARGB_8888, false) }.getOrNull()
+                    } else {
+                        null
+                    }
+                    // Release while holding the same lock used by native frame updates:
+                    // the next update cannot be lost between snapshot and gate release.
+                    frameSnapshotGate.release()
+                    gateReleased = true
+                    copy
+                }
+                if (snapshot != null) {
+                    val posted = mainHandler.post {
+                        if (!closed.get()) listener.onFrame(snapshot) else snapshot.recycle()
+                    }
+                    if (!posted) snapshot.recycle()
+                }
+            } finally {
+                if (!gateReleased) frameSnapshotGate.release()
             }
-            if (!posted) pendingFrames.clear { it.recycle() }
         }
     }
 
@@ -368,6 +387,8 @@ internal class InfinityFreeRdpClient(
 
     suspend fun closeSession() = withContext(Dispatchers.IO) {
         if (!closed.compareAndSet(false, true)) return@withContext
+        frameCopyScope.cancel()
+        frameSnapshotGate.release()
         credentials.clear()
         runCatching { keyboardMapper.clearlAllModifiers() }
         val current = synchronized(sessionLock) {
@@ -392,7 +413,6 @@ internal class InfinityFreeRdpClient(
                 }
             } finally {
                 synchronized(instanceLock) {
-                    pendingFrames.clear { it.recycle() }
                     frameBitmap?.recycle()
                     frameBitmap = null
                 }
@@ -402,6 +422,7 @@ internal class InfinityFreeRdpClient(
 
     companion object {
         private const val MAX_FRAME_PIXELS = 8_388_608L
+        private const val FRAME_SNAPSHOT_INTERVAL_MS = 33L
 
         internal fun normalizeRdpFingerprint(value: String): String? {
             val trimmed = value.trim()

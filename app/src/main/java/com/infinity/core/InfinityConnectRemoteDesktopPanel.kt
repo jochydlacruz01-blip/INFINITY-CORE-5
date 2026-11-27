@@ -22,7 +22,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -65,7 +64,6 @@ internal fun InfinityConnectRemoteDesktopPanel(
     var textToSend by remember { mutableStateOf("") }
     var client by remember { mutableStateOf<InfinityFreeRdpClient?>(null) }
     var frame by remember { mutableStateOf<Bitmap?>(null) }
-    var frameRevision by remember { mutableIntStateOf(0) }
     var status by remember { mutableStateOf("La sesión remota requiere autorización explícita y pin SHA-256 del certificado RDP.") }
     var busy by remember { mutableStateOf(false) }
     var connected by remember { mutableStateOf(false) }
@@ -164,7 +162,6 @@ internal fun InfinityConnectRemoteDesktopPanel(
                     return
                 }
                 frame = frameBitmap
-                frameRevision++
             }
 
             override fun onResolutionChanged(width: Int, height: Int) {
@@ -231,8 +228,9 @@ internal fun InfinityConnectRemoteDesktopPanel(
     // successfully connected, authorized desktop. Never start heartbeat work merely
     // because this panel was composed or a session identifier became available.
 
-    LaunchedEffect(frameRevision) {
-        if (frameRevision > 0) runCatching { focusRequester.requestFocus() }
+    // Keep hardware-keyboard focus stable; do not request focus on every RDP frame.
+    LaunchedEffect(connected, frame != null) {
+        if (connected && frame != null) runCatching { focusRequester.requestFocus() }
     }
 
     Card(modifier = Modifier.fillMaxWidth()) {
