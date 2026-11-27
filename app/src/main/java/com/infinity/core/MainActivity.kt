@@ -1,6 +1,7 @@
 package com.infinity.core
 
 import android.content.ComponentName
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -54,11 +55,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.paint
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -407,6 +410,18 @@ private fun Infinity08App(resumeSignal: Int) {
         }
     }
 
+    val launchWallpaperPicker = {
+        try {
+            wallpaperPicker.launch(arrayOf("image/*"))
+        } catch (_: ActivityNotFoundException) {
+            Toast.makeText(context, "No se encontró el selector de imágenes de Android.", Toast.LENGTH_LONG).show()
+        } catch (_: SecurityException) {
+            Toast.makeText(context, "Android bloqueó la apertura del selector de imágenes.", Toast.LENGTH_LONG).show()
+        } catch (_: IllegalStateException) {
+            Toast.makeText(context, "No se pudo abrir el selector en este momento. Inténtalo de nuevo.", Toast.LENGTH_LONG).show()
+        }
+    }
+
     val folderPicker = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocumentTree()
     ) { uri ->
@@ -434,6 +449,18 @@ private fun Infinity08App(resumeSignal: Int) {
                     Toast.LENGTH_LONG
                 ).show()
             }
+        }
+    }
+
+    val launchFolderPicker = {
+        try {
+            folderPicker.launch(null)
+        } catch (_: ActivityNotFoundException) {
+            Toast.makeText(context, "No se encontró el selector de carpetas de Android.", Toast.LENGTH_LONG).show()
+        } catch (_: SecurityException) {
+            Toast.makeText(context, "Android bloqueó la apertura del selector de carpetas.", Toast.LENGTH_LONG).show()
+        } catch (_: IllegalStateException) {
+            Toast.makeText(context, "No se pudo abrir el selector de carpetas en este momento.", Toast.LENGTH_LONG).show()
         }
     }
 
@@ -647,6 +674,15 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                     }
                 )
             )
+                // Personal wallpapers are painted on the full window BEFORE safe insets
+                // are applied to the interactive desktop content. This prevents landscape
+                // letterbox strips at the top/bottom and keeps the selected image edge-to-edge.
+                .then(
+                    wallpaperBitmap?.let {
+                        Modifier.paint(BitmapPainter(it), contentScale = ContentScale.Crop)
+                            .background(Color(0x66081729))
+                    } ?: Modifier
+                )
                 // Keep controls clear of camera cutouts and Android system bars.
                 .windowInsetsPadding(WindowInsets.safeDrawing)
         ) {
@@ -743,17 +779,8 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                 }
             }
 
-            // The selected desktop theme is rendered by the root background above.
+            // The selected personal wallpaper is already painted edge-to-edge by the root window.
             val currentWallpaperBitmap = wallpaperBitmap
-            if (currentWallpaperBitmap != null) {
-                Image(
-                    currentWallpaperBitmap,
-                    contentDescription = "Fondo de escritorio",
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
-                )
-                Box(Modifier.fillMaxSize().background(Color(0x66081729)))
-            }
 
             // PACK13: render a true layered futuristic scene when no personal wallpaper is selected.
             // The scene is decorative only; all desktop controls remain live Compose elements above it.
@@ -1289,9 +1316,9 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                             iconSize = normalized
                             prefs.edit().putFloat("icon_size", normalized).apply()
                         },
-                        onChooseWallpaper = { wallpaperPicker.launch(arrayOf("image/*")) },
+                        onChooseWallpaper = launchWallpaperPicker,
                         selectedFolder = selectedFolder,
-                        onChooseFolder = { folderPicker.launch(null) },
+                        onChooseFolder = launchFolderPicker,
                         onLaunchApp = ::launchApp,
                         onClose = {
                             // Discard the gesture transaction before removing its window.
@@ -2540,8 +2567,8 @@ Spacer(Modifier.height(14.dp))
                             valueRange = 40f..72f
                         )
                         OutlinedButton(
-                            onClick = { wallpaperPicker.launch(arrayOf("image/*")) },
-                            modifier = Modifier.fillMaxWidth()
+                            onClick = launchWallpaperPicker,
+                            modifier = Modifier.fillMaxWidth().testTag("infinity-wallpaper-picker")
                         ) { Text("Cambiar fondo") }
                         OutlinedButton(
                             onClick = {
@@ -2933,7 +2960,7 @@ private fun FileExplorer08(
             Modifier.fillMaxWidth().padding(vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Button(onClick = onChooseFolder) {
+            Button(onClick = onChooseFolder, modifier = Modifier.testTag("infinity-folder-picker")) {
                 Icon(Icons.Default.FolderOpen, contentDescription = null)
                 Spacer(Modifier.width(5.dp))
                 Text(if (rootUri == null) "Elegir carpeta" else "Cambiar carpeta")
@@ -3541,7 +3568,10 @@ private fun Infinity08Window(
                     }
                     Text("Tamaño de iconos: ${iconSize.toInt()} dp", color = foreground, fontSize = 11.sp)
                     Slider(value = iconSize, onValueChange = onIconSizeChange, valueRange = 40f..72f)
-                    Button(onClick = onChooseWallpaper) { Text("Elegir fondo de pantalla") }
+                    Button(
+                        onClick = onChooseWallpaper,
+                        modifier = Modifier.testTag("infinity-wallpaper-picker")
+                    ) { Text("Elegir fondo de pantalla") }
                 }
 
                 else -> Column(Modifier.padding(14.dp)) {
