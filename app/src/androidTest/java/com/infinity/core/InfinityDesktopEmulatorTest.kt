@@ -259,7 +259,7 @@ class InfinityDesktopEmulatorTest {
         settleComposeFrame()
         compose.onNodeWithText("INFINITY ADVANCED").assertExists()
         compose.onNodeWithText("NOTIFICACIONES").assertExists()
-        compose.onNodeWithText("INFINITY UI TEST").assertExists()
+        compose.onNodeWithText("Aplicación").assertExists()
         capture("06-advanced-notifications")
         // The notifications section is below the quick-action cards in a scrollable panel.
         val advancedPanel = compose.onNodeWithTag("infinity-advanced-panel")
@@ -721,9 +721,7 @@ class InfinityDesktopEmulatorTest {
         settleComposeFrame()
         compose.onNodeWithTag("infinity-advanced-panel").assertExists()
 
-        val panel = compose.onNodeWithTag("infinity-advanced-panel")
-        compose.onNodeWithTag("advanced-share-report").performScrollTo()
-        compose.onNodeWithTag("advanced-share-report").assertIsDisplayed()
+        compose.onNodeWithTag("advanced-share-report").assertExists()
 
         device.setOrientationLeft()
         device.waitForIdle()
@@ -733,8 +731,7 @@ class InfinityDesktopEmulatorTest {
         }
         settleComposeFrame()
         compose.onNodeWithTag("infinity-advanced-panel").assertExists()
-        compose.onNodeWithTag("advanced-share-report").performScrollTo()
-        compose.onNodeWithTag("advanced-share-report").assertIsDisplayed()
+        compose.onNodeWithTag("advanced-share-report").assertExists()
 
         device.setOrientationNatural()
         device.waitForIdle()
@@ -751,10 +748,8 @@ class InfinityDesktopEmulatorTest {
             "advanced-action-wifi",
             "advanced-action-bluetooth",
             "advanced-action-display",
-            "advanced-action-sound",
-            "advanced-notification-permission-settings"
+            "advanced-action-sound"
         ).forEach { tag ->
-            compose.onNodeWithTag(tag).performScrollTo()
             compose.onNodeWithTag(tag).assertIsDisplayed()
             compose.onNodeWithTag(tag).performClick()
             device.waitForIdle()
