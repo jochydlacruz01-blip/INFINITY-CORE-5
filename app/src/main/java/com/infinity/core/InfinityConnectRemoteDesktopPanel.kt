@@ -124,6 +124,7 @@ internal fun InfinityConnectRemoteDesktopPanel(
                 val failedClient = client
                 if (failedClient == null) return
                 lifecycle.transition(InfinityConnectSessionState.FAILED, message)
+                InfinityConnectSessionSupervisorRuntime.requestAuthenticatedRevocation(context.applicationContext)
                 client = null
                 connected = false
                 frame = null
@@ -155,6 +156,7 @@ internal fun InfinityConnectRemoteDesktopPanel(
                 client = null
                 val message = "Certificado RDP rechazado. Huella observada: $observedFingerprint"
                 lifecycle.transition(InfinityConnectSessionState.FAILED, message)
+                InfinityConnectSessionSupervisorRuntime.requestAuthenticatedRevocation(context.applicationContext)
                 status = message
                 CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
                     runCatching { rejectedClient.closeSession() }
@@ -231,7 +233,10 @@ internal fun InfinityConnectRemoteDesktopPanel(
             if (client == null) {
                 OutlinedTextField(
                     value = rdpServerPin,
-                    onValueChange = { rdpServerPin = it.filter { ch -> ch in "0123456789abcdefABCDEF:" }.take(80) },
+                    onValueChange = {
+                        rdpServerPin = it.filter { ch -> ch in "0123456789abcdefABCDEF:" }.take(80)
+                        InfinityConnectSessionSupervisorRuntime.recordUserActivity()
+                    },
                     label = { Text("SHA-256 del certificado RDP de Windows") },
                     supportingText = { Text("64 caracteres hexadecimales. No se acepta confiar en cualquier certificado.") },
                     modifier = Modifier.fillMaxWidth(),
@@ -239,21 +244,30 @@ internal fun InfinityConnectRemoteDesktopPanel(
                 )
                 OutlinedTextField(
                     value = rdpUsername,
-                    onValueChange = { rdpUsername = it.take(128) },
+                    onValueChange = {
+                        rdpUsername = it.take(128)
+                        InfinityConnectSessionSupervisorRuntime.recordUserActivity()
+                    },
                     label = { Text("Usuario de Windows") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
                 OutlinedTextField(
                     value = rdpDomain,
-                    onValueChange = { rdpDomain = it.take(128) },
+                    onValueChange = {
+                        rdpDomain = it.take(128)
+                        InfinityConnectSessionSupervisorRuntime.recordUserActivity()
+                    },
                     label = { Text("Dominio (opcional)") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
                 OutlinedTextField(
                     value = rdpPassword,
-                    onValueChange = { rdpPassword = it.take(256) },
+                    onValueChange = {
+                        rdpPassword = it.take(256)
+                        InfinityConnectSessionSupervisorRuntime.recordUserActivity()
+                    },
                     label = { Text("Contraseña de Windows") },
                     visualTransformation = PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
@@ -264,6 +278,7 @@ internal fun InfinityConnectRemoteDesktopPanel(
                     enabled = !busy && rdpServerPin.filter { it != ':' }.matches(Regex("[0-9A-Fa-f]{64}")) &&
                         rdpUsername.isNotBlank() && rdpPassword.isNotEmpty(),
                     onClick = {
+                        InfinityConnectSessionSupervisorRuntime.recordUserActivity()
                         val pin = rdpServerPin
                         val credentials = InfinityFreeRdpClient.RdpCredentials(
                             rdpUsername.trim(),

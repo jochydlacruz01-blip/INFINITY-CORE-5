@@ -7,6 +7,9 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
 import android.os.Build
 import android.os.IBinder
 import kotlinx.coroutines.CancellationException
@@ -18,6 +21,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 
@@ -30,12 +34,27 @@ internal class InfinityConnectSessionSupervisorService : Service() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var worker: kotlinx.coroutines.Job? = null
     @Volatile private var revokeRequested = false
-    private var sequence = 0L
-    private var retrySeconds = INITIAL_RETRY_SECONDS
+    @Volatile private var retrySeconds = INITIAL_RETRY_SECONDS
+    @Volatile private var networkCallbackRegistered = false
+    private var connectivityManager: ConnectivityManager? = null
+    private val networkAvailable = AtomicBoolean(true)
+    private val networkGeneration = AtomicLong(0L)
+    private val networkCallback = object : ConnectivityManager.NetworkCallback() {
+        override fun onAvailable(network: Network) = refreshNetworkAvailability()
+        override fun onLost(network: Network) = refreshNetworkAvailability()
+        override fun onCapabilitiesChanged(network: Network, capabilities: NetworkCapabilities) =
+            refreshNetworkAvailability()
+    }
 
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
+        connectivityManager = getSystemService(ConnectivityManager::class.java)
+        runCatching {
+            connectivityManager?.registerDefaultNetworkCallback(networkCallback)
+            networkCallbackRegistered = connectivityManager != null
+        }
+        refreshNetworkAvailability()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -53,6 +72,11 @@ internal class InfinityConnectSessionSupervisorService : Service() {
     private suspend fun supervise(config: InfinityConnectSessionConfig) {
         while (scope.isActive) {
             if (revokeRequested) {
+                if (!networkAvailable.get()) {
+                    updateNotification("Sin red · revocación pendiente hasta recuperar Wi-Fi/LTE/VPN")
+                    waitForNetworkRecovery()
+                    continue
+                }
                 val confirmed = runCatching {
                     withContext(Dispatchers.IO) {
                         InfinityConnectMtlsTransport().revokeIdentitySession(
@@ -69,7 +93,7 @@ internal class InfinityConnectSessionSupervisorService : Service() {
                     return
                 }
                 updateNotification("Desconexión pendiente · esperando confirmación de Windows")
-                delay(retrySeconds * 1_000L)
+                waitForRetry(interruptOnRevoke = false)
                 retrySeconds = (retrySeconds * 2).coerceAtMost(MAX_RETRY_SECONDS)
                 continue
             }
@@ -77,12 +101,18 @@ internal class InfinityConnectSessionSupervisorService : Service() {
             val activityAt = InfinityConnectSessionSupervisorRuntime.lastActivityElapsed.get()
             val now = android.os.SystemClock.elapsedRealtime()
             if (InfinityConnectSessionActivityPolicy.isHumanActivityRecent(activityAt, now, MAX_IDLE_MILLIS)) {
+                if (!networkAvailable.get()) {
+                    updateNotification("Red perdida · esperando recuperación de Wi-Fi/LTE/VPN")
+                    waitForNetworkRecovery()
+                    continue
+                }
                 val result = runCatching {
                     withContext(Dispatchers.IO) {
                         InfinityConnectMtlsTransport().heartbeatSession(
                             config.baseUrl, config.clientKeyAlias, config.serverPin,
                             config.sessionId, config.sessionToken, config.expectedDeviceId,
-                            ++sequence, userActivity = true
+                            InfinityConnectSessionSupervisorRuntime.heartbeatSequence.incrementAndGet(),
+                            userActivity = true
                         )
                     }
                 }
@@ -91,7 +121,7 @@ internal class InfinityConnectSessionSupervisorService : Service() {
                     updateNotification("Conectado · autorización renovada por Windows")
                 } else {
                     updateNotification("Conexión interrumpida · reintentando autorización")
-                    delay(retrySeconds * 1_000L)
+                    waitForRetry(interruptOnRevoke = true)
                     retrySeconds = (retrySeconds * 2).coerceAtMost(MAX_RETRY_SECONDS)
                 }
             } else {
@@ -109,9 +139,41 @@ internal class InfinityConnectSessionSupervisorService : Service() {
         }
     }
 
+    private fun refreshNetworkAvailability() {
+        val manager = connectivityManager ?: return
+        val activeNetwork = manager.activeNetwork
+        val capabilities = activeNetwork?.let(manager::getNetworkCapabilities)
+        val available = capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true
+        val previous = networkAvailable.getAndSet(available)
+        if (previous != available) {
+            networkGeneration.incrementAndGet()
+            if (available) retrySeconds = INITIAL_RETRY_SECONDS
+        }
+    }
+
+    private suspend fun waitForNetworkRecovery() {
+        if (!networkCallbackRegistered) {
+            delay(NETWORK_POLL_FALLBACK_MILLIS)
+            return
+        }
+        while (scope.isActive && !networkAvailable.get()) delay(NETWORK_POLL_FALLBACK_MILLIS)
+    }
+
+    private suspend fun waitForRetry(interruptOnRevoke: Boolean) {
+        val generation = networkGeneration.get()
+        val deadline = android.os.SystemClock.elapsedRealtime() + retrySeconds * 1_000L
+        while (scope.isActive &&
+            android.os.SystemClock.elapsedRealtime() < deadline &&
+            generation == networkGeneration.get() &&
+            (!interruptOnRevoke || !revokeRequested)) {
+            val remaining = deadline - android.os.SystemClock.elapsedRealtime()
+            delay(remaining.coerceAtMost(NETWORK_POLL_FALLBACK_MILLIS))
+        }
+    }
+
     private suspend fun waitForNextHeartbeat() {
         val deadline = android.os.SystemClock.elapsedRealtime() + HEARTBEAT_INTERVAL_MILLIS
-        while (scope.isActive && !revokeRequested) {
+        while (scope.isActive && !revokeRequested && networkAvailable.get()) {
             val remaining = deadline - android.os.SystemClock.elapsedRealtime()
             if (remaining <= 0L) return
             delay(remaining.coerceAtMost(500L))
@@ -160,6 +222,11 @@ internal class InfinityConnectSessionSupervisorService : Service() {
 
     override fun onDestroy() {
         worker?.cancel()
+        if (networkCallbackRegistered) {
+            runCatching { connectivityManager?.unregisterNetworkCallback(networkCallback) }
+        }
+        networkCallbackRegistered = false
+        connectivityManager = null
         scope.cancel()
         super.onDestroy()
     }
@@ -174,6 +241,7 @@ internal class InfinityConnectSessionSupervisorService : Service() {
         private const val MAX_IDLE_MILLIS = 120_000L
         private const val INITIAL_RETRY_SECONDS = 5L
         private const val MAX_RETRY_SECONDS = 120L
+        private const val NETWORK_POLL_FALLBACK_MILLIS = 500L
     }
 }
 
@@ -190,6 +258,7 @@ internal object InfinityConnectSessionSupervisorRuntime {
     internal val current = AtomicReference<InfinityConnectSessionConfig?>(null)
     internal val lastActivityElapsed = AtomicLong(0L)
     internal val startedElapsed = AtomicLong(0L)
+    internal val heartbeatSequence = AtomicLong(0L)
     private val gate = Any()
 
     fun start(context: Context, config: InfinityConnectSessionConfig) {
@@ -203,6 +272,7 @@ internal object InfinityConnectSessionSupervisorRuntime {
                 current.set(config)
                 lastActivityElapsed.set(0L)
                 startedElapsed.set(android.os.SystemClock.elapsedRealtime())
+                heartbeatSequence.set(0L)
             }
             val intent = Intent(context, InfinityConnectSessionSupervisorService::class.java)
             try {
@@ -238,6 +308,7 @@ internal object InfinityConnectSessionSupervisorRuntime {
                 current.set(null)
                 lastActivityElapsed.set(0L)
                 startedElapsed.set(0L)
+                heartbeatSequence.set(0L)
             }
         }
     }

@@ -169,6 +169,37 @@ public sealed class AuthorizedSessionStoreTests
     }
 
     [Fact]
+    public async Task ConcurrentHeartbeatsCannotResurrectSessionAfterAuthenticatedRevocation()
+    {
+        var store = new AuthorizedSessionStore();
+        var grant = store.Create(DevicePin, true, new[] { "identity.read" });
+        using var start = new ManualResetEventSlim(false);
+
+        var heartbeats = Enumerable.Range(1, 32).Select(sequence => Task.Run(() =>
+        {
+            start.Wait();
+            return store.Heartbeat(grant.SessionId, grant.Token, DevicePin, sequence, true);
+        })).ToArray();
+        var revoke = Task.Run(() =>
+        {
+            start.Wait();
+            return store.RevokeAuthenticated(grant.SessionId, grant.Token, DevicePin);
+        });
+
+        start.Set();
+        await Task.WhenAll(heartbeats.Append(revoke));
+
+        Assert.Contains(revoke.Result, new[]
+        {
+            AuthorizedSessionStore.SessionRevocationResult.Revoked,
+            AuthorizedSessionStore.SessionRevocationResult.AlreadyInactive
+        });
+        Assert.False(store.IsAuthorized(grant.SessionId, grant.Token, DevicePin, "identity.read"));
+        Assert.Null(store.Heartbeat(grant.SessionId, grant.Token, DevicePin, 100, true));
+        Assert.Equal(0, store.ActiveCount);
+    }
+
+    [Fact]
     public async Task DeviceRevocationInvalidatesAllOldTokensAfterConcurrentAuthorizationChecks()
     {
         var store = new AuthorizedSessionStore();
