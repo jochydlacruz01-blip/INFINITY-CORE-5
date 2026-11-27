@@ -60,7 +60,7 @@ def _path_is_narrow_test_report(path_value: str) -> bool:
         value = value.rstrip("/") + "/"
     if not value or DYNAMIC.search(value):
         return False
-    if any(value in (root, root + "**") for root in ALLOWED_NON_APK_ARTIFACT_PATHS):
+    if any(value.rstrip("/") == root.rstrip("/") or value == root + "**" for root in ALLOWED_NON_APK_ARTIFACT_PATHS):
         return True
     if any(value.startswith(root) and value.lower().endswith(".html") for root in ALLOWED_LINT_REPORTS):
         return True
