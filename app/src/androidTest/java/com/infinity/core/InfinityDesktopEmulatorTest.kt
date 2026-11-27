@@ -763,6 +763,22 @@ class InfinityDesktopEmulatorTest {
             compose.waitForIdle()
             compose.onNodeWithTag("infinity-advanced-panel").assertExists()
         }
+
+        // Select each supported theme through ADVANCED and verify the desktop's
+        // canonical preference changes (the palette unit tests verify each palette).
+        val desktopPreferences = context.getSharedPreferences("infinity_desktop", 0)
+        listOf("midnight", "ocean", "violet", "emerald", "sunset").forEach { themeId ->
+            if (desktopPreferences.getString("theme_choice", "midnight") != themeId) {
+                val themeButton = compose.onNodeWithTag("advanced-theme-$themeId")
+                themeButton.performScrollTo()
+                themeButton.assertIsDisplayed()
+                themeButton.performClick()
+                compose.waitUntil(timeoutMillis = 5_000) {
+                    desktopPreferences.getString("theme_choice", "midnight") == themeId
+                }
+            }
+        }
+        assertTrue("The final selected theme must be persisted", desktopPreferences.getString("theme_choice", "") == "sunset")
     }
 
 
