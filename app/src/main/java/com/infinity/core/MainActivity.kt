@@ -328,7 +328,7 @@ private fun Infinity08App(resumeSignal: Int) {
         mutableStateOf(infinityNormalizeAppearance(prefs.getString("appearance", "dark")))
     }
     val lightMode = appearance == "light"
-    val accent = infinityThemeAccentColor(themeChoice)
+    val accent = infinityThemeAccentColor(themeChoice, lightMode)
     val foreground = if (lightMode) Color(0xFF203149) else Color.White
 
     var clockText by remember { mutableStateOf("--:--") }
