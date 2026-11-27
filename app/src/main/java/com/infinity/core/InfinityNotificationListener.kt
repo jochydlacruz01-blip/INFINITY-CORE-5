@@ -33,6 +33,7 @@ object InfinityNotificationStore {
     val accessGranted = mutableStateOf(false)
 
     internal fun refreshAccess(context: Context) {
+        val wasGranted = accessGranted.value
         val enabledListeners = android.provider.Settings.Secure.getString(
             context.contentResolver,
             "enabled_notification_listeners"
@@ -50,9 +51,9 @@ object InfinityNotificationStore {
             granted = accessGranted.value,
             connected = service != null
         )
-        // Re-check on every Activity resume: if the user revoked listener
-        // access in Android Settings, immediately discard the in-memory feed.
-        if (!accessGranted.value) {
+        // Clear only on an actual granted -> revoked transition. A clean install
+        // with no listener permission must not erase local in-memory test/demo items.
+        if (wasGranted && !accessGranted.value) {
             service = null
             clearAll()
         }
