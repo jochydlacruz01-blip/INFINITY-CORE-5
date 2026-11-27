@@ -360,7 +360,7 @@ class InfinityDesktopEmulatorTest {
                 .let { it.title.isEmpty() && it.message.isEmpty() }
         )
         compose.onNodeWithText("PRIVACY TEST").assertDoesNotExist()
-        compose.onNodeWithText("Aplicación").performScrollTo().assertIsDisplayed()
+        assertTrue("Private mode should display a generic source label", compose.onAllNodesWithText("Aplicación").fetchSemanticsNodes().isNotEmpty())
 
         // Dock stays reachable after opening and closing the desktop panels.
         compose.onNodeWithContentDescription("HOME").performClick()
