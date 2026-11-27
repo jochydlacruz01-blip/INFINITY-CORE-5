@@ -13,8 +13,10 @@ internal class InfinityLatestFrameMailbox<T : Any> {
 
     /** Returns true only when the caller must schedule a main-thread drain. */
     @Synchronized
-    fun offer(frame: T): Boolean {
+    fun offer(frame: T, discardReplaced: (T) -> Unit = {}): Boolean {
+        val replaced = latest
         latest = frame
+        if (replaced != null) discardReplaced(replaced)
         if (drainScheduled) return false
         drainScheduled = true
         return true
@@ -30,8 +32,10 @@ internal class InfinityLatestFrameMailbox<T : Any> {
     }
 
     @Synchronized
-    fun clear() {
+    fun clear(discardPending: (T) -> Unit = {}) {
+        val pending = latest
         latest = null
         drainScheduled = false
+        if (pending != null) discardPending(pending)
     }
 }
