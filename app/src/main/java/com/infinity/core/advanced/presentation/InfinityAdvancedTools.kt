@@ -83,7 +83,7 @@ fun InfinityAdvancedAutomationCard(
                 value = targetPackage,
                 onValueChange = {
                     targetPackage = it.trim()
-                    preferences.edit().putString("target_package", targetPackage).apply()
+                    check(preferences.edit().putString("target_package", targetPackage).commit()) { "Unable to persist automation target" }
                 },
                 modifier = Modifier.fillMaxWidth().testTag("advanced-automation-package"),
                 label = { Text("Nombre de paquete Android") },
@@ -96,7 +96,7 @@ fun InfinityAdvancedAutomationCard(
                     checked = enabled,
                     onCheckedChange = {
                         enabled = it
-                        preferences.edit().putBoolean("enabled", it).apply()
+                        check(preferences.edit().putBoolean("enabled", it).commit()) { "Unable to persist automation rule state" }
                     }
                 )
             }
@@ -105,7 +105,15 @@ fun InfinityAdvancedAutomationCard(
                     checked = consent,
                     onCheckedChange = {
                         consent = it
-                        preferences.edit().putBoolean("consent", it).apply()
+                        val editor = preferences.edit().putBoolean("consent", it)
+                        // Revocation is fail-closed: disable the rule in the same
+                        // synchronous preference transaction so stale enabled state
+                        // cannot survive process death or panel recreation.
+                        if (!it) {
+                            enabled = false
+                            editor.putBoolean("enabled", false)
+                        }
+                        check(editor.commit()) { "Unable to persist automation consent" }
                     }
                 )
                 Text(
@@ -124,8 +132,13 @@ fun InfinityAdvancedAutomationCard(
                             val now = System.currentTimeMillis()
                             // Snapshot the user's current authorization before suspending.
                             val targetPackageSnapshot = targetPackage
-                            val enabledSnapshot = enabled
-                            val consentSnapshot = consent
+                            // Re-read durable authorization immediately before dispatch.
+                            val enabledSnapshot = enabled && preferences.getBoolean("enabled", false)
+                            val consentSnapshot = consent && preferences.getBoolean("consent", false)
+                            if (!enabledSnapshot || !consentSnapshot) {
+                                status = "La autorización fue revocada. Activa y autoriza de nuevo para continuar."
+                                return@launch
+                            }
                             val history = InfinityAutomationExecutionLedger.recentExecutions(
                                 preferences.getString("execution_timestamps", "").orEmpty()
                                     .split(',')
