@@ -548,6 +548,7 @@ fun InfinityConnectEnrollmentPanel() {
                         if (result.isSuccess) {
                             val grant = result.getOrThrow()
                             val saved = InfinityConnectCredentialVault(context).save(
+                                "windows-device:$expectedServerId",
                                 "identity-session:$expectedServerId",
                                 grant.token
                             )
