@@ -342,6 +342,14 @@ jobs:
             [],
         )
 
+    def test_release_validation_push_trigger_is_pinned_to_authorized_branch(self):
+        content = self._authorized_release_validation_workflow_fixture().replace(
+            "      - INFINITY-PACK-14-REMOTE-FRAME-PIPELINE",
+            "      - main",
+            1,
+        )
+        self.assertTrue(audit_named_workflow("android-validation-release.yml", content))
+
     def test_release_validation_workflow_with_commercial_secret_is_rejected(self):
         content = self._authorized_release_validation_workflow_fixture().replace(
             "keytool -genkeypair", "echo \\${{ secrets.INFINITY_KEYSTORE_PASSWORD }}\n      - run: keytool -genkeypair"
@@ -352,11 +360,25 @@ jobs:
         return r"""name: PROJECT INFINITY 0.10 - RELEASE VALIDATION APK (EPHEMERAL SIGNING)
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - INFINITY-PACK-14-REMOTE-FRAME-PIPELINE
+    paths:
+      - '.github/workflows/android-validation-release.yml'
+      - 'app/**'
+      - 'freerdp-core/**'
+      - 'external/FreeRDP/**'
+      - 'settings.gradle.kts'
+      - 'build.gradle.kts'
+      - 'gradle.properties'
+      - 'gradle/**'
+      - 'gradlew'
+      - 'gradlew.bat'
 permissions:
   contents: read
 jobs:
   build-release-validation:
-    if: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/INFINITY-PACK-14-REMOTE-FRAME-PIPELINE' }}
+    if: ${{ (github.event_name == 'workflow_dispatch' || github.event_name == 'push') && github.ref == 'refs/heads/INFINITY-PACK-14-REMOTE-FRAME-PIPELINE' }}
     steps:
       - uses: actions/checkout@v7
         with:

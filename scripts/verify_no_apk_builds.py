@@ -175,15 +175,28 @@ def _is_safe_manual_debug_apk_workflow(path: Path, content: str) -> bool:
 
 
 def _is_safe_manual_release_validation_workflow(path: Path, content: str) -> bool:
-    """Allow only a manually dispatched, branch-pinned, ephemeral-key validation Release APK."""
+    """Allow only a branch-pinned push/manual ephemeral-key validation Release APK."""
     if path.name != MANUAL_RELEASE_VALIDATION_WORKFLOW:
         return False
     required = (
-        re.search(r"(?m)^on:\s*\n\s+workflow_dispatch:\s*$", content),
+        (lambda match: bool(
+            match
+            and re.fullmatch(
+                r"  workflow_dispatch:\\n"
+                r"  push:\\n"
+                r"    branches:\\n"
+                r"      - " + re.escape(AUTHORIZED_DEBUG_BRANCH) + r"\\n"
+                r"    paths:\\n"
+                r"(?:      - '[^'\\n]+'\\n)+\\s*",
+                match.group(1),
+            )
+            and "      - 'freerdp-core/**'" in match.group(1)
+            and "      - 'external/FreeRDP/**'" in match.group(1)
+        ))(re.search(r"(?ms)^on:\\n(.*?)^permissions:", content)),
         re.search(
-            r"(?m)^    if:\s*\$\{\{\s*github\.event_name\s*==\s*'workflow_dispatch'\s*&&\s*github\.ref\s*==\s*'refs/heads/"
+            r"(?m)^    if:\\s*\\$\\{\\{\\s*\\(\\s*github\\.event_name\\s*==\\s*'workflow_dispatch'\\s*\\|\\|\\s*github\\.event_name\\s*==\\s*'push'\\s*\\)\\s*&&\\s*github\\.ref\\s*==\\s*'refs/heads/"
             + re.escape(AUTHORIZED_DEBUG_BRANCH)
-            + r"'\s*\}\}\s*$",
+            + r"'\\s*\\}\\}\\s*$",
             content,
         ),
         re.search(r"(?m)^permissions:\s*\n\s+contents:\s*read\s*$", content),
