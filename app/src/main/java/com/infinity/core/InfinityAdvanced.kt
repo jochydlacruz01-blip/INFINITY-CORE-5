@@ -372,7 +372,8 @@ fun InfinityAdvancedPanel(
                                 context,
                                 Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS
                             )
-                        }
+                        },
+                        modifier = Modifier.testTag("advanced-notification-permission-settings")
                     ) {
                         Text(
                             "ABRIR AJUSTES DE NOTIFICACIONES",

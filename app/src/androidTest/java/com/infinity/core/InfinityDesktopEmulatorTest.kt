@@ -483,6 +483,87 @@ class InfinityDesktopEmulatorTest {
     }
 
     @Test(timeout = 120_000)
+    fun notificationAccessSettingsRefreshAndFeedSurvivesActivityRecreation() {
+        compose.onNodeWithContentDescription("ADVANCED").performClick()
+        settleComposeFrame()
+        waitForTag("infinity-advanced-panel")
+
+        val permissionSettings = compose.onNodeWithTag(
+            "advanced-notification-permission-settings"
+        )
+        permissionSettings.performScrollTo()
+        permissionSettings.assertIsDisplayed().assertHasClickAction()
+        permissionSettings.performClick()
+        device.waitForIdle()
+
+        val settingsPackage = device.currentPackageName
+        assertTrue(
+            "Notification access action must open Android Settings, foreground was $settingsPackage",
+            !settingsPackage.isNullOrBlank() && settingsPackage != context.packageName
+        )
+        device.pressBack()
+        device.waitForIdle()
+        assertTrue(
+            "Returning from notification access Settings must restore INFINITY",
+            device.currentPackageName == context.packageName
+        )
+
+        // The Activity refreshes the secure listener allow-list on resume.
+        InfinityNotificationStore.refreshAccess(context)
+        val enabledListeners = android.provider.Settings.Secure.getString(
+            context.contentResolver,
+            "enabled_notification_listeners"
+        ).orEmpty()
+        val expectedGrant = enabledListeners.split(':').any { flattened ->
+            android.content.ComponentName.unflattenFromString(flattened)?.let { component ->
+                component.packageName == context.packageName &&
+                    component.className == InfinityNotificationListener::class.java.name
+            } == true
+        }
+        assertTrue(
+            "INFINITY must reflect Android's actual notification-listener permission state",
+            InfinityNotificationStore.accessGranted.value == expectedGrant
+        )
+
+        // The notification feed is an in-memory projection of Android's active
+        // notifications. Recreating the desktop Activity must not erase it.
+        context.getSharedPreferences("infinity_privacy", 0).edit()
+            .putBoolean("hide_notification_content", false)
+            .commit()
+        InfinityNotificationStore.setHideContent(false)
+        InfinityNotificationStore.update(
+            InfinityNotification(
+                key = "activity-recreation-notification",
+                packageName = context.packageName,
+                appName = "LIFECYCLE TEST",
+                title = "Lifecycle notification",
+                message = "Feed should remain available after Activity recreation",
+                timestamp = System.currentTimeMillis(),
+                ongoing = false,
+                clearable = true,
+                contentIntent = null
+            )
+        )
+        compose.waitUntil(timeoutMillis = 5_000) {
+            InfinityNotificationStore.notifications.any {
+                it.key == "activity-recreation-notification"
+            }
+        }
+        compose.activityRule.scenario.recreate()
+        settleComposeFrame()
+        assertTrue(
+            "Activity recreation must not discard the active notification feed",
+            InfinityNotificationStore.notifications.any {
+                it.key == "activity-recreation-notification"
+            }
+        )
+        compose.onNodeWithContentDescription("ADVANCED").performClick()
+        settleComposeFrame()
+        waitForTag("infinity-advanced-panel")
+        compose.onNodeWithText("LIFECYCLE TEST").assertExists()
+    }
+
+    @Test(timeout = 120_000)
     fun orbitMinimizeAllOnlyAffectsTheActiveWorkspace() {
         // Keep a visible Notes window in workspace 1.
         openStartApp("Notas", "infinity-start-app-notes")

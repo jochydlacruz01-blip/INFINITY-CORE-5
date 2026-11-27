@@ -227,6 +227,23 @@ class InfinityNotificationListener : NotificationListenerService() {
     override fun onListenerDisconnected() {
         InfinityNotificationStore.disconnected()
         super.onListenerDisconnected()
+
+        // Android may temporarily detach the listener while Settings or the
+        // notification subsystem is being reconfigured. Ask the OS to bind it
+        // again only while the user-granted listener access is still present.
+        InfinityNotificationStore.refreshAccess(this)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N &&
+            InfinityNotificationStore.accessGranted.value
+        ) {
+            runCatching {
+                NotificationListenerService.requestRebind(
+                    android.content.ComponentName(
+                        this,
+                        InfinityNotificationListener::class.java
+                    )
+                )
+            }
+        }
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
