@@ -27,6 +27,7 @@ ALLOWED_REPORT_PATHS = ("app/build/test-results/", "app/build/reports/tests/")
 ALLOWED_LINT_REPORTS = ("app/build/reports/lint-results", "freerdp-core/build/reports/lint-results")
 ALLOWED_NON_APK_ARTIFACT_PATHS = (
     "artifacts/infinity-windows-companion/",
+    "artifacts/infinity-windows-companion-desktop/",
     "artifacts/emulator-screenshots/",
     "artifacts/test-results/",
 )

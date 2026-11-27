@@ -164,6 +164,15 @@ class NoApkBuildPolicyTest(unittest.TestCase):
 """
         self.assertEqual(audit_text(content), [])
 
+    def test_windows_companion_desktop_non_apk_artifact_is_allowed(self):
+        content = """steps:
+  - uses: actions/upload-artifact@v7
+    with:
+      name: INFINITY-WINDOWS-COMPANION-DESKTOP-win-x64
+      path: artifacts/infinity-windows-companion-desktop/
+"""
+        self.assertEqual(audit_text(content), [])
+
     def test_codmagic_release_apk_build_route_is_rejected(self):
         content = """workflows:
   infinity-core-android:
