@@ -139,7 +139,7 @@ Therefore the current automated suite does not yet demonstrate end-to-end screen
 
 ### 2. Prepare Samsung Galaxy Tab S7 FE
 1. Record Android version/build, app SHA, screen density and device model.
-2. Install only a test build produced from the reviewed PR branch using a controlled local developer workflow; this phase must not publish an APK artifact.
+2. Install only the validation APK produced by the dedicated PR #87 workflow. It uses a temporary signing identity and an embedded 48-hour remote-desktop acceptance window; it is for supervised testing only, not distribution. File transfer remains disabled.
 3. Generate the device key and CSR inside the app. Confirm the private key remains in Android Keystore.
 4. Compare the CSR/device identity on the Windows console and approve it explicitly. Install the signed certificate chain and verify the CA/server fingerprint before creating a session.
 5. Start with identity-only permission. Grant remote display/input or file-transfer capability only as a separate explicit administrator approval for the corresponding test.
@@ -161,7 +161,7 @@ Therefore the current automated suite does not yet demonstrate end-to-end screen
 
 ## CI artifact retention policy
 
-- Android unit-test XML and HTML reports: 14 days; reports only, no APK.
+- Android unit-test XML and HTML reports: 14 days. The explicitly authorized PR #87 validation APK is a separate temporary artifact, retained for 7 days; its remote desktop capability self-disables after the embedded 48-hour acceptance window.
 - Windows Companion CI publish artifact: 14 days; not a production installer.
 - FreeRDP native build outputs: no upload by default; the run logs retain the build verification. Add a native-library artifact only if a reproducible device-test need is approved.
 - Keep source commit SHAs and Actions run URLs in the validation record so the evidence can be traced after artifact expiry.

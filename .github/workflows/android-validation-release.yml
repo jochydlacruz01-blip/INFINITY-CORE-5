@@ -2,6 +2,9 @@ name: PROJECT INFINITY 0.10 - RELEASE VALIDATION APK (EPHEMERAL SIGNING)
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - INFINITY-PACK-14-REMOTE-FRAME-PIPELINE
 
 permissions:
   contents: read
@@ -12,7 +15,7 @@ concurrency:
 
 jobs:
   build-release-validation:
-    if: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/INFINITY-PACK-14-REMOTE-FRAME-PIPELINE' }}
+    if: ${{ github.ref == 'refs/heads/INFINITY-PACK-14-REMOTE-FRAME-PIPELINE' && (github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && contains(github.event.head_commit.message, '[build-validation-apk]'))) }}
     name: Build and verify ephemeral-signed Release validation APK
     runs-on: ubuntu-latest
     timeout-minutes: 90
@@ -84,7 +87,10 @@ jobs:
         run: |
           set -euo pipefail
           test -s "${INFINITY_KEYSTORE_FILE}"
+          VALIDATION_EXPIRES_AT="$(date -u -d '+48 hours' +%s)"
           gradle -PINFINITY_BUILD_FREERDP_NATIVE=true \
+            -PINFINITY_REMOTE_ACCEPTANCE_BUILD=true \
+            -PINFINITY_REMOTE_ACCEPTANCE_EXPIRES_AT_EPOCH="${VALIDATION_EXPIRES_AT}" \
             :freerdpCore:externalNativeBuildRelease \
             compileReleaseKotlin testReleaseUnitTest lintRelease assembleRelease --stacktrace
 

@@ -10,6 +10,13 @@ class InfinityConnectFeatureGatesTest {
         assertFalse(InfinityConnectFeatureGates.FILE_TRANSFER_VALIDATED)
     }
 
+    @Test fun validationWindowRequiresExplicitBuildFlagAndFutureExpiry() {
+        assertFalse(InfinityConnectFeatureGates.isValidationWindowOpen(false, 2_000L, 1_000L))
+        assertFalse(InfinityConnectFeatureGates.isValidationWindowOpen(true, 1_000L, 1_000L))
+        assertFalse(InfinityConnectFeatureGates.isValidationWindowOpen(true, 900L, 1_000L))
+        assertTrue(InfinityConnectFeatureGates.isValidationWindowOpen(true, 2_000L, 1_000L))
+    }
+
     @Test fun identityOnlySessionDoesNotRequireRemoteFeatureGates() {
         InfinityConnectFeatureGates.requireCapabilitiesEnabled(setOf("identity.read"))
     }

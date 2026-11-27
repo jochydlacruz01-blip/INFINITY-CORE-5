@@ -10,6 +10,10 @@ android {
     compileSdk = 35
 
     defaultConfig {
+        val remoteAcceptanceBuild = providers.gradleProperty("INFINITY_REMOTE_ACCEPTANCE_BUILD").orNull == "true"
+        val remoteAcceptanceExpiresAt = providers.gradleProperty("INFINITY_REMOTE_ACCEPTANCE_EXPIRES_AT_EPOCH").orNull?.toLongOrNull() ?: 0L
+        buildConfigField("boolean", "INFINITY_REMOTE_ACCEPTANCE_BUILD", remoteAcceptanceBuild.toString())
+        buildConfigField("long", "INFINITY_REMOTE_ACCEPTANCE_EXPIRES_AT_EPOCH", "${remoteAcceptanceExpiresAt}L")
         applicationId = "com.infinity.core"
         minSdk = 26
         targetSdk = 35
@@ -44,6 +48,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     compileOptions {
