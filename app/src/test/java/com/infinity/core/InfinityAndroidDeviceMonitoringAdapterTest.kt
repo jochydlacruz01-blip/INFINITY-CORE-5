@@ -1,6 +1,8 @@
 package com.infinity.core
 
 import com.infinity.core.advanced.data.capabilities.infinityDeviceUsagePercent
+import com.infinity.core.advanced.data.capabilities.infinityBatteryLevelPercent
+import com.infinity.core.advanced.data.capabilities.infinityThermalStatusLabel
 import com.infinity.core.advanced.domain.capabilities.InfinityDeviceMetrics
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -21,6 +23,27 @@ class InfinityAndroidDeviceMonitoringAdapterTest {
     fun usagePercentReturnsNullForInvalidCapacity() {
         assertNull(infinityDeviceUsagePercent(0L, 0L))
         assertNull(infinityDeviceUsagePercent(100L, -1L))
+    }
+
+    @Test
+    fun batteryPercentageValidatesAndroidLevelAndScale() {
+        assertEquals(50f, infinityBatteryLevelPercent(50, 100)!!, 0.001f)
+        assertEquals(100f, infinityBatteryLevelPercent(100, 100)!!, 0.001f)
+        assertNull(infinityBatteryLevelPercent(-1, 100))
+        assertNull(infinityBatteryLevelPercent(101, 100))
+        assertNull(infinityBatteryLevelPercent(1, 0))
+    }
+
+    @Test
+    fun thermalStatusMapsKnownAndroidStatesAndRejectsUnknownValues() {
+        assertEquals("Normal", infinityThermalStatusLabel(0))
+        assertEquals("Ligero", infinityThermalStatusLabel(1))
+        assertEquals("Moderado", infinityThermalStatusLabel(2))
+        assertEquals("Severo", infinityThermalStatusLabel(3))
+        assertEquals("Crítico", infinityThermalStatusLabel(4))
+        assertEquals("Emergencia", infinityThermalStatusLabel(5))
+        assertEquals("Apagado", infinityThermalStatusLabel(6))
+        assertNull(infinityThermalStatusLabel(99))
     }
 
     @Test

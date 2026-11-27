@@ -181,9 +181,19 @@ fun InfinityAdvancedPanel(
                                 fontSize = 12.sp
                             )
                             Text(
-                                "Almacenamiento: ${metrics?.storageUsagePercent?.let { "%.0f%%".format(Locale.ROOT, it) } ?: "No disponible"}",
+                                "Almacenamiento del volumen de datos: ${metrics?.storageUsagePercent?.let { "%.0f%%".format(Locale.ROOT, it) } ?: "No disponible"}",
                                 color = Color.White,
                                 fontSize = 12.sp
+                            )
+                            Text(
+                                "Batería: ${metrics?.batteryLevelPercent?.let { "%.0f%%".format(Locale.ROOT, it) } ?: "No disponible"}${when (metrics?.isCharging) { true -> " · cargando"; false -> " · en batería"; null -> "" }}",
+                                color = Color.White,
+                                fontSize = 12.sp
+                            )
+                            Text(
+                                "Temperatura de batería: ${metrics?.batteryTemperatureCelsius?.let { "%.1f °C".format(Locale.ROOT, it) } ?: "No disponible"} · Estado térmico: ${metrics?.thermalStatus ?: "No disponible"}",
+                                color = AdvancedMuted,
+                                fontSize = 11.sp
                             )
                             Text(
                                 "CPU: ${metrics?.cpuUsagePercent?.let { "%.0f%%".format(Locale.ROOT, it) } ?: "No disponible"}",

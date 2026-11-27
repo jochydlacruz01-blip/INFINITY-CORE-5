@@ -60,12 +60,19 @@ data class InfinityDeviceMetrics(
     val capturedAtEpochMillis: Long,
     val cpuUsagePercent: Float?,
     val memoryUsagePercent: Float?,
-    val storageUsagePercent: Float?
+    val storageUsagePercent: Float?,
+    val batteryLevelPercent: Float? = null,
+    val batteryTemperatureCelsius: Float? = null,
+    val isCharging: Boolean? = null,
+    val thermalStatus: String? = null
 ) {
     init {
         require(cpuUsagePercent == null || cpuUsagePercent in 0f..100f)
         require(memoryUsagePercent == null || memoryUsagePercent in 0f..100f)
         require(storageUsagePercent == null || storageUsagePercent in 0f..100f)
+        require(batteryLevelPercent == null || batteryLevelPercent in 0f..100f)
+        require(batteryTemperatureCelsius == null || batteryTemperatureCelsius in -30f..120f)
+        require(thermalStatus == null || thermalStatus in setOf("Normal", "Ligero", "Moderado", "Severo", "Crítico", "Emergencia", "Apagado"))
     }
 }
 
