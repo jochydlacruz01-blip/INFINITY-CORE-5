@@ -166,10 +166,13 @@ var revocationMonitor = Task.Run(() =>
                      .Distinct(StringComparer.Ordinal))
         {
             if (authorizedDevices.IsFingerprintAuthorized(deviceFingerprint)) continue;
+            var terminalRevocation = authorizedDevices.IsFingerprintRevoked(deviceFingerprint);
             var revokedSessions = authorizedSessions.RevokeDevice(deviceFingerprint);
-            var cancelled = operationRegistry.RevokeDevice(deviceFingerprint);
+            var cancelled = terminalRevocation
+                ? operationRegistry.RevokeDevice(deviceFingerprint)
+                : operationRegistry.DeactivateDevice(deviceFingerprint);
             auditLog.Write(
-                "device.revocation-signalled",
+                terminalRevocation ? "device.revocation-signalled" : "device.block-signalled",
                 deviceFingerprint,
                 null,
                 $"sessions={revokedSessions};operations-cancelled={cancelled}");
@@ -193,13 +196,30 @@ app.Use(async (context, next) =>
     if (!authorizedDevices.IsAuthorized(clientCertificate))
     {
         authorizedSessions.RevokeDevice(fingerprint);
-        operationRegistry.RevokeDevice(fingerprint);
+        if (authorizedDevices.IsFingerprintRevoked(fingerprint))
+            operationRegistry.RevokeDevice(fingerprint);
+        else
+            operationRegistry.DeactivateDevice(fingerprint);
         auditLog.Write("request.device-denied", fingerprint, null, "denied");
         context.Response.StatusCode = StatusCodes.Status401Unauthorized;
         return;
     }
 
-    operationRegistry.ActivateDevice(fingerprint);
+    // Re-read the authoritative Registry authorization while holding the operation
+    // admission lock. A stale certificate check must never clear a terminal tombstone.
+    if (!operationRegistry.ActivateDeviceIfAuthorized(
+            fingerprint, () => authorizedDevices.IsFingerprintAuthorized(fingerprint)))
+    {
+        authorizedSessions.RevokeDevice(fingerprint);
+        if (authorizedDevices.IsFingerprintRevoked(fingerprint))
+            operationRegistry.RevokeDevice(fingerprint);
+        else
+            operationRegistry.DeactivateDevice(fingerprint);
+        auditLog.Write("request.device-denied", fingerprint, null, "denied");
+        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+        return;
+    }
+
     authorizedDevices.TouchLastSeen(fingerprint);
     auditLog.Write("request.authenticated", fingerprint, null, "allowed");
     await next();
