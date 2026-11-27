@@ -148,7 +148,8 @@ class InfinityConnectCredentialVault(context: Context) {
             val encrypted = payload.copyOfRange(IV_LENGTH, payload.size)
             try {
                 val cipher = Cipher.getInstance(TRANSFORMATION)
-                cipher.init(Cipher.DECRYPT_MODE, key(), GCMParameterSpec(TAG_BITS, iv))
+                val legacyKey = store.getKey(LEGACY_KEY_ALIAS, null) as? SecretKey ?: return null
+                cipher.init(Cipher.DECRYPT_MODE, legacyKey, GCMParameterSpec(TAG_BITS, iv))
                 val clear = cipher.doFinal(encrypted)
                 return try {
                     String(clear, StandardCharsets.UTF_8)
@@ -187,6 +188,7 @@ class InfinityConnectCredentialVault(context: Context) {
     private companion object {
         const val PREFERENCES = "infinity_connect_secrets"
         const val KEY_ALIAS = "infinity_connect_aes_v2"
+        const val LEGACY_KEY_ALIAS = "infinity_connect_aes_v1"
         const val TRANSFORMATION = "AES/GCM/NoPadding"
         const val VERSION: Byte = 2
         const val IV_LENGTH = 12
