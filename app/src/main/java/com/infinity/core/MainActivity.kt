@@ -91,15 +91,20 @@ private val InfinityMuted = Color(0xFFB7C7D9)
 private val InfinityPanel = Color(0xF0182A42)
 
 class MainActivity : ComponentActivity() {
+    private val resumeSignal = mutableIntStateOf(0)
+
     override fun onResume() {
         super.onResume()
         InfinityNotificationStore.refreshAccess(this)
+        // Compose observes this signal so permission-dependent controls refresh
+        // after the user returns from Android Settings.
+        resumeSignal.intValue++
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        setContent { Infinity08App() }
+        setContent { Infinity08App(resumeSignal = resumeSignal.intValue) }
     }
 }
 
@@ -231,7 +236,7 @@ private data class ExplorerEntry(
 }
 
 @Composable
-private fun Infinity08App() {
+private fun Infinity08App(resumeSignal: Int) {
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences("infinity_desktop", 0) }
 
@@ -626,8 +631,9 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
     ) {
         BoxWithConstraints(
             Modifier.fillMaxSize()
-                // Respeta cámaras, barras del sistema y navegación por gestos.
-                .windowInsetsPadding(WindowInsets.safeDrawing)
+                // Paint the desktop across the complete edge-to-edge window first.
+                // Apply safe insets only to interactive content; otherwise landscape
+                // devices expose unpainted system-bar strips around the desktop.
                 .background(
                 Brush.linearGradient(
                     when {
@@ -641,6 +647,8 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                     }
                 )
             )
+                // Keep controls clear of camera cutouts and Android system bars.
+                .windowInsetsPadding(WindowInsets.safeDrawing)
         ) {
             val maxW = maxWidth
             val maxH = maxHeight
@@ -2332,7 +2340,7 @@ Spacer(Modifier.height(14.dp))
 
             // INFINITY CONTROL CENTER: personalización nativa y controles Android reales.
             if (controlOpen && controlMode == "device") {
-                LaunchedEffect(controlOpen, controlMode) {
+                LaunchedEffect(controlOpen, controlMode, resumeSignal) {
                     controlSnapshot = InfinityControlCenterSnapshot.read(context)
                 }
                 Box(
@@ -2380,8 +2388,7 @@ Spacer(Modifier.height(14.dp))
                         },
                         onRequestBrightnessAccess = {
                             val opened = InfinityControlCenterActions.requestBrightnessAccess(context)
-                            if (opened) controlOpen = false
-                            else Toast.makeText(context, "No se pudo abrir el permiso de brillo de Android.", Toast.LENGTH_LONG).show()
+                            if (!opened) Toast.makeText(context, "No se pudo abrir el permiso de brillo de Android.", Toast.LENGTH_LONG).show()
                         },
                         onVolumeChange = { value ->
                             val updated = InfinityControlCenterActions.setMediaVolumePercent(context, value)
