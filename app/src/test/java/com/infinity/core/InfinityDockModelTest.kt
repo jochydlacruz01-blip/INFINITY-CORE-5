@@ -33,6 +33,15 @@ class InfinityDockModelTest {
     }
 
     @Test
+    fun favoritesPersistenceRoundTripsOrderAndRemovesDuplicates() {
+        val favorites = listOf("com.alpha", "com.beta", "com.alpha")
+        val encoded = infinityDockSerializeFavorites(favorites)
+        assertEquals(listOf("com.alpha", "com.beta"), infinityDockParseFavorites(encoded))
+        assertEquals(emptyList<String>(), infinityDockParseFavorites(null))
+        assertEquals(listOf("com.alpha", "com.beta"), infinityDockParseFavorites(" com.alpha \\n\\n com.beta "))
+    }
+
+    @Test
     fun addingFavoriteRejectsUnknownAppsAndDoesNotDuplicate() {
         val installed = setOf("com.a", "com.b")
         assertEquals(listOf("com.a", "com.b"), infinityDockAddFavorite(listOf("com.a"), " com.b ", installed))
