@@ -236,9 +236,7 @@ class InfinityNotificationListener : NotificationListenerService() {
         // notification subsystem is being reconfigured. Ask the OS to bind it
         // again only while the user-granted listener access is still present.
         InfinityNotificationStore.refreshAccess(this)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N &&
-            InfinityNotificationStore.accessGranted.value
-        ) {
+        if (InfinityNotificationStore.accessGranted.value) {
             runCatching {
                 NotificationListenerService.requestRebind(
                     android.content.ComponentName(
