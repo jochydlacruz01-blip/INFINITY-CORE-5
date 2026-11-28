@@ -379,6 +379,7 @@ private fun Infinity08App(resumeSignal: Int) {
     }
     var dashboardOpen by remember { mutableStateOf(false) }
     var startOpen by remember { mutableStateOf(false) }
+    var shortcutTransferMenuPackage by remember { mutableStateOf<String?>(null) }
     var orbitOpen by remember { mutableStateOf(false) }
     var windowTransferMenuId by remember { mutableStateOf<String?>(null) }
     var controlOpen by remember { mutableStateOf(false) }
@@ -860,6 +861,15 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
             infinityWorkspaceDesktopShortcutKey(workspace),
             infinitySerializeDesktopShortcutPackages(normalized)
         ).apply()
+    }
+
+    fun persistWorkspaceShortcutPackages(targetWorkspace: Int, next: List<String>) {
+        val normalized = infinityNormalizeDesktopShortcutPackages(next, installedPackageNames)
+        prefs.edit().putString(
+            infinityWorkspaceDesktopShortcutKey(targetWorkspace),
+            infinitySerializeDesktopShortcutPackages(normalized)
+        ).apply()
+        if (targetWorkspace == workspace) desktopShortcutPackages = normalized
     }
 
     fun launchApp(packageName: String) {
@@ -2231,6 +2241,49 @@ DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED"
                                             tint = accent,
                                             modifier = Modifier.size(17.dp)
                                         )
+                                    }
+                                    Box {
+                                        TextButton(
+                                            onClick = { shortcutTransferMenuPackage = app.packageName },
+                                            contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp),
+                                            modifier = Modifier.testTag("infinity-shortcut-transfer-${app.packageName}")
+                                        ) { Text("ESPACIOS", color = accent, fontSize = 8.sp) }
+                                        DropdownMenu(
+                                            expanded = shortcutTransferMenuPackage == app.packageName,
+                                            onDismissRequest = { shortcutTransferMenuPackage = null }
+                                        ) {
+                                            (1..INFINITY_VIRTUAL_DESKTOP_COUNT).filter { it != workspace }.forEach { targetWorkspace ->
+                                                val targetName = workspaceNames[targetWorkspace] ?: infinityDefaultVirtualDesktopName(targetWorkspace)
+                                                DropdownMenuItem(
+                                                    text = { Text("COPIAR A $targetName") },
+                                                    onClick = {
+                                                        val targetPackages = infinityParseDesktopShortcutPackages(
+                                                            prefs.getString(infinityWorkspaceDesktopShortcutKey(targetWorkspace), null)
+                                                        )
+                                                        val copied = infinityCopyWorkspaceShortcut(
+                                                            desktopShortcutPackages, targetPackages, app.packageName
+                                                        )
+                                                        persistWorkspaceShortcutPackages(targetWorkspace, copied)
+                                                        shortcutTransferMenuPackage = null
+                                                    }
+                                                )
+                                                DropdownMenuItem(
+                                                    text = { Text("MOVER A $targetName") },
+                                                    enabled = app.packageName in desktopShortcutPackages,
+                                                    onClick = {
+                                                        val targetPackages = infinityParseDesktopShortcutPackages(
+                                                            prefs.getString(infinityWorkspaceDesktopShortcutKey(targetWorkspace), null)
+                                                        )
+                                                        val (sourceNext, targetNext) = infinityMoveWorkspaceShortcut(
+                                                            desktopShortcutPackages, targetPackages, app.packageName
+                                                        )
+                                                        persistWorkspaceShortcutPackages(targetWorkspace, targetNext)
+                                                        persistDesktopShortcutPackages(sourceNext)
+                                                        shortcutTransferMenuPackage = null
+                                                    }
+                                                )
+                                            }
+                                        }
                                     }
                                     if (app.packageName in dockFavorites) {
                                         val favoriteIndex = dockFavorites.indexOf(app.packageName)
