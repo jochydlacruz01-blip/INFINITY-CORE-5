@@ -27,6 +27,7 @@ import androidx.compose.ui.test.printToLog
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
@@ -453,7 +454,8 @@ class InfinityDesktopEmulatorTest {
         removeFavorite.assertTextEquals("QUITAR")
         // The installed-app catalog can extend below the available Start viewport.
         // Scroll the actual panel content so the action is fully exposed above the Dock.
-        removeFavorite.performScrollTo()
+        compose.onNodeWithTag("infinity-start-content")
+            .performScrollToNode(hasTestTag("infinity-dock-favorite-toggle-$packageName"))
         settleComposeFrame()
         removeFavorite.assertIsDisplayed()
         removeFavorite.performTouchInput { click() }
