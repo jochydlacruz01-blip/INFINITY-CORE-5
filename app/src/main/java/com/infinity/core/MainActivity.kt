@@ -33,6 +33,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -360,6 +361,15 @@ private fun Infinity08App(resumeSignal: Int) {
     }
 
     var workspace by remember { mutableIntStateOf(infinityNormalizeWorkspace(prefs.getInt("active_workspace", 1))) }
+    var workspaceNames by remember {
+        mutableStateOf((1..INFINITY_VIRTUAL_DESKTOP_COUNT).associateWith { id ->
+            infinityNormalizeVirtualDesktopName(
+                prefs.getString(infinityVirtualDesktopNameKey(id), null), id
+            )
+        })
+    }
+    var renameWorkspaceDialogOpen by remember { mutableStateOf(false) }
+    var workspaceNameDraft by remember { mutableStateOf("") }
     var desktopShortcutPackages by remember(workspace) {
         mutableStateOf(
             infinityParseDesktopShortcutPackages(
@@ -392,8 +402,17 @@ private fun Infinity08App(resumeSignal: Int) {
     var selectedFolder by remember {
         mutableStateOf(prefs.getString("selected_folder_uri", null)?.let(Uri::parse))
     }
-    var wallpaperUri by remember {
-        mutableStateOf(prefs.getString("wallpaper_uri", null)?.let(Uri::parse))
+    var wallpaperUri by remember(workspace) {
+        val workspaceKey = infinityVirtualDesktopWallpaperKey(workspace)
+        val savedWorkspaceWallpaper = prefs.getString(workspaceKey, null)
+        val legacyWallpaper = if (workspace == 1) prefs.getString("wallpaper_uri", null) else null
+        val resolvedWallpaper = infinityResolveLegacyWorkspaceOneWallpaper(
+            workspace, savedWorkspaceWallpaper, legacyWallpaper
+        )
+        if (workspace == 1 && savedWorkspaceWallpaper == null && legacyWallpaper != null) {
+            prefs.edit().putString(workspaceKey, legacyWallpaper).remove("wallpaper_uri").apply()
+        }
+        mutableStateOf(resolvedWallpaper?.let(Uri::parse))
     }
     var iconSize by remember {
         mutableFloatStateOf(infinityNormalizeIconSize(prefs.getFloat("icon_size", 48f)))
@@ -447,7 +466,15 @@ private fun Infinity08App(resumeSignal: Int) {
         onDispose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
     }
     var iconPack by remember { mutableStateOf(infinityNormalizeDesktopTheme(prefs.getString("icon_pack", "infinity"))) }
-    var backgroundPreset by remember { mutableStateOf(prefs.getString("background_preset", "nebula") ?: "nebula") }
+    var backgroundPreset by remember(workspace) {
+        val workspaceKey = infinityVirtualDesktopBackgroundPresetKey(workspace)
+        val savedPreset = prefs.getString(workspaceKey, null)
+        val legacyPreset = if (workspace == 1) prefs.getString("background_preset", null) else null
+        if (workspace == 1 && savedPreset == null && legacyPreset != null) {
+            prefs.edit().putString(workspaceKey, legacyPreset).remove("background_preset").apply()
+        }
+        mutableStateOf(savedPreset ?: legacyPreset ?: "interstellar")
+    }
     var desktopPreset by remember { mutableStateOf(infinityNormalizeWallpaperPreset(prefs.getString("desktop_wallpaper_preset", "futuristic"))) }
     val futuristicDesktop = desktopPreset == InfinityDesktopWallpaperPreset.FUTURISTIC
     var appearance by remember {
@@ -505,8 +532,8 @@ private fun Infinity08App(resumeSignal: Int) {
         }
         wallpaperBitmap = decoded
         if (uri != null && decoded == null && wallpaperUri == uri) {
-            if (prefs.getString("wallpaper_uri", null) == uri.toString()) {
-                prefs.edit().remove("wallpaper_uri").apply()
+            if (prefs.getString(infinityVirtualDesktopWallpaperKey(workspace), null) == uri.toString()) {
+                prefs.edit().remove(infinityVirtualDesktopWallpaperKey(workspace)).apply()
             }
             wallpaperUri = null
             Toast.makeText(
@@ -533,9 +560,9 @@ private fun Infinity08App(resumeSignal: Int) {
             // when Android confirms that its read grant survives process restarts.
             wallpaperUri = uri
             if (persisted) {
-                prefs.edit().putString("wallpaper_uri", uri.toString()).apply()
+                prefs.edit().putString(infinityVirtualDesktopWallpaperKey(workspace), uri.toString()).apply()
             } else {
-                prefs.edit().remove("wallpaper_uri").apply()
+                prefs.edit().remove(infinityVirtualDesktopWallpaperKey(workspace)).apply()
                 Toast.makeText(
                     context,
                     "Fondo temporal: Android no permitió conservar el permiso. Selecciona la imagen de nuevo al reiniciar.",
@@ -848,6 +875,23 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
     ) {
         BoxWithConstraints(
             Modifier.fillMaxSize()
+                .pointerInput(workspace, maxW) {
+                    var horizontalTravel = 0f
+                    detectHorizontalDragGestures(
+                        onDragStart = { horizontalTravel = 0f },
+                        onHorizontalDrag = { change, dragAmount ->
+                            horizontalTravel += dragAmount
+                            change.consume()
+                        },
+                        onDragEnd = {
+                            val target = infinityResolveWorkspaceSwipe(
+                                workspace, horizontalTravel, 0f, size.width.toFloat()
+                            )
+                            if (target != workspace) switchWorkspace(target)
+                        },
+                        onDragCancel = { horizontalTravel = 0f }
+                    )
+                }
                 // Paint the desktop across the complete edge-to-edge window first.
                 // Apply safe insets only to interactive content; otherwise landscape
                 // devices expose unpainted system-bar strips around the desktop.
@@ -1108,8 +1152,46 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                         letterSpacing = 1.sp
                     )
                 }
+                TextButton(
+                    onClick = {
+                        workspaceNameDraft = workspaceNames[workspace] ?: infinityDefaultVirtualDesktopName(workspace)
+                        renameWorkspaceDialogOpen = true
+                    },
+                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp)
+                ) {
+                    Text(workspaceNames[workspace] ?: infinityDefaultVirtualDesktopName(workspace), color = accent, fontSize = 9.sp)
+                    Text("  ✎", color = accent, fontSize = 10.sp)
+                }
             }
 
+            }
+            if (renameWorkspaceDialogOpen) {
+                AlertDialog(
+                    onDismissRequest = { renameWorkspaceDialogOpen = false },
+                    title = { Text("Renombrar escritorio") },
+                    text = {
+                        Column {
+                            Text("El nombre solo cambia en este espacio de trabajo.", fontSize = 12.sp)
+                            OutlinedTextField(
+                                value = workspaceNameDraft,
+                                onValueChange = { workspaceNameDraft = it.take(24) },
+                                singleLine = true,
+                                label = { Text("Nombre del escritorio") }
+                            )
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            val normalizedName = infinityNormalizeVirtualDesktopName(workspaceNameDraft, workspace)
+                            workspaceNames = workspaceNames + (workspace to normalizedName)
+                            prefs.edit().putString(infinityVirtualDesktopNameKey(workspace), normalizedName).apply()
+                            renameWorkspaceDialogOpen = false
+                        }) { Text("Guardar") }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { renameWorkspaceDialogOpen = false }) { Text("Cancelar") }
+                    }
+                )
             }
             if (maxW >= 600.dp && !dashboardOpen && futuristicDesktop) {
                 InfinityReferenceClockPanel(
@@ -2996,7 +3078,14 @@ Spacer(Modifier.height(14.dp))
                         Text("FONDOS", color = accent, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             listOf("nebula" to "Nebula", "interstellar" to "Interestelar", "punk" to "Punk", "aurora" to "Aurora").forEach { (preset, label) ->
-                                FilterChip(selected = backgroundPreset == preset, onClick = { backgroundPreset = preset; prefs.edit().putString("background_preset", preset).apply(); wallpaperUri = null; prefs.edit().remove("wallpaper_uri").apply() }, label = { Text(label) })
+                                FilterChip(selected = backgroundPreset == preset, onClick = {
+                                backgroundPreset = preset
+                                prefs.edit()
+                                    .putString(infinityVirtualDesktopBackgroundPresetKey(workspace), preset)
+                                    .remove(infinityVirtualDesktopWallpaperKey(workspace))
+                                    .apply()
+                                wallpaperUri = null
+                            }, label = { Text(label) })
                             }
                         }
                         Text("APARIENCIA", color = accent, fontSize = 10.sp, fontWeight = FontWeight.Bold)
