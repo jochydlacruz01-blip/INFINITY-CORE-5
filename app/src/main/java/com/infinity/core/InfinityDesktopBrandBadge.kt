@@ -1,6 +1,7 @@
 package com.infinity.core
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,10 +24,11 @@ import androidx.compose.ui.unit.sp
 
 /** Small desktop identity badge inspired by the PROJECT INFINITY reference desktop. */
 @Composable
-internal fun InfinityDesktopBrandBadge(modifier: Modifier = Modifier) {
+internal fun InfinityDesktopBrandBadge(modifier: Modifier = Modifier, onClick: () -> Unit = {}) {
     Row(
         modifier = modifier
             .clip(RoundedCornerShape(28.dp))
+            .clickable(onClick = onClick)
             .background(
                 Brush.horizontalGradient(
                     listOf(Color(0xF20B1730), Color(0xE8142850))
@@ -58,13 +60,13 @@ internal fun InfinityDesktopBrandBadge(modifier: Modifier = Modifier) {
         Spacer(Modifier.size(10.dp))
         Column {
             Text(
-                "PROJECT INFINITY",
+                "INFINITY — BEYOND LIMITS",
                 color = Color.White,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold
             )
             Text(
-                "Sistema Operativo Inteligente",
+                "FUTURISTIC DESKTOP ENVIRONMENT",
                 color = Color(0xFFB9D6FF),
                 fontSize = 10.sp
             )

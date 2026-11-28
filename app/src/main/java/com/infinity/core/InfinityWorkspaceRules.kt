@@ -34,7 +34,7 @@ internal fun infinityResolveFocusedWindow(currentId: String?, eligibleIds: List<
 internal fun infinityDockWindowIds(windowIds: List<String>, minimizedById: Map<String, Boolean>): List<String> =
     windowIds.filter { it in minimizedById.keys }
 
-/** Limits visible task shortcuts so primary controls and the clock remain on-screen. */
+/** Caps task shortcuts so they do not crowd primary Dock actions; overflow remains reachable through ORBIT. */
 internal fun infinityDockVisibleTaskLimit(availableWidthDp: Float): Int = when {
     !availableWidthDp.isFinite() || availableWidthDp < 600f -> 1
     availableWidthDp < 720f -> 2
@@ -46,13 +46,55 @@ internal fun infinityDockVisibleTaskLimit(availableWidthDp: Float): Int = when {
 internal fun infinityDockHiddenTaskCount(totalTasks: Int, visibleTasks: Int): Int =
     (totalTasks.coerceAtLeast(0) - visibleTasks.coerceAtLeast(0)).coerceAtLeast(0)
 
+/** Shows the newest tasks first, matching AURORA's last-drawn-is-front z-order. */
+internal fun infinityDockVisibleTaskIds(orderedTaskIds: List<String>, maxVisibleTasks: Int): List<String> =
+    orderedTaskIds.takeLast(maxVisibleTasks.coerceAtLeast(0))
+
+/** Persisted window state used to detect meaningful changes without writing on every drag frame. */
+internal data class InfinityWindowSnapshotEntry(
+    val id: String,
+    val title: String,
+    val kind: String,
+    val x: Float,
+    val y: Float,
+    val width: Float,
+    val height: Float,
+    val minimized: Boolean,
+    val workspace: Int,
+    val maximized: Boolean
+)
+
+/** Stable key includes metadata, geometry, visibility, workspace, maximization and z-order. */
+internal fun infinityWindowSnapshotKey(entries: List<InfinityWindowSnapshotEntry>): String =
+    entries.joinToString(separator = ";") { entry ->
+        buildString {
+            append(entry.id.length).append(':').append(entry.id).append('|')
+            append(entry.title.length).append(':').append(entry.title).append('|')
+            append(entry.kind.length).append(':').append(entry.kind).append('|')
+            append(entry.x.toBits()).append('|')
+            append(entry.y.toBits()).append('|')
+            append(entry.width.toBits()).append('|')
+            append(entry.height.toBits()).append('|')
+            append(entry.minimized).append('|')
+            append(entry.workspace).append('|')
+            append(entry.maximized)
+        }
+    }
+
+/** Wait for short geometry gestures to settle before committing the window snapshot. */
+internal const val INFINITY_WINDOW_PERSISTENCE_DEBOUNCE_MS = 250L
+
+/** Phone-adapted windows must retain the original desktop geometry for later restoration. */
+internal fun infinityWindowGeometryNormalizationEnabled(availableWidthDp: Float): Boolean =
+    availableWidthDp.isFinite() && availableWidthDp >= 600f
+
 /** Window geometry controls are available only when a desktop/tablet viewport can use them. */
 internal fun infinityWindowGeometryControlsVisible(availableWidthDp: Float): Boolean =
-    availableWidthDp.isFinite() && availableWidthDp >= 600f
+    infinityWindowGeometryNormalizationEnabled(availableWidthDp)
 
 /** Maximized and phone-adapted windows must not mutate their saved desktop geometry. */
 internal fun infinityWindowCanManipulateGeometry(isMaximized: Boolean, availableWidthDp: Float): Boolean =
-    !isMaximized && availableWidthDp.isFinite() && availableWidthDp >= 600f
+    !isMaximized && infinityWindowGeometryNormalizationEnabled(availableWidthDp)
 
 /** Dock tap toggles minimization only for the currently focused, visible task. */
 internal fun infinityDockTapMinimizes(taskId: String, currentFocusId: String?, minimized: Boolean): Boolean =
@@ -71,6 +113,20 @@ internal fun infinityWorkspaceWindowIds(windowIds: List<String>, workspaceById: 
     val target = infinityNormalizeWorkspace(activeWorkspace)
     return windowIds.filter { id -> workspaceById[id]?.let(::infinityNormalizeWorkspace) == target }
 }
+
+/** Counts only windows in one workspace, keeping cascade placement independent across spaces. */
+internal fun infinityWorkspaceWindowCount(
+    windowIds: List<String>,
+    workspaceById: Map<String, Int>,
+    targetWorkspace: Int
+): Int = infinityWorkspaceWindowIds(windowIds, workspaceById, targetWorkspace).size
+
+/** Returns only the windows that a workspace-scoped "minimize all" action may affect. */
+internal fun infinityWorkspaceMinimizeTargets(
+    windowIds: List<String>,
+    workspaceById: Map<String, Int>,
+    activeWorkspace: Int
+): Set<String> = infinityWorkspaceWindowIds(windowIds, workspaceById, activeWorkspace).toSet()
 
 /** Selects focus only among non-minimized windows in the normalized target workspace. */
 internal fun infinityResolveWorkspaceFocus(

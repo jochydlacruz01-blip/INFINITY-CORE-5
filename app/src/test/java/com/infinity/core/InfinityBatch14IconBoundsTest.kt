@@ -47,6 +47,14 @@ class InfinityBatch14IconBoundsTest {
     @Test fun gridIconPlacementLimitsColumnOnNarrowScreen() {
         assertEquals(Offset(0f, 158f), infinityDesktopIconGridOffset(1, 90f, 100f, 120f, horizontalGap = 12f))
     }
+    @Test fun topDockLayoutReservesTopInsteadOfBottomAndKeepsUsableHeight() {
+        val bottom = infinityDesktopIconLayoutMetrics(1200f, 900f, 7, density = 1f, dockAtBottom = true)
+        val top = infinityDesktopIconLayoutMetrics(1200f, 900f, 7, density = 1f, dockAtBottom = false)
+        assertEquals(732f, bottom.safeDesktopHeightPx, 0.001f)
+        assertEquals(844f, top.safeDesktopHeightPx, 0.001f)
+        assertEquals(118f, top.topInsetPx, 0.001f)
+    }
+
     @Test fun dockSafeZoneSubtractsDockInsetsAndGap() {
         assertEquals(432f, infinityDesktopHeightAboveDock(600f), 0.001f)
     }
@@ -59,7 +67,7 @@ class InfinityBatch14IconBoundsTest {
             listOf(Offset(10f, 10f), Offset(10f, 10f)),
             500f, 600f
         )
-        assertEquals(Offset(10f, 10f), result[0])
+        assertEquals(Offset(10f, 118f), result[0])
         assertEquals(false, result[0] == result[1])
     }
 
@@ -68,8 +76,8 @@ class InfinityBatch14IconBoundsTest {
             listOf(Offset(10f, 10f), Offset(150f, 10f)),
             500f, 600f
         )
-        assertEquals(Offset(10f, 10f), result[0])
-        assertEquals(Offset(150f, 10f), result[1])
+        assertEquals(Offset(10f, 118f), result[0])
+        assertEquals(Offset(150f, 118f), result[1])
     }
 
     @Test fun resolverSeparatesDenseIconsAcrossAvailableGridCells() {

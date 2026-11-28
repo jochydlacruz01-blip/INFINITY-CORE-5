@@ -5,6 +5,7 @@ import android.content.Intent
 import android.provider.Settings
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.platform.testTag
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -27,6 +28,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberCoroutineScope
+import com.infinity.core.advanced.data.capabilities.createInfinityAdvancedCapabilityRegistry
+import com.infinity.core.advanced.domain.usecases.ObserveInfinityAdvancedOverview
+import com.infinity.core.advanced.presentation.InfinityAdvancedOverviewPresenter
+import com.infinity.core.advanced.presentation.InfinityAdvancedOverviewUiState
+import com.infinity.core.advanced.presentation.InfinityAdvancedAutomationCard
+import com.infinity.core.advanced.presentation.InfinityAdvancedSystemReportCard
+import com.infinity.core.advanced.presentation.InfinityAdvancedThemeCard
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -39,25 +50,38 @@ import androidx.compose.ui.unit.sp
 @Composable
 fun InfinityAdvancedPanel(
     onClose: () -> Unit,
-    desktopTheme: String = "infinity"
+    desktopTheme: String = "infinity",
+    themeId: String = "midnight"
 ) {
     val context = LocalContext.current
+    // ADVANCED consumes capabilities already owned by the desktop. The
+    // composition scope closes notification/network flows when this panel exits.
+    val advancedScope = rememberCoroutineScope()
+    val capabilityRegistry = remember(context) {
+        createInfinityAdvancedCapabilityRegistry(context)
+    }
+    val observeOverview = remember(capabilityRegistry) {
+        ObserveInfinityAdvancedOverview(capabilityRegistry)
+    }
+    val overviewPresenter = remember(observeOverview, advancedScope) {
+        InfinityAdvancedOverviewPresenter(observeOverview, advancedScope)
+    }
+    val overviewState by overviewPresenter.state.collectAsState()
+    val overview = (overviewState as? InfinityAdvancedOverviewUiState.Content)?.snapshot
+    val themeBackgroundStops = infinityThemeBackgroundStops(themeId, lightMode = false)
     val AdvancedBackground = when (desktopTheme) {
         "windows11" -> Color(0xF21B3554)
-        else -> Color(0xF20D1B30)
+        else -> themeBackgroundStops.first().copy(alpha = .95f)
     }
-    val AdvancedAccent = when (desktopTheme) {
-        "windows11" -> Color(0xFF8BCBFA)
-        else -> Color(0xFF56D6C9)
-    }
+    val AdvancedAccent = infinityThemeAccentColor(themeId)
     val AdvancedMuted = Color(0xFFB7C7D9)
     val sectionSurface = when (desktopTheme) {
         "windows11" -> Color(0xFF203F5D)
-        else -> Color(0xFF1B304A)
+        else -> themeBackgroundStops[1]
     }
     val notificationSurface = when (desktopTheme) {
         "windows11" -> Color(0xFF294D6D)
-        else -> Color(0xFF263D57)
+        else -> themeBackgroundStops[2]
     }
     val panelShape = when (desktopTheme) {
         "windows11" -> 18.dp
@@ -81,6 +105,12 @@ fun InfinityAdvancedPanel(
         )
     }
 
+    // Restore the persisted privacy choice into the live notification store on
+    // every panel entry; otherwise a saved "show content" choice silently resets.
+    LaunchedEffect(hideNotificationContent) {
+        InfinityNotificationStore.setHideContent(hideNotificationContent)
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -93,7 +123,8 @@ fun InfinityAdvancedPanel(
         Column(
             modifier = Modifier
                 .padding(18.dp)
-                .verticalScroll(rememberScrollState()),
+                .verticalScroll(rememberScrollState())
+                .testTag("infinity-advanced-panel"),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Row(
@@ -120,6 +151,74 @@ fun InfinityAdvancedPanel(
             }
 
             Text(
+                "ESTADO DEL SISTEMA",
+                color = AdvancedAccent,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold
+            )
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(sectionShape),
+                colors = CardDefaults.cardColors(containerColor = sectionSurface)
+            ) {
+                Column(
+                    modifier = Modifier.padding(15.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    when (overviewState) {
+                        InfinityAdvancedOverviewUiState.Loading ->
+                            Text("Conectando capacidades del sistema…", color = AdvancedMuted, fontSize = 11.sp)
+                        InfinityAdvancedOverviewUiState.Unavailable ->
+                            Text("Estado del sistema temporalmente no disponible.", color = AdvancedMuted, fontSize = 11.sp)
+                        is InfinityAdvancedOverviewUiState.Content -> {
+                            val metrics = overview?.deviceMetrics
+                            val connection = overview?.connectionState
+                            Text(
+                                "Memoria: ${metrics?.memoryUsagePercent?.let { "%.0f%%".format(Locale.ROOT, it) } ?: "No disponible"}",
+                                color = Color.White,
+                                fontSize = 12.sp
+                            )
+                            Text(
+                                "Almacenamiento del volumen de datos: ${metrics?.storageUsagePercent?.let { "%.0f%%".format(Locale.ROOT, it) } ?: "No disponible"}",
+                                color = Color.White,
+                                fontSize = 12.sp
+                            )
+                            Text(
+                                "Batería: ${metrics?.batteryLevelPercent?.let { "%.0f%%".format(Locale.ROOT, it) } ?: "No disponible"}${when (metrics?.isCharging) { true -> " · cargando"; false -> " · en batería"; null -> "" }}",
+                                color = Color.White,
+                                fontSize = 12.sp
+                            )
+                            Text(
+                                "Temperatura de batería: ${metrics?.batteryTemperatureCelsius?.let { "%.1f °C".format(Locale.ROOT, it) } ?: "No disponible"} · Estado térmico: ${metrics?.thermalStatus ?: "No disponible"}",
+                                color = AdvancedMuted,
+                                fontSize = 11.sp
+                            )
+                            Text(
+                                "CPU: ${metrics?.cpuUsagePercent?.let { "%.0f%%".format(Locale.ROOT, it) } ?: "No disponible"}",
+                                color = AdvancedMuted,
+                                fontSize = 11.sp
+                            )
+                            Text(
+                                "Red: ${when {
+                                    connection == null -> "No disponible"
+                                    !connection.hasNetwork -> "Sin conexión"
+                                    else -> "${connection.transport ?: "Conectada"}${if (connection.isMetered) " · medida" else " · no medida"}"
+                                }}",
+                                color = AdvancedMuted,
+                                fontSize = 11.sp
+                            )
+                            Text(
+                                "Notificaciones: ${overview?.notifications?.size ?: 0} · Tema: ${overview?.selectedThemeId ?: "midnight"}",
+                                color = AdvancedMuted,
+                                fontSize = 11.sp
+                            )
+                        }
+                    }
+                }
+            }
+
+            Text(
                 "ACCIONES RÁPIDAS",
                 color = AdvancedAccent,
                 fontSize = 11.sp,
@@ -131,7 +230,7 @@ fun InfinityAdvancedPanel(
                 horizontalArrangement = Arrangement.spacedBy(9.dp)
             ) {
                 AdvancedActionTile(
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f).testTag("advanced-action-wifi"),
                     glyph = "◉",
                     title = "Wi-Fi",
                     subtitle = "Redes e Internet",
@@ -147,7 +246,7 @@ fun InfinityAdvancedPanel(
                 }
 
                 AdvancedActionTile(
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f).testTag("advanced-action-bluetooth"),
                     glyph = "ᛒ",
                     title = "Bluetooth",
                     subtitle = "Dispositivos",
@@ -168,7 +267,7 @@ fun InfinityAdvancedPanel(
                 horizontalArrangement = Arrangement.spacedBy(9.dp)
             ) {
                 AdvancedActionTile(
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f).testTag("advanced-action-display"),
                     glyph = "☼",
                     title = "Pantalla",
                     subtitle = "Brillo y visualización",
@@ -184,7 +283,7 @@ fun InfinityAdvancedPanel(
                 }
 
                 AdvancedActionTile(
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f).testTag("advanced-action-sound"),
                     glyph = "♫",
                     title = "Sonido",
                     subtitle = "Volumen y audio",
@@ -199,6 +298,28 @@ fun InfinityAdvancedPanel(
                     openAdvancedSettings(context, Settings.ACTION_SOUND_SETTINGS)
                 }
             }
+
+            InfinityAdvancedThemeCard(
+                registry = capabilityRegistry,
+                selectedThemeId = overview?.selectedThemeId ?: "midnight",
+                accent = AdvancedAccent,
+                muted = AdvancedMuted,
+                surface = sectionSurface
+            )
+
+            InfinityAdvancedAutomationCard(
+                registry = capabilityRegistry,
+                accent = AdvancedAccent,
+                muted = AdvancedMuted,
+                surface = sectionSurface
+            )
+
+            InfinityAdvancedSystemReportCard(
+                snapshot = overview,
+                accent = AdvancedAccent,
+                muted = AdvancedMuted,
+                surface = sectionSurface
+            )
 
             Text(
                 "NOTIFICACIONES",
@@ -250,7 +371,8 @@ fun InfinityAdvancedPanel(
                                 context,
                                 Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS
                             )
-                        }
+                        },
+                        modifier = Modifier.testTag("advanced-notification-permission-settings")
                     ) {
                         Text(
                             "ABRIR AJUSTES DE NOTIFICACIONES",
@@ -278,6 +400,7 @@ fun InfinityAdvancedPanel(
                         }
 
                         Switch(
+                            modifier = Modifier.testTag("advanced-privacy-hide-content"),
                             checked = hideNotificationContent,
                             onCheckedChange = { enabled ->
                                 hideNotificationContent = enabled
@@ -305,6 +428,7 @@ fun InfinityAdvancedPanel(
                             onClick = {
                                 InfinityNotificationStore.clearAll()
                             },
+                            modifier = Modifier.testTag("infinity-notifications-clear"),
                             enabled = InfinityNotificationStore.notifications.isNotEmpty()
                         ) {
                             Text("LIMPIAR", color = AdvancedAccent, fontSize = 9.sp)
@@ -335,7 +459,7 @@ fun InfinityAdvancedPanel(
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
                                             Text(
-                                                notification.appName,
+                                                if (hideNotificationContent) "Aplicación" else notification.appName,
                                                 color = AdvancedAccent,
                                                 fontSize = 10.sp,
                                                 modifier = Modifier.weight(1f)
@@ -384,7 +508,11 @@ fun InfinityAdvancedPanel(
                                                     InfinityNotificationStore.dismiss(
                                                         notification.key
                                                     )
-                                                }
+                                                },
+                                                modifier = Modifier.testTag(
+                                                    "infinity-notification-dismiss-${notification.key}"
+                                                ),
+                                                enabled = notification.clearable
                                             ) {
                                                 Text("DESCARTAR", color = AdvancedMuted)
                                             }
@@ -457,14 +585,14 @@ private fun openAdvancedSettings(
     extra: Pair<String, String>? = null
 ) {
     try {
-        val intent = Intent(action)
+        val intent = Intent(action).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         extra?.let {
             intent.putExtra(it.first, it.second)
         }
         context.startActivity(intent)
     } catch (_: Exception) {
         try {
-            context.startActivity(Intent(Settings.ACTION_SETTINGS))
+            context.startActivity(Intent(Settings.ACTION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         } catch (fallbackException: Exception) {
             val report = infinityGuardReport("Apertura de ajustes", fallbackException)
             android.widget.Toast.makeText(

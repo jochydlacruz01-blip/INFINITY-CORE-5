@@ -26,6 +26,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
@@ -37,8 +38,10 @@ import androidx.compose.ui.unit.dp
 import org.json.JSONArray
 import org.json.JSONObject
 import kotlinx.coroutines.launch
+import java.util.UUID
 
 private data class InfinityConnectionProfile(
+    val profileId: String,
     val name: String,
     val host: String,
     val port: String,
@@ -74,6 +77,7 @@ private fun loadInfinityProfiles(
 
             val profile = try {
                 val item = json.optJSONObject(index) ?: continue
+                val profileId = item.optString("profileId", "").trim().ifBlank { UUID.randomUUID().toString() }
                 val name = item.optString("name", "").trim()
                 val host = item.optString("host", "").trim()
                 val port = parseInfinityPort(item.optString("port", "3389"))
@@ -88,6 +92,7 @@ private fun loadInfinityProfiles(
                 }
 
                 InfinityConnectionProfile(
+                    profileId = profileId,
                     name = name,
                     host = host,
                     port = port.toString(),
@@ -117,6 +122,7 @@ private fun saveInfinityProfiles(
     profiles.take(INFINITY_CONNECT_MAX_PROFILES).forEach { profile ->
         json.put(
             JSONObject().apply {
+                put("profileId", profile.profileId)
                 put("name", profile.name)
                 put("host", profile.host)
                 put("port", profile.port)
@@ -139,7 +145,9 @@ fun InfinityConnectPanel() {
 
     val profiles = remember(context) {
         mutableStateListOf<InfinityConnectionProfile>().apply {
-            addAll(loadInfinityProfiles(context))
+            val loaded = loadInfinityProfiles(context)
+            addAll(loaded)
+            saveInfinityProfiles(context, loaded)
         }
     }
 
@@ -157,7 +165,7 @@ fun InfinityConnectPanel() {
         onDispose { editingPassword.value = "" }
     }
     val credentialVault = remember(context) { InfinityConnectCredentialVault(context) }
-    val editingIndex = remember { mutableStateOf(-1) }
+    val editingIndex = remember { mutableIntStateOf(-1) }
 
     fun notifyUser(message: String) {
         Toast.makeText(
@@ -200,6 +208,8 @@ fun InfinityConnectPanel() {
             style = MaterialTheme.typography.titleMedium
         )
 
+        InfinityConnectEnrollmentPanel()
+
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(
@@ -236,7 +246,7 @@ fun InfinityConnectPanel() {
                     notifyUser("Límite alcanzado: máximo 100 computadoras")
                     return@Button
                 }
-                editingIndex.value = -1
+                editingIndex.intValue = -1
                 editingName.value = ""
                 editingHost.value = ""
                 editingPort.value = "3389"
@@ -303,12 +313,12 @@ fun InfinityConnectPanel() {
                                 ) {
                                     OutlinedButton(
                                         onClick = {
-                                            editingIndex.value = profiles.indexOf(profile)
+                                            editingIndex.intValue = profiles.indexOf(profile)
                                             editingName.value = profile.name
                                             editingHost.value = profile.host
                                             editingPort.value = profile.port
                                             editingUsername.value = profile.username
-                                            editingPassword.value = credentialVault.retrieve(profile.address) ?: ""
+                                            editingPassword.value = credentialVault.retrieve(profile.profileId, profile.address) ?: ""
                                             showEditor.value = true
                                         },
                                         modifier = Modifier.weight(1f)
@@ -321,7 +331,7 @@ fun InfinityConnectPanel() {
                                 OutlinedButton(
                                     onClick = {
                                         profiles.remove(profile)
-                                        credentialVault.delete(profile.address)
+                                        credentialVault.delete(profile.profileId, profile.address)
                                         saveInfinityProfiles(context, profiles)
                                         notifyUser("Perfil eliminado")
                                     },
@@ -335,12 +345,12 @@ fun InfinityConnectPanel() {
                             ) {
                                 OutlinedButton(
                                     onClick = {
-                                        editingIndex.value = profiles.indexOf(profile)
+                                        editingIndex.intValue = profiles.indexOf(profile)
                                         editingName.value = profile.name
                                         editingHost.value = profile.host
                                         editingPort.value = profile.port
                                         editingUsername.value = profile.username
-                                        editingPassword.value = credentialVault.retrieve(profile.address) ?: ""
+                                        editingPassword.value = credentialVault.retrieve(profile.profileId, profile.address) ?: ""
                                         showEditor.value = true
                                     },
                                     modifier = Modifier.weight(1f)
@@ -352,7 +362,7 @@ fun InfinityConnectPanel() {
                                 OutlinedButton(
                                     onClick = {
                                         profiles.remove(profile)
-                                        credentialVault.delete(profile.address)
+                                        credentialVault.delete(profile.profileId, profile.address)
                                         saveInfinityProfiles(context, profiles)
                                         notifyUser("Perfil eliminado")
                                     },
@@ -428,8 +438,8 @@ fun InfinityConnectPanel() {
         )
 
         Text(
-            text = "La conexión RDP real se integrará en una siguiente " +
-                "etapa mediante un cliente remoto compatible."
+            text = "La comprobación TCP solo valida la accesibilidad del puerto; no inicia una sesión RDP. " +
+                "El escritorio remoto seguro requiere el emparejamiento mTLS superior y permanece bloqueado hasta completar la validación física."
         )
     }
 
@@ -440,7 +450,7 @@ fun InfinityConnectPanel() {
                 showEditor.value = false
             },
             title = {
-                Text(if (editingIndex.value >= 0) "Editar computadora" else "Agregar computadora")
+                Text(if (editingIndex.intValue >= 0) "Editar computadora" else "Agregar computadora")
             },
             text = {
                 Column(
@@ -518,7 +528,7 @@ fun InfinityConnectPanel() {
                             host = host,
                             port = editingPort.value,
                             savedEndpoints = profiles.map { it.host to it.port },
-                            excludedIndex = editingIndex.value
+                            excludedIndex = editingIndex.intValue
                         )
 
                         if (
@@ -531,7 +541,9 @@ fun InfinityConnectPanel() {
                         } else if (duplicate) {
                             notifyUser("Ya existe un perfil con ese equipo y puerto")
                         } else {
+                            val previousProfile = profiles.getOrNull(editingIndex.intValue)
                             val profile = InfinityConnectionProfile(
+                                profileId = previousProfile?.profileId ?: UUID.randomUUID().toString(),
                                 name = editingName.value.trim(),
                                 host = host,
                                 port = portNumber.toString(),
@@ -539,21 +551,20 @@ fun InfinityConnectPanel() {
                             )
 
                             // Remove the old encrypted credential when an edited profile changes endpoint.
-                            val previousProfile = profiles.getOrNull(editingIndex.value)
                             if (previousProfile != null && previousProfile.address != profile.address) {
-                                credentialVault.delete(previousProfile.address)
+                                credentialVault.delete(previousProfile.profileId, previousProfile.address)
                             }
-                            if (editingIndex.value in profiles.indices) {
-                                profiles[editingIndex.value] = profile
+                            if (editingIndex.intValue in profiles.indices) {
+                                profiles[editingIndex.intValue] = profile
                             } else {
                                 profiles.add(profile)
                             }
                             saveInfinityProfiles(context, profiles)
-                            val credentialSaved = credentialVault.save(profile.address, editingPassword.value)
+                            val credentialSaved = credentialVault.save(profile.profileId, profile.address, editingPassword.value)
 
                             editingPassword.value = ""
                             showEditor.value = false
-                            editingIndex.value = -1
+                            editingIndex.intValue = -1
                             notifyUser(
                                 if (credentialSaved) "Computadora guardada"
                                 else "Perfil guardado; no se pudo proteger la contraseña. Inténtalo de nuevo."
@@ -561,7 +572,7 @@ fun InfinityConnectPanel() {
                         }
                     }
                 ) {
-                    Text(if (editingIndex.value >= 0) "Guardar cambios" else "Guardar")
+                    Text(if (editingIndex.intValue >= 0) "Guardar cambios" else "Guardar")
                 }
             },
             dismissButton = {

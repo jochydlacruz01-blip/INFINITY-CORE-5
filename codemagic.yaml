@@ -1,75 +1,20 @@
 workflows:
   infinity-core-android:
-    name: INFINITY CORE 5 - Android verification and APK
+    name: INFINITY CORE 5 - Source verification only (PR #87)
     max_build_duration: 60
     environment:
       java: 17
-      groups:
-        - infinity-signing
     scripts:
-      - name: Restore signing keystore
-        script: |
-          set -Eeuo pipefail
-          if [ -n "${INFINITY_KEYSTORE_BASE64:-}" ]; then
-            printf '%s' "$INFINITY_KEYSTORE_BASE64" | base64 --decode > "$CM_BUILD_DIR/infinity-release.jks"
-            test -s "$CM_BUILD_DIR/infinity-release.jks"
-            chmod 600 "$CM_BUILD_DIR/infinity-release.jks"
-          fi
       - name: Run unit tests
-        script: gradle testDebugUnitTest testReleaseUnitTest --stacktrace
+        script: |
+          set -Eeuo pipefail
+          gradle testDebugUnitTest testReleaseUnitTest --stacktrace
       - name: Android lint
-        script: gradle lintDebug lintRelease --stacktrace
-      - name: Build APKs
         script: |
           set -Eeuo pipefail
-          if [ -n "${INFINITY_KEYSTORE_BASE64:-}" ] && [ -n "${INFINITY_KEYSTORE_PASSWORD:-}" ] && [ -n "${INFINITY_KEY_ALIAS:-}" ] && [ -n "${INFINITY_KEY_PASSWORD:-}" ]; then
-            export INFINITY_KEYSTORE_FILE="$CM_BUILD_DIR/infinity-release.jks"
-          fi
-          gradle assembleDebug assembleRelease --stacktrace
-      - name: Verify release APK
-        script: |
-          set -Eeuo pipefail
-          APK="app/build/outputs/apk/release/app-release.apk"
-
-          echo "=== INFINITY RELEASE APK VERIFICATION ==="
-          echo "Expected APK: $APK"
-
-          if [ ! -f "$APK" ]; then
-            echo "ERROR: Release APK was not generated at the expected path."
-            echo "APK files found:"
-            find app/build/outputs -type f -name "*.apk" -print 2>/dev/null || true
-            exit 1
-          fi
-
-          if [ ! -s "$APK" ]; then
-            echo "ERROR: Release APK exists but is empty."
-            exit 1
-          fi
-
-          ls -lh "$APK"
-
-          if [ -n "${INFINITY_KEYSTORE_BASE64:-}" ] && [ -n "${INFINITY_KEYSTORE_PASSWORD:-}" ] && [ -n "${INFINITY_KEY_ALIAS:-}" ] && [ -n "${INFINITY_KEY_PASSWORD:-}" ]; then
-            SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
-            if [ -z "$SDK" ] || [ ! -d "$SDK/build-tools" ]; then
-              echo "ERROR: Android SDK build-tools directory was not found."
-              exit 1
-            fi
-
-            APKSIGNER="$(find "$SDK/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
-            if [ -z "$APKSIGNER" ]; then
-              echo "ERROR: apksigner was not found in Android SDK build-tools."
-              exit 1
-            fi
-
-            echo "Verifying APK signature with: $APKSIGNER"
-            "$APKSIGNER" verify --verbose --print-certs "$APK"
-            echo "Release APK signature verification passed."
-          else
-            echo "WARNING: Signing variables are incomplete; signature verification was skipped."
-          fi
-
-          echo "=== RELEASE APK VERIFICATION FINISHED ==="
+          gradle lintDebug lintRelease --stacktrace
     artifacts:
-      - app/build/outputs/apk/**/*.apk
-      - app/build/outputs/**/*.aab
-      - app/build/outputs/**/mapping.txt
+      - app/build/test-results/**/*.xml
+      - app/build/reports/tests/**/*.html
+      - app/build/reports/lint-results*.html
+      - freerdp-core/build/reports/lint-results*.html

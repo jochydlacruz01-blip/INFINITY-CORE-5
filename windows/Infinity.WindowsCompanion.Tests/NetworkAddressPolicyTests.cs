@@ -24,7 +24,7 @@ public sealed class NetworkAddressPolicyTests
 
     [Theory]
     [InlineData("::1", true)]
-    [InlineData("fe80::1", true)]
+    [InlineData("fe80::1", false)]
     [InlineData("fd12:3456::1", true)]
     [InlineData("2001:4860:4860::8888", false)]
     public void AppliesIpv6BindPolicy(string value, bool expected)

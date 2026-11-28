@@ -9,7 +9,7 @@ Aplicación Android nativa desarrollada con Kotlin y Jetpack Compose. INFINITY o
 - **Acceso a archivos:** utiliza el Storage Access Framework (SAF) oficial de Android. El usuario elige explícitamente las ubicaciones; INFINITY no intenta eludir las restricciones de almacenamiento de Android.
 - **INFINITY ORBIT:** indicadores de batería, memoria, almacenamiento y estado térmico, con actualización periódica.
 - **INFINITY ADVANCED:** ajustes rápidos y centro de notificaciones. El acceso requiere autorización especial del usuario en los ajustes de Android. La acción LIMPIAR borra la lista local de INFINITY; DESCARTAR solicita a Android retirar la notificación seleccionada. El feed limita su tamaño y sanitiza texto de notificaciones; el modo privacidad oculta títulos y mensajes.
-- **INFINITY CONNECT:** perfiles de equipos remotos, edición, validación de puerto, prevención de duplicados y copia de dirección. **El cliente RDP integrado todavía no está implementado**, por lo que guardar un perfil no significa que la conexión remota esté disponible o verificada.
+- **INFINITY CONNECT:** perfiles y diagnóstico TCP; enrolamiento CSR/certificados, cliente TLS 1.3 mTLS, sesiones con capacidades explícitas, túnel WebSocket autenticado hacia RDP local, adaptador FreeRDP, visualización/entrada remota y transferencia de archivos con SHA-256. Las capacidades remotas permanecen bloqueadas por defecto hasta completar la validación física Android–Windows. Un perfil guardado o un puerto accesible no demuestran identidad ni sesión activa.
 
 ## Requisitos técnicos
 
@@ -20,39 +20,38 @@ Aplicación Android nativa desarrollada con Kotlin y Jetpack Compose. INFINITY o
 - Android mínimo: API 26 (Android 8.0).
 - Kotlin 2.0.21 y Jetpack Compose.
 
-## Compilar con GitHub Actions
+## Verificación durante el desarrollo
 
-El workflow se encuentra en `.github/workflows/android.yml` y se ejecuta al enviar cambios a la rama `INFINITY-0.9`.
+Durante esta etapa el repositorio utiliza verificación de código fuente sin generar APK:
 
 1. Abre la pestaña **Actions** del repositorio.
-2. Selecciona el workflow **PROJECT INFINITY 0.10 - APK BUILD**.
-3. Espera a que terminen la compilación Debug/Release, el análisis estático, las pruebas unitarias disponibles y la verificación de firma del APK Release.
-4. Descarga los artefactos Debug o Release firmado cuando el proceso termine correctamente.
+2. Selecciona **PROJECT INFINITY - Pull Request Verification**.
+3. Revisa la compilación Kotlin, las pruebas unitarias, las verificaciones de estructura/seguridad y Android Lint.
+4. Consulta los pasos fallidos y sus registros antes de considerar aceptado un paquete.
 
-### Secretos necesarios para firmar Release
-
-Configura estos secretos en GitHub Actions; nunca guardes el archivo keystore ni sus contraseñas en el repositorio:
-
-- `INFINITY_KEYSTORE_BASE64`
-- `INFINITY_KEYSTORE_PASSWORD`
-- `INFINITY_KEY_ALIAS`
-- `INFINITY_KEY_PASSWORD`
-
-El workflow utiliza el keystore existente. No lo regeneres si necesitas conservar la capacidad de actualizar instalaciones anteriores.
+**Política actual:** no ejecutar tareas `assembleDebug` o `assembleRelease`, no firmar APK y no publicar artefactos APK hasta que el usuario autorice expresamente una compilación. Un workflow verde de código fuente no equivale a un APK listo para instalar.
 
 ## Seguridad y privacidad
 
 - `allowBackup=false` y reglas de extracción de datos.
 - Tráfico HTTP sin cifrar deshabilitado mediante `usesCleartextTraffic=false`.
 - No solicita permisos generales de almacenamiento; utiliza permisos SAF concedidos por el usuario.
-- INFINITY CONNECT no guarda contraseñas de Windows.
+- Las credenciales no deben incluirse en perfiles, registros, portapapeles ni telemetría.
 - El contenido de las notificaciones puede ocultarse desde los controles de privacidad.
 - La autorización de acceso a notificaciones se concede o revoca desde los ajustes especiales de Android.
+- No exponer TCP 3389 directamente a Internet. Para redes diferentes, utilizar una VPN privada y autenticada.
 
 ## Estado y límites conocidos
 
-- Las compilaciones de GitHub verifican que el código compile y que el APK Release tenga una firma válida; no sustituyen las pruebas funcionales en dispositivos físicos.
+- El workflow actual verifica código fuente, pruebas unitarias y lint; no genera ni valida APK.
 - Las operaciones de copiar/mover dependen de que el proveedor SAF elegido por Android las admita. Algunos proveedores pueden rechazarlas.
 - La apertura de documentos se delega a aplicaciones Android compatibles; no todos los formatos tienen vista previa integrada.
-- INFINITY CONNECT administra perfiles, pero aún no establece sesiones RDP.
-- Antes de publicar una versión definitiva se deben completar las pruebas funcionales en teléfono/tablet y validar los flujos de permisos en las versiones Android objetivo.
+- El código de CONNECT ya incluye enrolamiento de certificados, mTLS, autorización de sesiones, túnel RDP, cliente FreeRDP y transferencia de archivos; la interoperabilidad real en hardware todavía no está certificada.
+- Windows Companion conecta únicamente con el servicio RDP local `127.0.0.1:3389`; las capacidades `remote.display`, `remote.input` y `file.transfer` están deshabilitadas por defecto y requieren autorización administrativa explícita.
+- El mailbox de frames es una frontera acotada de latencia/memoria; no sustituye el decodificador ni el motor RDP. La validación nativa arm64-v8a es un paso separado.
+- Antes de publicar una versión definitiva se deben completar las pruebas funcionales en teléfono/tablet, validar los flujos de permisos y probar la conexión real con Windows en dispositivos físicos.
+
+## Arquitectura
+
+Consulta [docs/INFINITY-ARCHITECTURE.md](docs/INFINITY-ARCHITECTURE.md) para conocer la arquitectura y sus fases. El contrato de identidad, emparejamiento y confianza se documenta en [docs/INFINITY-CONNECT-PROTOCOL.md](docs/INFINITY-CONNECT-PROTOCOL.md).
+

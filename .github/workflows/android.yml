@@ -1,126 +1,137 @@
-name: PROJECT INFINITY 0.10 - APK BUILD
+name: PROJECT INFINITY 0.10 - DEBUG TEST APK
 
 on:
-  push:
-    branches:
-      - INFINITY-0.9
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: infinity-android-build-${{ github.ref }}
-  cancel-in-progress: true
+  group: infinity-debug-apk-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
-  build:
-    name: PROJECT-INFINITY-0.10-APK
+  build-debug-test-apk:
+    # Manual dispatch is allowed only when the selected ref is the authorized PR #87 branch.
+    if: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/INFINITY-PACK-14-REMOTE-FRAME-PIPELINE' }}
+    name: Build and verify DEBUG test APK only
     runs-on: ubuntu-latest
-
+    timeout-minutes: 90
     steps:
-      - name: Descargar proyecto
-        uses: actions/checkout@v4
+      - name: Checkout authorized PR #87 branch
+        uses: actions/checkout@v7
+        with:
+          ref: INFINITY-PACK-14-REMOTE-FRAME-PIPELINE
+          submodules: recursive
+          persist-credentials: false
 
-      - name: Configurar Java 17
-        uses: actions/setup-java@v4
+      - name: Verify checked-out branch and commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git branch --show-current)" = "INFINITY-PACK-14-REMOTE-FRAME-PIPELINE"
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          echo "Validated source ref: ${GITHUB_REF}"
+          echo "Validated source SHA: ${GITHUB_SHA}"
+
+      - name: Configure Java 17
+        uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: '17'
           cache: gradle
 
-      - name: Configurar Gradle 8.9
-        uses: gradle/actions/setup-gradle@v4
+      - name: Configure Gradle 8.9
+        uses: gradle/actions/setup-gradle@v6
         with:
           gradle-version: '8.9'
 
-      - name: Verificar estructura
-        run: |
-          echo "Verificando PROJECT INFINITY 0.10..."
-          ls -la
-          test -f settings.gradle.kts
-          test -f build.gradle.kts
-          test -f app/build.gradle.kts
-          test -f app/src/main/java/com/infinity/core/MainActivity.kt
-          test -f app/src/main/java/com/infinity/core/InfinityConnect.kt
-          test -f app/src/main/java/com/infinity/core/OrbitSystemMonitor.kt
-          test -f app/src/main/AndroidManifest.xml
-          grep -q 'android:allowBackup="false"' app/src/main/AndroidManifest.xml
-          grep -q 'android:usesCleartextTraffic="false"' app/src/main/AndroidManifest.xml
-          grep -q 'android.permission.BIND_NOTIFICATION_LISTENER_SERVICE' app/src/main/AndroidManifest.xml
-
-      - name: Preparar firma
-        env:
-          INFINITY_KEYSTORE_BASE64: ${{ secrets.INFINITY_KEYSTORE_BASE64 }}
-        run: |
-          test -n "$INFINITY_KEYSTORE_BASE64"
-          printf '%s' "$INFINITY_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/infinity-release.jks"
-          test -s "$RUNNER_TEMP/infinity-release.jks"
-
-      - name: Compilar APK Debug y Release firmado
-        env:
-          INFINITY_KEYSTORE_FILE: ${{ runner.temp }}/infinity-release.jks
-          INFINITY_KEYSTORE_PASSWORD: ${{ secrets.INFINITY_KEYSTORE_PASSWORD }}
-          INFINITY_KEY_ALIAS: ${{ secrets.INFINITY_KEY_ALIAS }}
-          INFINITY_KEY_PASSWORD: ${{ secrets.INFINITY_KEY_PASSWORD }}
-        run: gradle assembleDebug assembleRelease --stacktrace
-
-      - name: Auditoría estática Debug y Release y pruebas unitarias
-        run: gradle lintDebug lintRelease testDebugUnitTest testReleaseUnitTest --stacktrace
-
-      - name: Verificar firma del APK Release
-        shell: bash
-        run: |
-          test -s app/build/outputs/apk/release/app-release.apk
-          APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
-          test -n "$APKSIGNER"
-          "$APKSIGNER" verify --verbose app/build/outputs/apk/release/app-release.apk
-
-      - name: Publicar APK Debug
-        uses: actions/upload-artifact@v4
-        with:
-          name: PROJECT-INFINITY-0.10-DEBUG-APK
-          path: app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: error
-          retention-days: 14
-
-      - name: Preparar paquete de distribución y checksums
+      - name: Verify project structure and secure manifest defaults
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p dist/PROJECT-INFINITY-0.10.0
-          cp app/build/outputs/apk/debug/app-debug.apk dist/PROJECT-INFINITY-0.10.0/PROJECT-INFINITY-0.10.0-debug.apk
-          cp app/build/outputs/apk/release/app-release.apk dist/PROJECT-INFINITY-0.10.0/PROJECT-INFINITY-0.10.0-release-signed.apk
-          VERSION_NAME="$(awk -F\" '/versionName/{print $2; exit}' app/build.gradle.kts | tr -d \"\")"
-          VERSION_CODE="$(awk '/versionCode/ {print $NF; exit}' app/build.gradle.kts)"
-          test -n "$VERSION_NAME"
-          test -n "$VERSION_CODE"
-          {
-            echo "Project: PROJECT INFINITY"
-            echo "Version: $VERSION_NAME"
-            echo "Version code: $VERSION_CODE"
-            echo "Branch: ${GITHUB_REF_NAME}"
-            echo "Commit: ${GITHUB_SHA}"
-            echo "Workflow run: ${GITHUB_RUN_ID}"
-            echo "Release APK: signed and verified with apksigner"
-          } > dist/PROJECT-INFINITY-0.10.0/BUILD-INFO.txt
-          cd dist/PROJECT-INFINITY-0.10.0
-          sha256sum *.apk BUILD-INFO.txt > SHA256SUMS.txt
-          test -s SHA256SUMS.txt
-          sha256sum --check SHA256SUMS.txt
+          test -f settings.gradle.kts
+          test -f app/build.gradle.kts
+          test -f app/src/main/java/com/infinity/core/MainActivity.kt
+          test -f app/src/main/AndroidManifest.xml
+          test "$(git -C external/FreeRDP rev-parse HEAD)" = "65bcca1913a28cbdd7eb913599f692bd2b707991"
+          grep -q 'android:allowBackup="false"' app/src/main/AndroidManifest.xml
+          grep -q 'android:usesCleartextTraffic="false"' app/src/main/AndroidManifest.xml
 
-      - name: Publicar paquete de distribución
-        uses: actions/upload-artifact@v4
+      - name: Initialize Android SDK and accept licenses
+        uses: android-actions/setup-android@v4
         with:
-          name: PROJECT-INFINITY-0.10.0-DISTRIBUTION-BUNDLE
-          path: dist/PROJECT-INFINITY-0.10.0/
+          packages: "platform-tools"
+
+      - name: Install required Android platform, NDK and CMake
+        shell: bash
+        run: |
+          set -euo pipefail
+          sdkmanager --install "platforms;android-35" "build-tools;35.0.0" "ndk;27.0.12077973" "cmake;3.22.1"
+
+      - name: Compile, test, lint, build FreeRDP native libraries and assemble DEBUG only
+        shell: bash
+        run: |
+          set -euo pipefail
+          gradle -PINFINITY_BUILD_FREERDP_NATIVE=true :freerdpCore:externalNativeBuildDebug compileDebugKotlin testDebugUnitTest lintDebug assembleDebug --stacktrace
+
+      - name: Verify DEBUG APK and Android debug certificate
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="app/build/outputs/apk/debug/app-debug.apk"
+          test -s "${APK}"
+          APKSIGNER="$(find "${ANDROID_HOME}/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          test -n "${APKSIGNER}"
+          "${APKSIGNER}" verify --verbose --print-certs "${APK}" | tee app-debug-signature.txt
+          grep -Fq 'CN=Android Debug' app-debug-signature.txt
+          APK_ENTRIES="$(unzip -Z1 "${APK}")"
+          REQUIRED_FREERDP_LIBRARIES=(
+            libfreerdp-android.so
+            libfreerdp3.so
+            libfreerdp-client3.so
+            libwinpr3.so
+            libssl.so
+            libcrypto.so
+            liburiparser.so
+          )
+          : > app-debug-freerdp-libraries.txt
+          mkdir -p apk-native-inspection
+          for library in "${REQUIRED_FREERDP_LIBRARIES[@]}"; do
+            entry="lib/arm64-v8a/${library}"
+            if ! grep -Fxq "${entry}" <<< "${APK_ENTRIES}"; then
+              echo "Missing required FreeRDP native library in DEBUG APK: ${entry}" >&2
+              exit 1
+            fi
+            extracted="apk-native-inspection/${library}"
+            unzip -p "${APK}" "${entry}" > "${extracted}"
+            test -s "${extracted}"
+            header="$(readelf -h "${extracted}")"
+            elf_class="$(printf '%s\n' "${header}" | awk -F: '/Class:/ { gsub(/^[[:space:]]+/, "", $2); print $2; exit }')"
+            elf_machine="$(printf '%s\n' "${header}" | awk -F: '/Machine:/ { gsub(/^[[:space:]]+/, "", $2); print $2; exit }')"
+            test "${elf_class}" = "ELF64"
+            case "${elf_machine}" in AArch64*) ;; *) echo "Unexpected APK ELF architecture for ${library}: ${elf_machine}" >&2; exit 1 ;; esac
+            printf '%s class=%s machine=%s bytes=%s\n' "${entry}" "${elf_class}" "${elf_machine}" "$(stat --format='%s' "${extracted}")" | tee -a app-debug-freerdp-libraries.txt
+          done
+          sha256sum "${APK}" | tee app-debug-sha256.txt
+          stat --format='APK_SIZE_BYTES=%s' "${APK}" | tee app-debug-size.txt
+
+      - name: Upload DEBUG APK verification evidence
+        uses: actions/upload-artifact@v7
+        with:
+          name: PROJECT-INFINITY-0.10-DEBUG-APK-EVIDENCE
+          path: |
+            app-debug-sha256.txt
+            app-debug-size.txt
+            app-debug-signature.txt
+            app-debug-freerdp-libraries.txt
           if-no-files-found: error
-          retention-days: 30
+          retention-days: 14
 
-      - name: Publicar APK Release firmado
-        uses: actions/upload-artifact@v4
+      - name: Upload verified DEBUG APK
+        uses: actions/upload-artifact@v7
         with:
-          name: PROJECT-INFINITY-0.10-RELEASE-APK
-          path: app/build/outputs/apk/release/app-release.apk
+          name: PROJECT-INFINITY-0.10-DEBUG-APK
+          path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14

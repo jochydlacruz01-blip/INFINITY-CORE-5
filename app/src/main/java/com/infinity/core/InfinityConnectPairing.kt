@@ -27,6 +27,9 @@ internal object InfinityConnectPairing {
 
     fun createChallenge(nowEpochMillis: Long = System.currentTimeMillis()): InfinityPairingChallenge {
         require(nowEpochMillis >= 0L) { "Clock value must not be negative" }
+        require(nowEpochMillis <= Long.MAX_VALUE - CHALLENGE_LIFETIME_MILLIS) {
+            "Clock value is too large to create a bounded challenge."
+        }
         val bytes = ByteArray(NONCE_BYTES)
         secureRandom.nextBytes(bytes)
         return InfinityPairingChallenge(
@@ -45,7 +48,8 @@ internal object InfinityConnectPairing {
         if (challenge.expiresAtEpochMillis <= challenge.issuedAtEpochMillis) return false
         if (challenge.expiresAtEpochMillis - challenge.issuedAtEpochMillis != CHALLENGE_LIFETIME_MILLIS) return false
         if (nowEpochMillis < challenge.issuedAtEpochMillis || nowEpochMillis >= challenge.expiresAtEpochMillis) return false
-        if (runCatching { UUID.fromString(challenge.requestId) }.isFailure) return false
+        val parsedRequestId = runCatching { UUID.fromString(challenge.requestId) }.getOrNull() ?: return false
+        if (parsedRequestId.toString() != challenge.requestId.lowercase()) return false
         val decoded = runCatching { Base64.getUrlDecoder().decode(challenge.nonce) }.getOrNull()
             ?: return false
         return decoded.size == NONCE_BYTES
@@ -68,5 +72,77 @@ internal object InfinityConnectPairing {
             expectedNormalized.toByteArray(Charsets.US_ASCII),
             presentedNormalized.toByteArray(Charsets.US_ASCII)
         )
+    }
+}
+
+
+/**
+ * Bounded, process-local, single-use challenge registry.
+ *
+ * Register the challenge before sending it to a peer. Consume it only after the
+ * peer returns the request id and nonce over an authenticated channel. This
+ * prevents replay within this process; it is not a substitute for TLS or a
+ * persistent cross-process enrollment protocol.
+ */
+internal class InfinityPairingChallengeRegistry(
+    private val maxOutstanding: Int = DEFAULT_MAX_OUTSTANDING
+) {
+    private val outstanding = LinkedHashMap<String, InfinityPairingChallenge>()
+
+    init {
+        require(maxOutstanding in 1..MAX_ALLOWED_OUTSTANDING) {
+            "Challenge registry capacity is outside the supported range."
+        }
+    }
+
+    @Synchronized
+    fun register(challenge: InfinityPairingChallenge, nowEpochMillis: Long): Boolean {
+        purgeExpired(nowEpochMillis)
+        if (!InfinityConnectPairing.isChallengeValid(challenge, nowEpochMillis)) return false
+        if (challenge.requestId in outstanding || outstanding.size >= maxOutstanding) return false
+        outstanding[challenge.requestId] = challenge
+        return true
+    }
+
+    @Synchronized
+    fun consume(requestId: String, nonce: String, nowEpochMillis: Long): Boolean {
+        purgeExpired(nowEpochMillis)
+        val stored = outstanding[requestId] ?: return false
+        val suppliedBytes = runCatching { Base64.getUrlDecoder().decode(nonce) }.getOrNull()
+            ?: return false
+        val storedBytes = runCatching { Base64.getUrlDecoder().decode(stored.nonce) }.getOrNull()
+            ?: return false
+        if (!MessageDigest.isEqual(storedBytes, suppliedBytes)) return false
+        if (!InfinityConnectPairing.isChallengeValid(stored, nowEpochMillis)) {
+            outstanding.remove(requestId)
+            return false
+        }
+        outstanding.remove(requestId)
+        return true
+    }
+
+    @Synchronized
+    fun clear() {
+        outstanding.clear()
+    }
+
+    @Synchronized
+    fun outstandingCount(nowEpochMillis: Long): Int {
+        purgeExpired(nowEpochMillis)
+        return outstanding.size
+    }
+
+    private fun purgeExpired(nowEpochMillis: Long) {
+        val iterator = outstanding.entries.iterator()
+        while (iterator.hasNext()) {
+            if (!InfinityConnectPairing.isChallengeValid(iterator.next().value, nowEpochMillis)) {
+                iterator.remove()
+            }
+        }
+    }
+
+    companion object {
+        const val DEFAULT_MAX_OUTSTANDING = 128
+        const val MAX_ALLOWED_OUTSTANDING = 4096
     }
 }

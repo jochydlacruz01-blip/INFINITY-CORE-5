@@ -33,6 +33,7 @@ object InfinityNotificationStore {
     val accessGranted = mutableStateOf(false)
 
     internal fun refreshAccess(context: Context) {
+        val wasGranted = accessGranted.value
         val enabledListeners = android.provider.Settings.Secure.getString(
             context.contentResolver,
             "enabled_notification_listeners"
@@ -50,8 +51,15 @@ object InfinityNotificationStore {
             granted = accessGranted.value,
             connected = service != null
         )
+        // Clear only on an actual granted -> revoked transition. A clean install
+        // with no listener permission must not erase local in-memory test/demo items.
+        if (wasGranted && !accessGranted.value) {
+            service = null
+            clearAll()
+        }
     }
 
+    @Volatile
     internal var service: InfinityNotificationListener? = null
 
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -60,15 +68,22 @@ object InfinityNotificationStore {
     private var hideContent = true
 
     internal fun setHideContent(enabled: Boolean) {
+        // Flip the volatile gate before touching the feed so new notifications
+        // are redacted immediately, including during a thread hop.
         hideContent = enabled
         if (enabled) {
-            mainHandler.post {
+            val redactExisting = Runnable {
                 notifications.indices.forEach { index ->
                     val current = notifications[index]
                     if (current.title.isNotEmpty() || current.message.isNotEmpty()) {
                         notifications[index] = current.copy(title = "", message = "")
                     }
                 }
+            }
+            if (Looper.myLooper() == Looper.getMainLooper()) {
+                redactExisting.run()
+            } else {
+                mainHandler.post(redactExisting)
             }
         }
     }
@@ -108,14 +123,30 @@ object InfinityNotificationStore {
     }
 
     fun dismiss(key: String) {
-        service?.dismissNotification(key)
+        if (key.isBlank()) return
+
+        // If Android has disconnected the listener (for example while the user
+        // revokes access in Settings), do not leave a dead action in the feed.
+        // Remove the local entry as a safe fallback; when connected, request the
+        // real system dismissal and let onNotificationRemoved reconcile the feed.
+        val activeService = service
+        if (activeService != null) {
+            activeService.dismissNotification(key)
+        } else {
+            remove(key)
+        }
     }
 
     fun clearAll() {
         // Limpiar únicamente la lista local de INFINITY.
-        // No retirar las notificaciones del panel de Android.
-        mainHandler.post {
+        // Si se invoca desde Compose (hilo principal), aplicar el cambio de inmediato;
+        // desde callbacks del servicio, despachar de forma segura al hilo principal.
+        if (Looper.myLooper() == Looper.getMainLooper()) {
             notifications.clear()
+        } else {
+            mainHandler.post {
+                notifications.clear()
+            }
         }
     }
 
@@ -131,6 +162,9 @@ class InfinityNotificationListener : NotificationListenerService() {
             if (key.isBlank()) return
             cancelNotification(key)
         } catch (error: Exception) {
+            // Keep the INFINITY feed usable even if Android rejects the system
+            // dismissal request; the Toast still makes the partial failure clear.
+            InfinityNotificationStore.remove(key)
             val report = infinityGuardReport("Descartar notificación", error)
             android.widget.Toast.makeText(
                 this,
@@ -211,6 +245,21 @@ class InfinityNotificationListener : NotificationListenerService() {
     override fun onListenerDisconnected() {
         InfinityNotificationStore.disconnected()
         super.onListenerDisconnected()
+
+        // Android may temporarily detach the listener while Settings or the
+        // notification subsystem is being reconfigured. Ask the OS to bind it
+        // again only while the user-granted listener access is still present.
+        InfinityNotificationStore.refreshAccess(this)
+        if (InfinityNotificationStore.accessGranted.value) {
+            runCatching {
+                NotificationListenerService.requestRebind(
+                    android.content.ComponentName(
+                        this,
+                        InfinityNotificationListener::class.java
+                    )
+                )
+            }
+        }
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
