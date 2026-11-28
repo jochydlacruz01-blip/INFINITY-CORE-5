@@ -1182,12 +1182,6 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                     Modifier.align(Alignment.TopStart).padding(start = 22.dp, top = 18.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        workspaceNames[workspace] ?: infinityDefaultVirtualDesktopName(workspace),
-                        color = accent,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold
-                    )
                     TextButton(
                         onClick = {
                             workspaceNameDraft = workspaceNames[workspace] ?: infinityDefaultVirtualDesktopName(workspace)
@@ -2855,18 +2849,6 @@ Spacer(Modifier.height(14.dp))
                                                         onClick = {
                                                             val index = windows.indexOfFirst { it.id == win.id }
                                                             if (index >= 0) {
-                                                                val current = windows[index]
-                                                                val model = InfinityAuroraWindow(
-                                                                    id = current.id,
-                                                                    workspace = current.workspace,
-                                                                    x = current.x,
-                                                                    y = current.y,
-                                                                    width = current.width,
-                                                                    height = current.height,
-                                                                    minimized = current.minimized,
-                                                                    maximized = current.maximized,
-                                                                    zIndex = index.toLong()
-                                                                )
                                                                 val allModels = windows.mapIndexed { order, item ->
                                                                     InfinityAuroraWindow(
                                                                         id = item.id, workspace = item.workspace,
@@ -2877,6 +2859,18 @@ Spacer(Modifier.height(14.dp))
                                                                 }
                                                                 if (infinityCanMoveAuroraWindow(allModels, win.id, win.kind, targetWorkspace)) {
                                                                     cancelWindowGeometryTransaction(win.id)
+                                                                    val current = windows[index]
+                                                                    val model = InfinityAuroraWindow(
+                                                                        id = current.id,
+                                                                        workspace = current.workspace,
+                                                                        x = current.x,
+                                                                        y = current.y,
+                                                                        width = current.width,
+                                                                        height = current.height,
+                                                                        minimized = current.minimized,
+                                                                        maximized = current.maximized,
+                                                                        zIndex = index.toLong()
+                                                                    )
                                                                     val moved = infinityMoveAuroraWindow(model, win.kind, targetWorkspace)
                                                                     val movedWindow = current.copy(id = moved.id, workspace = moved.workspace)
                                                                     prefs.getString("note_${win.id}", null)?.let { note ->
