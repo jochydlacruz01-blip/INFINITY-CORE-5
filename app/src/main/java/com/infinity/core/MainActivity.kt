@@ -728,9 +728,10 @@ private fun Infinity08App(resumeSignal: Int) {
     LaunchedEffect(windowSnapshot, activeGeometryTransactionCount) {
         // Never serialize an in-flight preview. Starting a gesture cancels this effect;
         // only commit or rollback can make persistence eligible again.
-        if (activeGeometryTransactionCount > 0) return@LaunchedEffect
-        delay(INFINITY_WINDOW_PERSISTENCE_DEBOUNCE_MS)
-        if (geometryTransactions.isNotEmpty()) return@LaunchedEffect
+        if (activeGeometryTransactionCount > 0 || geometryTransactions.isNotEmpty()) return@LaunchedEffect
+        // Geometry previews are already isolated by the transaction registry.
+        // Persist the committed snapshot immediately so a fast app/process restart
+        // cannot discard a recent workspace move, minimize, maximize or close action.
         val array = JSONArray()
         windows.forEach { win ->
             array.put(
