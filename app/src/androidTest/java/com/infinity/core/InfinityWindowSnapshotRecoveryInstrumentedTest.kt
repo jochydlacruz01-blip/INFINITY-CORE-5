@@ -114,7 +114,9 @@ class InfinityWindowSnapshotRecoveryInstrumentedTest {
 
     @Test fun malformedFieldsAndCrossWorkspaceIdsAreRejectedAsWholeSnapshots() {
         assertFalse(infinityIsValidWindowSnapshot("""[{"id":"notes_1","title":"x","kind":"notes","x":1,"y":2,"width":420,"height":340,"minimized":false,"workspace":1}]"""))
-        assertFalse(infinityIsValidWindowSnapshot(snapshot(id = "notes_2", kind = "notes", workspace = 1)))
+        assertTrue("Legacy mismatched IDs are accepted for canonical migration",
+            infinityIsValidWindowSnapshot(snapshot(id = "notes_legacy", kind = "notes", workspace = 1)))
+        assertFalse(infinityIsValidWindowSnapshot(snapshot(id = "", kind = "notes", workspace = 1)))
         assertFalse(infinityIsValidWindowSnapshot(snapshot(id = "notes_4", kind = "notes", workspace = 4)))
         assertFalse(infinityIsValidWindowSnapshot(snapshot(x = 9000)))
         assertFalse(infinityIsValidWindowSnapshot("""[null]"""))
@@ -131,4 +133,14 @@ class InfinityWindowSnapshotRecoveryInstrumentedTest {
         assertEquals(primary, prefs.getString(INFINITY_SAVED_WINDOWS_KEY, null))
         assertEquals(backup, prefs.getString(INFINITY_VALID_WINDOWS_BACKUP_KEY, null))
     }
+    @Test fun wallpaperUriStringWithoutPersistedReadGrantIsNotTreatedAsAccessible() {
+        val uri = android.net.Uri.parse("content://invalid.infinity.test/not-granted")
+        assertFalse(infinityHasPersistedWallpaperReadPermission(context, uri))
+        assertFalse(infinityTakePersistableWallpaperReadPermission(context, uri))
+        prefs.edit().putString(infinityVirtualDesktopWallpaperKey(2), uri.toString()).commit()
+        assertEquals(uri.toString(),
+            prefs.getString(infinityVirtualDesktopWallpaperKey(2), null))
+        assertFalse(infinityHasPersistedWallpaperReadPermission(context, uri))
+    }
+
 }

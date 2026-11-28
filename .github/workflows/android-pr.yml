@@ -107,7 +107,7 @@ jobs:
 
       - name: Enforce source-only development policy
         run: |
-          set -euo pipefail
+          set -eu
           python3 scripts/verify_no_apk_builds.py .github/workflows
           python3 scripts/verify_no_apk_builds.py codemagic.yaml
 

@@ -9,7 +9,6 @@ import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.Until
 import org.json.JSONArray
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -158,7 +157,7 @@ class InfinityProcessPersistenceInstrumentedTest {
             assertEquals(expected.getBoolean("minimized"), actual.getBoolean("minimized"))
             assertEquals(expected.getBoolean("maximized"), actual.getBoolean("maximized"))
         }
-        assertFalse(actualWindows.getJSONObject(0).getBoolean("minimized").not())
+        assertTrue(actualWindows.getJSONObject(0).getBoolean("minimized"))
         assertTrue(actualWindows.getJSONObject(2).getBoolean("maximized"))
     }
 
