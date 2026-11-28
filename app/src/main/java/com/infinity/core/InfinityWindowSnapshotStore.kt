@@ -1,6 +1,9 @@
 package com.infinity.core
 
+import android.content.Context
+import android.content.Intent
 import android.content.SharedPreferences
+import android.net.Uri
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -129,4 +132,24 @@ internal fun infinityCommitWindowSnapshot(prefs: SharedPreferences, nextJson: St
     }
     editor.putString(INFINITY_SAVED_WINDOWS_KEY, nextJson)
     return editor.commit()
+}
+
+/** Checks Android's persisted grant table; a stored URI string alone is not proof of access. */
+internal fun infinityHasPersistedWallpaperReadPermission(context: Context, uri: Uri): Boolean =
+    context.contentResolver.persistedUriPermissions.any { grant ->
+        grant.uri == uri && grant.isReadPermission
+    }
+
+/** Takes and then verifies the read grant before a wallpaper URI is stored as durable. */
+internal fun infinityTakePersistableWallpaperReadPermission(context: Context, uri: Uri): Boolean {
+    return try {
+        context.contentResolver.takePersistableUriPermission(
+            uri, Intent.FLAG_GRANT_READ_URI_PERMISSION
+        )
+        infinityHasPersistedWallpaperReadPermission(context, uri)
+    } catch (_: SecurityException) {
+        false
+    } catch (_: IllegalArgumentException) {
+        false
+    }
 }
