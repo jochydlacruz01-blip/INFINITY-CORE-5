@@ -747,7 +747,8 @@ private fun Infinity08App(resumeSignal: Int) {
     var focusedWindowId by remember {
         mutableStateOf(
             infinityResolveRestoredWindowFocus(
-                prefs.getString("focused_window_id", null),
+                prefs.getString(infinityWorkspaceFocusedWindowKey(workspace), null)
+                    ?: if (workspace == 1) prefs.getString("focused_window_id", null) else null,
                 windows.map { it.id },
                 windows.associate { it.id to it.workspace },
                 windows.filter { it.minimized }.map { it.id }.toSet(),
@@ -755,10 +756,18 @@ private fun Infinity08App(resumeSignal: Int) {
             )
         )
     }
-    LaunchedEffect(focusedWindowId) {
-        val id = focusedWindowId
-        if (id == null) prefs.edit().remove("focused_window_id").apply()
-        else prefs.edit().putString("focused_window_id", id).apply()
+    LaunchedEffect(focusedWindowId, workspace) {
+        val key = infinityWorkspaceFocusedWindowKey(workspace)
+        val id = focusedWindowId?.takeIf { windowId ->
+            windows.any { it.id == windowId && it.workspace == workspace && !it.minimized }
+        }
+        val editor = prefs.edit()
+        if (id == null) editor.remove(key) else editor.putString(key, id)
+        // Migrate the legacy global focus key only into workspace 1, then retire it.
+        if (workspace == 1 && prefs.contains("focused_window_id")) {
+            editor.remove("focused_window_id")
+        }
+        editor.apply()
     }
 
     // Every activation path must update both logical focus and visual z-order.
