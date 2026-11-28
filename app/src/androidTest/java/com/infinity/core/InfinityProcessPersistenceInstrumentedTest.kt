@@ -39,6 +39,9 @@ class InfinityProcessPersistenceInstrumentedTest {
             .putString(infinityVirtualDesktopBackgroundPresetKey(1), "nebula")
             .putString(infinityVirtualDesktopBackgroundPresetKey(2), "punk")
             .putString(infinityVirtualDesktopBackgroundPresetKey(3), "aurora")
+            .putString(infinityVirtualDesktopWallpaperKey(1), "content://invalid.infinity.test/wallpaper-one")
+            .putString(infinityVirtualDesktopWallpaperKey(2), "content://invalid.infinity.test/wallpaper-two")
+            .putString(infinityVirtualDesktopWallpaperKey(3), "content://invalid.infinity.test/wallpaper-three")
             .putString(infinityWorkspaceDesktopShortcutKey(1), infinitySerializeDesktopShortcutPackages(listOf("com.android.settings")))
             .putString(infinityWorkspaceDesktopShortcutKey(2), infinitySerializeDesktopShortcutPackages(listOf("com.android.settings", "com.android.contacts")))
             .putString(infinityWorkspaceDesktopShortcutKey(3), infinitySerializeDesktopShortcutPackages(listOf("com.android.camera")))
@@ -84,6 +87,9 @@ class InfinityProcessPersistenceInstrumentedTest {
         (1..3).forEach { workspace ->
             assertEquals("Workspace $workspace name", "PROCESS-WORKSPACE-$workspace",
                 prefs.getString(infinityVirtualDesktopNameKey(workspace), null))
+            assertEquals("Workspace $workspace wallpaper URI must remain isolated even when unavailable",
+                "content://invalid.infinity.test/wallpaper-${listOf("one", "two", "three")[workspace - 1]}",
+                prefs.getString(infinityVirtualDesktopWallpaperKey(workspace), null))
             assertEquals("Workspace $workspace background preset",
                 listOf("nebula", "punk", "aurora")[workspace - 1],
                 prefs.getString(infinityVirtualDesktopBackgroundPresetKey(workspace), null))
