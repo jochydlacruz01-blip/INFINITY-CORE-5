@@ -380,6 +380,7 @@ private fun Infinity08App(resumeSignal: Int) {
     var dashboardOpen by remember { mutableStateOf(false) }
     var startOpen by remember { mutableStateOf(false) }
     var orbitOpen by remember { mutableStateOf(false) }
+    var windowTransferMenuId by remember { mutableStateOf<String?>(null) }
     var controlOpen by remember { mutableStateOf(false) }
     var controlMode by remember { mutableStateOf("personalization") }
     var controlSnapshot by remember { mutableStateOf(InfinityControlCenterSnapshot.unavailable()) }
@@ -2778,6 +2779,75 @@ Spacer(Modifier.height(14.dp))
                                                 if (win.minimized) "ABRIR" else "MIN",
                                                 fontSize = 9.sp
                                             )
+                                        }
+
+                                        Box {
+                                            TextButton(onClick = { windowTransferMenuId = win.id }) {
+                                                Text("MOVER", fontSize = 9.sp)
+                                            }
+                                            DropdownMenu(
+                                                expanded = windowTransferMenuId == win.id,
+                                                onDismissRequest = { windowTransferMenuId = null }
+                                            ) {
+                                                (1..INFINITY_VIRTUAL_DESKTOP_COUNT).filter { it != win.workspace }.forEach { targetWorkspace ->
+                                                    DropdownMenuItem(
+                                                        text = {
+                                                            Text("A ${workspaceNames[targetWorkspace] ?: infinityDefaultVirtualDesktopName(targetWorkspace)}")
+                                                        },
+                                                        onClick = {
+                                                            val index = windows.indexOfFirst { it.id == win.id }
+                                                            if (index >= 0) {
+                                                                val current = windows[index]
+                                                                val model = InfinityAuroraWindow(
+                                                                    id = current.id,
+                                                                    workspace = current.workspace,
+                                                                    x = current.x,
+                                                                    y = current.y,
+                                                                    width = current.width,
+                                                                    height = current.height,
+                                                                    minimized = current.minimized,
+                                                                    maximized = current.maximized,
+                                                                    zIndex = index.toLong()
+                                                                )
+                                                                val allModels = windows.mapIndexed { order, item ->
+                                                                    InfinityAuroraWindow(
+                                                                        id = item.id, workspace = item.workspace,
+                                                                        x = item.x, y = item.y, width = item.width, height = item.height,
+                                                                        minimized = item.minimized, maximized = item.maximized,
+                                                                        zIndex = order.toLong()
+                                                                    )
+                                                                }
+                                                                if (infinityCanMoveAuroraWindow(allModels, win.id, win.kind, targetWorkspace)) {
+                                                                    cancelWindowGeometryTransaction(win.id)
+                                                                    val moved = infinityMoveAuroraWindow(model, win.kind, targetWorkspace)
+                                                                    val movedWindow = current.copy(id = moved.id, workspace = moved.workspace)
+                                                                    prefs.getString("note_${win.id}", null)?.let { note ->
+                                                                        prefs.edit()
+                                                                            .putString("note_${moved.id}", note)
+                                                                            .remove("note_${win.id}")
+                                                                            .apply()
+                                                                    }
+                                                                    windows[index] = movedWindow
+                                                                    focusedWindowId = infinityResolveFocusAfterWindowDeactivation(
+                                                                        win.id, focusedWindowId,
+                                                                        windows.map { it.id },
+                                                                        windows.associate { it.id to it.workspace },
+                                                                        windows.filter { it.minimized }.map { it.id }.toSet(),
+                                                                        workspace
+                                                                    )
+                                                                } else {
+                                                                    Toast.makeText(
+                                                                        context,
+                                                                        "Ya existe una ventana de este tipo en ese escritorio.",
+                                                                        Toast.LENGTH_SHORT
+                                                                    ).show()
+                                                                }
+                                                            }
+                                                            windowTransferMenuId = null
+                                                        }
+                                                    )
+                                                }
+                                            }
                                         }
 
                                         TextButton(
