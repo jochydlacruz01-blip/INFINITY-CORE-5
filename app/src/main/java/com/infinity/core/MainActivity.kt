@@ -875,7 +875,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
     ) {
         BoxWithConstraints(
             Modifier.fillMaxSize()
-                .pointerInput(workspace, maxW) {
+                .pointerInput(workspace) {
                     var horizontalTravel = 0f
                     detectHorizontalDragGestures(
                         onDragStart = { horizontalTravel = 0f },
@@ -1164,6 +1164,26 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                 }
             }
 
+            }
+            if (maxW >= 600.dp && futuristicDesktop && !dashboardOpen) {
+                Row(
+                    Modifier.align(Alignment.TopStart).padding(start = 22.dp, top = 18.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        workspaceNames[workspace] ?: infinityDefaultVirtualDesktopName(workspace),
+                        color = accent,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    TextButton(
+                        onClick = {
+                            workspaceNameDraft = workspaceNames[workspace] ?: infinityDefaultVirtualDesktopName(workspace)
+                            renameWorkspaceDialogOpen = true
+                        },
+                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp)
+                    ) { Text("✎", color = accent, fontSize = 12.sp) }
+                }
             }
             if (renameWorkspaceDialogOpen) {
                 AlertDialog(
