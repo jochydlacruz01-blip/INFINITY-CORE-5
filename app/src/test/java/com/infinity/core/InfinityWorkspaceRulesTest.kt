@@ -6,6 +6,15 @@ import org.junit.Assert.assertNotEquals
 import org.junit.Test
 
 class InfinityWorkspaceRulesTest {
+    @Test fun focusedWindowPersistenceKeyIsIndependentAndNormalizesWorkspace() {
+        assertEquals("workspace_1_focused_window_id", infinityWorkspaceFocusedWindowKey(1))
+        assertEquals("workspace_2_focused_window_id", infinityWorkspaceFocusedWindowKey(2))
+        assertEquals("workspace_3_focused_window_id", infinityWorkspaceFocusedWindowKey(3))
+        assertNotEquals(infinityWorkspaceFocusedWindowKey(1), infinityWorkspaceFocusedWindowKey(2))
+        assertEquals(infinityWorkspaceFocusedWindowKey(1), infinityWorkspaceFocusedWindowKey(0))
+        assertEquals(infinityWorkspaceFocusedWindowKey(3), infinityWorkspaceFocusedWindowKey(9))
+    }
+
     @Test fun canonicalizationTrimsAndLowercases() {
         assertEquals("file_manager", infinityCanonicalWindowKind(" File_Manager "))
         assertEquals("orbit", infinityCanonicalWindowKind("ORBIT"))
