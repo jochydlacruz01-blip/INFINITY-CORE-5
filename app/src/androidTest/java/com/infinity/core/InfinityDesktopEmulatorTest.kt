@@ -958,11 +958,18 @@ class InfinityDesktopEmulatorTest {
             .putInt("active_workspace", 2)
             .putString(infinityVirtualDesktopNameKey(1), "PRINCIPAL")
             .putString(infinityVirtualDesktopNameKey(2), "TRABAJO GUARDADO")
+            .putString(infinityVirtualDesktopNameKey(3), "PERSONAL GUARDADO")
             .putString(infinityVirtualDesktopBackgroundPresetKey(1), "nebula")
             .putString(infinityVirtualDesktopBackgroundPresetKey(2), "punk")
+            .putString(infinityVirtualDesktopBackgroundPresetKey(3), "aurora")
             .putString(infinityWorkspaceDesktopShortcutKey(2), infinitySerializeDesktopShortcutPackages(listOf("com.android.settings")))
+            .putString(infinityWorkspaceDesktopShortcutKey(3), infinitySerializeDesktopShortcutPackages(listOf("com.android.camera2")))
+            .putFloat(infinityWorkspaceIconPositionKey(1, "files", "x"), 45f)
+            .putFloat(infinityWorkspaceIconPositionKey(1, "files", "y"), 67f)
             .putFloat(infinityWorkspaceIconPositionKey(2, "files", "x"), 123f)
             .putFloat(infinityWorkspaceIconPositionKey(2, "files", "y"), 234f)
+            .putFloat(infinityWorkspaceIconPositionKey(3, "files", "x"), 345f)
+            .putFloat(infinityWorkspaceIconPositionKey(3, "files", "y"), 456f)
             .putString("saved_windows", savedWindow)
             .commit()
 
@@ -975,8 +982,17 @@ class InfinityDesktopEmulatorTest {
         assertTrue(preferences.getInt("active_workspace", 1) == 2)
         assertTrue(preferences.getString(infinityVirtualDesktopBackgroundPresetKey(1), null) == "nebula")
         assertTrue(preferences.getString(infinityVirtualDesktopBackgroundPresetKey(2), null) == "punk")
+        assertTrue(preferences.getString(infinityVirtualDesktopBackgroundPresetKey(3), null) == "aurora")
+        assertTrue(preferences.getFloat(infinityWorkspaceIconPositionKey(1, "files", "x"), Float.NaN).isFinite())
         assertTrue(preferences.getFloat(infinityWorkspaceIconPositionKey(2, "files", "x"), Float.NaN).isFinite())
+        assertTrue(preferences.getFloat(infinityWorkspaceIconPositionKey(3, "files", "x"), Float.NaN).isFinite())
+        assertTrue(preferences.getFloat(infinityWorkspaceIconPositionKey(1, "files", "y"), Float.NaN).isFinite())
         assertTrue(preferences.getFloat(infinityWorkspaceIconPositionKey(2, "files", "y"), Float.NaN).isFinite())
+        assertTrue(preferences.getFloat(infinityWorkspaceIconPositionKey(3, "files", "y"), Float.NaN).isFinite())
+        assertTrue(
+            infinityParseDesktopShortcutPackages(preferences.getString(infinityWorkspaceDesktopShortcutKey(3), null))
+                .contains("com.android.camera2")
+        )
         assertTrue(preferences.getString("saved_windows", null)?.contains("notes_2") == true)
 
         compose.onNodeWithTag("infinity-workspace-name").performClick()
@@ -993,11 +1009,18 @@ class InfinityDesktopEmulatorTest {
         compose.onNodeWithText("PROYECTOS").assertExists()
         compose.onNodeWithTag("infinity-window-notes").assertExists()
         assertTrue(preferences.getString(infinityVirtualDesktopNameKey(2), null) == "PROYECTOS")
+        assertTrue(preferences.getString(infinityVirtualDesktopBackgroundPresetKey(1), null) == "nebula")
         assertTrue(preferences.getString(infinityVirtualDesktopBackgroundPresetKey(2), null) == "punk")
+        assertTrue(preferences.getString(infinityVirtualDesktopBackgroundPresetKey(3), null) == "aurora")
         assertTrue(
             infinityParseDesktopShortcutPackages(
                 preferences.getString(infinityWorkspaceDesktopShortcutKey(2), null)
             ).contains("com.android.settings")
+        )
+        assertTrue(
+            infinityParseDesktopShortcutPackages(
+                preferences.getString(infinityWorkspaceDesktopShortcutKey(3), null)
+            ).contains("com.android.camera2")
         )
     }
 
