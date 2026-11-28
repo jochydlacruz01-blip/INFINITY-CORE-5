@@ -787,11 +787,25 @@ private fun Infinity08App(resumeSignal: Int) {
     fun switchWorkspace(target: Int) {
         // A workspace transition ends every in-flight gesture atomically.
         geometryTransactionRegistry.activeWindowIds().forEach(::cancelWindowGeometryTransaction)
+        val sourceWorkspace = workspace
         val normalizedTarget = infinityNormalizeWorkspace(target)
+        // Save the outgoing desktop's focus before changing the active workspace.
+        // Do not rely only on LaunchedEffect: a fast workspace tap can happen before
+        // that effect has persisted the latest focus change.
+        val sourceFocus = focusedWindowId?.takeIf { id ->
+            windows.any { it.id == id && it.workspace == sourceWorkspace && !it.minimized }
+        }
+        val preferences = prefs.edit()
+        val sourceFocusKey = infinityWorkspaceFocusedWindowKey(sourceWorkspace)
+        if (sourceFocus == null) preferences.remove(sourceFocusKey)
+        else preferences.putString(sourceFocusKey, sourceFocus)
+        // Restore the target desktop's own last-focused window, falling back only
+        // to the most recent eligible window within that same workspace.
+        val targetSavedFocus = prefs.getString(infinityWorkspaceFocusedWindowKey(normalizedTarget), null)
+        preferences.putInt("active_workspace", normalizedTarget).apply()
         workspace = normalizedTarget
-        prefs.edit().putInt("active_workspace", normalizedTarget).apply()
         focusedWindowId = infinityResolveWorkspaceSwitchFocus(
-            focusedWindowId, windows.map { it.id },
+            targetSavedFocus, windows.map { it.id },
             windows.associate { it.id to it.workspace },
             windows.filter { it.minimized }.map { it.id }.toSet(), normalizedTarget
         )
