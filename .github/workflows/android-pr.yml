@@ -34,7 +34,6 @@ on:
       - INFINITY-PACK-11-SECURE-PAIRING
       - INFINITY-PACK-12-WINDOWS-COMPANION
       - INFINITY-PACK-13-FUTURISTIC-DESKTOP-VISUAL
-      - INFINITY-0.11-VIRTUAL-DESKTOPS
     paths:
       - "app/**"
       - "freerdp-core/**"
