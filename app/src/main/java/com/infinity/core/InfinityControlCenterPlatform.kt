@@ -12,6 +12,14 @@ import android.os.Environment
 import android.os.StatFs
 import android.provider.Settings
 import android.net.Uri
+import android.net.wifi.WifiManager
+
+private fun readMediaVolumeWritable(context: Context): Boolean {
+    val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager ?: return false
+    return runCatching {
+        !audioManager.isVolumeFixed && audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC) > 0
+    }.getOrDefault(false)
+}
 
 private fun readMediaVolumePercent(context: Context): Int? {
     val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
@@ -40,7 +48,11 @@ internal data class InfinityControlCenterSnapshot(
     val androidVersion: String,
     val brightness: Int?,
     val brightnessWritable: Boolean,
-    val mediaVolumePercent: Int?
+    val mediaVolumePercent: Int?,
+    val mediaVolumeWritable: Boolean = false,
+    val wifiEnabled: Boolean? = null,
+    val bluetoothEnabled: Boolean? = null,
+    val airplaneModeEnabled: Boolean? = null
 ) {
     companion object {
         fun unavailable() = InfinityControlCenterSnapshot(
@@ -52,7 +64,11 @@ internal data class InfinityControlCenterSnapshot(
             androidVersion = "—",
             brightness = null,
             brightnessWritable = false,
-            mediaVolumePercent = null
+            mediaVolumePercent = null,
+            mediaVolumeWritable = false,
+            wifiEnabled = null,
+            bluetoothEnabled = null,
+            airplaneModeEnabled = null
         )
 
         fun read(context: Context): InfinityControlCenterSnapshot {
@@ -91,6 +107,16 @@ internal data class InfinityControlCenterSnapshot(
             }.getOrNull()
 
             val volume = readMediaVolumePercent(appContext)
+            val volumeWritable = readMediaVolumeWritable(appContext)
+            val wifiEnabled = runCatching {
+                (appContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager)?.isWifiEnabled
+            }.getOrNull()
+            // Android 12+ protects Bluetooth adapter state behind BLUETOOTH_CONNECT.
+            // Do not request a sensitive runtime permission just to render a status tile.
+            val bluetoothEnabled: Boolean? = null
+            val airplaneModeEnabled = runCatching {
+                Settings.Global.getInt(appContext.contentResolver, Settings.Global.AIRPLANE_MODE_ON, 0) == 1
+            }.getOrNull()
 
             return InfinityControlCenterSnapshot(
                 batteryPercent = batteryPercent,
@@ -105,7 +131,11 @@ internal data class InfinityControlCenterSnapshot(
                 androidVersion = Build.VERSION.RELEASE.orEmpty().ifBlank { "Desconocida" },
                 brightness = brightness,
                 brightnessWritable = Settings.System.canWrite(appContext),
-                mediaVolumePercent = volume
+                mediaVolumePercent = volume,
+                mediaVolumeWritable = volumeWritable,
+                wifiEnabled = wifiEnabled,
+                bluetoothEnabled = bluetoothEnabled,
+                airplaneModeEnabled = airplaneModeEnabled
             )
         }
     }
@@ -169,11 +199,17 @@ internal object InfinityControlCenterActions {
                 Settings.System.SCREEN_BRIGHTNESS_MODE_MANUAL
             )
             if (!manualModeApplied) return@runCatching false
-            Settings.System.putInt(
+            val target = value.coerceIn(1, 255)
+            val written = Settings.System.putInt(
                 context.contentResolver,
                 Settings.System.SCREEN_BRIGHTNESS,
-                value.coerceIn(1, 255)
+                target
             )
+            written && Settings.System.getInt(
+                context.contentResolver,
+                Settings.System.SCREEN_BRIGHTNESS,
+                -1
+            ) == target
         }.getOrDefault(false)
     }
 
@@ -181,14 +217,13 @@ internal object InfinityControlCenterActions {
         val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
             ?: return false
         return runCatching {
+            if (audioManager.isVolumeFixed) return@runCatching false
             val max = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
-            val target = (max * percent.coerceIn(0, 100) / 100f).toInt()
-            audioManager.setStreamVolume(
-                AudioManager.STREAM_MUSIC,
-                target.coerceIn(0, max),
-                0
-            )
-            true
+            val target = infinityMediaVolumeTargetLevel(max, percent) ?: return@runCatching false
+            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, target, 0)
+            // Android's setter is void; verify the device's actual stream level
+            // before telling Compose that the slider change was applied.
+            audioManager.getStreamVolume(AudioManager.STREAM_MUSIC) == target
         }.getOrDefault(false)
     }
 

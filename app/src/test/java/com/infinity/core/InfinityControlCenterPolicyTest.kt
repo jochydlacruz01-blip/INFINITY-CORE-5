@@ -32,6 +32,20 @@ class InfinityControlCenterPolicyTest {
         assertEquals(280f, infinityControlDevicePanelMaxWidthDp(Float.NaN), 0f)
     }
 
+    @Test fun connectivityTilesDistinguishEnabledDisabledAndAndroidOwnedStates() {
+        assertEquals("Activado", infinityControlConnectivityStatus(true))
+        assertEquals("Desactivado", infinityControlConnectivityStatus(false))
+        assertEquals("Consultar en Android", infinityControlConnectivityStatus(null))
+    }
+
+    @Test fun mediaVolumePercentageMapsSafelyToDiscreteAndroidLevels() {
+        assertEquals(0, infinityMediaVolumeTargetLevel(15, -20))
+        assertEquals(4, infinityMediaVolumeTargetLevel(15, 33))
+        assertEquals(15, infinityMediaVolumeTargetLevel(15, 100))
+        assertEquals(null as Int?, infinityMediaVolumeTargetLevel(0, 50))
+        assertEquals(null as Int?, infinityMediaVolumeTargetLevel(-1, 50))
+    }
+
     @Test fun compactAndExpandedLayoutsChooseAppropriateColumns() {
         assertEquals(1, infinityControlPanelColumns(360f))
         assertEquals(1, infinityControlPanelColumns(519.9f))

@@ -112,7 +112,12 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-private data class DeskItem(val id: String, val label: String, val glyph: String)
+private data class DeskItem(
+    val id: String,
+    val label: String,
+    val glyph: String,
+    val packageName: String? = null
+)
 
 @Composable
 private fun InfinityAppBadge(
@@ -138,7 +143,22 @@ private fun InfinityAppBadge(
         "connect" -> Icons.Filled.Computer
         "settings" -> Icons.Filled.Info
         "orbit" -> Icons.Filled.Apps
-        else -> Icons.Filled.Info
+        else -> if (item.packageName != null) Icons.Filled.Apps else Icons.Filled.Info
+    }
+    val context = LocalContext.current
+    val density = LocalDensity.current
+    val shortcutIcon = remember(item.packageName, size, density) {
+        item.packageName?.let { packageName ->
+            runCatching {
+                val drawable = context.packageManager.getApplicationIcon(packageName)
+                val pixels = with(density) { size.toPx().roundToInt() }.coerceAtLeast(1)
+                Bitmap.createBitmap(pixels, pixels, Bitmap.Config.ARGB_8888).also { bitmap ->
+                    val canvas = Canvas(bitmap)
+                    drawable.setBounds(0, 0, pixels, pixels)
+                    drawable.draw(canvas)
+                }.asImageBitmap()
+            }.getOrNull()
+        }
     }
     val radius = RoundedCornerShape(size * if (iconPack == "windows11") .22f else .27f)
     val tileBrush = if (iconPack == "windows11") {
@@ -196,6 +216,13 @@ private fun InfinityAppBadge(
                 color = if (iconPack == "windows11") Color(0xFFF4FAFF) else Color.White,
                 fontSize = (size.value * if (item.id == "about") .70f else .58f).sp,
                 fontWeight = FontWeight.Black
+            )
+        } else if (shortcutIcon != null) {
+            Image(
+                bitmap = shortcutIcon,
+                contentDescription = item.label,
+                modifier = Modifier.size(size * .62f),
+                contentScale = ContentScale.Fit
             )
         } else {
             Icon(
@@ -319,7 +346,7 @@ private fun Infinity08App(resumeSignal: Int) {
         true
     }
 
-    val desktopItems = remember {
+    val desktopBaseItems = remember {
         // INFINITY FUTURE reference desktop: stable IDs preserve existing window actions.
         listOf(
             DeskItem("files", "Este Equipo", "▣"),
@@ -333,6 +360,13 @@ private fun Infinity08App(resumeSignal: Int) {
     }
 
     var workspace by remember { mutableIntStateOf(infinityNormalizeWorkspace(prefs.getInt("active_workspace", 1))) }
+    var desktopShortcutPackages by remember(workspace) {
+        mutableStateOf(
+            infinityParseDesktopShortcutPackages(
+                prefs.getString(infinityWorkspaceDesktopShortcutKey(workspace), null)
+            )
+        )
+    }
     var dashboardOpen by remember { mutableStateOf(false) }
     var startOpen by remember { mutableStateOf(false) }
     var orbitOpen by remember { mutableStateOf(false) }
@@ -731,7 +765,7 @@ private fun Infinity08App(resumeSignal: Int) {
 val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
     val latestWorkspace by rememberUpdatedState(workspace)
 
-    val installedApps = remember {
+    val installedApps = remember(resumeSignal) {
         val launcherIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
         context.packageManager.queryIntentActivities(launcherIntent, 0)
             .map {
@@ -745,6 +779,28 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
             .sortedBy { it.label.lowercase(Locale.getDefault()) }
     }
     val installedPackageNames = remember(installedApps) { installedApps.map { it.packageName }.toSet() }
+    LaunchedEffect(installedPackageNames, workspace) {
+        val normalized = infinityNormalizeDesktopShortcutPackages(desktopShortcutPackages, installedPackageNames)
+        if (normalized != desktopShortcutPackages) {
+            desktopShortcutPackages = normalized
+            prefs.edit().putString(
+                infinityWorkspaceDesktopShortcutKey(workspace),
+                infinitySerializeDesktopShortcutPackages(normalized)
+            ).apply()
+        }
+    }
+    val desktopItems = remember(desktopBaseItems, desktopShortcutPackages, installedApps) {
+        desktopBaseItems + desktopShortcutPackages.mapNotNull { packageName ->
+            installedApps.firstOrNull { it.packageName == packageName }?.let { app ->
+                DeskItem(
+                    id = infinityDesktopShortcutId(packageName),
+                    label = app.label,
+                    glyph = "◉",
+                    packageName = packageName
+                )
+            }
+        }
+    }
     var dockFavorites by remember {
         mutableStateOf(
             infinityDockParseFavorites(prefs.getString("dock_favorites", ""))
@@ -775,6 +831,15 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
         dockFavorites = normalized
         prefs.edit().putString("dock_favorites", normalized.joinToString("\n")).apply()
         debugDockFavorites("favorite persist normalized=$normalized stored=${prefs.getString("dock_favorites", "")}")
+    }
+
+    fun persistDesktopShortcutPackages(next: List<String>) {
+        val normalized = infinityNormalizeDesktopShortcutPackages(next, installedPackageNames)
+        desktopShortcutPackages = normalized
+        prefs.edit().putString(
+            infinityWorkspaceDesktopShortcutKey(workspace),
+            infinitySerializeDesktopShortcutPackages(normalized)
+        ).apply()
     }
 
     fun launchApp(packageName: String) {
@@ -860,7 +925,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
             // Load, normalize, de-collide and persist one workspace atomically.
             // Keep the icon layer hidden until this workspace snapshot is ready.
             var iconLayoutReady by remember(workspace) { mutableStateOf(false) }
-            LaunchedEffect(workspace, maxW, maxH, dockSafeTop, dockPosition) {
+            LaunchedEffect(workspace, maxW, maxH, dockSafeTop, dockPosition, desktopItems) {
                 iconLayoutReady = false
                 val viewportWidth = with(density) { maxW.toPx() }
                 val safeDesktopHeight = desktopIconMetrics.safeDesktopHeightPx
@@ -1114,9 +1179,10 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                             InfinityDesktopIconRecord(
                                 id = item.id,
                                 label = item.label,
-                                type = when (item.id) {
-                                    "files" -> "folder"
-                                    "apps", "connect" -> "app"
+                                type = when {
+                                    item.packageName != null -> "app"
+                                    item.id == "files" -> "folder"
+                                    item.id == "apps" || item.id == "connect" -> "app"
                                     else -> "system"
                                 },
                                 order = index
@@ -1222,9 +1288,10 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                         InfinityDesktopIconRecord(
                             id = item.id,
                             label = item.label,
-                            type = when (item.id) {
-                                "files" -> "folder"
-                                "apps", "connect" -> "app"
+                            type = when {
+                                item.packageName != null -> "app"
+                                item.id == "files" -> "folder"
+                                item.id == "apps" || item.id == "connect" -> "app"
                                 else -> "system"
                             },
                             order = index
@@ -1391,7 +1458,8 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                                         orbitOpen = false
                                         advancedOpen = false
                                     }
-                                    else -> focusedWindowId = openInfinityWindow(item.id, windows, workspace, maxW.value, maxH.value, dockSafeBottom, dockSafeTop)
+                                    else -> if (item.packageName != null) launchApp(item.packageName)
+                                    else focusedWindowId = openInfinityWindow(item.id, windows, workspace, maxW.value, maxH.value, dockSafeBottom, dockSafeTop)
                                 }
                             }
                             .padding(if (referenceRail) 2.dp else if (compactIconCell) 3.dp else 6.dp)
@@ -1924,10 +1992,10 @@ DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED"
                                         .testTag("infinity-start-app-${item.id}")
                                         .clip(RoundedCornerShape(10.dp))
                                         .clickable {
-                                            if (item.id == "orbit") {
-                                                orbitOpen = true
-                                            } else {
-                                                focusedWindowId = openInfinityWindow(item.id, windows, workspace, maxW.value, maxH.value, dockSafeBottom, dockSafeTop)
+                                            when {
+                                                item.id == "orbit" -> orbitOpen = true
+                                                item.packageName != null -> launchApp(item.packageName)
+                                                else -> focusedWindowId = openInfinityWindow(item.id, windows, workspace, maxW.value, maxH.value, dockSafeBottom, dockSafeTop)
                                             }
                                             startOpen = false
                                         }.padding(9.dp),
@@ -2054,6 +2122,22 @@ DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED"
                                             color = if (app.packageName in dockFavorites) Color(0xFFFFA78E) else accent,
                                             fontSize = 9.sp,
                                             fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                    val isDesktopShortcut = app.packageName in desktopShortcutPackages
+                                    IconButton(
+                                        onClick = {
+                                            persistDesktopShortcutPackages(
+                                                infinityToggleDesktopShortcut(desktopShortcutPackages, app.packageName, installedPackageNames)
+                                            )
+                                        },
+                                        modifier = Modifier.size(34.dp).testTag("infinity-desktop-shortcut-toggle-${app.packageName}")
+                                    ) {
+                                        Icon(
+                                            imageVector = if (isDesktopShortcut) Icons.Filled.Close else Icons.Filled.Apps,
+                                            contentDescription = if (isDesktopShortcut) "Quitar acceso directo del escritorio" else "Añadir acceso directo al escritorio",
+                                            tint = accent,
+                                            modifier = Modifier.size(17.dp)
                                         )
                                     }
                                     if (app.packageName in dockFavorites) {

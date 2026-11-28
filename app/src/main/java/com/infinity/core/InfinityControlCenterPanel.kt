@@ -104,10 +104,10 @@ internal fun InfinityControlCenterPanel(
 
                 SectionLabel("CONECTIVIDAD")
                 val connectivity = listOf(
-                    ControlCenterTileData("Wi-Fi", "Ajustes de red", Icons.Outlined.Wifi, InfinityControlDestination.WIFI),
-                    ControlCenterTileData("Bluetooth", "Dispositivos", Icons.Outlined.Bluetooth, InfinityControlDestination.BLUETOOTH),
-                    ControlCenterTileData("Modo avión", "Control de Android", Icons.Outlined.AirplanemodeActive, InfinityControlDestination.AIRPLANE_MODE),
-                    ControlCenterTileData("Red móvil", "SIM y datos", Icons.Outlined.SignalCellularAlt, InfinityControlDestination.MOBILE_NETWORK)
+                    ControlCenterTileData("Wi-Fi", infinityControlConnectivityStatus(snapshot.wifiEnabled), Icons.Outlined.Wifi, InfinityControlDestination.WIFI),
+                    ControlCenterTileData("Bluetooth", infinityControlConnectivityStatus(snapshot.bluetoothEnabled), Icons.Outlined.Bluetooth, InfinityControlDestination.BLUETOOTH),
+                    ControlCenterTileData("Modo avión", infinityControlConnectivityStatus(snapshot.airplaneModeEnabled), Icons.Outlined.AirplanemodeActive, InfinityControlDestination.AIRPLANE_MODE),
+                    ControlCenterTileData("Red móvil", "SIM y datos · Ajustes Android", Icons.Outlined.SignalCellularAlt, InfinityControlDestination.MOBILE_NETWORK)
                 )
                 TileGrid(items = connectivity, columns = columns, onClick = onDestinationClick)
 
@@ -130,6 +130,7 @@ internal fun InfinityControlCenterPanel(
                     value = snapshot.mediaVolumePercent?.toFloat(),
                     valueRange = 0f..100f,
                     icon = Icons.Outlined.VolumeUp,
+                    enabled = snapshot.mediaVolumeWritable,
                     onValueChange = { onVolumeChange(it.roundToInt()) }
                 )
                 TileGrid(

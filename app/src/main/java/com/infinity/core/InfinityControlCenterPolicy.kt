@@ -24,3 +24,18 @@ internal fun infinityControlDevicePanelMaxWidthDp(availableWidthDp: Float): Floa
     if (!availableWidthDp.isFinite() || availableWidthDp <= 0f) return 280f
     return (availableWidthDp - 24f).coerceIn(1f, 560f)
 }
+
+
+/** Converts a user percentage to Android's discrete media stream level. */
+internal fun infinityMediaVolumeTargetLevel(maxLevel: Int, percent: Int): Int? {
+    if (maxLevel <= 0) return null
+    return (maxLevel * percent.coerceIn(0, 100) / 100f).toInt().coerceIn(0, maxLevel)
+}
+
+
+/** Displays only states that Android actually exposed; unknown values remain an explicit settings handoff. */
+internal fun infinityControlConnectivityStatus(enabled: Boolean?): String = when (enabled) {
+    true -> "Activado"
+    false -> "Desactivado"
+    null -> "Consultar en Android"
+}

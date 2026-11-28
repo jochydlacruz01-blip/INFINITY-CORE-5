@@ -30,6 +30,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.swipe
 import androidx.compose.ui.test.swipeUp
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -450,9 +451,11 @@ class InfinityDesktopEmulatorTest {
         val removeFavorite = compose.onNodeWithTag("infinity-dock-favorite-toggle-$packageName")
         removeFavorite.assertExists()
         removeFavorite.assertTextEquals("QUITAR")
-        android.util.Log.d("INFINITY_TEST_DIAGNOSTIC", "before remove click favorites=${preferences.getString("dock_favorites", "")}")
-        removeFavorite.performClick()
-        android.util.Log.d("INFINITY_TEST_DIAGNOSTIC", "after remove click favorites=${preferences.getString("dock_favorites", "")}")
+        removeFavorite.performScrollTo()
+        removeFavorite.assertIsDisplayed()
+        android.util.Log.d("INFINITY_TEST_DIAGNOSTIC", "before remove touch favorites=${preferences.getString("dock_favorites", "")}")
+        removeFavorite.performTouchInput { click() }
+        android.util.Log.d("INFINITY_TEST_DIAGNOSTIC", "after remove touch favorites=${preferences.getString("dock_favorites", "")}")
         waitForComposeCondition(timeoutMillis = 5_000) {
             val persistedRemoval = preferences.getString("dock_favorites", "").orEmpty()
                 .lineSequence().none { it.trim() == packageName }
