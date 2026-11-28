@@ -1917,7 +1917,8 @@ DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED"
                                 key = { it.packageName }
                             ) { app ->
                                 Row(
-                                    Modifier.fillMaxWidth().padding(vertical = 7.dp),
+                                    Modifier.fillMaxWidth().padding(vertical = 7.dp)
+                                        .testTag("infinity-start-installed-app-${app.packageName}"),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     val appIcon = remember(app.packageName, app.activityName) {
@@ -1983,6 +1984,7 @@ DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED"
                                             }
                                             persistDockFavorites(next)
                                         },
+                                        modifier = Modifier.testTag("infinity-dock-favorite-toggle-${app.packageName}"),
                                         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
                                     ) {
                                         Text(

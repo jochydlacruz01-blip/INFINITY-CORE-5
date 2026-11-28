@@ -401,6 +401,54 @@ class InfinityDesktopEmulatorTest {
     }
 
     @Test(timeout = 120_000)
+    fun dockFavoriteCanBePinnedAndPersistsAcrossActivityRecreation() {
+        val launcherIntent = android.content.Intent(android.content.Intent.ACTION_MAIN)
+            .addCategory(android.content.Intent.CATEGORY_LAUNCHER)
+        val candidate = context.packageManager.queryIntentActivities(launcherIntent, 0)
+            .firstOrNull { it.activityInfo.packageName != context.packageName }
+            ?: throw AssertionError("No se encontró una aplicación lanzable para probar favoritos")
+        val packageName = candidate.activityInfo.packageName
+        val label = candidate.loadLabel(context.packageManager).toString()
+        val preferences = context.getSharedPreferences("infinity_desktop", 0)
+
+        compose.onNodeWithContentDescription("START").performClick()
+        settleComposeFrame()
+        compose.onNode(hasSetTextAction()).performTextInput(label)
+        settleComposeFrame()
+        compose.onNodeWithTag("infinity-start-installed-app-$packageName").assertExists()
+        compose.onNodeWithTag("infinity-dock-favorite-toggle-$packageName")
+            .assertExists()
+            .performClick()
+        compose.waitUntil(timeoutMillis = 5_000) {
+            preferences.getString("dock_favorites", "").orEmpty()
+                .lineSequence().any { it.trim() == packageName }
+        }
+        compose.onNodeWithTag("infinity-dock-app-$packageName").assertExists()
+
+        compose.activityRule.scenario.recreate()
+        settleComposeFrame()
+        assertTrue(
+            "El favorito debe sobrevivir a la recreación de la Activity",
+            preferences.getString("dock_favorites", "").orEmpty()
+                .lineSequence().any { it.trim() == packageName }
+        )
+        compose.onNodeWithTag("infinity-dock-app-$packageName").assertExists()
+
+        compose.onNodeWithContentDescription("START").performClick()
+        settleComposeFrame()
+        compose.onNode(hasSetTextAction()).performTextInput(label)
+        settleComposeFrame()
+        compose.onNodeWithTag("infinity-dock-favorite-toggle-$packageName")
+            .assertExists()
+            .performClick()
+        compose.waitUntil(timeoutMillis = 5_000) {
+            preferences.getString("dock_favorites", "").orEmpty()
+                .lineSequence().none { it.trim() == packageName }
+        }
+        compose.onNodeWithTag("infinity-dock-app-$packageName").assertDoesNotExist()
+    }
+
+    @Test(timeout = 120_000)
     fun notificationDismissActionRespectsAndroidClearability() {
         context.getSharedPreferences("infinity_privacy", 0).edit()
             .putBoolean("hide_notification_content", false)
