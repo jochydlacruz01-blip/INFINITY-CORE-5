@@ -299,7 +299,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: INFINITY-PROCESS-PERSISTENCE-\${{ github.sha }}
+          name: INFINITY-PROCESS-PERSISTENCE-${{ github.sha }}
           path: |
             app/build/outputs/androidTest-results/
             app/build/reports/androidTests/
