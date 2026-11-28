@@ -1024,4 +1024,53 @@ class InfinityDesktopEmulatorTest {
         )
     }
 
+
+    @Test(timeout = 120_000)
+    fun windowsRemainIsolatedAndRecoverAcrossAllThreeWorkspaces() {
+        val preferences = context.getSharedPreferences("infinity_desktop", 0)
+        val savedWindows = """[
+            {"id":"notes_1","title":"Notas principales","kind":"notes","x":30,"y":90,"width":410,"height":320,"minimized":false,"workspace":1,"maximized":false},
+            {"id":"files_2","title":"Archivos de trabajo","kind":"files","x":120,"y":140,"width":520,"height":420,"minimized":false,"workspace":2,"maximized":false},
+            {"id":"apps_3","title":"Aplicaciones personales","kind":"apps","x":210,"y":180,"width":480,"height":380,"minimized":false,"workspace":3,"maximized":true}
+        ]""".trimIndent()
+        preferences.edit()
+            .putInt("active_workspace", 2)
+            .putString("focused_window_id", "files_2")
+            .putString("saved_windows", savedWindows)
+            .commit()
+
+        compose.activityRule.scenario.recreate()
+        settleComposeFrame()
+
+        // Workspace 2 must render only its own task; the other windows remain saved,
+        // not destroyed or temporarily exposed underneath the active desktop.
+        compose.onNodeWithTag("infinity-window-files").assertExists()
+        compose.onNodeWithTag("infinity-window-notes").assertDoesNotExist()
+        compose.onNodeWithTag("infinity-window-apps").assertDoesNotExist()
+
+        selectWorkspaceThroughOrbit(1)
+        compose.onNodeWithTag("infinity-window-notes").assertExists()
+        compose.onNodeWithTag("infinity-window-files").assertDoesNotExist()
+        compose.onNodeWithTag("infinity-window-apps").assertDoesNotExist()
+
+        selectWorkspaceThroughOrbit(3)
+        compose.onNodeWithTag("infinity-window-apps").assertExists()
+        compose.onNodeWithTag("infinity-window-notes").assertDoesNotExist()
+        compose.onNodeWithTag("infinity-window-files").assertDoesNotExist()
+
+        // Activity recreation must restore the active desktop and preserve all three
+        // independent window records, including the maximized state of workspace 3.
+        compose.activityRule.scenario.recreate()
+        settleComposeFrame()
+        compose.onNodeWithTag("infinity-window-apps").assertExists()
+        val persisted = JSONArray(preferences.getString("saved_windows", "[]"))
+        val records = (0 until persisted.length()).mapNotNull { persisted.optJSONObject(it) }
+            .associateBy { it.optString("id") }
+        assertTrue("Workspace 1 window must remain stored", records.containsKey("notes_1"))
+        assertTrue("Workspace 2 window must remain stored", records.containsKey("files_2"))
+        assertTrue("Workspace 3 window must remain stored", records.containsKey("apps_3"))
+        assertTrue("Workspace 3 maximized state must survive recreation", records["apps_3"]?.optBoolean("maximized") == true)
+        assertTrue("Active workspace must survive recreation", preferences.getInt("active_workspace", 0) == 3)
+    }
+
 }
