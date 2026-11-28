@@ -92,4 +92,37 @@ class InfinityVirtualDesktopRulesTest {
         assertFalse(infinityCanMoveAuroraWindow(listOf(first, second), "notes_1", "notes", 2))
         assertTrue(infinityCanMoveAuroraWindow(listOf(first), "notes_1", "notes", 3))
     }
+
+    @Test fun desktopIconCoordinatesUseIndependentWorkspaceKeys() {
+        val firstX = infinityWorkspaceIconPositionKey(1, "files", "x")
+        val secondX = infinityWorkspaceIconPositionKey(2, "files", "x")
+        val thirdX = infinityWorkspaceIconPositionKey(3, "files", "x")
+        assertEquals("workspace_1_files_x", firstX)
+        assertEquals("workspace_2_files_x", secondX)
+        assertEquals("workspace_3_files_x", thirdX)
+        assertNotEquals(firstX, secondX)
+        assertNotEquals(secondX, thirdX)
+        assertNotEquals(
+            infinityWorkspaceIconPositionKey(1, "files", "x"),
+            infinityWorkspaceIconPositionKey(1, "files", "y")
+        )
+    }
+
+    @Test fun desktopIconCoordinateKeysNormalizeWorkspaceAndItemIdentity() {
+        assertEquals(
+            infinityWorkspaceIconPositionKey(1, " Files ", "x"),
+            infinityWorkspaceIconPositionKey(0, "files", "x")
+        )
+        assertEquals(
+            infinityWorkspaceIconPositionKey(3, "FILES!", "y"),
+            infinityWorkspaceIconPositionKey(9, "files", "y")
+        )
+        assertEquals("workspace_2_my_app_y", infinityWorkspaceIconPositionKey(2, " My-App ", "y"))
+    }
+
+    @Test fun desktopIconCoordinateKeysRejectInvalidIdentityAndAxis() {
+        assertTrue(runCatching { infinityWorkspaceIconPositionKey(1, " !!! ", "x") }.isFailure)
+        assertTrue(runCatching { infinityWorkspaceIconPositionKey(1, "files", "z") }.isFailure)
+    }
+
 }
