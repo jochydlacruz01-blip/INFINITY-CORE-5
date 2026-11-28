@@ -8,6 +8,7 @@ import android.provider.MediaStore
 import android.util.Log
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
@@ -27,6 +28,7 @@ import androidx.compose.ui.test.printToLog
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
@@ -407,7 +409,7 @@ class InfinityDesktopEmulatorTest {
             .addCategory(android.content.Intent.CATEGORY_LAUNCHER)
         // Use the app under test as a controlled launcher fixture. Selecting the
         // first arbitrary installed app made this test depend on emulator image contents
-        // and package visibility after Activity recreation (e.g. com.android.camera2).
+        // and package visibility after Activity recreation (e.g. com.android.settings).
         val candidate = context.packageManager.queryIntentActivities(launcherIntent, 0)
             .firstOrNull { it.activityInfo.packageName == context.packageName }
             ?: throw AssertionError("La Activity principal de INFINITY no aparece en el catálogo LAUNCHER del emulador")
@@ -451,6 +453,11 @@ class InfinityDesktopEmulatorTest {
         val removeFavorite = compose.onNodeWithTag("infinity-dock-favorite-toggle-$packageName")
         removeFavorite.assertExists()
         removeFavorite.assertTextEquals("QUITAR")
+        // The installed-app catalog can extend below the available Start viewport.
+        // Scroll the actual panel content so the action is fully exposed above the Dock.
+        compose.onNodeWithTag("infinity-start-content")
+            .performScrollToNode(hasTestTag("infinity-dock-favorite-toggle-$packageName"))
+        settleComposeFrame()
         removeFavorite.assertIsDisplayed()
         removeFavorite.performTouchInput { click() }
         waitForComposeCondition(timeoutMillis = 5_000) {
@@ -940,6 +947,130 @@ class InfinityDesktopEmulatorTest {
         compose.onNodeWithText("FUTURE PRIVATE SOURCE").assertDoesNotExist()
         compose.onNodeWithText("Future private title").assertDoesNotExist()
         compose.onNodeWithText("Future private body").assertDoesNotExist()
+    }
+
+
+    @Test(timeout = 120_000)
+    fun workspaceNamesBackgroundsShortcutsWindowsAndActiveSpaceSurviveActivityRecreation() {
+        val preferences = context.getSharedPreferences("infinity_desktop", 0)
+        val savedWindow = """[{"id":"notes_2","title":"Notas persistentes","kind":"notes","x":36,"y":92,"width":420,"height":340,"minimized":false,"workspace":2,"maximized":false}]"""
+        preferences.edit()
+            .putInt("active_workspace", 2)
+            .putString(infinityVirtualDesktopNameKey(1), "PRINCIPAL")
+            .putString(infinityVirtualDesktopNameKey(2), "TRABAJO GUARDADO")
+            .putString(infinityVirtualDesktopNameKey(3), "PERSONAL GUARDADO")
+            .putString(infinityVirtualDesktopBackgroundPresetKey(1), "nebula")
+            .putString(infinityVirtualDesktopBackgroundPresetKey(2), "punk")
+            .putString(infinityVirtualDesktopBackgroundPresetKey(3), "aurora")
+            .putString(infinityWorkspaceDesktopShortcutKey(2), infinitySerializeDesktopShortcutPackages(listOf("com.android.settings")))
+            .putString(infinityWorkspaceDesktopShortcutKey(3), infinitySerializeDesktopShortcutPackages(listOf("com.android.settings")))
+            .putFloat(infinityWorkspaceIconPositionKey(1, "files", "x"), 45f)
+            .putFloat(infinityWorkspaceIconPositionKey(1, "files", "y"), 67f)
+            .putFloat(infinityWorkspaceIconPositionKey(2, "files", "x"), 123f)
+            .putFloat(infinityWorkspaceIconPositionKey(2, "files", "y"), 234f)
+            .putFloat(infinityWorkspaceIconPositionKey(3, "files", "x"), 345f)
+            .putFloat(infinityWorkspaceIconPositionKey(3, "files", "y"), 456f)
+            .putString("saved_windows", savedWindow)
+            .commit()
+
+        compose.activityRule.scenario.recreate()
+        settleComposeFrame()
+
+        compose.onNodeWithTag("infinity-workspace-name").assertExists()
+        compose.onNodeWithText("TRABAJO GUARDADO", substring = true).assertExists()
+        compose.onNodeWithTag("infinity-window-notes").assertExists()
+        assertTrue(preferences.getInt("active_workspace", 1) == 2)
+        assertTrue(preferences.getString(infinityVirtualDesktopBackgroundPresetKey(1), null) == "nebula")
+        assertTrue(preferences.getString(infinityVirtualDesktopBackgroundPresetKey(2), null) == "punk")
+        assertTrue(preferences.getString(infinityVirtualDesktopBackgroundPresetKey(3), null) == "aurora")
+        assertTrue(preferences.getFloat(infinityWorkspaceIconPositionKey(1, "files", "x"), Float.NaN).isFinite())
+        assertTrue(preferences.getFloat(infinityWorkspaceIconPositionKey(2, "files", "x"), Float.NaN).isFinite())
+        assertTrue(preferences.getFloat(infinityWorkspaceIconPositionKey(3, "files", "x"), Float.NaN).isFinite())
+        assertTrue(preferences.getFloat(infinityWorkspaceIconPositionKey(1, "files", "y"), Float.NaN).isFinite())
+        assertTrue(preferences.getFloat(infinityWorkspaceIconPositionKey(2, "files", "y"), Float.NaN).isFinite())
+        assertTrue(preferences.getFloat(infinityWorkspaceIconPositionKey(3, "files", "y"), Float.NaN).isFinite())
+        assertTrue(
+            infinityParseDesktopShortcutPackages(preferences.getString(infinityWorkspaceDesktopShortcutKey(3), null))
+                .contains("com.android.settings")
+        )
+        assertTrue(preferences.getString("saved_windows", null)?.contains("notes_2") == true)
+
+        compose.onNodeWithTag("infinity-workspace-name").performClick()
+        settleComposeFrame()
+        compose.onNodeWithTag("infinity-workspace-name-input").performTextClearance()
+        compose.onNodeWithTag("infinity-workspace-name-input").performTextInput("PROYECTOS")
+        compose.onNodeWithTag("infinity-workspace-name-save").performClick()
+        settleComposeFrame()
+        compose.onNodeWithText("PROYECTOS", substring = true).assertExists()
+        assertTrue(preferences.getString(infinityVirtualDesktopNameKey(2), null) == "PROYECTOS")
+
+        compose.activityRule.scenario.recreate()
+        settleComposeFrame()
+        compose.onNodeWithText("PROYECTOS").assertExists()
+        compose.onNodeWithTag("infinity-window-notes").assertExists()
+        assertTrue(preferences.getString(infinityVirtualDesktopNameKey(2), null) == "PROYECTOS")
+        assertTrue(preferences.getString(infinityVirtualDesktopBackgroundPresetKey(1), null) == "nebula")
+        assertTrue(preferences.getString(infinityVirtualDesktopBackgroundPresetKey(2), null) == "punk")
+        assertTrue(preferences.getString(infinityVirtualDesktopBackgroundPresetKey(3), null) == "aurora")
+        assertTrue(
+            infinityParseDesktopShortcutPackages(
+                preferences.getString(infinityWorkspaceDesktopShortcutKey(2), null)
+            ).contains("com.android.settings")
+        )
+        assertTrue(
+            infinityParseDesktopShortcutPackages(
+                preferences.getString(infinityWorkspaceDesktopShortcutKey(3), null)
+            ).contains("com.android.settings")
+        )
+    }
+
+
+    @Test(timeout = 120_000)
+    fun windowsRemainIsolatedAndRecoverAcrossAllThreeWorkspaces() {
+        val preferences = context.getSharedPreferences("infinity_desktop", 0)
+        val savedWindows = """[
+            {"id":"notes_1","title":"Notas principales","kind":"notes","x":30,"y":90,"width":410,"height":320,"minimized":false,"workspace":1,"maximized":false},
+            {"id":"files_2","title":"Archivos de trabajo","kind":"files","x":120,"y":140,"width":520,"height":420,"minimized":false,"workspace":2,"maximized":false},
+            {"id":"apps_3","title":"Aplicaciones personales","kind":"apps","x":210,"y":180,"width":480,"height":380,"minimized":false,"workspace":3,"maximized":true}
+        ]""".trimIndent()
+        preferences.edit()
+            .putInt("active_workspace", 2)
+            .putString("focused_window_id", "files_2")
+            .putString("saved_windows", savedWindows)
+            .commit()
+
+        compose.activityRule.scenario.recreate()
+        settleComposeFrame()
+
+        // Workspace 2 must render only its own task; the other windows remain saved,
+        // not destroyed or temporarily exposed underneath the active desktop.
+        compose.onNodeWithTag("infinity-window-files").assertExists()
+        compose.onNodeWithTag("infinity-window-notes").assertDoesNotExist()
+        compose.onNodeWithTag("infinity-window-apps").assertDoesNotExist()
+
+        selectWorkspaceThroughOrbit(1)
+        compose.onNodeWithTag("infinity-window-notes").assertExists()
+        compose.onNodeWithTag("infinity-window-files").assertDoesNotExist()
+        compose.onNodeWithTag("infinity-window-apps").assertDoesNotExist()
+
+        selectWorkspaceThroughOrbit(3)
+        compose.onNodeWithTag("infinity-window-apps").assertExists()
+        compose.onNodeWithTag("infinity-window-notes").assertDoesNotExist()
+        compose.onNodeWithTag("infinity-window-files").assertDoesNotExist()
+
+        // Activity recreation must restore the active desktop and preserve all three
+        // independent window records, including the maximized state of workspace 3.
+        compose.activityRule.scenario.recreate()
+        settleComposeFrame()
+        compose.onNodeWithTag("infinity-window-apps").assertExists()
+        val persisted = org.json.JSONArray(preferences.getString("saved_windows", "[]"))
+        val records = (0 until persisted.length()).mapNotNull { persisted.optJSONObject(it) }
+            .associateBy { it.optString("id") }
+        assertTrue("Workspace 1 window must remain stored", records.containsKey("notes_1"))
+        assertTrue("Workspace 2 window must remain stored", records.containsKey("files_2"))
+        assertTrue("Workspace 3 window must remain stored", records.containsKey("apps_3"))
+        assertTrue("Workspace 3 maximized state must survive recreation", records["apps_3"]?.optBoolean("maximized") == true)
+        assertTrue("Active workspace must survive recreation", preferences.getInt("active_workspace", 0) == 3)
     }
 
 }

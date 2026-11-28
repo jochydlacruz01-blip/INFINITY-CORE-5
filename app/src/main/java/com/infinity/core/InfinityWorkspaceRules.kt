@@ -3,6 +3,10 @@ package com.infinity.core
 /** Keeps workspace selection within the three supported desktop spaces. */
 internal fun infinityNormalizeWorkspace(target: Int): Int = target.coerceIn(1, 3)
 
+/** Each virtual desktop remembers its own last focused AURORA window. */
+internal fun infinityWorkspaceFocusedWindowKey(workspace: Int): String =
+    "workspace_${infinityNormalizeWorkspace(workspace)}_focused_window_id"
+
 /** Stable identity prevents duplicate module windows within one workspace. */
 internal fun infinityWindowIdentity(kind: String, workspace: Int): String =
     "${kind}_${infinityNormalizeWorkspace(workspace)}"
@@ -82,6 +86,21 @@ internal fun infinityWindowSnapshotKey(entries: List<InfinityWindowSnapshotEntry
     }
 
 /** Wait for short geometry gestures to settle before committing the window snapshot. */
+/** Finds an unused recovery slot without overwriting an earlier malformed window snapshot. */
+internal fun infinityNextWindowRecoveryBackupKey(
+    existingKeys: Set<String>,
+    maxBackups: Int = 5
+): String? {
+    val limit = maxBackups.coerceAtLeast(0)
+    if (limit == 0) return null
+    for (index in 1..limit) {
+        val key = if (index == 1) "saved_windows_recovery_backup"
+        else "saved_windows_recovery_backup_$index"
+        if (key !in existingKeys) return key
+    }
+    return null
+}
+
 internal const val INFINITY_WINDOW_PERSISTENCE_DEBOUNCE_MS = 250L
 
 /** Phone-adapted windows must retain the original desktop geometry for later restoration. */

@@ -33,6 +33,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -360,6 +361,15 @@ private fun Infinity08App(resumeSignal: Int) {
     }
 
     var workspace by remember { mutableIntStateOf(infinityNormalizeWorkspace(prefs.getInt("active_workspace", 1))) }
+    var workspaceNames by remember {
+        mutableStateOf((1..INFINITY_VIRTUAL_DESKTOP_COUNT).associateWith { id ->
+            infinityNormalizeVirtualDesktopName(
+                prefs.getString(infinityVirtualDesktopNameKey(id), null), id
+            )
+        })
+    }
+    var renameWorkspaceDialogOpen by remember { mutableStateOf(false) }
+    var workspaceNameDraft by remember { mutableStateOf("") }
     var desktopShortcutPackages by remember(workspace) {
         mutableStateOf(
             infinityParseDesktopShortcutPackages(
@@ -369,7 +379,9 @@ private fun Infinity08App(resumeSignal: Int) {
     }
     var dashboardOpen by remember { mutableStateOf(false) }
     var startOpen by remember { mutableStateOf(false) }
+    var shortcutTransferMenuPackage by remember { mutableStateOf<String?>(null) }
     var orbitOpen by remember { mutableStateOf(false) }
+    var windowTransferMenuId by remember { mutableStateOf<String?>(null) }
     var controlOpen by remember { mutableStateOf(false) }
     var controlMode by remember { mutableStateOf("personalization") }
     var controlSnapshot by remember { mutableStateOf(InfinityControlCenterSnapshot.unavailable()) }
@@ -392,8 +404,17 @@ private fun Infinity08App(resumeSignal: Int) {
     var selectedFolder by remember {
         mutableStateOf(prefs.getString("selected_folder_uri", null)?.let(Uri::parse))
     }
-    var wallpaperUri by remember {
-        mutableStateOf(prefs.getString("wallpaper_uri", null)?.let(Uri::parse))
+    var wallpaperUri by remember(workspace) {
+        val workspaceKey = infinityVirtualDesktopWallpaperKey(workspace)
+        val savedWorkspaceWallpaper = prefs.getString(workspaceKey, null)
+        val legacyWallpaper = if (workspace == 1) prefs.getString("wallpaper_uri", null) else null
+        val resolvedWallpaper = infinityResolveLegacyWorkspaceOneWallpaper(
+            workspace, savedWorkspaceWallpaper, legacyWallpaper
+        )
+        if (workspace == 1 && savedWorkspaceWallpaper == null && legacyWallpaper != null) {
+            prefs.edit().putString(workspaceKey, legacyWallpaper).remove("wallpaper_uri").apply()
+        }
+        mutableStateOf(resolvedWallpaper?.let(Uri::parse))
     }
     var iconSize by remember {
         mutableFloatStateOf(infinityNormalizeIconSize(prefs.getFloat("icon_size", 48f)))
@@ -447,7 +468,15 @@ private fun Infinity08App(resumeSignal: Int) {
         onDispose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
     }
     var iconPack by remember { mutableStateOf(infinityNormalizeDesktopTheme(prefs.getString("icon_pack", "infinity"))) }
-    var backgroundPreset by remember { mutableStateOf(prefs.getString("background_preset", "nebula") ?: "nebula") }
+    var backgroundPreset by remember(workspace) {
+        val workspaceKey = infinityVirtualDesktopBackgroundPresetKey(workspace)
+        val savedPreset = prefs.getString(workspaceKey, null)
+        val legacyPreset = if (workspace == 1) prefs.getString("background_preset", null) else null
+        if (workspace == 1 && savedPreset == null && legacyPreset != null) {
+            prefs.edit().putString(workspaceKey, legacyPreset).remove("background_preset").apply()
+        }
+        mutableStateOf(savedPreset ?: legacyPreset ?: "interstellar")
+    }
     var desktopPreset by remember { mutableStateOf(infinityNormalizeWallpaperPreset(prefs.getString("desktop_wallpaper_preset", "futuristic"))) }
     val futuristicDesktop = desktopPreset == InfinityDesktopWallpaperPreset.FUTURISTIC
     var appearance by remember {
@@ -476,7 +505,10 @@ private fun Infinity08App(resumeSignal: Int) {
     LaunchedEffect(wallpaperUri) {
         val uri = wallpaperUri
         wallpaperBitmap = null
-        val decoded = if (uri == null) {
+        val durableUri = uri != null &&
+            prefs.getString(infinityVirtualDesktopWallpaperKey(workspace), null) == uri.toString()
+        val hasRequiredGrant = !durableUri || infinityHasPersistedWallpaperReadPermission(context, uri!!)
+        val decoded = if (uri == null || !hasRequiredGrant) {
             null
         } else {
             withContext(Dispatchers.IO) {
@@ -505,13 +537,12 @@ private fun Infinity08App(resumeSignal: Int) {
         }
         wallpaperBitmap = decoded
         if (uri != null && decoded == null && wallpaperUri == uri) {
-            if (prefs.getString("wallpaper_uri", null) == uri.toString()) {
-                prefs.edit().remove("wallpaper_uri").apply()
-            }
+            // Keep the saved URI as recoverable user data. The current session falls
+            // back to the workspace preset; a different desktop is never modified.
             wallpaperUri = null
             Toast.makeText(
                 context,
-                "No se pudo acceder al fondo guardado. Selecciona otra imagen.",
+                "No se pudo recuperar el fondo de este escritorio. Se conserva su referencia; selecciona otra imagen para reemplazarlo.",
                 Toast.LENGTH_LONG
             ).show()
         }
@@ -521,24 +552,17 @@ private fun Infinity08App(resumeSignal: Int) {
         ActivityResultContracts.OpenDocument()
     ) { uri ->
         if (uri != null) {
-            val persisted = try {
-                context.contentResolver.takePersistableUriPermission(
-                    uri, Intent.FLAG_GRANT_READ_URI_PERMISSION
-                )
-                true
-            } catch (_: SecurityException) {
-                false
-            }
-            // Use the selected image for this session, but only persist a URI
-            // when Android confirms that its read grant survives process restarts.
+            val persisted = infinityTakePersistableWallpaperReadPermission(context, uri)
+            // A durable wallpaper is saved only after Android's persisted grant table
+            // confirms read access. A temporary selection does not erase the previous
+            // recoverable wallpaper reference.
             wallpaperUri = uri
             if (persisted) {
-                prefs.edit().putString("wallpaper_uri", uri.toString()).apply()
+                prefs.edit().putString(infinityVirtualDesktopWallpaperKey(workspace), uri.toString()).commit()
             } else {
-                prefs.edit().remove("wallpaper_uri").apply()
                 Toast.makeText(
                     context,
-                    "Fondo temporal: Android no permitió conservar el permiso. Selecciona la imagen de nuevo al reiniciar.",
+                    "Fondo temporal: Android no confirmó un permiso de lectura persistente. Se conservará el fondo anterior para el próximo inicio.",
                     Toast.LENGTH_LONG
                 ).show()
             }
@@ -601,39 +625,31 @@ private fun Infinity08App(resumeSignal: Int) {
 
     val windows = remember {
         mutableStateListOf<DeskWindow>().apply {
-            val saved = prefs.getString("saved_windows", null)
-            try {
-                val array = JSONArray(saved ?: "[]")
-                for (i in 0 until array.length()) {
-                    val item = array.optJSONObject(i) ?: continue
-                    val kind = item.optString("kind")
-                    if (kind !in setOf("files", "notes", "apps", "connect", "settings", "about")) continue
-                    val restoredWorkspace = infinityNormalizeWorkspace(item.optInt("workspace", 1))
-                    // Canonical IDs keep restored windows addressable by openInfinityWindow().
-                    // Legacy or mismatched IDs previously made focus point to a nonexistent task ID.
-                    val restoredId = infinityNormalizeRestoredWindowId(
-                        item.optString("id"), kind, restoredWorkspace
+            val recovery = infinityRecoverWindowSnapshot(prefs)
+            val array = JSONArray(recovery.json)
+            for (i in 0 until array.length()) {
+                val item = array.getJSONObject(i)
+                val kind = item.getString("kind")
+                val restoredWorkspace = item.getInt("workspace")
+                add(
+                    DeskWindow(
+                        id = infinityNormalizeRestoredWindowId(
+                            item.getString("id"), kind, restoredWorkspace
+                        ),
+                        title = item.getString("title"),
+                        kind = kind,
+                        x = infinityNormalizeWindowCoordinate(item.getDouble("x").toFloat(), 24f),
+                        y = infinityNormalizeWindowCoordinate(item.getDouble("y").toFloat(), 100f),
+                        width = infinityNormalizeWindowDimension(item.getDouble("width").toFloat(), 370f, 240f, 900f),
+                        height = infinityNormalizeWindowDimension(item.getDouble("height").toFloat(), 330f, 180f, 900f),
+                        minimized = item.getBoolean("minimized"),
+                        workspace = restoredWorkspace,
+                        maximized = item.getBoolean("maximized")
                     )
-                    // Ignore duplicate kind/workspace records instead of restoring duplicate tasks.
-                    if (any { it.id == restoredId }) continue
-                    add(
-                        DeskWindow(
-                            id = restoredId,
-                            title = item.optString("title", kind).trim().take(80).ifBlank { kind },
-                            kind = kind,
-                            x = infinityNormalizeWindowCoordinate(item.optDouble("x", 24.0).toFloat(), 24f),
-                            y = infinityNormalizeWindowCoordinate(item.optDouble("y", 100.0).toFloat(), 100f),
-                            width = infinityNormalizeWindowDimension(item.optDouble("width", 370.0).toFloat(), 370f, 240f, 900f),
-                            height = infinityNormalizeWindowDimension(item.optDouble("height", 330.0).toFloat(), 330f, 180f, 900f),
-                            minimized = item.optBoolean("minimized", false),
-                            workspace = restoredWorkspace,
-                            maximized = item.optBoolean("maximized", false)
-                        )
-                    )
-                }
-            } catch (_: Exception) {
-                clear()
-                prefs.edit().remove("saved_windows").apply()
+                )
+            }
+            if (recovery.restoredFromBackup || recovery.preservedCorruptSnapshot) {
+                Log.w("INFINITY_WINDOW_RECOVERY", "AURORA snapshot recovery completed; backupRestored=${recovery.restoredFromBackup}, corruptEvidencePreserved=${recovery.preservedCorruptSnapshot}")
             }
         }
     }
@@ -699,9 +715,10 @@ private fun Infinity08App(resumeSignal: Int) {
     LaunchedEffect(windowSnapshot, activeGeometryTransactionCount) {
         // Never serialize an in-flight preview. Starting a gesture cancels this effect;
         // only commit or rollback can make persistence eligible again.
-        if (activeGeometryTransactionCount > 0) return@LaunchedEffect
-        delay(INFINITY_WINDOW_PERSISTENCE_DEBOUNCE_MS)
-        if (geometryTransactions.isNotEmpty()) return@LaunchedEffect
+        if (activeGeometryTransactionCount > 0 || geometryTransactions.isNotEmpty()) return@LaunchedEffect
+        // Geometry previews are already isolated by the transaction registry.
+        // Persist the committed snapshot immediately so a fast app/process restart
+        // cannot discard a recent workspace move, minimize, maximize or close action.
         val array = JSONArray()
         windows.forEach { win ->
             array.put(
@@ -711,13 +728,16 @@ private fun Infinity08App(resumeSignal: Int) {
                     .put("maximized", win.maximized)
             )
         }
-        prefs.edit().putString("saved_windows", array.toString()).apply()
+        if (!infinityCommitWindowSnapshot(prefs, array.toString())) {
+            Log.e("INFINITY_WINDOW_RECOVERY", "AURORA snapshot write rejected to protect recoverable window data.")
+        }
     }
 
     var focusedWindowId by remember {
         mutableStateOf(
             infinityResolveRestoredWindowFocus(
-                prefs.getString("focused_window_id", null),
+                prefs.getString(infinityWorkspaceFocusedWindowKey(workspace), null)
+                    ?: if (workspace == 1) prefs.getString("focused_window_id", null) else null,
                 windows.map { it.id },
                 windows.associate { it.id to it.workspace },
                 windows.filter { it.minimized }.map { it.id }.toSet(),
@@ -725,10 +745,18 @@ private fun Infinity08App(resumeSignal: Int) {
             )
         )
     }
-    LaunchedEffect(focusedWindowId) {
-        val id = focusedWindowId
-        if (id == null) prefs.edit().remove("focused_window_id").apply()
-        else prefs.edit().putString("focused_window_id", id).apply()
+    LaunchedEffect(focusedWindowId, workspace) {
+        val key = infinityWorkspaceFocusedWindowKey(workspace)
+        val id = focusedWindowId?.takeIf { windowId ->
+            windows.any { it.id == windowId && it.workspace == workspace && !it.minimized }
+        }
+        val editor = prefs.edit()
+        if (id == null) editor.remove(key) else editor.putString(key, id)
+        // Migrate the legacy global focus key only into workspace 1, then retire it.
+        if (workspace == 1 && prefs.contains("focused_window_id")) {
+            editor.remove("focused_window_id")
+        }
+        editor.apply()
     }
 
     // Every activation path must update both logical focus and visual z-order.
@@ -748,11 +776,29 @@ private fun Infinity08App(resumeSignal: Int) {
     fun switchWorkspace(target: Int) {
         // A workspace transition ends every in-flight gesture atomically.
         geometryTransactionRegistry.activeWindowIds().forEach(::cancelWindowGeometryTransaction)
+        val sourceWorkspace = workspace
         val normalizedTarget = infinityNormalizeWorkspace(target)
+        // Save the outgoing desktop's focus before changing the active workspace.
+        // Do not rely only on LaunchedEffect: a fast workspace tap can happen before
+        // that effect has persisted the latest focus change.
+        val sourceFocus = focusedWindowId?.takeIf { id ->
+            windows.any { it.id == id && it.workspace == sourceWorkspace && !it.minimized }
+        }
+        val preferences = prefs.edit()
+        val sourceFocusKey = infinityWorkspaceFocusedWindowKey(sourceWorkspace)
+        if (sourceFocus == null) preferences.remove(sourceFocusKey)
+        else preferences.putString(sourceFocusKey, sourceFocus)
+        // Restore the target desktop's own last-focused window, falling back only
+        // to the most recent eligible window within that same workspace.
+        val targetSavedFocus = if (normalizedTarget == sourceWorkspace) {
+            sourceFocus
+        } else {
+            prefs.getString(infinityWorkspaceFocusedWindowKey(normalizedTarget), null)
+        }
+        preferences.putInt("active_workspace", normalizedTarget).apply()
         workspace = normalizedTarget
-        prefs.edit().putInt("active_workspace", normalizedTarget).apply()
         focusedWindowId = infinityResolveWorkspaceSwitchFocus(
-            focusedWindowId, windows.map { it.id },
+            targetSavedFocus, windows.map { it.id },
             windows.associate { it.id to it.workspace },
             windows.filter { it.minimized }.map { it.id }.toSet(), normalizedTarget
         )
@@ -834,6 +880,15 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
         ).apply()
     }
 
+    fun persistWorkspaceShortcutPackages(targetWorkspace: Int, next: List<String>) {
+        val normalized = infinityNormalizeDesktopShortcutPackages(next, installedPackageNames)
+        prefs.edit().putString(
+            infinityWorkspaceDesktopShortcutKey(targetWorkspace),
+            infinitySerializeDesktopShortcutPackages(normalized)
+        ).apply()
+        if (targetWorkspace == workspace) desktopShortcutPackages = normalized
+    }
+
     fun launchApp(packageName: String) {
         try {
             context.packageManager.getLaunchIntentForPackage(packageName)?.let {
@@ -848,6 +903,23 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
     ) {
         BoxWithConstraints(
             Modifier.fillMaxSize()
+                .pointerInput(workspace) {
+                    var horizontalTravel = 0f
+                    detectHorizontalDragGestures(
+                        onDragStart = { horizontalTravel = 0f },
+                        onHorizontalDrag = { change, dragAmount ->
+                            horizontalTravel += dragAmount
+                            change.consume()
+                        },
+                        onDragEnd = {
+                            val target = infinityResolveWorkspaceSwipe(
+                                workspace, horizontalTravel, 0f, size.width.toFloat()
+                            )
+                            if (target != workspace) switchWorkspace(target)
+                        },
+                        onDragCancel = { horizontalTravel = 0f }
+                    )
+                }
                 // Paint the desktop across the complete edge-to-edge window first.
                 // Apply safe insets only to interactive content; otherwise landscape
                 // devices expose unpainted system-bar strips around the desktop.
@@ -1108,8 +1180,65 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                         letterSpacing = 1.sp
                     )
                 }
+                TextButton(
+                    onClick = {
+                        workspaceNameDraft = workspaceNames[workspace] ?: infinityDefaultVirtualDesktopName(workspace)
+                        renameWorkspaceDialogOpen = true
+                    },
+                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                    modifier = Modifier.testTag("infinity-workspace-name")
+                ) {
+                    Text(workspaceNames[workspace] ?: infinityDefaultVirtualDesktopName(workspace), color = accent, fontSize = 9.sp)
+                    Text("  ✎", color = accent, fontSize = 10.sp)
+                }
             }
 
+            }
+            if (maxW >= 600.dp && futuristicDesktop && !dashboardOpen) {
+                Row(
+                    Modifier.align(Alignment.TopStart).padding(start = 22.dp, top = 18.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TextButton(
+                        onClick = {
+                            workspaceNameDraft = workspaceNames[workspace] ?: infinityDefaultVirtualDesktopName(workspace)
+                            renameWorkspaceDialogOpen = true
+                        },
+                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp),
+                        modifier = Modifier.testTag("infinity-workspace-name")
+                    ) { Text(workspaceNames[workspace] ?: infinityDefaultVirtualDesktopName(workspace), color = accent, fontSize = 10.sp); Text("  ✎", color = accent, fontSize = 12.sp) }
+                }
+            }
+            if (renameWorkspaceDialogOpen) {
+                AlertDialog(
+                    onDismissRequest = { renameWorkspaceDialogOpen = false },
+                    title = { Text("Renombrar escritorio") },
+                    text = {
+                        Column {
+                            Text("El nombre solo cambia en este espacio de trabajo.", fontSize = 12.sp)
+                            OutlinedTextField(
+                                value = workspaceNameDraft,
+                                onValueChange = { workspaceNameDraft = it.take(24) },
+                                modifier = Modifier.testTag("infinity-workspace-name-input"),
+                                singleLine = true,
+                                label = { Text("Nombre del escritorio") }
+                            )
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(
+                            modifier = Modifier.testTag("infinity-workspace-name-save"),
+                            onClick = {
+                            val normalizedName = infinityNormalizeVirtualDesktopName(workspaceNameDraft, workspace)
+                            workspaceNames = workspaceNames + (workspace to normalizedName)
+                            prefs.edit().putString(infinityVirtualDesktopNameKey(workspace), normalizedName).apply()
+                            renameWorkspaceDialogOpen = false
+                        }) { Text("Guardar") }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { renameWorkspaceDialogOpen = false }) { Text("Cancelar") }
+                    }
+                )
             }
             if (maxW >= 600.dp && !dashboardOpen && futuristicDesktop) {
                 InfinityReferenceClockPanel(
@@ -1955,7 +2084,13 @@ DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED"
                         else -> accent.copy(alpha = .28f)
                     })
                 ) {
-                    Column(Modifier.padding(18.dp)) {
+                    Column(
+                        Modifier.padding(18.dp)
+                            // The Start card is constrained above the Dock. Its full content
+                            // must scroll inside that viewport instead of drawing underneath it.
+                            .verticalScroll(rememberScrollState())
+                            .testTag("infinity-start-content")
+                    ) {
                         Text(if (iconPack == "windows11") "INICIO" else "INFINITY START", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Black)
                         Text(if (iconPack == "windows11") "Aplicaciones ancladas y recomendadas" else "Tus herramientas y aplicaciones", color = InfinityMuted, fontSize = 10.sp)
                         Spacer(Modifier.height(10.dp))
@@ -2128,6 +2263,49 @@ DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED"
                                             tint = accent,
                                             modifier = Modifier.size(17.dp)
                                         )
+                                    }
+                                    Box {
+                                        TextButton(
+                                            onClick = { shortcutTransferMenuPackage = app.packageName },
+                                            contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp),
+                                            modifier = Modifier.testTag("infinity-shortcut-transfer-${app.packageName}")
+                                        ) { Text("ESPACIOS", color = accent, fontSize = 8.sp) }
+                                        DropdownMenu(
+                                            expanded = shortcutTransferMenuPackage == app.packageName,
+                                            onDismissRequest = { shortcutTransferMenuPackage = null }
+                                        ) {
+                                            (1..INFINITY_VIRTUAL_DESKTOP_COUNT).filter { it != workspace }.forEach { targetWorkspace ->
+                                                val targetName = workspaceNames[targetWorkspace] ?: infinityDefaultVirtualDesktopName(targetWorkspace)
+                                                DropdownMenuItem(
+                                                    text = { Text("COPIAR A $targetName") },
+                                                    onClick = {
+                                                        val targetPackages = infinityParseDesktopShortcutPackages(
+                                                            prefs.getString(infinityWorkspaceDesktopShortcutKey(targetWorkspace), null)
+                                                        )
+                                                        val copied = infinityCopyWorkspaceShortcut(
+                                                            desktopShortcutPackages, targetPackages, app.packageName
+                                                        )
+                                                        persistWorkspaceShortcutPackages(targetWorkspace, copied)
+                                                        shortcutTransferMenuPackage = null
+                                                    }
+                                                )
+                                                DropdownMenuItem(
+                                                    text = { Text("MOVER A $targetName") },
+                                                    enabled = app.packageName in desktopShortcutPackages,
+                                                    onClick = {
+                                                        val targetPackages = infinityParseDesktopShortcutPackages(
+                                                            prefs.getString(infinityWorkspaceDesktopShortcutKey(targetWorkspace), null)
+                                                        )
+                                                        val (sourceNext, targetNext) = infinityMoveWorkspaceShortcut(
+                                                            desktopShortcutPackages, targetPackages, app.packageName
+                                                        )
+                                                        persistWorkspaceShortcutPackages(targetWorkspace, targetNext)
+                                                        persistDesktopShortcutPackages(sourceNext)
+                                                        shortcutTransferMenuPackage = null
+                                                    }
+                                                )
+                                            }
+                                        }
                                     }
                                     if (app.packageName in dockFavorites) {
                                         val favoriteIndex = dockFavorites.indexOf(app.packageName)
@@ -2678,6 +2856,75 @@ Spacer(Modifier.height(14.dp))
                                             )
                                         }
 
+                                        Box {
+                                            TextButton(onClick = { windowTransferMenuId = win.id }) {
+                                                Text("MOVER", fontSize = 9.sp)
+                                            }
+                                            DropdownMenu(
+                                                expanded = windowTransferMenuId == win.id,
+                                                onDismissRequest = { windowTransferMenuId = null }
+                                            ) {
+                                                (1..INFINITY_VIRTUAL_DESKTOP_COUNT).filter { it != win.workspace }.forEach { targetWorkspace ->
+                                                    DropdownMenuItem(
+                                                        text = {
+                                                            Text("A ${workspaceNames[targetWorkspace] ?: infinityDefaultVirtualDesktopName(targetWorkspace)}")
+                                                        },
+                                                        onClick = {
+                                                            val index = windows.indexOfFirst { it.id == win.id }
+                                                            if (index >= 0) {
+                                                                val allModels = windows.mapIndexed { order, item ->
+                                                                    InfinityAuroraWindow(
+                                                                        id = item.id, workspace = item.workspace,
+                                                                        x = item.x, y = item.y, width = item.width, height = item.height,
+                                                                        minimized = item.minimized, maximized = item.maximized,
+                                                                        zIndex = order.toLong()
+                                                                    )
+                                                                }
+                                                                if (infinityCanMoveAuroraWindow(allModels, win.id, win.kind, targetWorkspace)) {
+                                                                    cancelWindowGeometryTransaction(win.id)
+                                                                    val current = windows[index]
+                                                                    val model = InfinityAuroraWindow(
+                                                                        id = current.id,
+                                                                        workspace = current.workspace,
+                                                                        x = current.x,
+                                                                        y = current.y,
+                                                                        width = current.width,
+                                                                        height = current.height,
+                                                                        minimized = current.minimized,
+                                                                        maximized = current.maximized,
+                                                                        zIndex = index.toLong()
+                                                                    )
+                                                                    val moved = infinityMoveAuroraWindow(model, win.kind, targetWorkspace)
+                                                                    val movedWindow = current.copy(id = moved.id, workspace = moved.workspace)
+                                                                    prefs.getString("note_${win.id}", null)?.let { note ->
+                                                                        prefs.edit()
+                                                                            .putString("note_${moved.id}", note)
+                                                                            .remove("note_${win.id}")
+                                                                            .apply()
+                                                                    }
+                                                                    windows[index] = movedWindow
+                                                                    focusedWindowId = infinityResolveFocusAfterWindowDeactivation(
+                                                                        win.id, focusedWindowId,
+                                                                        windows.map { it.id },
+                                                                        windows.associate { it.id to it.workspace },
+                                                                        windows.filter { it.minimized }.map { it.id }.toSet(),
+                                                                        workspace
+                                                                    )
+                                                                } else {
+                                                                    Toast.makeText(
+                                                                        context,
+                                                                        "Ya existe una ventana de este tipo en ese escritorio.",
+                                                                        Toast.LENGTH_SHORT
+                                                                    ).show()
+                                                                }
+                                                            }
+                                                            windowTransferMenuId = null
+                                                        }
+                                                    )
+                                                }
+                                            }
+                                        }
+
                                         TextButton(
                                             onClick = {
                                                 windows.removeAll {
@@ -2996,7 +3243,14 @@ Spacer(Modifier.height(14.dp))
                         Text("FONDOS", color = accent, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             listOf("nebula" to "Nebula", "interstellar" to "Interestelar", "punk" to "Punk", "aurora" to "Aurora").forEach { (preset, label) ->
-                                FilterChip(selected = backgroundPreset == preset, onClick = { backgroundPreset = preset; prefs.edit().putString("background_preset", preset).apply(); wallpaperUri = null; prefs.edit().remove("wallpaper_uri").apply() }, label = { Text(label) })
+                                FilterChip(selected = backgroundPreset == preset, onClick = {
+                                backgroundPreset = preset
+                                prefs.edit()
+                                    .putString(infinityVirtualDesktopBackgroundPresetKey(workspace), preset)
+                                    .remove(infinityVirtualDesktopWallpaperKey(workspace))
+                                    .apply()
+                                wallpaperUri = null
+                            }, label = { Text(label) })
                             }
                         }
                         Text("APARIENCIA", color = accent, fontSize = 10.sp, fontWeight = FontWeight.Bold)
