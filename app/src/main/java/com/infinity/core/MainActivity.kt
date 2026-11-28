@@ -816,21 +816,13 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
             prefs.edit().putString("dock_favorites", normalized.joinToString("\n")).apply()
         }
     }
-    fun debugDockFavorites(message: String) {
-        if ((context.applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
-            Log.d("INFINITY_TEST_DIAGNOSTIC", message)
-        }
-    }
-
     fun persistDockFavorites(next: List<String>) {
-        debugDockFavorites("favorite persist input=$next installed=${installedPackageNames.containsAll(next)}")
         val normalized = infinityNormalizeDockPreferences(
             InfinityDockPreferences(favoritePackageNames = next),
             installedPackageNames
         ).favoritePackageNames
         dockFavorites = normalized
         prefs.edit().putString("dock_favorites", normalized.joinToString("\n")).apply()
-        debugDockFavorites("favorite persist normalized=$normalized stored=${prefs.getString("dock_favorites", "")}")
     }
 
     fun persistDesktopShortcutPackages(next: List<String>) {
@@ -2104,14 +2096,11 @@ DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED"
                                     )
                                     TextButton(
                                         onClick = {
-                                            val wasPinned = app.packageName in dockFavorites
-                                            debugDockFavorites("favorite button click package=${app.packageName} wasPinned=$wasPinned current=$dockFavorites")
-                                            val next = if (wasPinned) {
+                                            val next = if (app.packageName in dockFavorites) {
                                                 infinityDockRemoveFavorite(dockFavorites, app.packageName)
                                             } else {
                                                 infinityDockAddFavorite(dockFavorites, app.packageName, installedPackageNames)
                                             }
-                                            debugDockFavorites("favorite button next=$next")
                                             persistDockFavorites(next)
                                         },
                                         modifier = Modifier.testTag("infinity-dock-favorite-toggle-${app.packageName}"),

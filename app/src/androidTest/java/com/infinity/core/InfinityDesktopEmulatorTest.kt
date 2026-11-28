@@ -267,7 +267,7 @@ class InfinityDesktopEmulatorTest {
         compose.onNodeWithContentDescription("ADVANCED").performClick()
         settleComposeFrame()
         compose.onNodeWithText("INFINITY ADVANCED").assertExists()
-        compose.onNodeWithText("NOTIFICACIONES").assertExists()
+        compose.onNodeWithText("NOTIFICACIONES", substring = false).assertExists()
         compose.onNodeWithText("Aplicación").assertExists()
         capture("06-advanced-notifications")
         // The notifications section is below the quick-action cards in a scrollable panel.
@@ -453,9 +453,7 @@ class InfinityDesktopEmulatorTest {
         removeFavorite.assertTextEquals("QUITAR")
         removeFavorite.performScrollTo()
         removeFavorite.assertIsDisplayed()
-        android.util.Log.d("INFINITY_TEST_DIAGNOSTIC", "before remove touch favorites=${preferences.getString("dock_favorites", "")}")
         removeFavorite.performTouchInput { click() }
-        android.util.Log.d("INFINITY_TEST_DIAGNOSTIC", "after remove touch favorites=${preferences.getString("dock_favorites", "")}")
         waitForComposeCondition(timeoutMillis = 5_000) {
             val persistedRemoval = preferences.getString("dock_favorites", "").orEmpty()
                 .lineSequence().none { it.trim() == packageName }
