@@ -630,50 +630,29 @@ private fun Infinity08App(resumeSignal: Int) {
 
     val windows = remember {
         mutableStateListOf<DeskWindow>().apply {
-            val saved = prefs.getString("saved_windows", null)
-            try {
-                val array = JSONArray(saved ?: "[]")
-                for (i in 0 until array.length()) {
-                    val item = array.optJSONObject(i) ?: continue
-                    val kind = item.optString("kind")
-                    if (kind !in setOf("files", "notes", "apps", "connect", "settings", "about")) continue
-                    val restoredWorkspace = infinityNormalizeWorkspace(item.optInt("workspace", 1))
-                    // Canonical IDs keep restored windows addressable by openInfinityWindow().
-                    // Legacy or mismatched IDs previously made focus point to a nonexistent task ID.
-                    val restoredId = infinityNormalizeRestoredWindowId(
-                        item.optString("id"), kind, restoredWorkspace
+            val recovery = infinityRecoverWindowSnapshot(prefs)
+            val array = JSONArray(recovery.json)
+            for (i in 0 until array.length()) {
+                val item = array.getJSONObject(i)
+                val kind = item.getString("kind")
+                val restoredWorkspace = item.getInt("workspace")
+                add(
+                    DeskWindow(
+                        id = item.getString("id"),
+                        title = item.getString("title"),
+                        kind = kind,
+                        x = infinityNormalizeWindowCoordinate(item.getDouble("x").toFloat(), 24f),
+                        y = infinityNormalizeWindowCoordinate(item.getDouble("y").toFloat(), 100f),
+                        width = infinityNormalizeWindowDimension(item.getDouble("width").toFloat(), 370f, 240f, 900f),
+                        height = infinityNormalizeWindowDimension(item.getDouble("height").toFloat(), 330f, 180f, 900f),
+                        minimized = item.getBoolean("minimized"),
+                        workspace = restoredWorkspace,
+                        maximized = item.getBoolean("maximized")
                     )
-                    // Ignore duplicate kind/workspace records instead of restoring duplicate tasks.
-                    if (any { it.id == restoredId }) continue
-                    add(
-                        DeskWindow(
-                            id = restoredId,
-                            title = item.optString("title", kind).trim().take(80).ifBlank { kind },
-                            kind = kind,
-                            x = infinityNormalizeWindowCoordinate(item.optDouble("x", 24.0).toFloat(), 24f),
-                            y = infinityNormalizeWindowCoordinate(item.optDouble("y", 100.0).toFloat(), 100f),
-                            width = infinityNormalizeWindowDimension(item.optDouble("width", 370.0).toFloat(), 370f, 240f, 900f),
-                            height = infinityNormalizeWindowDimension(item.optDouble("height", 330.0).toFloat(), 330f, 180f, 900f),
-                            minimized = item.optBoolean("minimized", false),
-                            workspace = restoredWorkspace,
-                            maximized = item.optBoolean("maximized", false)
-                        )
-                    )
-                }
-            } catch (_: Exception) {
-                // Preserve the last unreadable snapshot before resetting the live window list.
-                // This keeps user data available for diagnosis/recovery instead of silently
-                // destroying the only copy when a partial or legacy JSON payload is malformed.
-                clear()
-                val recoveryBackupKey = infinityNextWindowRecoveryBackupKey(prefs.all.keys)
-                if (!saved.isNullOrBlank() && recoveryBackupKey != null) {
-                    prefs.edit()
-                        .putString(recoveryBackupKey, saved)
-                        .remove("saved_windows")
-                        .apply()
-                }
-                // If all bounded recovery slots are occupied, leave the unreadable
-                // live snapshot untouched rather than deleting the only remaining copy.
+                )
+            }
+            if (recovery.restoredFromBackup || recovery.preservedCorruptSnapshot) {
+                Log.w("INFINITY_WINDOW_RECOVERY", "AURORA snapshot recovery completed; backupRestored=${recovery.restoredFromBackup}, corruptEvidencePreserved=${recovery.preservedCorruptSnapshot}")
             }
         }
     }
@@ -752,7 +731,9 @@ private fun Infinity08App(resumeSignal: Int) {
                     .put("maximized", win.maximized)
             )
         }
-        prefs.edit().putString("saved_windows", array.toString()).apply()
+        if (!infinityCommitWindowSnapshot(prefs, array.toString())) {
+            Log.e("INFINITY_WINDOW_RECOVERY", "AURORA snapshot write rejected to protect recoverable window data.")
+        }
     }
 
     var focusedWindowId by remember {
