@@ -426,7 +426,10 @@ class InfinityDesktopEmulatorTest {
             preferences.getString("dock_favorites", "").orEmpty()
                 .lineSequence().any { it.trim() == packageName }
         }
-        compose.onNodeWithTag("infinity-dock-app-$packageName").assertExists()
+        waitForComposeCondition(timeoutMillis = 5_000) {
+            compose.onAllNodesWithTag("infinity-dock-app-$packageName")
+                .fetchSemanticsNodes().isNotEmpty()
+        }
 
         compose.activityRule.scenario.recreate()
         settleComposeFrame()
@@ -435,7 +438,10 @@ class InfinityDesktopEmulatorTest {
             preferences.getString("dock_favorites", "").orEmpty()
                 .lineSequence().any { it.trim() == packageName }
         )
-        compose.onNodeWithTag("infinity-dock-app-$packageName").assertExists()
+        waitForComposeCondition(timeoutMillis = 5_000) {
+            compose.onAllNodesWithTag("infinity-dock-app-$packageName")
+                .fetchSemanticsNodes().isNotEmpty()
+        }
 
         compose.onNodeWithContentDescription("START").performClick()
         settleComposeFrame()
@@ -445,13 +451,19 @@ class InfinityDesktopEmulatorTest {
         removeFavorite.assertExists()
         removeFavorite.assertTextEquals("QUITAR")
         removeFavorite.performClick()
-        settleComposeFrame()
+        waitForComposeCondition(timeoutMillis = 5_000) {
+            val persistedRemoval = preferences.getString("dock_favorites", "").orEmpty()
+                .lineSequence().none { it.trim() == packageName }
+            val updatedControl = runCatching {
+                compose.onNodeWithTag("infinity-dock-favorite-toggle-$packageName")
+                    .assertTextEquals("ANCLAR")
+            }.isSuccess
+            persistedRemoval && updatedControl
+        }
         removeFavorite.assertTextEquals("ANCLAR")
-        compose.waitUntil(timeoutMillis = 5_000) {
-            preferences.getString("dock_favorites", "").orEmpty()
-                .lineSequence().none { it.trim() == packageName } &&
-                compose.onAllNodesWithTag("infinity-dock-app-$packageName")
-                    .fetchSemanticsNodes().isEmpty()
+        waitForComposeCondition(timeoutMillis = 5_000) {
+            compose.onAllNodesWithTag("infinity-dock-app-$packageName")
+                .fetchSemanticsNodes().isEmpty()
         }
     }
 
@@ -711,6 +723,17 @@ class InfinityDesktopEmulatorTest {
         // This suite freezes Compose's clock; explicitly commit the UI state transition.
         compose.mainClock.advanceTimeByFrame()
         compose.waitForIdle()
+    }
+
+    /** Advances virtual Compose frames until the requested UI state is observable. */
+    private fun waitForComposeCondition(timeoutMillis: Long, condition: () -> Boolean) {
+        val deadline = System.currentTimeMillis() + timeoutMillis
+        do {
+            compose.mainClock.advanceTimeByFrame()
+            compose.waitForIdle()
+            if (condition()) return
+        } while (System.currentTimeMillis() < deadline)
+        throw AssertionError("Compose UI state did not settle within ${timeoutMillis}ms")
     }
 
     private fun waitForText(text: String) {

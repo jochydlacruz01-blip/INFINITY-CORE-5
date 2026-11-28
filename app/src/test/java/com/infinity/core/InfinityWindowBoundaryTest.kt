@@ -45,6 +45,19 @@ class InfinityWindowBoundaryTest {
         )
     }
 
+    @Test fun topDockSafeAreaKeepsWindowsBelowTheDock() {
+        val bounds = infinityNormalizeWindowBounds(40f, 10f, 300f, 220f, 600f, 500f, safeTop = 96f)
+        assertEquals(96f, bounds.y, 0.001f)
+        assertTrue(bounds.y >= 96f)
+        assertTrue(bounds.y + bounds.height <= 500f)
+    }
+
+    @Test fun topDockAndBottomDockSafeAreasAreBothRespected() {
+        val bounds = infinityNormalizeWindowBounds(20f, 450f, 300f, 200f, 600f, 600f, safeBottom = 520f, safeTop = 80f)
+        assertTrue(bounds.y >= 80f)
+        assertTrue(bounds.y + bounds.height <= 520f)
+    }
+
     @Test fun restoredWindowBoundsPreserveValidGeometry() {
         assertEquals(
             InfinityWindowBounds(60f, 70f, 300f, 220f),

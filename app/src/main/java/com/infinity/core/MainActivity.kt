@@ -264,19 +264,22 @@ private fun infinityCommitDeskWindowGeometryTransaction(
     candidate: InfinityDeskWindowGeometry,
     viewportWidth: Float,
     viewportHeight: Float,
-    safeBottom: Float
+    safeBottom: Float,
+    safeTop: Float = 0f
 ): InfinityDeskWindowGeometry {
     val widthLimit = viewportWidth.takeIf { it.isFinite() }?.coerceAtLeast(1f) ?: 1f
-    val heightLimit = minOf(
+    val bottomLimit = minOf(
         viewportHeight.takeIf { it.isFinite() }?.coerceAtLeast(1f) ?: 1f,
         safeBottom.takeIf { it.isFinite() }?.coerceAtLeast(1f) ?: 1f
     )
+    val topLimit = safeTop.takeIf { it.isFinite() }?.coerceIn(0f, bottomLimit) ?: 0f
+    val heightLimit = (bottomLimit - topLimit).coerceAtLeast(1f)
     val minWidth = minOf(280f, widthLimit)
     val minHeight = minOf(190f, heightLimit)
     val width = candidate.width.takeIf { it.isFinite() }?.coerceIn(minWidth, widthLimit) ?: minWidth
     val height = candidate.height.takeIf { it.isFinite() }?.coerceIn(minHeight, heightLimit) ?: minHeight
     val x = candidate.x.takeIf { it.isFinite() }?.coerceIn(0f, (widthLimit - width).coerceAtLeast(0f)) ?: 0f
-    val y = candidate.y.takeIf { it.isFinite() }?.coerceIn(0f, (heightLimit - height).coerceAtLeast(0f)) ?: 0f
+    val y = candidate.y.takeIf { it.isFinite() }?.coerceIn(topLimit, (bottomLimit - height).coerceAtLeast(topLimit)) ?: topLimit
     return InfinityDeskWindowGeometry(x, y, width, height)
 }
 
@@ -391,6 +394,12 @@ private fun Infinity08App(resumeSignal: Int) {
     var dockScrollEnabled by remember { mutableStateOf(prefs.getBoolean("dock_scroll_enabled", true)) }
     var dockIndicatorsEnabled by remember { mutableStateOf(prefs.getBoolean("dock_indicators_enabled", true)) }
     var dockVisible by remember { mutableStateOf(prefs.getBoolean("dock_visible", true)) }
+    var dockPosition by remember {
+        mutableStateOf(
+            runCatching { InfinityDockPosition.valueOf(prefs.getString("dock_position", "BOTTOM") ?: "BOTTOM") }
+                .getOrDefault(InfinityDockPosition.BOTTOM)
+        )
+    }
 
     // Keep the desktop's live Compose theme synchronized with preference changes
     // made by ADVANCED and other modules, not only changes made inside this screen.
@@ -608,7 +617,7 @@ private fun Infinity08App(resumeSignal: Int) {
     }
 
     fun commitWindowGeometryTransaction(
-        windowId: String, viewportWidth: Float, viewportHeight: Float, safeBottom: Float
+        windowId: String, viewportWidth: Float, viewportHeight: Float, safeBottom: Float, safeTop: Float
     ) {
         val transaction = geometryTransactionRegistry.remove(windowId) ?: return
         val index = windows.indexOfFirst { it.id == windowId }
@@ -617,7 +626,7 @@ private fun Infinity08App(resumeSignal: Int) {
         val committed = infinityCommitDeskWindowGeometryTransaction(
             transaction,
             InfinityDeskWindowGeometry(current.x, current.y, current.width, current.height),
-            viewportWidth, viewportHeight, safeBottom
+            viewportWidth, viewportHeight, safeBottom, safeTop
         )
         windows[index] = current.copy(
             x = committed.x, y = committed.y, width = committed.width, height = committed.height
@@ -806,39 +815,50 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
             val maxH = maxHeight
             val density = LocalDensity.current
             // The measured Dock top is authoritative; use a conservative estimate for frame one.
-            var dockSafeBottom by remember(maxW, maxH, futuristicDesktop, iconPack, taskbarStyle) {
+            var dockSafeBottom by remember(maxW, maxH, futuristicDesktop, iconPack, taskbarStyle, dockVisible, dockPosition) {
                 val reservedHeight = if (fluentTaskbar) 88f
                 else infinityDockReservedHeightDp(maxW.value, futuristicDesktop, iconPack)
-                mutableFloatStateOf((maxH.value - reservedHeight).coerceAtLeast(0f))
+                mutableFloatStateOf(
+                    if (dockVisible && dockPosition == InfinityDockPosition.BOTTOM) (maxH.value - reservedHeight).coerceAtLeast(0f)
+                    else maxH.value
+                )
             }
-            LaunchedEffect(dockVisible, maxH, maxW, futuristicDesktop, iconPack, taskbarStyle) {
-                if (!dockVisible) {
-                    dockSafeBottom = maxH.value
+            var dockSafeTop by remember(maxW, maxH, dockVisible, dockPosition, futuristicDesktop, iconPack, taskbarStyle) {
+                val reservedHeight = if (fluentTaskbar) 88f
+                else infinityDockReservedHeightDp(maxW.value, futuristicDesktop, iconPack)
+                mutableFloatStateOf(if (dockVisible && dockPosition == InfinityDockPosition.TOP) reservedHeight else 0f)
+            }
+            LaunchedEffect(dockVisible, dockPosition, maxH, maxW, futuristicDesktop, iconPack, taskbarStyle) {
+                val reservedHeight = if (fluentTaskbar) 88f
+                else infinityDockReservedHeightDp(maxW.value, futuristicDesktop, iconPack)
+                dockSafeTop = if (dockVisible && dockPosition == InfinityDockPosition.TOP) reservedHeight else 0f
+                dockSafeBottom = if (dockVisible && dockPosition == InfinityDockPosition.BOTTOM) {
+                    (maxH.value - reservedHeight).coerceAtLeast(dockSafeTop)
                 } else {
-                    val reservedHeight = if (fluentTaskbar) 88f
-                    else infinityDockReservedHeightDp(maxW.value, futuristicDesktop, iconPack)
-                    dockSafeBottom = (maxH.value - reservedHeight).coerceAtLeast(0f)
+                    maxH.value
                 }
             }
-            val desktopIconMetrics = remember(maxW, maxH, density, desktopItems.size) {
+            val desktopIconMetrics = remember(maxW, maxH, density, desktopItems.size, dockPosition) {
                 infinityDesktopIconLayoutMetrics(
                     with(density) { maxW.toPx() },
                     with(density) { maxH.toPx() },
                     desktopItems.size,
-                    density.density
+                    density.density,
+                    dockAtBottom = dockPosition == InfinityDockPosition.BOTTOM
                 )
             }
+            val desktopIconTopInsetPx = desktopIconMetrics.topInsetPx + with(density) { dockSafeTop.dp.toPx() }
 
             // Load, normalize, de-collide and persist one workspace atomically.
             // Keep the icon layer hidden until this workspace snapshot is ready.
             var iconLayoutReady by remember(workspace) { mutableStateOf(false) }
-            LaunchedEffect(workspace, maxW, maxH) {
+            LaunchedEffect(workspace, maxW, maxH, dockSafeTop, dockPosition) {
                 iconLayoutReady = false
                 val viewportWidth = with(density) { maxW.toPx() }
                 val safeDesktopHeight = desktopIconMetrics.safeDesktopHeightPx
                 val itemWidth = desktopIconMetrics.itemWidthPx
                 val itemHeight = desktopIconMetrics.itemHeightPx
-                val topInset = desktopIconMetrics.topInsetPx
+                val topInset = desktopIconTopInsetPx
                 val loaded = desktopItems.mapIndexed { index, item ->
                     val fallback = infinityDesktopIconGridOffset(
                         index, viewportWidth, itemWidth, itemHeight,
@@ -879,7 +899,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
             }
 
             // Normalize persisted windows after screen size, orientation, or density changes.
-            LaunchedEffect(maxW, maxH, dockSafeBottom) {
+            LaunchedEffect(maxW, maxH, dockSafeBottom, dockSafeTop) {
                 // A viewport/orientation change invalidates active pointer geometry.
                 // Roll back before normalizing the saved desktop geometry to the new area.
                 geometryTransactions.keys.toList().forEach(::cancelWindowGeometryTransaction)
@@ -890,7 +910,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                     val current = windows[index]
                     val bounds = infinityNormalizeWindowBounds(
                         current.x, current.y, current.width, current.height,
-                        maxW.value, maxH.value, safeBottom = dockSafeBottom
+                        maxW.value, maxH.value, safeBottom = dockSafeBottom, safeTop = dockSafeTop
                     )
                     if (bounds.x != current.x || bounds.y != current.y ||
                         bounds.width != current.width || bounds.height != current.height
@@ -1030,11 +1050,11 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                 InfinityReferenceClockPanel(
                     clock = clockText,
                     date = dateText,
-                    modifier = Modifier.align(Alignment.TopEnd).padding(top = 18.dp, end = 28.dp)
+                    modifier = Modifier.align(Alignment.TopEnd).padding(top = dockSafeTop.dp + 18.dp, end = 28.dp)
                 )
             } else {
                 Column(
-                    Modifier.align(Alignment.TopEnd).padding(18.dp)
+                    Modifier.align(Alignment.TopEnd).padding(top = dockSafeTop.dp + 18.dp, start = 18.dp, end = 18.dp, bottom = 18.dp)
                         .clip(RoundedCornerShape(if (maxW >= 600.dp) 24.dp else 20.dp))
                         .background(if (iconPack == "windows11") Color(0xCC173653) else Color(0xAA101D30))
                         .border(1.dp, if (iconPack == "windows11") Color(0xFF8BCBFA).copy(.55f) else accent.copy(alpha = .24f), RoundedCornerShape(if (maxW >= 600.dp) 24.dp else 20.dp))
@@ -1063,7 +1083,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                 )
             }
 
-            Box(Modifier.align(Alignment.TopStart).padding(start = 18.dp, top = 18.dp)) {
+            Box(Modifier.align(Alignment.TopStart).padding(start = 18.dp, top = dockSafeTop.dp + 18.dp)) {
                 Box(
                     Modifier
                         .size(44.dp)
@@ -1102,7 +1122,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                             itemWidth = desktopIconMetrics.itemWidthPx,
                             itemHeight = desktopIconMetrics.itemHeightPx,
                             leftInset = 16f * densityValue,
-                            topInset = 118f * densityValue
+                            topInset = 118f * densityValue + with(density) { dockSafeTop.dp.toPx() }
                         )
                         desktopContextState = plan.nextState
                         prefs.edit()
@@ -1129,7 +1149,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                                 itemHeight = desktopIconMetrics.itemHeightPx,
                                 horizontalGap = desktopIconMetrics.horizontalGapPx,
                                 verticalGap = desktopIconMetrics.verticalGapPx,
-                                topInset = desktopIconMetrics.topInsetPx
+                                topInset = desktopIconTopInsetPx
                             )
                             desktopItems.forEachIndexed { index, desktopItem ->
                                 iconOffsets[desktopItem.id] = resolved[index]
@@ -1143,7 +1163,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                         }
                         if (plan.requestWallpaperPicker) wallpaperPicker.launch(arrayOf("image/*"))
                         if (plan.requestAppearancePanel) {
-                            focusedWindowId = openInfinityWindow("settings", windows, workspace, maxW.value, maxH.value, dockSafeBottom)
+                            focusedWindowId = openInfinityWindow("settings", windows, workspace, maxW.value, maxH.value, dockSafeBottom, dockSafeTop)
                         }
                         if (plan.requestWorkspacePanel) dashboardOpen = true
                     }
@@ -1155,7 +1175,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                     workspace = workspace,
                     onWorkspaceChange = { target -> switchWorkspace(target); dashboardOpen = true },
                     onOpenWindow = { id ->
-                        focusedWindowId = openInfinityWindow(id, windows, workspace, maxW.value, maxH.value, dockSafeBottom)
+                        focusedWindowId = openInfinityWindow(id, windows, workspace, maxW.value, maxH.value, dockSafeBottom, dockSafeTop)
                         dashboardOpen = false
                         startOpen = false
                         orbitOpen = false
@@ -1363,7 +1383,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                                         orbitOpen = false
                                         advancedOpen = false
                                     }
-                                    else -> focusedWindowId = openInfinityWindow(item.id, windows, workspace, maxW.value, maxH.value, dockSafeBottom)
+                                    else -> focusedWindowId = openInfinityWindow(item.id, windows, workspace, maxW.value, maxH.value, dockSafeBottom, dockSafeTop)
                                 }
                             }
                             .padding(if (referenceRail) 2.dp else if (compactIconCell) 3.dp else 6.dp)
@@ -1406,7 +1426,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                     val shown = if (win.maximized || maxW < 600.dp) {
                         // Both maximized tablet windows and phone-adapted windows stop above
                         // the measured Dock, including its floating margin and safe inset.
-                        val top = if (maxW < 600.dp) 62f else 8f
+                        val top = maxOf(if (maxW < 600.dp) 62f else 8f, dockSafeTop + 8f)
                         win.copy(
                             x = 8f,
                             y = top,
@@ -1472,6 +1492,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                             )
                         },
                         onMaximize = {
+                            cancelWindowGeometryTransaction(win.id)
                             val index = windows.indexOfFirst { it.id == win.id }
                             if (index >= 0) {
                                 windows[index] = windows[index].copy(maximized = !windows[index].maximized)
@@ -1482,7 +1503,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                         // INFINITY 0.11 — MOVIMIENTO CON LÍMITES
                         onGeometryStart = { beginWindowGeometryTransaction(win.id) },
                         onGeometryCommit = {
-                            commitWindowGeometryTransaction(win.id, maxW.value, maxH.value, dockSafeBottom)
+                            commitWindowGeometryTransaction(win.id, maxW.value, maxH.value, dockSafeBottom, dockSafeTop)
                         },
                         onGeometryCancel = { cancelWindowGeometryTransaction(win.id) },
                         onMove = { dx, dy ->
@@ -1499,7 +1520,8 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                                     current.height,
                                     maxW.value,
                                     maxH.value,
-                                    safeBottom = dockSafeBottom
+                                    safeBottom = dockSafeBottom,
+                                    safeTop = dockSafeTop
                                 )
                                 windows[index] = current.copy(
                                     x = bounded.x,
@@ -1527,7 +1549,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                                     (maxW.value - current.x).coerceAtLeast(1f)
 
                                 val availableHeight =
-                                    (dockSafeBottom - current.y).coerceAtLeast(1f)
+                                    (dockSafeBottom - maxOf(current.y, dockSafeTop)).coerceAtLeast(1f)
 
                                 val resized = current.copy(
                                     width = infinityResizeDimension(current.width, deltaWidthDp, availableWidth, 280f),
@@ -1557,14 +1579,20 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
             if (dockVisible) {
             Row(
                 modifier = Modifier
-                    .align(Alignment.BottomCenter)
+                    .align(if (dockPosition == InfinityDockPosition.TOP) Alignment.TopCenter else Alignment.BottomCenter)
                     .zIndex(20f)
                     .testTag("infinity-dock")
                     .onGloballyPositioned { coordinates ->
                         val measuredTop = with(density) { coordinates.positionInParent().y.toDp().value }
-                        val nextSafeBottom = (measuredTop - 8f).coerceIn(0f, maxH.value)
-                        if (kotlin.math.abs(dockSafeBottom - nextSafeBottom) > 0.5f) {
-                            dockSafeBottom = nextSafeBottom
+                        val measuredHeight = with(density) { coordinates.size.height.toDp().value }
+                        if (dockPosition == InfinityDockPosition.BOTTOM) {
+                            val nextSafeBottom = (measuredTop - 8f).coerceIn(0f, maxH.value)
+                            if (kotlin.math.abs(dockSafeBottom - nextSafeBottom) > 0.5f) dockSafeBottom = nextSafeBottom
+                            if (dockSafeTop != 0f) dockSafeTop = 0f
+                        } else {
+                            val nextSafeTop = (measuredTop + measuredHeight + 8f).coerceIn(0f, maxH.value)
+                            if (kotlin.math.abs(dockSafeTop - nextSafeTop) > 0.5f) dockSafeTop = nextSafeTop
+                            if (dockSafeBottom != maxH.value) dockSafeBottom = maxH.value
                         }
                     }
                     // A floating glass rail preserves the full action surface while leaving
@@ -1826,6 +1854,17 @@ DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED"
             }
 
 
+            if (!dockVisible) {
+                Button(
+                    onClick = {
+                        dockVisible = true
+                        prefs.edit().putBoolean("dock_visible", true).apply()
+                    },
+                    modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 18.dp).zIndex(30f).testTag("infinity-dock-show"),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF173653))
+                ) { Text("MOSTRAR DOCK", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 10.sp) }
+            }
+
             // INFINITY START: búsqueda y catálogo de aplicaciones.
             if (startOpen) {
                 Card(
@@ -1834,7 +1873,7 @@ DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED"
                         .fillMaxWidth(0.94f)
                         .widthIn(max = 420.dp)
                         .padding(bottom = infinityStartPanelBottomPaddingDp(maxH.value, dockSafeBottom).dp)
-                        .heightIn(max = infinityStartPanelMaxHeightDp(dockSafeBottom).dp)
+                        .heightIn(max = infinityStartPanelMaxHeightDp((dockSafeBottom - dockSafeTop).coerceAtLeast(1f)).dp)
                         .animateContentSize()
                         .shadow(28.dp, RoundedCornerShape(28.dp))
                         .testTag("infinity-start-panel"),
@@ -1880,7 +1919,7 @@ DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED"
                                             if (item.id == "orbit") {
                                                 orbitOpen = true
                                             } else {
-                                                focusedWindowId = openInfinityWindow(item.id, windows, workspace, maxW.value, maxH.value, dockSafeBottom)
+                                                focusedWindowId = openInfinityWindow(item.id, windows, workspace, maxW.value, maxH.value, dockSafeBottom, dockSafeTop)
                                             }
                                             startOpen = false
                                         }.padding(9.dp),
@@ -2364,7 +2403,7 @@ Spacer(Modifier.height(14.dp))
                         ) {
                             Button(
                                 onClick = {
-                                    focusedWindowId = openInfinityWindow("connect", windows, workspace, maxW.value, maxH.value, dockSafeBottom)
+                                    focusedWindowId = openInfinityWindow("connect", windows, workspace, maxW.value, maxH.value, dockSafeBottom, dockSafeTop)
                                     orbitOpen = false
                                 },
                                 modifier = Modifier
@@ -2598,13 +2637,13 @@ Spacer(Modifier.height(14.dp))
                 Box(
                     Modifier.align(Alignment.TopEnd)
                         .zIndex(16f)
-                        .padding(end = 14.dp, top = 76.dp, bottom = 112.dp)
+                        .padding(end = 14.dp, top = maxOf(76.dp, dockSafeTop.dp + 12.dp), bottom = 112.dp)
                         .widthIn(max = infinityControlDevicePanelMaxWidthDp(maxW.value).dp)
                         .fillMaxWidth()
                         .heightIn(
                             max = minOf(
-                                infinityControlPanelMaxHeightDp(maxH.value),
-                                (maxH.value - 188f).coerceAtLeast(1f)
+                                infinityControlPanelMaxHeightDp((maxH.value - dockSafeTop).coerceAtLeast(1f)),
+                                (maxH.value - dockSafeTop - 188f).coerceAtLeast(1f)
                             ).dp
                         )
                 ) {
@@ -2675,8 +2714,8 @@ Spacer(Modifier.height(14.dp))
                         .widthIn(max = infinityControlPanelMaxWidthDp(maxW.value).dp)
                         .heightIn(
                             max = minOf(
-                                (maxH - 200.dp).coerceAtLeast(220.dp),
-                                (maxH - 188.dp).coerceAtLeast(1.dp)
+                                (maxH - dockSafeTop.dp - 200.dp).coerceAtLeast(220.dp),
+                                (maxH - dockSafeTop.dp - 188.dp).coerceAtLeast(1.dp)
                             )
                         )
                         .shadow(24.dp, RoundedCornerShape(controlRadius)),
@@ -2830,7 +2869,20 @@ Spacer(Modifier.height(14.dp))
                                 }
                             )
                         }
-                        Text("Posición: inferior (única posición segura implementada actualmente)", color = InfinityMuted, fontSize = 9.sp)
+                        Text("Posición del Dock", color = InfinityMuted, fontSize = 10.sp)
+                        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            listOf(InfinityDockPosition.BOTTOM to "Inferior", InfinityDockPosition.TOP to "Superior").forEach { option ->
+                                FilterChip(
+                                    selected = dockPosition == option.first,
+                                    onClick = {
+                                        dockPosition = option.first
+                                        prefs.edit().putString("dock_position", option.first.name).apply()
+                                    },
+                                    label = { Text(option.second) }
+                                )
+                            }
+                        }
+                        Text("La ocultación automática se mantiene desactivada en pantallas táctiles para evitar accesos inaccesibles.", color = InfinityMuted, fontSize = 9.sp)
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                             Text("Formato de hora 24 h", color = InfinityMuted, fontSize = 10.sp, modifier = Modifier.weight(1f))
                             Switch(
@@ -3115,7 +3167,8 @@ private fun openInfinityWindow(
     workspace: Int,
     viewportWidth: Float,
     viewportHeight: Float,
-    safeBottom: Float = viewportHeight
+    safeBottom: Float = viewportHeight,
+    safeTop: Float = 0f
 ): String {
     val titles = mapOf(
         "files" to "Explorador de archivos",
@@ -3130,9 +3183,10 @@ private fun openInfinityWindow(
     if (existing >= 0) {
         windows[existing] = windows[existing].copy(minimized = false)
     } else {
+        val availableHeight = (safeBottom - safeTop).coerceAtLeast(1f)
         val (windowWidth, windowHeight) = infinityInitialWindowSize(
             viewportWidth,
-            safeBottom
+            availableHeight
         )
         val (windowX, windowY) = infinityInitialWindowPosition(
             infinityWorkspaceWindowCount(
@@ -3141,7 +3195,7 @@ private fun openInfinityWindow(
                 workspace
             ),
             viewportWidth,
-            safeBottom,
+            availableHeight,
             windowWidth,
             windowHeight
         )
@@ -3151,7 +3205,7 @@ private fun openInfinityWindow(
                 title = titles[id] ?: "INFINITY",
                 kind = id,
                 x = windowX,
-                y = windowY,
+                y = safeTop + windowY,
                 width = windowWidth,
                 height = windowHeight,
                 workspace = workspace

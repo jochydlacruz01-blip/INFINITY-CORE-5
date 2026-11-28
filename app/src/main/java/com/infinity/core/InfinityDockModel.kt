@@ -17,7 +17,7 @@ internal data class InfinityDockPreferences(
     val position: InfinityDockPosition = InfinityDockPosition.BOTTOM
 )
 
-internal enum class InfinityDockPosition { BOTTOM }
+internal enum class InfinityDockPosition { BOTTOM, TOP }
 
 internal data class InfinityDockTask(
     val id: String,
@@ -64,7 +64,7 @@ internal fun infinityNormalizeDockPreferences(
         scrollEnabled = preferences.scrollEnabled,
         visible = preferences.visible,
         showRunningIndicators = preferences.showRunningIndicators,
-        position = InfinityDockPosition.BOTTOM
+        position = preferences.position
     )
 }
 
