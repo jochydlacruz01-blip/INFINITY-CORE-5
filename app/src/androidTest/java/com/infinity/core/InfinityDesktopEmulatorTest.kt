@@ -450,7 +450,9 @@ class InfinityDesktopEmulatorTest {
         val removeFavorite = compose.onNodeWithTag("infinity-dock-favorite-toggle-$packageName")
         removeFavorite.assertExists()
         removeFavorite.assertTextEquals("QUITAR")
+        android.util.Log.d("INFINITY_TEST_DIAGNOSTIC", "before remove click favorites=${preferences.getString("dock_favorites", "")}")
         removeFavorite.performClick()
+        android.util.Log.d("INFINITY_TEST_DIAGNOSTIC", "after remove click favorites=${preferences.getString("dock_favorites", "")}")
         waitForComposeCondition(timeoutMillis = 5_000) {
             val persistedRemoval = preferences.getString("dock_favorites", "").orEmpty()
                 .lineSequence().none { it.trim() == packageName }
