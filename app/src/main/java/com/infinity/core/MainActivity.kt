@@ -390,6 +390,7 @@ private fun Infinity08App(resumeSignal: Int) {
     ).itemSpacingDp) }
     var dockScrollEnabled by remember { mutableStateOf(prefs.getBoolean("dock_scroll_enabled", true)) }
     var dockIndicatorsEnabled by remember { mutableStateOf(prefs.getBoolean("dock_indicators_enabled", true)) }
+    var dockVisible by remember { mutableStateOf(prefs.getBoolean("dock_visible", true)) }
 
     // Keep the desktop's live Compose theme synchronized with preference changes
     // made by ADVANCED and other modules, not only changes made inside this screen.
@@ -809,6 +810,15 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                 val reservedHeight = if (fluentTaskbar) 88f
                 else infinityDockReservedHeightDp(maxW.value, futuristicDesktop, iconPack)
                 mutableFloatStateOf((maxH.value - reservedHeight).coerceAtLeast(0f))
+            }
+            LaunchedEffect(dockVisible, maxH, maxW, futuristicDesktop, iconPack, taskbarStyle) {
+                if (!dockVisible) {
+                    dockSafeBottom = maxH.value
+                } else {
+                    val reservedHeight = if (fluentTaskbar) 88f
+                    else infinityDockReservedHeightDp(maxW.value, futuristicDesktop, iconPack)
+                    dockSafeBottom = (maxH.value - reservedHeight).coerceAtLeast(0f)
+                }
             }
             val desktopIconMetrics = remember(maxW, maxH, density, desktopItems.size) {
                 infinityDesktopIconLayoutMetrics(
@@ -1544,6 +1554,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
             // El viewport ocupa el ancho disponible; el contenido interno puede desplazarse
             // sin recortar accesos primarios ni depender de un umbral de pantalla.
             val dockScrollState = rememberScrollState()
+            if (dockVisible) {
             Row(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -1811,6 +1822,7 @@ DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED"
                         maxLines = 1
                     )
                 }
+            }
             }
 
 
@@ -2808,7 +2820,17 @@ Spacer(Modifier.height(14.dp))
                                 }
                             )
                         }
-                        Text("Posición: inferior (área segura Android)", color = InfinityMuted, fontSize = 9.sp)
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Text("Mostrar Dock", color = InfinityMuted, fontSize = 10.sp, modifier = Modifier.weight(1f))
+                            Switch(
+                                checked = dockVisible,
+                                onCheckedChange = { visible ->
+                                    dockVisible = visible
+                                    prefs.edit().putBoolean("dock_visible", visible).apply()
+                                }
+                            )
+                        }
+                        Text("Posición: inferior (única posición segura implementada actualmente)", color = InfinityMuted, fontSize = 9.sp)
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                             Text("Formato de hora 24 h", color = InfinityMuted, fontSize = 10.sp, modifier = Modifier.weight(1f))
                             Switch(

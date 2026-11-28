@@ -30,6 +30,8 @@ class InfinityDockModelTest {
         assertEquals(0f, normalized.transparency)
         assertEquals(8f, normalized.itemSpacingDp)
         assertEquals(InfinityDockPosition.BOTTOM, normalized.position)
+        val hidden = infinityNormalizeDockPreferences(InfinityDockPreferences(visible = false))
+        assertFalse(hidden.visible)
     }
 
     @Test
