@@ -29,7 +29,8 @@ run_instrumented() {
 run_instrumented "window-recovery" "com.infinity.core.InfinityWindowSnapshotRecoveryInstrumentedTest"
 run_instrumented "seed" "$test_class#seedThreeWorkspaceStateBeforeHostForceStop"
 
-adb shell am start -n "$package/.MainActivity"
+# The capture instrumentation test launches the registered launcher Activity itself.
+# Avoid a second, hard-coded component launch racing package/activity resolution.
 run_instrumented "capture" "$test_class#captureStateAfterInitialAppLaunch"
 
 before_pid=""
@@ -61,7 +62,7 @@ if [ "$stopped" -ne 1 ]; then
 fi
 echo "ActivityManager confirmed the original app process stopped." | tee -a "$evidence/process-lifecycle.txt"
 
-adb shell am start -n "$package/.MainActivity"
+# The verification instrumentation test launches the launcher Activity itself.
 after_pid=""
 attempt=0
 while [ "$attempt" -lt 60 ]; do
