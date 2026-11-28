@@ -801,7 +801,11 @@ private fun Infinity08App(resumeSignal: Int) {
         else preferences.putString(sourceFocusKey, sourceFocus)
         // Restore the target desktop's own last-focused window, falling back only
         // to the most recent eligible window within that same workspace.
-        val targetSavedFocus = prefs.getString(infinityWorkspaceFocusedWindowKey(normalizedTarget), null)
+        val targetSavedFocus = if (normalizedTarget == sourceWorkspace) {
+            sourceFocus
+        } else {
+            prefs.getString(infinityWorkspaceFocusedWindowKey(normalizedTarget), null)
+        }
         preferences.putInt("active_workspace", normalizedTarget).apply()
         workspace = normalizedTarget
         focusedWindowId = infinityResolveWorkspaceSwitchFocus(
