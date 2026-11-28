@@ -1,6 +1,7 @@
 package com.infinity.core
 
 import android.content.Context
+import android.content.Intent
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
@@ -62,6 +63,10 @@ class InfinityProcessPersistenceInstrumentedTest {
     fun verifyThreeWorkspaceStateAfterHostPerformedProcessRestart() {
         val prefs = context.getSharedPreferences("infinity_desktop", Context.MODE_PRIVATE)
         val device = UiDevice.getInstance(instrumentation)
+        val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)
+            ?: throw AssertionError("INFINITY launcher activity is not registered after process restart")
+        launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+        context.startActivity(launchIntent)
         assertTrue(
             "Relaunched application must be visible in the foreground",
             device.wait(Until.hasObject(By.pkg(context.packageName)), 20_000)
