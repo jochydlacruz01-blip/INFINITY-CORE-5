@@ -71,17 +71,38 @@ class InfinityVirtualDesktopRulesTest {
         assertEquals(Pair(listOf("a"), listOf("b")), infinityMoveWorkspaceShortcut(listOf("a"), listOf("b"), " "))
     }
 
-    @Test fun movingWindowRekeysItAndPreservesWindowState() {
+    @Test fun movingWindowRekeysItAndPreservesCompleteWindowState() {
         val original = InfinityAuroraWindow(
             id = "notes_1", workspace = 1, x = 42f, y = 80f, width = 500f, height = 400f,
-            minimized = true, maximized = false, zIndex = 9L
+            minimized = true, maximized = true, zIndex = 9L
         )
         val moved = infinityMoveAuroraWindow(original, "notes", 3)
         assertEquals("notes_3", moved.id)
         assertEquals(3, moved.workspace)
         assertEquals(42f, moved.x)
+        assertEquals(80f, moved.y)
+        assertEquals(500f, moved.width)
+        assertEquals(400f, moved.height)
         assertEquals(true, moved.minimized)
+        assertEquals(true, moved.maximized)
         assertEquals(9L, moved.zIndex)
+    }
+
+    @Test fun movingWindowNormalizesTargetWorkspaceAndCanonicalKind() {
+        val original = InfinityAuroraWindow(
+            id = "notes_1", workspace = 1, x = 12f, y = 24f, width = 300f, height = 240f
+        )
+        val moved = infinityMoveAuroraWindow(original, " NOTES ", 99)
+        assertEquals("notes_3", moved.id)
+        assertEquals(3, moved.workspace)
+        assertEquals(original.copy(id = "notes_3", workspace = 3), moved)
+    }
+
+    @Test fun movingWindowRejectsBlankKind() {
+        val original = InfinityAuroraWindow(
+            id = "notes_1", workspace = 1, x = 12f, y = 24f, width = 300f, height = 240f
+        )
+        assertTrue(runCatching { infinityMoveAuroraWindow(original, "   ", 2) }.isFailure)
     }
 
     @Test fun windowMoveRejectsMissingSourceSameWorkspaceAndDestinationCollision() {
