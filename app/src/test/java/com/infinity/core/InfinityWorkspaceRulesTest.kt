@@ -269,5 +269,26 @@ class InfinityWorkspaceRulesTest {
             null, order, workspaces, setOf("apps_2"), 2
         ))
     }
+    @Test fun malformedWindowSnapshotsUseFreeRecoverySlotsWithoutOverwritingEarlierBackups() {
+        assertEquals("saved_windows_recovery_backup", infinityNextWindowRecoveryBackupKey(emptySet()))
+        assertEquals(
+            "saved_windows_recovery_backup_2",
+            infinityNextWindowRecoveryBackupKey(setOf("saved_windows_recovery_backup"))
+        )
+        assertEquals(
+            "saved_windows_recovery_backup_3",
+            infinityNextWindowRecoveryBackupKey(
+                setOf("saved_windows_recovery_backup", "saved_windows_recovery_backup_2")
+            )
+        )
+        assertEquals(
+            null,
+            infinityNextWindowRecoveryBackupKey(
+                (1..3).map { if (it == 1) "saved_windows_recovery_backup" else "saved_windows_recovery_backup_$it" }.toSet(),
+                maxBackups = 3
+            )
+        )
+    }
+
 
 }
