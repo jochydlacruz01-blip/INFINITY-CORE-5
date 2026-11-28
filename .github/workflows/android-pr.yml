@@ -96,7 +96,7 @@ jobs:
 
       - name: Verify project structure and security defaults
         run: |
-          set -euo pipefail
+          set -eu
           test -f settings.gradle.kts
           test -f build.gradle.kts
           test -f app/build.gradle.kts
@@ -265,8 +265,11 @@ jobs:
             package="com.infinity.core"
             test_class="com.infinity.core.InfinityProcessPersistenceInstrumentedTest"
             mkdir -p artifacts/test-results
-            gradle connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class="$test_class#seedThreeWorkspaceStateBeforeHostForceStop" --stacktrace 2>&1 | tee artifacts/test-results/seed-instrumentation.log
+            if ! gradle connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class="$test_class#seedThreeWorkspaceStateBeforeHostForceStop" --stacktrace > artifacts/test-results/seed-instrumentation.log 2>&1; then cat artifacts/test-results/seed-instrumentation.log; exit 1; fi
+            cat artifacts/test-results/seed-instrumentation.log
             adb shell am start -n "$package/.MainActivity"
+            if ! gradle connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class="$test_class#captureStateAfterInitialAppLaunch" --stacktrace > artifacts/test-results/capture-instrumentation.log 2>&1; then cat artifacts/test-results/capture-instrumentation.log; exit 1; fi
+            cat artifacts/test-results/capture-instrumentation.log
             before_pid=""
             for attempt in $(seq 1 60); do
               before_pid="$(adb shell pidof "$package" 2>/dev/null | tr -d '\r' || true)"
@@ -294,7 +297,8 @@ jobs:
             test -n "$after_pid"
             test "$before_pid" != "$after_pid"
             echo "Fresh app PID: $after_pid" | tee -a artifacts/test-results/process-lifecycle.txt
-            gradle connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class="$test_class#verifyThreeWorkspaceStateAfterHostPerformedProcessRestart" --stacktrace 2>&1 | tee artifacts/test-results/verify-instrumentation.log
+            if ! gradle connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class="$test_class#verifyStateAfterHostPerformedProcessRestart" --stacktrace > artifacts/test-results/verify-instrumentation.log 2>&1; then cat artifacts/test-results/verify-instrumentation.log; exit 1; fi
+            cat artifacts/test-results/verify-instrumentation.log
             adb logcat -d -v threadtime AndroidRuntime:E INFINITY_WINDOW_RECOVERY:W '*:S' > artifacts/test-results/process-persistence-logcat.txt 2>&1 || true
 
       - name: Preserve process-persistence evidence

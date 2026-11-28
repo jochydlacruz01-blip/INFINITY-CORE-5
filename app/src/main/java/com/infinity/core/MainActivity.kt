@@ -633,7 +633,9 @@ private fun Infinity08App(resumeSignal: Int) {
                 val restoredWorkspace = item.getInt("workspace")
                 add(
                     DeskWindow(
-                        id = item.getString("id"),
+                        id = infinityNormalizeRestoredWindowId(
+                            item.getString("id"), kind, restoredWorkspace
+                        ),
                         title = item.getString("title"),
                         kind = kind,
                         x = infinityNormalizeWindowCoordinate(item.getDouble("x").toFloat(), 24f),

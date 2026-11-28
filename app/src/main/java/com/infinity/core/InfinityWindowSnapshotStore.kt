@@ -36,14 +36,18 @@ internal fun infinityIsValidWindowSnapshot(raw: String?): Boolean {
             )
             if (required.any { !item.has(it) || item.isNull(it) }) return false
 
-            val id = item.get("id") as? String ?: return false
+            val savedId = item.get("id") as? String ?: return false
             val title = item.get("title") as? String ?: return false
             val kind = item.get("kind") as? String ?: return false
             val workspaceValue = item.get("workspace") as? Number ?: return false
             val workspace = workspaceValue.toInt()
+            if (savedId.isBlank() || savedId.length > 128 || savedId.any { it.isISOControl() }) return false
             if (workspaceValue.toDouble() != workspace.toDouble() || workspace !in 1..3) return false
             if (kind !in INFINITY_ALLOWED_WINDOW_KINDS) return false
-            if (id != infinityWindowIdentity(kind, workspace) || !ids.add(id)) return false
+            // Legacy IDs are migrated to the canonical kind/workspace identity.
+            // Reject collisions after normalization rather than dropping windows silently.
+            val canonicalId = infinityNormalizeRestoredWindowId(savedId, kind, workspace)
+            if (!ids.add(canonicalId)) return false
             if (title.isBlank() || title.length > 80) return false
 
             val x = (item.get("x") as? Number)?.toDouble() ?: return false
