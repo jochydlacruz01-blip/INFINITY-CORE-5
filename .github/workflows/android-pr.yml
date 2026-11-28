@@ -59,6 +59,7 @@ on:
           - orbitMinimizeAllOnlyAffectsTheActiveWorkspace
           - exerciseDesktopCaptureRealScreensAcrossOrientations
           - all
+          - process-persistence
 
 permissions:
   contents: read
@@ -148,7 +149,7 @@ jobs:
 
   emulator-ui:
     # Run phone/tablet acceptance only after development is complete and explicitly dispatched.
-    if: github.event_name == 'workflow_dispatch' # Phone/tablet acceptance is deliberately deferred until the user requests final validation.
+    if: github.event_name == 'workflow_dispatch' && inputs.instrumentation_test != 'process-persistence' # Full phone/tablet acceptance remains deferred.
     # Final emulator validation runs only after source, unit-test and lint gates pass.
     name: Instrumented Android UI (${{ matrix.device }})
     needs: verify
@@ -214,3 +215,95 @@ jobs:
           path: artifacts/emulator-screenshots/
           if-no-files-found: warn
           retention-days: 1
+
+  process-persistence:
+    # Dedicated single-emulator process-death acceptance; this does not run tablet/phone layout simulations.
+    if: github.event_name == 'workflow_dispatch' && inputs.instrumentation_test == 'process-persistence'
+    name: Real Android process persistence (single emulator)
+    needs: verify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Enable KVM for the Android emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Checkout branch
+        uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - name: Configure Java 17
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - name: Configure Gradle 8.9
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: '8.9'
+
+      - name: Seed, force-stop, relaunch and verify a new app process
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_2
+          force-avd-creation: true
+          emulator-boot-timeout: 900
+          ram-size: 2048M
+          heap-size: 512M
+          disable-animations: true
+          script: |
+            set -euo pipefail
+            package="com.infinity.core"
+            test_class="com.infinity.core.InfinityProcessPersistenceInstrumentedTest"
+            gradle connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class="$test_class#seedThreeWorkspaceStateBeforeHostForceStop" --stacktrace
+            adb shell am start -n "$package/.MainActivity"
+            before_pid=""
+            for attempt in $(seq 1 60); do
+              before_pid="$(adb shell pidof "$package" 2>/dev/null | tr -d '\r' || true)"
+              if [ -n "$before_pid" ]; then break; fi
+              sleep 1
+            done
+            test -n "$before_pid"
+            echo "Original app PID: $before_pid"
+            adb shell am force-stop "$package"
+            stopped=0
+            for attempt in $(seq 1 30); do
+              current_pid="$(adb shell pidof "$package" 2>/dev/null | tr -d '\r' || true)"
+              if [ -z "$current_pid" ]; then stopped=1; break; fi
+              sleep 1
+            done
+            test "$stopped" -eq 1
+            echo "ActivityManager confirmed the original app process stopped."
+            adb shell am start -n "$package/.MainActivity"
+            after_pid=""
+            for attempt in $(seq 1 60); do
+              after_pid="$(adb shell pidof "$package" 2>/dev/null | tr -d '\r' || true)"
+              if [ -n "$after_pid" ]; then break; fi
+              sleep 1
+            done
+            test -n "$after_pid"
+            test "$before_pid" != "$after_pid"
+            echo "Fresh app PID: $after_pid"
+            gradle connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class="$test_class#verifyThreeWorkspaceStateAfterHostPerformedProcessRestart" --stacktrace
+            adb logcat -d -v threadtime AndroidRuntime:E INFINITY_WINDOW_RECOVERY:W '*:S' > process-persistence-logcat.txt 2>&1 || true
+
+      - name: Preserve process-persistence evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: INFINITY-PROCESS-PERSISTENCE-\${{ github.sha }}
+          path: |
+            app/build/outputs/androidTest-results/
+            app/build/reports/androidTests/
+            app/build/test-results/
+            process-persistence-logcat.txt
+          if-no-files-found: warn
+          retention-days: 14
