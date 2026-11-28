@@ -260,46 +260,8 @@ jobs:
           ram-size: 2048M
           heap-size: 512M
           disable-animations: true
-          script: |
-            set -eu
-            package="com.infinity.core"
-            test_class="com.infinity.core.InfinityProcessPersistenceInstrumentedTest"
-            mkdir -p artifacts/test-results
-            if ! gradle connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class="$test_class#seedThreeWorkspaceStateBeforeHostForceStop" --stacktrace > artifacts/test-results/seed-instrumentation.log 2>&1; then cat artifacts/test-results/seed-instrumentation.log; exit 1; fi
-            cat artifacts/test-results/seed-instrumentation.log
-            adb shell am start -n "$package/.MainActivity"
-            if ! gradle connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class="$test_class#captureStateAfterInitialAppLaunch" --stacktrace > artifacts/test-results/capture-instrumentation.log 2>&1; then cat artifacts/test-results/capture-instrumentation.log; exit 1; fi
-            cat artifacts/test-results/capture-instrumentation.log
-            before_pid=""
-            for attempt in $(seq 1 60); do
-              before_pid="$(adb shell pidof "$package" 2>/dev/null | tr -d '\r' || true)"
-              if [ -n "$before_pid" ]; then break; fi
-              sleep 1
-            done
-            test -n "$before_pid"
-            echo "Original app PID: $before_pid" | tee artifacts/test-results/process-lifecycle.txt
-            adb shell am force-stop "$package"
-            stopped=0
-            for attempt in $(seq 1 30); do
-              current_pid="$(adb shell pidof "$package" 2>/dev/null | tr -d '\r' || true)"
-              if [ -z "$current_pid" ]; then stopped=1; break; fi
-              sleep 1
-            done
-            test "$stopped" -eq 1
-            echo "ActivityManager confirmed the original app process stopped." | tee -a artifacts/test-results/process-lifecycle.txt
-            adb shell am start -n "$package/.MainActivity"
-            after_pid=""
-            for attempt in $(seq 1 60); do
-              after_pid="$(adb shell pidof "$package" 2>/dev/null | tr -d '\r' || true)"
-              if [ -n "$after_pid" ]; then break; fi
-              sleep 1
-            done
-            test -n "$after_pid"
-            test "$before_pid" != "$after_pid"
-            echo "Fresh app PID: $after_pid" | tee -a artifacts/test-results/process-lifecycle.txt
-            if ! gradle connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class="$test_class#verifyStateAfterHostPerformedProcessRestart" --stacktrace > artifacts/test-results/verify-instrumentation.log 2>&1; then cat artifacts/test-results/verify-instrumentation.log; exit 1; fi
-            cat artifacts/test-results/verify-instrumentation.log
-            adb logcat -d -v threadtime AndroidRuntime:E INFINITY_WINDOW_RECOVERY:W '*:S' > artifacts/test-results/process-persistence-logcat.txt 2>&1 || true
+          # The runner executes its script with sh -c; invoke one versioned shell file as one command.
+          script: sh scripts/run_process_persistence.sh
 
       - name: Preserve process-persistence evidence
         if: always()
