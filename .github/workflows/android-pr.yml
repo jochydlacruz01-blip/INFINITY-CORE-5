@@ -96,7 +96,7 @@ jobs:
 
       - name: Verify project structure and security defaults
         run: |
-          set -eu
+          set -euo pipefail
           test -f settings.gradle.kts
           test -f build.gradle.kts
           test -f app/build.gradle.kts
@@ -107,7 +107,7 @@ jobs:
 
       - name: Enforce source-only development policy
         run: |
-          set -eu
+          set -euo pipefail
           python3 scripts/verify_no_apk_builds.py .github/workflows
           python3 scripts/verify_no_apk_builds.py codemagic.yaml
 
@@ -261,7 +261,7 @@ jobs:
           heap-size: 512M
           disable-animations: true
           script: |
-            set -euo pipefail
+            set -eu
             package="com.infinity.core"
             test_class="com.infinity.core.InfinityProcessPersistenceInstrumentedTest"
             mkdir -p artifacts/test-results
