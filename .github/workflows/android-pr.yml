@@ -21,6 +21,7 @@ on:
       - INFINITY-PACK-14-REMOTE-FRAME-PIPELINE
   push:
     branches:
+      - INFINITY-0.11-VIRTUAL-DESKTOPS
       - INFINITY-PACK-01-FILES-REVIEWED
       - INFINITY-PACK-02-ORBIT-WORKSPACES
       - INFINITY-PACK-03-DOCK-RESPONSIVE
@@ -218,7 +219,7 @@ jobs:
 
   process-persistence:
     # Dedicated single-emulator process-death acceptance; this does not run tablet/phone layout simulations.
-    if: github.event_name == 'workflow_dispatch' && inputs.instrumentation_test == 'process-persistence'
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.instrumentation_test == 'process-persistence')
     name: Real Android process persistence (single emulator)
     needs: verify
     runs-on: ubuntu-24.04
