@@ -86,6 +86,21 @@ internal fun infinityWindowSnapshotKey(entries: List<InfinityWindowSnapshotEntry
     }
 
 /** Wait for short geometry gestures to settle before committing the window snapshot. */
+/** Finds an unused recovery slot without overwriting an earlier malformed window snapshot. */
+internal fun infinityNextWindowRecoveryBackupKey(
+    existingKeys: Set<String>,
+    maxBackups: Int = 5
+): String? {
+    val limit = maxBackups.coerceAtLeast(0)
+    if (limit == 0) return null
+    for (index in 1..limit) {
+        val key = if (index == 1) "saved_windows_recovery_backup"
+        else "saved_windows_recovery_backup_$index"
+        if (key !in existingKeys) return key
+    }
+    return null
+}
+
 internal const val INFINITY_WINDOW_PERSISTENCE_DEBOUNCE_MS = 250L
 
 /** Phone-adapted windows must retain the original desktop geometry for later restoration. */
