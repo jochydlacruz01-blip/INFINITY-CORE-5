@@ -26,6 +26,47 @@ class InfinityProcessPersistenceInstrumentedTest {
         "infinity_process_persistence_baseline", Context.MODE_PRIVATE
     )
 
+
+    /**
+     * Runs the complete lifecycle in one instrumentation session. Keeping seed,
+     * capture and verification in one Gradle invocation prevents app reinstall or
+     * test-runner setup from changing the target package's data between phases.
+     * UiDevice shell commands perform a real ActivityManager force-stop.
+     */
+    @Test(timeout = 180_000)
+    fun stateSurvivesRealTargetProcessDeathInSingleSession() {
+        seedThreeWorkspaceStateBeforeHostForceStop()
+        captureStateAfterInitialAppLaunch()
+
+        val device = UiDevice.getInstance(instrumentation)
+        val beforePid = device.executeShellCommand("pidof ${context.packageName}").trim()
+        assertTrue("The original INFINITY process must be running", beforePid.isNotEmpty())
+
+        device.executeShellCommand("am force-stop ${context.packageName}")
+        var stopped = false
+        repeat(40) {
+            if (device.executeShellCommand("pidof ${context.packageName}").trim().isEmpty()) {
+                stopped = true
+                return@repeat
+            }
+            Thread.sleep(250)
+        }
+        assertTrue("ActivityManager must terminate the original INFINITY process", stopped)
+
+        launchDesktop()
+        assertDesktopUi(device)
+        var afterPid = ""
+        repeat(40) {
+            afterPid = device.executeShellCommand("pidof ${context.packageName}").trim()
+            if (afterPid.isNotEmpty()) return@repeat
+            Thread.sleep(250)
+        }
+        assertTrue("INFINITY must relaunch after force-stop", afterPid.isNotEmpty())
+        assertTrue("Relaunch must create a different process", beforePid != afterPid)
+
+        verifyStateAfterHostPerformedProcessRestart()
+    }
+
     @Test fun seedThreeWorkspaceStateBeforeHostForceStop() {
         val prefs = context.getSharedPreferences("infinity_desktop", Context.MODE_PRIVATE)
         val windows = """[
