@@ -942,4 +942,56 @@ class InfinityDesktopEmulatorTest {
         compose.onNodeWithText("Future private body").assertDoesNotExist()
     }
 
+
+    @Test(timeout = 120_000)
+    fun workspaceNamesBackgroundsShortcutsWindowsAndActiveSpaceSurviveActivityRecreation() {
+        val preferences = context.getSharedPreferences("infinity_desktop", 0)
+        val savedWindow = """[{"id":"notes_2","title":"Notas persistentes","kind":"notes","x":36,"y":92,"width":420,"height":340,"minimized":false,"workspace":2,"maximized":false}]"""
+        preferences.edit()
+            .putInt("active_workspace", 2)
+            .putString(infinityVirtualDesktopNameKey(1), "PRINCIPAL")
+            .putString(infinityVirtualDesktopNameKey(2), "TRABAJO GUARDADO")
+            .putString(infinityVirtualDesktopBackgroundPresetKey(1), "nebula")
+            .putString(infinityVirtualDesktopBackgroundPresetKey(2), "punk")
+            .putString(infinityWorkspaceDesktopShortcutKey(2), infinitySerializeDesktopShortcutPackages(listOf("com.android.settings")))
+            .putFloat(infinityWorkspaceIconPositionKey(2, "files", "x"), 123f)
+            .putFloat(infinityWorkspaceIconPositionKey(2, "files", "y"), 234f)
+            .putString("saved_windows", savedWindow)
+            .commit()
+
+        compose.activityRule.scenario.recreate()
+        settleComposeFrame()
+
+        compose.onNodeWithTag("infinity-workspace-name").assertExists()
+        compose.onNodeWithText("TRABAJO GUARDADO").assertExists()
+        compose.onNodeWithTag("infinity-window-notes").assertExists()
+        assertTrue(preferences.getInt("active_workspace", 1) == 2)
+        assertTrue(preferences.getString(infinityVirtualDesktopBackgroundPresetKey(1), null) == "nebula")
+        assertTrue(preferences.getString(infinityVirtualDesktopBackgroundPresetKey(2), null) == "punk")
+        assertTrue(preferences.getFloat(infinityWorkspaceIconPositionKey(2, "files", "x"), -1f) == 123f)
+        assertTrue(preferences.getFloat(infinityWorkspaceIconPositionKey(2, "files", "y"), -1f) == 234f)
+        assertTrue(preferences.getString("saved_windows", null) == savedWindow)
+
+        compose.onNodeWithTag("infinity-workspace-name").performClick()
+        settleComposeFrame()
+        compose.onNodeWithTag("infinity-workspace-name-input").performTextClearance()
+        compose.onNodeWithTag("infinity-workspace-name-input").performTextInput("PROYECTOS")
+        compose.onNodeWithTag("infinity-workspace-name-save").performClick()
+        settleComposeFrame()
+        compose.onNodeWithText("PROYECTOS").assertExists()
+        assertTrue(preferences.getString(infinityVirtualDesktopNameKey(2), null) == "PROYECTOS")
+
+        compose.activityRule.scenario.recreate()
+        settleComposeFrame()
+        compose.onNodeWithText("PROYECTOS").assertExists()
+        compose.onNodeWithTag("infinity-window-notes").assertExists()
+        assertTrue(preferences.getString(infinityVirtualDesktopNameKey(2), null) == "PROYECTOS")
+        assertTrue(preferences.getString(infinityVirtualDesktopBackgroundPresetKey(2), null) == "punk")
+        assertTrue(
+            infinityParseDesktopShortcutPackages(
+                preferences.getString(infinityWorkspaceDesktopShortcutKey(2), null)
+            ).contains("com.android.settings")
+        )
+    }
+
 }
