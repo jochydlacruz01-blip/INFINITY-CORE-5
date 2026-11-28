@@ -243,19 +243,6 @@ private fun InfinityAppBadge(
     }
 }
 
-private data class DeskWindow(
-    val id: String,
-    val title: String,
-    val kind: String,
-    val x: Float,
-    val y: Float,
-    val width: Float = 370f,
-    val height: Float = 330f,
-    val minimized: Boolean = false,
-    val workspace: Int = 1,
-    val maximized: Boolean = false
-)
-
 /**
  * Gesture-local geometry transaction for the legacy DeskWindow surface.
  * Preview coordinates remain in Compose state; persistence is enabled only
@@ -638,6 +625,8 @@ private fun Infinity08App(resumeSignal: Int) {
         }
     }
 
+    val auroraWindowManager = remember(windows) { InfinityAuroraWindowManager(windows) }
+
     // Geometry transactions keep preview frames out of SharedPreferences until commit.
     val geometryTransactions = remember { mutableStateMapOf<String, InfinityDeskWindowGeometryTransaction>() }
     val geometryTransactionRegistry = remember { InfinityWindowGeometryTransactionRegistry(geometryTransactions) }
@@ -735,14 +724,7 @@ private fun Infinity08App(resumeSignal: Int) {
     // Windows are drawn in list order, so changing only focusedWindowId can leave
     // an ORBIT/Dock-restored window visually underneath a later overlapping window.
     fun focusWindowToFront(windowId: String) {
-        val index = windows.indexOfFirst { it.id == windowId }
-        if (index < 0) return
-        val ordered = infinityRaiseWindowAfterManipulation(windows.toList(), windows[index]) { it.id }
-        if (ordered.map { it.id } != windows.map { it.id }) {
-            windows.clear()
-            windows.addAll(ordered)
-        }
-        focusedWindowId = windowId
+        if (auroraWindowManager.focus(windowId)) focusedWindowId = windowId
     }
 
     fun switchWorkspace(target: Int) {
@@ -1229,7 +1211,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                         }
                         if (plan.requestWallpaperPicker) wallpaperPicker.launch(arrayOf("image/*"))
                         if (plan.requestAppearancePanel) {
-                            focusedWindowId = openInfinityWindow("settings", windows, workspace, maxW.value, maxH.value, dockSafeBottom, dockSafeTop)
+                            focusedWindowId = openInfinityWindow("settings", windows, auroraWindowManager, workspace, maxW.value, maxH.value, dockSafeBottom, dockSafeTop)
                         }
                         if (plan.requestWorkspacePanel) dashboardOpen = true
                     }
@@ -1241,7 +1223,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                     workspace = workspace,
                     onWorkspaceChange = { target -> switchWorkspace(target); dashboardOpen = true },
                     onOpenWindow = { id ->
-                        focusedWindowId = openInfinityWindow(id, windows, workspace, maxW.value, maxH.value, dockSafeBottom, dockSafeTop)
+                        focusedWindowId = openInfinityWindow(id, windows, auroraWindowManager, workspace, maxW.value, maxH.value, dockSafeBottom, dockSafeTop)
                         dashboardOpen = false
                         startOpen = false
                         orbitOpen = false
@@ -1451,7 +1433,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                                         advancedOpen = false
                                     }
                                     else -> if (item.packageName != null) launchApp(item.packageName)
-                                    else focusedWindowId = openInfinityWindow(item.id, windows, workspace, maxW.value, maxH.value, dockSafeBottom, dockSafeTop)
+                                    else focusedWindowId = openInfinityWindow(item.id, windows, auroraWindowManager, workspace, maxW.value, maxH.value, dockSafeBottom, dockSafeTop)
                                 }
                             }
                             .padding(if (referenceRail) 2.dp else if (compactIconCell) 3.dp else 6.dp)
@@ -1535,7 +1517,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                         onClose = {
                             // Discard the gesture transaction before removing its window.
                             geometryTransactionRegistry.remove(win.id)
-                            windows.removeAll { item -> item.id == win.id }
+                            auroraWindowManager.close(win.id)
                             focusedWindowId = infinityResolveFocusAfterWindowDeactivation(
                                 win.id,
                                 focusedWindowId,
@@ -1548,8 +1530,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                         onMinimize = {
                             // Roll back any in-flight gesture before minimizing.
                             cancelWindowGeometryTransaction(win.id)
-                            val index = windows.indexOfFirst { it.id == win.id }
-                            if (index >= 0) windows[index] = windows[index].copy(minimized = true)
+                            auroraWindowManager.minimize(win.id)
                             focusedWindowId = infinityResolveFocusAfterWindowDeactivation(
                                 win.id,
                                 focusedWindowId,
@@ -1561,11 +1542,7 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                         },
                         onMaximize = {
                             cancelWindowGeometryTransaction(win.id)
-                            val index = windows.indexOfFirst { it.id == win.id }
-                            if (index >= 0) {
-                                windows[index] = windows[index].copy(maximized = !windows[index].maximized)
-                                focusWindowToFront(win.id)
-                            }
+                            if (auroraWindowManager.toggleMaximized(win.id)) focusWindowToFront(win.id)
                         },
                         
                         // INFINITY 0.11 — MOVIMIENTO CON LÍMITES
@@ -1828,7 +1805,7 @@ DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED"
                                     tappedTask.id, focusedWindowId, tappedTask.minimized
                                 )
                                 val minimizeTask = activation == null
-                                windows[idx] = tappedTask.copy(minimized = minimizeTask)
+                                if (minimizeTask) auroraWindowManager.minimize(tappedTask.id) else auroraWindowManager.restore(tappedTask.id)
                                 if (minimizeTask) {
                                     focusedWindowId = infinityResolveWorkspaceFocus(
                                         null, windows.map { it.id },
@@ -1987,7 +1964,7 @@ DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED"
                                             when {
                                                 item.id == "orbit" -> orbitOpen = true
                                                 item.packageName != null -> launchApp(item.packageName)
-                                                else -> focusedWindowId = openInfinityWindow(item.id, windows, workspace, maxW.value, maxH.value, dockSafeBottom, dockSafeTop)
+                                                else -> focusedWindowId = openInfinityWindow(item.id, windows, auroraWindowManager, workspace, maxW.value, maxH.value, dockSafeBottom, dockSafeTop)
                                             }
                                             startOpen = false
                                         }.padding(9.dp),
@@ -2487,7 +2464,7 @@ Spacer(Modifier.height(14.dp))
                         ) {
                             Button(
                                 onClick = {
-                                    focusedWindowId = openInfinityWindow("connect", windows, workspace, maxW.value, maxH.value, dockSafeBottom, dockSafeTop)
+                                    focusedWindowId = openInfinityWindow("connect", windows, auroraWindowManager, workspace, maxW.value, maxH.value, dockSafeBottom, dockSafeTop)
                                     orbitOpen = false
                                 },
                                 modifier = Modifier
@@ -2513,11 +2490,7 @@ Spacer(Modifier.height(14.dp))
                                         windows.associate { it.id to it.workspace },
                                         workspace
                                     )
-                                    windows.indices
-                                        .filter { windows[it].id in minimizeTargets }
-                                        .forEach { index ->
-                                            windows[index] = windows[index].copy(minimized = true)
-                                        }
+                                    auroraWindowManager.minimizeAll(minimizeTargets)
                                     focusedWindowId = infinityResolveWorkspaceFocus(
                                         focusedWindowId,
                                         windows.map { it.id },
@@ -2624,8 +2597,7 @@ Spacer(Modifier.height(14.dp))
                                                         it.id == win.id
                                                     }
                                                     if (index >= 0) {
-                                                        windows[index] =
-                                                            windows[index].copy(minimized = false)
+                                                        auroraWindowManager.restore(win.id)
                                                         focusWindowToFront(win.id)
                                                     }
                                                     orbitOpen = false
@@ -2655,11 +2627,11 @@ Spacer(Modifier.height(14.dp))
                                                 }
                                                 if (index >= 0) {
                                                     if (win.minimized) {
-                                                        windows[index] = windows[index].copy(minimized = false)
+                                                        auroraWindowManager.restore(win.id)
                                                         focusWindowToFront(win.id)
                                                         orbitOpen = false
                                                     } else {
-                                                        windows[index] = windows[index].copy(minimized = true)
+                                                        auroraWindowManager.minimize(win.id)
                                                         focusedWindowId = infinityResolveFocusAfterWindowDeactivation(
                                                             win.id,
                                                             focusedWindowId,
@@ -2680,9 +2652,7 @@ Spacer(Modifier.height(14.dp))
 
                                         TextButton(
                                             onClick = {
-                                                windows.removeAll {
-                                                    it.id == win.id
-                                                }
+                                                auroraWindowManager.close(win.id)
                                                 focusedWindowId = infinityResolveFocusAfterWindowDeactivation(
                                                     win.id,
                                                     focusedWindowId,
@@ -3248,6 +3218,7 @@ private fun DockInstalledAppAction(
 private fun openInfinityWindow(
     id: String,
     windows: MutableList<DeskWindow>,
+    windowManager: InfinityAuroraWindowManager,
     workspace: Int,
     viewportWidth: Float,
     viewportHeight: Float,
@@ -3265,7 +3236,7 @@ private fun openInfinityWindow(
     val existing = windows.indexOfFirst { it.kind == id && it.workspace == workspace }
     val windowId = infinityWindowIdentity(id, workspace)
     if (existing >= 0) {
-        windows[existing] = windows[existing].copy(minimized = false)
+        windowManager.restore(windowId)
     } else {
         val availableHeight = (safeBottom - safeTop).coerceAtLeast(1f)
         val (windowWidth, windowHeight) = infinityInitialWindowSize(
@@ -3300,14 +3271,7 @@ private fun openInfinityWindow(
     // Every entry point (desktop shortcut, START, dashboard and context menu) uses this
     // factory. Restore/open must also raise an existing window in the visual stack;
     // assigning focusedWindowId alone does not change the draw order of AURORA siblings.
-    val activeIndex = windows.indexOfFirst { it.id == windowId }
-    if (activeIndex >= 0) {
-        val ordered = infinityRaiseWindowAfterManipulation(windows.toList(), windows[activeIndex]) { it.id }
-        if (ordered.map { it.id } != windows.map { it.id }) {
-            windows.clear()
-            windows.addAll(ordered)
-        }
-    }
+    windowManager.focus(windowId)
     return windowId
 }
 
