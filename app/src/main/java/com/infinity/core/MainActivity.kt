@@ -661,7 +661,14 @@ private fun Infinity08App(resumeSignal: Int) {
                     )
                 }
             } catch (_: Exception) {
+                // Preserve the last unreadable snapshot before resetting the live window list.
+                // This keeps user data available for diagnosis/recovery instead of silently
+                // destroying the only copy when a partial or legacy JSON payload is malformed.
                 clear()
+                val recoveryBackupKey = "saved_windows_recovery_backup"
+                if (!saved.isNullOrBlank() && !prefs.contains(recoveryBackupKey)) {
+                    prefs.edit().putString(recoveryBackupKey, saved).apply()
+                }
                 prefs.edit().remove("saved_windows").apply()
             }
         }
