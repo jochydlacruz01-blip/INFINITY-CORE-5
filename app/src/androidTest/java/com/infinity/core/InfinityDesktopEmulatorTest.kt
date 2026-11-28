@@ -1063,7 +1063,7 @@ class InfinityDesktopEmulatorTest {
         compose.activityRule.scenario.recreate()
         settleComposeFrame()
         compose.onNodeWithTag("infinity-window-apps").assertExists()
-        val persisted = JSONArray(preferences.getString("saved_windows", "[]"))
+        val persisted = org.json.JSONArray(preferences.getString("saved_windows", "[]"))
         val records = (0 until persisted.length()).mapNotNull { persisted.optJSONObject(it) }
             .associateBy { it.optString("id") }
         assertTrue("Workspace 1 window must remain stored", records.containsKey("notes_1"))
