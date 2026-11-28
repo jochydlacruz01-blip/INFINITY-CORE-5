@@ -3,6 +3,10 @@ package com.infinity.core
 /** Keeps workspace selection within the three supported desktop spaces. */
 internal fun infinityNormalizeWorkspace(target: Int): Int = target.coerceIn(1, 3)
 
+/** Each virtual desktop remembers its own last focused AURORA window. */
+internal fun infinityWorkspaceFocusedWindowKey(workspace: Int): String =
+    "workspace_${infinityNormalizeWorkspace(workspace)}_focused_window_id"
+
 /** Stable identity prevents duplicate module windows within one workspace. */
 internal fun infinityWindowIdentity(kind: String, workspace: Int): String =
     "${kind}_${infinityNormalizeWorkspace(workspace)}"
