@@ -55,7 +55,7 @@ on:
         description: "Instrumented test to run on the Android 14 emulator"
         required: true
         type: choice
-        default: orbitMinimizeAllOnlyAffectsTheActiveWorkspace
+        default: all
         options:
           - orbitMinimizeAllOnlyAffectsTheActiveWorkspace
           - exerciseDesktopCaptureRealScreensAcrossOrientations
