@@ -451,6 +451,10 @@ class InfinityDesktopEmulatorTest {
         val removeFavorite = compose.onNodeWithTag("infinity-dock-favorite-toggle-$packageName")
         removeFavorite.assertExists()
         removeFavorite.assertTextEquals("QUITAR")
+        // The installed-app catalog can extend below the available Start viewport.
+        // Scroll the actual panel content so the action is fully exposed above the Dock.
+        removeFavorite.performScrollTo()
+        settleComposeFrame()
         removeFavorite.assertIsDisplayed()
         removeFavorite.performTouchInput { click() }
         waitForComposeCondition(timeoutMillis = 5_000) {

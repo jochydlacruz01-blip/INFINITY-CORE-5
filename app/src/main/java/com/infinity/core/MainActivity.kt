@@ -2067,7 +2067,13 @@ DockAction(if (futuristicDesktop && maxW >= 600.dp) "⚙" else "▤", "ADVANCED"
                         else -> accent.copy(alpha = .28f)
                     })
                 ) {
-                    Column(Modifier.padding(18.dp)) {
+                    Column(
+                        Modifier.padding(18.dp)
+                            // The Start card is constrained above the Dock. Its full content
+                            // must scroll inside that viewport instead of drawing underneath it.
+                            .verticalScroll(rememberScrollState())
+                            .testTag("infinity-start-content")
+                    ) {
                         Text(if (iconPack == "windows11") "INICIO" else "INFINITY START", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Black)
                         Text(if (iconPack == "windows11") "Aplicaciones ancladas y recomendadas" else "Tus herramientas y aplicaciones", color = InfinityMuted, fontSize = 10.sp)
                         Spacer(Modifier.height(10.dp))
