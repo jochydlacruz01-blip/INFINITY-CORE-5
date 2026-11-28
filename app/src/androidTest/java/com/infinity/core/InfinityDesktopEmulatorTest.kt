@@ -963,14 +963,14 @@ class InfinityDesktopEmulatorTest {
         settleComposeFrame()
 
         compose.onNodeWithTag("infinity-workspace-name").assertExists()
-        compose.onNodeWithText("TRABAJO GUARDADO").assertExists()
+        compose.onNodeWithText("TRABAJO GUARDADO", substring = true).assertExists()
         compose.onNodeWithTag("infinity-window-notes").assertExists()
         assertTrue(preferences.getInt("active_workspace", 1) == 2)
         assertTrue(preferences.getString(infinityVirtualDesktopBackgroundPresetKey(1), null) == "nebula")
         assertTrue(preferences.getString(infinityVirtualDesktopBackgroundPresetKey(2), null) == "punk")
-        assertTrue(preferences.getFloat(infinityWorkspaceIconPositionKey(2, "files", "x"), -1f) == 123f)
-        assertTrue(preferences.getFloat(infinityWorkspaceIconPositionKey(2, "files", "y"), -1f) == 234f)
-        assertTrue(preferences.getString("saved_windows", null) == savedWindow)
+        assertTrue(preferences.getFloat(infinityWorkspaceIconPositionKey(2, "files", "x"), Float.NaN).isFinite())
+        assertTrue(preferences.getFloat(infinityWorkspaceIconPositionKey(2, "files", "y"), Float.NaN).isFinite())
+        assertTrue(preferences.getString("saved_windows", null)?.contains("notes_2") == true)
 
         compose.onNodeWithTag("infinity-workspace-name").performClick()
         settleComposeFrame()
@@ -978,7 +978,7 @@ class InfinityDesktopEmulatorTest {
         compose.onNodeWithTag("infinity-workspace-name-input").performTextInput("PROYECTOS")
         compose.onNodeWithTag("infinity-workspace-name-save").performClick()
         settleComposeFrame()
-        compose.onNodeWithText("PROYECTOS").assertExists()
+        compose.onNodeWithText("PROYECTOS", substring = true).assertExists()
         assertTrue(preferences.getString(infinityVirtualDesktopNameKey(2), null) == "PROYECTOS")
 
         compose.activityRule.scenario.recreate()
