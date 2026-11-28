@@ -409,7 +409,7 @@ class InfinityDesktopEmulatorTest {
             .addCategory(android.content.Intent.CATEGORY_LAUNCHER)
         // Use the app under test as a controlled launcher fixture. Selecting the
         // first arbitrary installed app made this test depend on emulator image contents
-        // and package visibility after Activity recreation (e.g. com.android.camera2).
+        // and package visibility after Activity recreation (e.g. com.android.settings).
         val candidate = context.packageManager.queryIntentActivities(launcherIntent, 0)
             .firstOrNull { it.activityInfo.packageName == context.packageName }
             ?: throw AssertionError("La Activity principal de INFINITY no aparece en el catálogo LAUNCHER del emulador")
@@ -963,7 +963,7 @@ class InfinityDesktopEmulatorTest {
             .putString(infinityVirtualDesktopBackgroundPresetKey(2), "punk")
             .putString(infinityVirtualDesktopBackgroundPresetKey(3), "aurora")
             .putString(infinityWorkspaceDesktopShortcutKey(2), infinitySerializeDesktopShortcutPackages(listOf("com.android.settings")))
-            .putString(infinityWorkspaceDesktopShortcutKey(3), infinitySerializeDesktopShortcutPackages(listOf("com.android.camera2")))
+            .putString(infinityWorkspaceDesktopShortcutKey(3), infinitySerializeDesktopShortcutPackages(listOf("com.android.settings")))
             .putFloat(infinityWorkspaceIconPositionKey(1, "files", "x"), 45f)
             .putFloat(infinityWorkspaceIconPositionKey(1, "files", "y"), 67f)
             .putFloat(infinityWorkspaceIconPositionKey(2, "files", "x"), 123f)
@@ -991,7 +991,7 @@ class InfinityDesktopEmulatorTest {
         assertTrue(preferences.getFloat(infinityWorkspaceIconPositionKey(3, "files", "y"), Float.NaN).isFinite())
         assertTrue(
             infinityParseDesktopShortcutPackages(preferences.getString(infinityWorkspaceDesktopShortcutKey(3), null))
-                .contains("com.android.camera2")
+                .contains("com.android.settings")
         )
         assertTrue(preferences.getString("saved_windows", null)?.contains("notes_2") == true)
 
@@ -1020,7 +1020,7 @@ class InfinityDesktopEmulatorTest {
         assertTrue(
             infinityParseDesktopShortcutPackages(
                 preferences.getString(infinityWorkspaceDesktopShortcutKey(3), null)
-            ).contains("com.android.camera2")
+            ).contains("com.android.settings")
         )
     }
 
