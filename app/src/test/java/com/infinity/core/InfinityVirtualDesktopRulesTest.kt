@@ -138,7 +138,7 @@ class InfinityVirtualDesktopRulesTest {
             infinityWorkspaceIconPositionKey(3, "FILES!", "y"),
             infinityWorkspaceIconPositionKey(9, "files", "y")
         )
-        assertEquals("workspace_2_my_app_y", infinityWorkspaceIconPositionKey(2, " My-App ", "y"))
+        assertEquals("workspace_2_my-app_y", infinityWorkspaceIconPositionKey(2, " My-App ", "y"))
     }
 
     @Test fun desktopIconCoordinateKeysRejectInvalidIdentityAndAxis() {
