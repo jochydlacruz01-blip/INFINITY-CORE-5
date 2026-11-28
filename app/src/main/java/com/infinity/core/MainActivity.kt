@@ -1168,7 +1168,8 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                         workspaceNameDraft = workspaceNames[workspace] ?: infinityDefaultVirtualDesktopName(workspace)
                         renameWorkspaceDialogOpen = true
                     },
-                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp)
+                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                    modifier = Modifier.testTag("infinity-workspace-name")
                 ) {
                     Text(workspaceNames[workspace] ?: infinityDefaultVirtualDesktopName(workspace), color = accent, fontSize = 9.sp)
                     Text("  ✎", color = accent, fontSize = 10.sp)
@@ -1192,8 +1193,9 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                             workspaceNameDraft = workspaceNames[workspace] ?: infinityDefaultVirtualDesktopName(workspace)
                             renameWorkspaceDialogOpen = true
                         },
-                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp)
-                    ) { Text("✎", color = accent, fontSize = 12.sp) }
+                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp),
+                        modifier = Modifier.testTag("infinity-workspace-name")
+                    ) { Text(workspaceNames[workspace] ?: infinityDefaultVirtualDesktopName(workspace), color = accent, fontSize = 10.sp); Text("  ✎", color = accent, fontSize = 12.sp) }
                 }
             }
             if (renameWorkspaceDialogOpen) {
@@ -1206,13 +1208,16 @@ val iconOffsets = remember { mutableStateMapOf<String, Offset>() }
                             OutlinedTextField(
                                 value = workspaceNameDraft,
                                 onValueChange = { workspaceNameDraft = it.take(24) },
+                                modifier = Modifier.testTag("infinity-workspace-name-input"),
                                 singleLine = true,
                                 label = { Text("Nombre del escritorio") }
                             )
                         }
                     },
                     confirmButton = {
-                        TextButton(onClick = {
+                        TextButton(
+                            modifier = Modifier.testTag("infinity-workspace-name-save"),
+                            onClick = {
                             val normalizedName = infinityNormalizeVirtualDesktopName(workspaceNameDraft, workspace)
                             workspaceNames = workspaceNames + (workspace to normalizedName)
                             prefs.edit().putString(infinityVirtualDesktopNameKey(workspace), normalizedName).apply()
