@@ -404,9 +404,12 @@ class InfinityDesktopEmulatorTest {
     fun dockFavoriteCanBePinnedAndPersistsAcrossActivityRecreation() {
         val launcherIntent = android.content.Intent(android.content.Intent.ACTION_MAIN)
             .addCategory(android.content.Intent.CATEGORY_LAUNCHER)
+        // Use the app under test as a controlled launcher fixture. Selecting the
+        // first arbitrary installed app made this test depend on emulator image contents
+        // and package visibility after Activity recreation (e.g. com.android.camera2).
         val candidate = context.packageManager.queryIntentActivities(launcherIntent, 0)
-            .firstOrNull { it.activityInfo.packageName != context.packageName }
-            ?: throw AssertionError("No se encontró una aplicación lanzable para probar favoritos")
+            .firstOrNull { it.activityInfo.packageName == context.packageName }
+            ?: throw AssertionError("La Activity principal de INFINITY no aparece en el catálogo LAUNCHER del emulador")
         val packageName = candidate.activityInfo.packageName
         val label = candidate.loadLabel(context.packageManager).toString()
         val preferences = context.getSharedPreferences("infinity_desktop", 0)
@@ -438,14 +441,18 @@ class InfinityDesktopEmulatorTest {
         settleComposeFrame()
         compose.onNode(hasSetTextAction()).performTextInput(label)
         settleComposeFrame()
-        compose.onNodeWithTag("infinity-dock-favorite-toggle-$packageName")
-            .assertExists()
-            .performClick()
+        val removeFavorite = compose.onNodeWithTag("infinity-dock-favorite-toggle-$packageName")
+        removeFavorite.assertExists()
+        removeFavorite.assertTextEquals("QUITAR")
+        removeFavorite.performClick()
+        settleComposeFrame()
+        removeFavorite.assertTextEquals("ANCLAR")
         compose.waitUntil(timeoutMillis = 5_000) {
             preferences.getString("dock_favorites", "").orEmpty()
-                .lineSequence().none { it.trim() == packageName }
+                .lineSequence().none { it.trim() == packageName } &&
+                compose.onAllNodesWithTag("infinity-dock-app-$packageName")
+                    .fetchSemanticsNodes().isEmpty()
         }
-        compose.onNodeWithTag("infinity-dock-app-$packageName").assertDoesNotExist()
     }
 
     @Test(timeout = 120_000)
