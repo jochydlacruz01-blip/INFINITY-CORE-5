@@ -665,11 +665,15 @@ private fun Infinity08App(resumeSignal: Int) {
                 // This keeps user data available for diagnosis/recovery instead of silently
                 // destroying the only copy when a partial or legacy JSON payload is malformed.
                 clear()
-                val recoveryBackupKey = "saved_windows_recovery_backup"
-                if (!saved.isNullOrBlank() && !prefs.contains(recoveryBackupKey)) {
-                    prefs.edit().putString(recoveryBackupKey, saved).apply()
+                val recoveryBackupKey = infinityNextWindowRecoveryBackupKey(prefs.all.keys)
+                if (!saved.isNullOrBlank() && recoveryBackupKey != null) {
+                    prefs.edit()
+                        .putString(recoveryBackupKey, saved)
+                        .remove("saved_windows")
+                        .apply()
                 }
-                prefs.edit().remove("saved_windows").apply()
+                // If all bounded recovery slots are occupied, leave the unreadable
+                // live snapshot untouched rather than deleting the only remaining copy.
             }
         }
     }
