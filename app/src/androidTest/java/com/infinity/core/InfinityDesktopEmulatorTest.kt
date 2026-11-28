@@ -8,6 +8,7 @@ import android.provider.MediaStore
 import android.util.Log
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
