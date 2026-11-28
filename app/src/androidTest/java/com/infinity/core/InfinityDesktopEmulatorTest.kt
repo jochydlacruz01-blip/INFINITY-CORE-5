@@ -451,7 +451,6 @@ class InfinityDesktopEmulatorTest {
         val removeFavorite = compose.onNodeWithTag("infinity-dock-favorite-toggle-$packageName")
         removeFavorite.assertExists()
         removeFavorite.assertTextEquals("QUITAR")
-        removeFavorite.performScrollTo()
         removeFavorite.assertIsDisplayed()
         removeFavorite.performTouchInput { click() }
         waitForComposeCondition(timeoutMillis = 5_000) {
