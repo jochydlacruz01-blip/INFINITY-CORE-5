@@ -505,7 +505,10 @@ private fun Infinity08App(resumeSignal: Int) {
     LaunchedEffect(wallpaperUri) {
         val uri = wallpaperUri
         wallpaperBitmap = null
-        val decoded = if (uri == null) {
+        val durableUri = uri != null &&
+            prefs.getString(infinityVirtualDesktopWallpaperKey(workspace), null) == uri.toString()
+        val hasRequiredGrant = !durableUri || infinityHasPersistedWallpaperReadPermission(context, uri!!)
+        val decoded = if (uri == null || !hasRequiredGrant) {
             null
         } else {
             withContext(Dispatchers.IO) {
@@ -534,13 +537,12 @@ private fun Infinity08App(resumeSignal: Int) {
         }
         wallpaperBitmap = decoded
         if (uri != null && decoded == null && wallpaperUri == uri) {
-            if (prefs.getString(infinityVirtualDesktopWallpaperKey(workspace), null) == uri.toString()) {
-                prefs.edit().remove(infinityVirtualDesktopWallpaperKey(workspace)).apply()
-            }
+            // Keep the saved URI as recoverable user data. The current session falls
+            // back to the workspace preset; a different desktop is never modified.
             wallpaperUri = null
             Toast.makeText(
                 context,
-                "No se pudo acceder al fondo guardado. Selecciona otra imagen.",
+                "No se pudo recuperar el fondo de este escritorio. Se conserva su referencia; selecciona otra imagen para reemplazarlo.",
                 Toast.LENGTH_LONG
             ).show()
         }
@@ -550,24 +552,17 @@ private fun Infinity08App(resumeSignal: Int) {
         ActivityResultContracts.OpenDocument()
     ) { uri ->
         if (uri != null) {
-            val persisted = try {
-                context.contentResolver.takePersistableUriPermission(
-                    uri, Intent.FLAG_GRANT_READ_URI_PERMISSION
-                )
-                true
-            } catch (_: SecurityException) {
-                false
-            }
-            // Use the selected image for this session, but only persist a URI
-            // when Android confirms that its read grant survives process restarts.
+            val persisted = infinityTakePersistableWallpaperReadPermission(context, uri)
+            // A durable wallpaper is saved only after Android's persisted grant table
+            // confirms read access. A temporary selection does not erase the previous
+            // recoverable wallpaper reference.
             wallpaperUri = uri
             if (persisted) {
-                prefs.edit().putString(infinityVirtualDesktopWallpaperKey(workspace), uri.toString()).apply()
+                prefs.edit().putString(infinityVirtualDesktopWallpaperKey(workspace), uri.toString()).commit()
             } else {
-                prefs.edit().remove(infinityVirtualDesktopWallpaperKey(workspace)).apply()
                 Toast.makeText(
                     context,
-                    "Fondo temporal: Android no permitió conservar el permiso. Selecciona la imagen de nuevo al reiniciar.",
+                    "Fondo temporal: Android no confirmó un permiso de lectura persistente. Se conservará el fondo anterior para el próximo inicio.",
                     Toast.LENGTH_LONG
                 ).show()
             }
